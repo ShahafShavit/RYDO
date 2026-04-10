@@ -29,12 +29,12 @@ This folder contains the actual frontend application code. The structure is feat
 - shared mocks and utilities
 
 ## Active Sources of Truth
-- Endpoints: [`shared/api/api-endpoints.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/api-endpoints.js)
-- Transport: [`shared/api/api-client.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/api-client.js)
-- Auth normalization: [`features/auth/auth-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/auth/auth-mapper.js)
-- Route normalization: [`features/routes/route-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/routes/route-mapper.js)
-- Admin normalization: [`features/admin/admin-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/admin/admin-mapper.js)
-- Hazard normalization: [`features/hazards/hazard-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/hazards/hazard-mapper.js)
+- Endpoints: [`shared/api/api-endpoints.js`]
+- Transport: [`shared/api/api-client.js`]
+- Auth normalization: [`features/auth/auth-mapper.js`]
+- Route normalization: [`features/routes/route-mapper.js`]
+- Admin normalization: [`features/admin/admin-mapper.js`]
+- Hazard normalization: [`features/hazards/hazard-mapper.js`]
 
 ## Routed Screens
 ### Public

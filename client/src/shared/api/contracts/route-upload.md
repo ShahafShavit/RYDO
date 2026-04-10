@@ -51,4 +51,4 @@ Example multipart payload:
   - GPX storage reference
 
 ## Expected Response
-The response should be a route object compatible with the normalized route model described in [`models.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/models.md).
+The response should be a route object compatible with the normalized route model described in [`models.md`]

@@ -93,7 +93,7 @@ Response: single route object
 
 ### `POST /routes/upload`
 Content type: `multipart/form-data`
-See [`route-upload.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/route-upload.md)
+See [`route-upload.md`]
 
 ### `GET /routes/my?skip&take`
 Response: paginated route list

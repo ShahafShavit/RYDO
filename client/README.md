@@ -19,18 +19,18 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `src/shared/`: API transport, config, shared UI, mocks, utilities, constants
 
 ### Core rules
-- Endpoint definitions live in [`src/shared/api/api-endpoints.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/api-endpoints.js)
-- Transport behavior lives in [`src/shared/api/api-client.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/api-client.js)
+- Endpoint definitions live in [`src/shared/api/api-endpoints.js`]
+- Transport behavior lives in [`src/shared/api/api-client.js`]
 - DTO normalization happens in feature mappers such as:
-  - [`src/features/auth/auth-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/auth/auth-mapper.js)
-  - [`src/features/routes/route-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/routes/route-mapper.js)
-  - [`src/features/admin/admin-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/admin/admin-mapper.js)
-  - [`src/features/hazards/hazard-mapper.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/hazards/hazard-mapper.js)
+  - [`src/features/auth/auth-mapper.js`]
+  - [`src/features/routes/route-mapper.js`]
+  - [`src/features/admin/admin-mapper.js`]
+  - [`src/features/hazards/hazard-mapper.js`]
 - Components should consume normalized frontend models, not raw backend field aliases
 
 ### Providers
-- TanStack Query is configured in [`src/app/providers/AppProviders.jsx`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/app/providers/AppProviders.jsx)
-- Authentication state is owned by [`src/features/auth/context/AuthContext.jsx`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/features/auth/context/AuthContext.jsx)
+- TanStack Query is configured in [`src/app/providers/AppProviders.jsx`]
+- Authentication state is owned by [`src/features/auth/context/AuthContext.jsx`]
 
 ## Current Routing
 ### Public routes
@@ -55,7 +55,7 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 Some feature modules exist without being mounted in the main router yet, including chat, hazards reporting, rides, history, and challenges pages. Their APIs and hooks are implemented, but they are not currently reachable through the routed app shell.
 
 ## Data Models
-Detailed canonical models live in [`src/shared/api/contracts/models.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/models.md).
+Detailed canonical models live in [`src/shared/api/contracts/models.md`]
 
 ### User
 - normalized to `{ id, fullName, email, role, isActive, createdAt }`
@@ -95,10 +95,10 @@ Detailed canonical models live in [`src/shared/api/contracts/models.md`](/Applic
 ## API Contracts
 Canonical contract docs:
 
-- [`src/shared/api/contracts/api-contract.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/api-contract.md)
-- [`src/shared/api/contracts/auth.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/auth.md)
-- [`src/shared/api/contracts/route-upload.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/route-upload.md)
-- [`src/shared/api/contracts/validation.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/validation.md)
+- [`src/shared/api/contracts/api-contract.md`]
+- [`src/shared/api/contracts/auth.md`]
+- [`src/shared/api/contracts/route-upload.md`]
+- [`src/shared/api/contracts/validation.md`]
 
 ### Auth
 - `POST /auth/login`
@@ -151,7 +151,7 @@ List hooks normalize paginated responses to `{ items, total, skip, take }`, but 
 - challenges
 
 ## Development Modes
-Environment behavior is defined in [`src/shared/config/env.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/config/env.js).
+Environment behavior is defined in [`src/shared/config/env.js`]
 
 ### Real API mode
 - `VITE_API_MODE=real`
@@ -161,7 +161,7 @@ Environment behavior is defined in [`src/shared/config/env.js`](/Applications/ל
 
 ### Mock API mode
 - `VITE_API_MODE=mock`
-- requests are served by [`src/shared/api/mock-client.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/mock-client.js)
+- requests are served by [`src/shared/api/mock-client.js`]
 - mock auth still returns nested `{ token, user }`
 - mock list endpoints follow the same envelope expectations where applicable
 
@@ -173,7 +173,7 @@ Environment behavior is defined in [`src/shared/config/env.js`](/Applications/ל
 - role is controlled by `VITE_DEV_ROLE=user|admin`
 
 ## GPX Upload Flow
-The upload contract is defined in [`src/shared/api/contracts/route-upload.md`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/contracts/route-upload.md).
+The upload contract is defined in [`src/shared/api/contracts/route-upload.md`]
 
 Current frontend behavior:
 - the user selects a `.gpx` file
@@ -190,7 +190,7 @@ Current frontend behavior:
 - the backend is treated as authoritative for persisted route metrics and preview data
 
 ## Error Handling
-- transport errors are normalized through [`src/shared/api/api-errors.js`](/Applications/לימודים/רופין/שנה ג׳/פרוייקט גמר/RYDO/client/src/shared/api/api-errors.js)
+- transport errors are normalized through [`src/shared/api/api-errors.js`]
 - non-OK responses should return JSON problem details
 - raw text errors are still handled as a fallback
 
