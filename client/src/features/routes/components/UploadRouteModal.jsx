@@ -1,12 +1,12 @@
 import { useState, lazy, Suspense } from 'react';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
-import { useUploadRoute } from '@/features/routes/api/routesApi';
+import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
 
 const RouteMapPreview = lazy(() => import('./RouteMapPreview'));
 
 const DIFFICULTY_OPTIONS = ['casual', 'moderate', 'hard'];
-const SOIL_TYPE_OPTIONS = ['rocky', 'loam', 'clay', 'sandy'];
+const TERRAIN_OPTIONS = ['road', 'gravel', 'trail', 'mixed'];
 
 export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
     const [step, setStep] = useState(1); // 1: upload, 2: preview + metadata
@@ -18,14 +18,15 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
 
     // Form metadata
     const [formData, setFormData] = useState({
-        name: '',
+        title: '',
         difficulty: 'moderate',
-        soilType: 'loam',
-        durationMinutes: 60,
+        terrain: 'mixed',
+        estimatedDurationMinutes: 60,
         description: '',
+        region: '',
     });
 
-    const { mutateAsync: uploadRoute } = useUploadRoute();
+    const { upload: uploadRoute } = useUploadRoute();
 
     if (!isOpen) return null;
 
@@ -76,8 +77,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
     };
 
     const handleSave = async () => {
-        if (!file || !formData.name) {
-            setError('Name is required');
+        if (!file || !formData.title) {
+            setError('Title is required');
             return;
         }
 
@@ -87,11 +88,12 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
         try {
             const response = await uploadRoute({
                 file,
-                Name: formData.name,
-                Difficulty: formData.difficulty,
-                SoilType: formData.soilType,
-                DurationMinutes: formData.durationMinutes,
-                Description: formData.description,
+                title: formData.title,
+                difficulty: formData.difficulty,
+                terrain: formData.terrain,
+                estimatedDurationMinutes: formData.estimatedDurationMinutes,
+                description: formData.description,
+                region: formData.region,
             });
 
             onSuccess?.(response);
@@ -101,11 +103,12 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
             setGeoJson(null);
             setStats(null);
             setFormData({
-                name: '',
+                title: '',
                 difficulty: 'moderate',
-                soilType: 'loam',
-                durationMinutes: 60,
+                terrain: 'mixed',
+                estimatedDurationMinutes: 60,
                 description: '',
+                region: '',
             });
             onClose();
         } catch (err) {
@@ -123,11 +126,12 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
         setStats(null);
         setError(null);
         setFormData({
-            name: '',
+            title: '',
             difficulty: 'moderate',
-            soilType: 'loam',
-            durationMinutes: 60,
+            terrain: 'mixed',
+            estimatedDurationMinutes: 60,
             description: '',
+            region: '',
         });
         onClose();
     };
@@ -184,7 +188,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                             </div>
                             <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
                                 <p className="text-xs uppercase tracking-widest text-white/42">Duration</p>
-                                <p className="mt-2 text-2xl font-semibold">{formData.durationMinutes} min</p>
+                                <p className="mt-2 text-2xl font-semibold">{formData.estimatedDurationMinutes} min</p>
                             </div>
                         </div>
 
@@ -193,8 +197,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                                 <label className="block text-sm font-semibold mb-2">Route Name *</label>
                                 <input
                                     type="text"
-                                    value={formData.name}
-                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    value={formData.title}
+                                    onChange={(e) => handleInputChange('title', e.target.value)}
                                     placeholder="e.g., Oak Ridge Loop"
                                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
                                 />
@@ -204,8 +208,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                                 <label className="block text-sm font-semibold mb-2">Duration (minutes) *</label>
                                 <input
                                     type="number"
-                                    value={formData.durationMinutes}
-                                    onChange={(e) => handleInputChange('durationMinutes', parseInt(e.target.value) || 0)}
+                                    value={formData.estimatedDurationMinutes}
+                                    onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
                                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
                                 />
                             </div>
@@ -224,16 +228,27 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold mb-2">Soil Type *</label>
+                                <label className="block text-sm font-semibold mb-2">Terrain *</label>
                                 <select
-                                    value={formData.soilType}
-                                    onChange={(e) => handleInputChange('soilType', e.target.value)}
+                                    value={formData.terrain}
+                                    onChange={(e) => handleInputChange('terrain', e.target.value)}
                                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-[#7B5CFF]/50"
                                 >
-                                    {SOIL_TYPE_OPTIONS.map(opt => (
+                                    {TERRAIN_OPTIONS.map(opt => (
                                         <option key={opt} value={opt}>{opt}</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold mb-2">Region</label>
+                                <input
+                                    type="text"
+                                    value={formData.region}
+                                    onChange={(e) => handleInputChange('region', e.target.value)}
+                                    placeholder="e.g., Carmel Ridge"
+                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
+                                />
                             </div>
 
                             <div>

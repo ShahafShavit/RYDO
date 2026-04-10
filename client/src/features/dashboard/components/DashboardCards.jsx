@@ -1,10 +1,10 @@
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { useSavedRoutes } from '@/features/routes/api/routesApi';
+import { useSavedRoutes } from '@/features/routes/hooks/useSavedRoutes';
 import Card from '@/shared/components/ui/card/Card';
 
 export function DashboardCards() {
     const { user } = useAuth();
-    const { data: savedRoutes = [] } = useSavedRoutes();
+    const { savedRoutes = [] } = useSavedRoutes({ skip: 0, take: 50 });
 
     const stats = [
         { label: 'Saved Routes', value: savedRoutes.length, color: 'text-blue-400' },

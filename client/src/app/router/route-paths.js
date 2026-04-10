@@ -10,11 +10,13 @@ export const ROUTES = {
   routeDetails: '/routes/:routeId',
   yourRoutes: '/your-routes',
   settings: '/settings',
+  rideEvent: '/rides/:rideId',
 
   // Admin
   admin: '/admin',
   adminUsers: '/admin/users',
   adminRoutes: '/admin/routes',
+  adminHazards: '/admin/hazards',
 
   // Fallback
   notFound: '/not-found',

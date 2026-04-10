@@ -12,9 +12,12 @@ export default function RouteMetadataPanel({ route }) {
 
   const items = [
     ['Distance', route.distanceKm ? `${route.distanceKm} km` : '—'],
-    ['Estimated time', formatDuration(route.durationMinutes)],
+    ['Estimated time', formatDuration(route.estimatedDurationMinutes)],
     ['Difficulty', route.difficulty || '—'],
     ['Terrain', route.terrain || '—'],
+    ['Region', route.region || '—'],
+    ['Elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],
+    ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—'],
   ];
 
   return (

@@ -4,7 +4,20 @@ export const loginSchema = {
 };
 
 export const registerSchema = {
-  fullName: { required: true, minLength: 2 },
-  email: { required: true },
-  password: { required: true, minLength: 6 },
+  firstName: {
+    required: true,
+    minLength: 2,
+  },
+  lastName: {
+    required: true,
+    minLength: 2,
+  },
+  email: {
+    required: true,
+    isEmail: true,
+  },
+  password: {
+    required: true,
+    minLength: 6,
+  },
 };

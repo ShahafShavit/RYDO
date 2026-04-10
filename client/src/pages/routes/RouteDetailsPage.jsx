@@ -12,14 +12,34 @@ export default function RouteDetailsPage() {
 
   const geoJson = useMemo(() => {
     if (!route) return null;
-    try {
-      const parsed = typeof route.geoJsonGeometry === 'string' ? JSON.parse(route.geoJsonGeometry) : route.geoJsonGeometry;
-      // Normalize to FeatureCollection
-      if (parsed && parsed.type && parsed.type === 'FeatureCollection') return parsed;
-      if (parsed) return { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: parsed }] };
-    } catch (e) {
-      return null;
+
+    if (route.preview?.geoJson?.type === 'FeatureCollection') {
+      return route.preview.geoJson;
     }
+
+    if (route.preview?.geoJson) {
+      return {
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', properties: {}, geometry: route.preview.geoJson }],
+      };
+    }
+
+    if (Array.isArray(route.preview?.coordinates) && route.preview.coordinates.length > 1) {
+      return {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: route.preview.coordinates,
+            },
+          },
+        ],
+      };
+    }
+
     return null;
   }, [route]);
 

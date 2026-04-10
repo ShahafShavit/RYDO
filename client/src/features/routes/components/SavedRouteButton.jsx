@@ -1,16 +1,21 @@
 import Button from '@/shared/components/ui/button/Button';
-import { useSavedRoutes, useSaveRoute, useUnsaveRoute } from '../api/routesApi';
+import { coerceId } from '@/shared/api/api-helpers';
+import { useSavedRoutes } from '@/features/routes/hooks/useSavedRoutes';
+import { useSaveRoute } from '@/features/routes/hooks/useSaveRoute';
+import { useUnsaveRoute } from '@/features/routes/hooks/useUnsaveRoute';
 
 export default function SavedRouteButton({ routeId }) {
-  const savedQuery = useSavedRoutes();
+  const savedQuery = useSavedRoutes({ skip: 0, take: 100 });
   const save = useSaveRoute();
   const unsave = useUnsaveRoute();
+  const normalizedRouteId = coerceId(routeId);
 
-  const isSaved = (savedQuery.data || []).some((s) => s.id === routeId);
+  const isSaved = savedQuery.savedRoutes.some((route) => coerceId(route.id) === normalizedRouteId);
 
   const onClick = () => {
-    if (isSaved) unsave.mutate(routeId);
-    else save.mutate(routeId);
+    if (!normalizedRouteId) return;
+    if (isSaved) unsave.mutate(normalizedRouteId);
+    else save.mutate(normalizedRouteId);
   };
 
   return (

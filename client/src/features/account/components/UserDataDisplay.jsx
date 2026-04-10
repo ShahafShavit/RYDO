@@ -1,11 +1,14 @@
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useProfile } from '@/features/account/hooks/useAccount';
 import Card from '@/shared/components/ui/card/Card';
 import { Mail, User } from 'lucide-react';
 
 export const UserDataDisplay = () => {
     const { user } = useAuth();
+    const { data: profile } = useProfile();
+    const account = profile || user;
 
-    if (!user) return <div className="text-white/60">No user data available.</div>;
+    if (!account) return <div className="text-white/60">No user data available.</div>;
 
     return (
         <div className="space-y-6 max-w-md w-full">
@@ -19,7 +22,7 @@ export const UserDataDisplay = () => {
                         </div>
                         <div>
                             <p className="text-sm text-white/60">Full Name</p>
-                            <p className="text-white font-medium">{user.fullName || 'Not provided'}</p>
+                            <p className="text-white font-medium">{account.fullName || 'Not provided'}</p>
                         </div>
                     </div>
 
@@ -29,13 +32,13 @@ export const UserDataDisplay = () => {
                         </div>
                         <div>
                             <p className="text-sm text-white/60">Email Address</p>
-                            <p className="text-white font-medium">{user.email}</p>
+                            <p className="text-white font-medium">{account.email}</p>
                         </div>
                     </div>
 
                     <div className="pt-4 mt-6 border-t border-white/10">
-                        <p className="text-xs text-white/40 mb-2">Account ID: {user.id}</p>
-                        <p className="text-xs text-white/40">Role: <span className="capitalize">{user.role}</span></p>
+                        <p className="text-xs text-white/40 mb-2">Account ID: {account.id}</p>
+                        <p className="text-xs text-white/40">Role: <span className="capitalize">{account.role}</span></p>
                     </div>
                 </div>
             </Card>

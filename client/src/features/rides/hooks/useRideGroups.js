@@ -1,8 +1,24 @@
+import { useQuery } from '@tanstack/react-query';
+import { ridesApi } from '@/features/rides/api/rides-api';
+
 export function useRideGroups() {
+  const query = useQuery({
+    queryKey: ['rides', 'groups'],
+    queryFn: async () => {
+      const groups = await ridesApi.getGroups();
+      return Array.isArray(groups)
+        ? groups.map((group) => ({
+            id: group.id,
+            name: group.name,
+            time: group.scheduledDate || group.time || 'TBD',
+            riders: group.participants?.length || group.riders || 0,
+          }))
+        : [];
+    },
+  });
+
   return {
-    groups: [
-      { id: 'ride-1', name: 'Morning Flow Crew', time: 'Tomorrow • 06:30', riders: 8 },
-      { id: 'ride-2', name: 'Desert Sunset Session', time: 'Friday • 17:45', riders: 5 },
-    ],
+    ...query,
+    groups: query.data || [],
   };
 }

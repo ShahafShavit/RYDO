@@ -1,9 +1,23 @@
+import { useQuery } from '@tanstack/react-query';
+import { challengesApi } from '@/features/challenges/api/challenges-api';
+
 export function useChallenges() {
+  const query = useQuery({
+    queryKey: ['challenges'],
+    queryFn: async () => {
+      const challenges = await challengesApi.getChallenges();
+      return Array.isArray(challenges)
+        ? challenges.map((challenge) => ({
+            id: challenge.id,
+            title: challenge.title,
+            progress: `${challenge.currentValue}/${challenge.targetValue} ${challenge.unit}`,
+          }))
+        : [];
+    },
+  });
+
   return {
-    challenges: [
-      { id: 1, title: 'Ride 3 times this week', progress: '2/3' },
-      { id: 2, title: 'Upload one new route', progress: '0/1' },
-      { id: 3, title: 'Join a group ride', progress: '1/1' },
-    ],
+    ...query,
+    challenges: query.data || [],
   };
 }

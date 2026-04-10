@@ -15,10 +15,10 @@ export default function RouteDetailsHeader({ route }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="neon">{route.difficulty || 'unknown'}</Badge>
         <Badge>{route.terrain || 'mixed'}</Badge>
-        <Badge>{formatDuration(route.durationMinutes)}</Badge>
+        <Badge>{formatDuration(route.estimatedDurationMinutes)}</Badge>
       </div>
       <div>
-        <h1 className="text-3xl font-semibold">{route.name || route.title || 'Untitled'}</h1>
+        <h1 className="text-3xl font-semibold">{route.title || 'Untitled'}</h1>
         <p className="mt-3 max-w-3xl text-white/64">{route.description}</p>
       </div>
     </div>

@@ -1,8 +1,18 @@
+import { useQuery } from '@tanstack/react-query';
+import { hazardsApi } from '@/features/hazards/api/hazards-api';
+import { normalizeHazard } from '@/features/hazards/hazard-mapper';
+
 export function useHazardsList() {
+  const query = useQuery({
+    queryKey: ['hazards'],
+    queryFn: async () => {
+      const hazards = await hazardsApi.getHazards();
+      return Array.isArray(hazards) ? hazards.map(normalizeHazard) : [];
+    },
+  });
+
   return {
-    hazards: [
-      { id: 1, title: 'Gate closed', status: 'Live', severity: 'Medium' },
-      { id: 2, title: 'Trail maintenance', status: 'New', severity: 'High' },
-    ],
+    ...query,
+    hazards: query.data || [],
   };
 }

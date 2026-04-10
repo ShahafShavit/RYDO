@@ -6,9 +6,10 @@ import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 export default function RoutesExplorePage() {
   const [filters, setFilters] = useState({
     search: '',
-    soil: 'all',
+    terrain: 'all',
     difficulty: 'all',
-    distance: 'all'
+    distance: 'all',
+    sort: 'newest',
   });
 
   // Pass active filters into our updated hook
@@ -32,7 +33,7 @@ export default function RoutesExplorePage() {
         <div className="py-12 text-center rounded-[28px] border border-white/5 bg-white/5">
           <p className="text-white/60">No routes found matching your filters.</p>
           <button
-            onClick={() => setFilters({ search: '', terrain: 'all', difficulty: 'all', distance: 'all' })}
+            onClick={() => setFilters({ search: '', terrain: 'all', difficulty: 'all', distance: 'all', sort: 'newest' })}
             className="mt-4 text-sm text-[#7B5CFF] hover:underline"
           >
             Clear filters

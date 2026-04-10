@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ROLES } from '@/shared/constants/roles';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 import Card from '@/shared/components/ui/card/Card';
@@ -10,7 +11,7 @@ import FormField from '@/shared/components/ui/form-field/FormField';
 export default function RegisterForm() {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,8 +25,8 @@ export default function RegisterForm() {
     setError(null);
     setIsLoading(true);
     try {
-      const user = await register(form.fullName, form.email, form.password);
-      navigate(user.role === 'admin' ? ROUTES.admin : ROUTES.dashboard);
+      const user = await register(form.firstName, form.lastName, form.email, form.password);
+      navigate(user.role === ROLES.ADMIN ? ROUTES.admin : ROUTES.dashboard);
     } catch (err) {
       setError(err?.message || 'Registration failed');
     } finally {
@@ -41,8 +42,12 @@ export default function RegisterForm() {
           <p className="mt-2 text-white/64">Join the platform for routes, group rides, hazards and challenges.</p>
         </div>
 
-        <FormField label="Full name">
-          <Input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Enter your full name" required />
+        <FormField label="First name">
+          <Input name="firstName" value={form.firstName} onChange={handleChange} placeholder="Enter your first name" required />
+        </FormField>
+
+        <FormField label="Last name">
+          <Input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Enter your last name" required />
         </FormField>
 
         <FormField label="Email">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
 import { usePreferences, useUpdatePreferences } from '../hooks/useAccount';
@@ -6,28 +6,18 @@ import { usePreferences, useUpdatePreferences } from '../hooks/useAccount';
 export const RidingPreferencesForm = () => {
     const { data: preferences, isLoading } = usePreferences();
     const { mutateAsync: updatePreferences, isLoading: isUpdating } = useUpdatePreferences();
-
-    const [formData, setFormData] = useState({
+    const [draft, setDraft] = useState(null);
+    const [successMsg, setSuccessMsg] = useState('');
+    const formData = draft || preferences || {
         defaultBikeType: 'road',
         distanceUnit: 'km',
         notificationsEnabled: true
-    });
-    const [successMsg, setSuccessMsg] = useState('');
-
-    useEffect(() => {
-        if (preferences) {
-            setFormData({
-                defaultBikeType: preferences.defaultBikeType || 'road',
-                distanceUnit: preferences.distanceUnit || 'km',
-                notificationsEnabled: preferences.notificationsEnabled ?? true
-            });
-        }
-    }, [preferences]);
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
+        setDraft(prev => ({
+            ...(prev || formData),
             [name]: type === 'checkbox' ? checked : value
         }));
     };
@@ -37,6 +27,7 @@ export const RidingPreferencesForm = () => {
         setSuccessMsg('');
         try {
             await updatePreferences(formData);
+            setDraft(null);
             setSuccessMsg('Preferences updated successfully');
         } catch (err) {
             console.error('Failed to update preferences:', err);
@@ -90,8 +81,8 @@ export const RidingPreferencesForm = () => {
                 <div className="text-green-500 text-sm mt-2">{successMsg}</div>
             )}
 
-            <Button type="submit" variant="primary" className="w-full" isLoading={isUpdating}>
-                Save Preferences
+            <Button type="submit" variant="primary" className="w-full" disabled={isUpdating}>
+                {isUpdating ? 'Saving…' : 'Save Preferences'}
             </Button>
         </form>
     );

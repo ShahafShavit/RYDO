@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from './route-paths';
@@ -19,6 +20,7 @@ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
+const AdminHazardsPage = lazy(() => import('@/pages/admin/AdminHazardsPage'));
 const NotFoundPage = lazy(() => import('@/pages/not-found/NotFoundPage'));
 
 export const router = createBrowserRouter([
@@ -55,6 +57,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.admin, element: <AdminDashboardPage /> },
           { path: ROUTES.adminUsers, element: <AdminUsersPage /> },
           { path: ROUTES.adminRoutes, element: <AdminRoutesPage /> },
+          { path: ROUTES.adminHazards, element: <AdminHazardsPage /> },
         ],
       },
     ],

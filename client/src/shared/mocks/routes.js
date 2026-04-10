@@ -19,7 +19,7 @@ export const MOCK_ROUTES = [
         description: 'Easy urban cycling route perfect for beginners',
         distanceKm: 15.2,
         elevationGainM: 120,
-        difficulty: 'easy',
+        difficulty: 'casual',
         terrain: 'road',
         durationMinutes: 75,
         createdBy: 'sarahadmin',

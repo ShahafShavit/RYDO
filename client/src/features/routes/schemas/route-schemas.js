@@ -1,5 +1,6 @@
 export const routeUploadSchema = {
-  name: { required: true },
+  title: { required: true },
   difficulty: { required: true },
   terrain: { required: true },
+  estimatedDurationMinutes: { required: true },
 };

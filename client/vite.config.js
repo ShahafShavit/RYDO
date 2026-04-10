@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,11 +16,24 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router', 'react-router-dom'],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-maps': ['leaflet', 'togeojson'],
-          'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
+
+          if (id.includes('@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+
+          if (id.includes('leaflet') || id.includes('togeojson')) {
+            return 'vendor-maps';
+          }
+
+          if (id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) {
+            return 'vendor-ui';
+          }
+
+          return undefined;
         },
       },
     },

@@ -227,7 +227,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {featureCards.map((feature, index) => {
+            {featureCards.map((feature) => {
               const Icon = feature.icon;
               return (
                 <Card key={feature.title} className="p-7">

@@ -1,8 +1,23 @@
-export function useChatMessages() {
+import { useQuery } from '@tanstack/react-query';
+import { chatApi } from '@/features/chat/api/chat-api';
+
+export function useChatMessages(rideId = 1) {
+  const query = useQuery({
+    queryKey: ['chat', rideId],
+    queryFn: async () => {
+      const messages = await chatApi.getMessages(rideId);
+      return Array.isArray(messages)
+        ? messages.map((message) => ({
+            id: message.id,
+            author: message.username || message.author || 'Unknown rider',
+            body: message.message || message.body || '',
+          }))
+        : [];
+    },
+  });
+
   return {
-    messages: [
-      { id: 1, author: 'Sam', body: 'Dropping the route here. Let\'s meet at 06:30.' },
-      { id: 2, author: 'Noa', body: 'Copy. I added one hazard note near the second gate.' },
-    ],
+    ...query,
+    messages: query.data || [],
   };
 }

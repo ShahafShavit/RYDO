@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useSavedRoutes, useMyRoutes } from '@/features/routes/api/routesApi';
+import { useSavedRoutes } from '@/features/routes/hooks/useSavedRoutes';
+import { useMyRoutes } from '@/features/routes/hooks/useMyRoutes';
 import RouteCard from '@/features/routes/components/RouteCard';
 import Button from '@/shared/components/ui/button/Button';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
@@ -8,16 +9,16 @@ export default function YourRoutesPage() {
     const [activeTab, setActiveTab] = useState('uploaded'); // 'uploaded' or 'favorites'
 
     const {
-        data: savedRoutes,
+        savedRoutes,
         isLoading: isSavedLoading,
         isError: isSavedError
-    } = useSavedRoutes();
+    } = useSavedRoutes({ skip: 0, take: 50 });
 
     const {
-        data: myRoutes,
+        myRoutes,
         isLoading: isMyLoading,
         isError: isMyError
-    } = useMyRoutes();
+    } = useMyRoutes({ skip: 0, take: 50 });
 
     const isActiveUploaded = activeTab === 'uploaded';
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ROLES } from '@/shared/constants/roles';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 import Card from '@/shared/components/ui/card/Card';
@@ -25,7 +26,7 @@ export default function LoginForm() {
     setIsLoading(true);
     try {
       const user = await login(form.email, form.password);
-      navigate(user.role === 'admin' ? ROUTES.admin : ROUTES.dashboard);
+      navigate(user.role === ROLES.ADMIN ? ROUTES.admin : ROUTES.dashboard);
     } catch (err) {
       setError(err?.message || 'Login failed');
     } finally {

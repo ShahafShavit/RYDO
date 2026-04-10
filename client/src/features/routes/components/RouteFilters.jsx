@@ -13,9 +13,10 @@ export default function RouteFilters({ filters = {}, onFilterChange }) {
   // support a single-row pill sweep that toggles different filter dimensions.
   const options = [
     { label: 'Newest', value: 'sort:newest' },
-    { label: 'Rocky', value: 'soil:rocky' },
-    { label: 'Clay', value: 'soil:clay' },
-    { label: 'Sandy', value: 'soil:sandy' },
+    { label: 'Road', value: 'terrain:road' },
+    { label: 'Gravel', value: 'terrain:gravel' },
+    { label: 'Trail', value: 'terrain:trail' },
+    { label: 'Mixed', value: 'terrain:mixed' },
     { label: 'Casual', value: 'difficulty:casual' },
     { label: 'Moderate', value: 'difficulty:moderate' },
     { label: 'Hard', value: 'difficulty:hard' },
@@ -26,7 +27,7 @@ export default function RouteFilters({ filters = {}, onFilterChange }) {
 
   const activeValues = [];
   if (filters.sort === 'newest') activeValues.push('sort:newest');
-  if (filters.soil && filters.soil !== 'all') activeValues.push(`soil:${filters.soil}`);
+  if (filters.terrain && filters.terrain !== 'all') activeValues.push(`terrain:${filters.terrain}`);
   if (filters.difficulty && filters.difficulty !== 'all') activeValues.push(`difficulty:${filters.difficulty}`);
   if (filters.distance && filters.distance !== 'all') activeValues.push(`distance:${filters.distance}`);
 
@@ -35,14 +36,14 @@ export default function RouteFilters({ filters = {}, onFilterChange }) {
     const next = { ...filters };
     // reset to defaults
     next.sort = undefined;
-    next.soil = 'all';
+    next.terrain = 'all';
     next.difficulty = 'all';
     next.distance = 'all';
 
     nextActive.forEach((val) => {
       const [type, v] = val.split(':');
       if (type === 'sort') next.sort = v;
-      if (type === 'soil') next.soil = v;
+      if (type === 'terrain') next.terrain = v;
       if (type === 'difficulty') next.difficulty = v;
       if (type === 'distance') next.distance = v;
     });
@@ -58,7 +59,7 @@ export default function RouteFilters({ filters = {}, onFilterChange }) {
         </div>
         <Input
           type="text"
-          placeholder="Search routes by name..."
+          placeholder="Search routes by title..."
           value={filters.search || ''}
           onChange={handleSearchChange}
           className="pl-11"

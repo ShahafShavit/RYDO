@@ -1,8 +1,24 @@
+import { useQuery } from '@tanstack/react-query';
+import { historyApi } from '@/features/history/api/history-api';
+
 export function useRideHistory() {
+  const query = useQuery({
+    queryKey: ['history'],
+    queryFn: async () => {
+      const rides = await historyApi.getHistory();
+      return Array.isArray(rides)
+        ? rides.map((ride) => ({
+            id: ride.id,
+            title: ride.routeTitle || ride.title || 'Untitled route',
+            date: ride.completedAt || ride.date,
+            distance: ride.distanceKm ? `${ride.distanceKm} km` : ride.distance || '—',
+          }))
+        : [];
+    },
+  });
+
   return {
-    rides: [
-      { id: 1, title: 'National Park Loop', date: '2026-04-01', distance: '18.4 km' },
-      { id: 2, title: 'Desert Flow Track', date: '2026-03-28', distance: '24.1 km' },
-    ],
+    ...query,
+    rides: query.data || [],
   };
 }

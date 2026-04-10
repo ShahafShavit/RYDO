@@ -1,11 +1,23 @@
-import { useUploadRoute as useApiUpload } from '../api/routesApi';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { routeKeys, routesApi } from '@/features/routes/api/routesApi';
+import { normalizeRoute, toRouteUploadPayload } from '@/features/routes/route-mapper';
 
 export function useUploadRoute() {
-  const mutation = useApiUpload();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async ({ file, ...data }) => {
+      const payload = toRouteUploadPayload(data);
+      return normalizeRoute(await routesApi.upload({ file, ...payload }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: routeKeys.myRoot() });
+    },
+  });
+
   return {
-    upload: (payload, opts) => mutation.mutate(payload, opts),
-    isLoading: mutation.isLoading,
-    isError: mutation.isError,
-    error: mutation.error,
+    upload: mutation.mutateAsync,
+    ...mutation,
+    isLoading: mutation.isPending,
   };
 }

@@ -12,14 +12,14 @@ function formatDuration(minutes) {
 }
 
 export default function RouteCard({ route }) {
-  const title = route?.title || route?.name || 'Untitled route';
+  const title = route?.title || 'Untitled route';
   const description = route?.description || 'Structured route metadata for fast decision-making before you ride.';
   const difficulty = route?.difficulty || 'unknown';
   const terrain = route?.terrain || 'mixed';
-  const duration = formatDuration(route?.durationMinutes ?? route?.duration);
+  const duration = formatDuration(route?.estimatedDurationMinutes);
   const distance = route?.distanceKm ? `${route.distanceKm} km` : null;
 
-  const routeId = route?.id ?? route?.routeId ?? '';
+  const routeId = route?.id ?? '';
 
   return (
     <Card className="flex h-full flex-col justify-between">

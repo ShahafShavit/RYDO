@@ -1,4 +1,5 @@
 export const hazardSchema = {
-  title: { required: true },
+  type: { required: true },
   severity: { required: true },
+  description: { required: true },
 };

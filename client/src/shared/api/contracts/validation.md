@@ -1,41 +1,61 @@
-# API Validation Rules
+# Validation Expectations
 
-## General Rules
-- All string fields are trimmed
-- Email fields must be valid email format
-- Date fields use ISO 8601 format
-- Coordinates use WGS84 standard
-- IDs are positive integers
-- Pagination uses skip/take pattern
+This file documents the validation assumptions implied by the current frontend code. It is guidance for backend integration, not a generated schema.
+
+## General
+- strings are trimmed where the frontend prepares payloads
+- IDs are expected to be numeric or coercible to numeric values
+- dates are handled as ISO 8601 strings
+- coordinates use WGS84 latitude/longitude
 
 ## Authentication
-- Password: 8-128 characters
-- Username: alphanumeric + underscore, 3-50 chars
-- Email: standard email validation
+- `email` is required
+- `password` is required and must be at least 6 characters
+- `firstName` is required and must be at least 2 characters
+- `lastName` is required and must be at least 2 characters
 
 ## Routes
-- Distance: 0.1 - 1000 km
-- Elevation: 0 - 10000 m
-- Duration: 1 - 1440 minutes (24 hours)
-- Title: required, 1-200 chars
-- Coordinates: valid GeoJSON LineString
+- `title` is required
+- `terrain` is required and should normalize to `road | gravel | trail | mixed`
+- `difficulty` is required and should normalize to `casual | moderate | hard`
+- `estimatedDurationMinutes` is required
+- route lists are queried with `skip` and `take`
+
+## GPX Upload
+- file field must be `gpxFile`
+- accepted extension is `.gpx`
+- invalid files should return structured validation errors
+- the frontend can preview route distance and elevation locally, but backend-derived values should win
 
 ## Hazards
-- Type: must be one of allowed values
-- Description: required for reports
-- Coordinates: must be valid lat/lng
+- report payloads currently send:
+  - `type`
+  - `severity`
+  - `description`
+  - `latitude`
+  - `longitude`
+- severity should normalize to `low | medium | high`
 
-## Challenges
-- Target value: positive number
-- Dates: endDate > startDate
-- Unit: predefined allowed values
+## Account
+- change password uses:
+  - `currentPassword`
+  - `newPassword`
+- preferences use:
+  - `defaultBikeType`
+  - `distanceUnit`
+  - `notificationsEnabled`
 
-## File Uploads
-- GPX files: max 10MB
-- Supported formats: .gpx only
-- File must contain valid GPS track data
+## Error Shape
+The frontend is prepared to parse JSON problem details:
 
-## Rate Limiting
-- Auth endpoints: 5 attempts per minute
-- File uploads: 10 per hour per user
-- General API: 1000 requests per hour per user
+```json
+{
+  "type": "validation_error",
+  "title": "Validation failed",
+  "status": 400,
+  "detail": "One or more fields are invalid.",
+  "errors": {
+    "title": ["Title is required"]
+  }
+}
+```

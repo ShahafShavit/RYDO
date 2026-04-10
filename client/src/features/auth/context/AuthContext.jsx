@@ -1,4 +1,8 @@
-import { createContext, useEffect, useMemo, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { ROUTES } from '@/app/router/route-paths';
+import { authApi } from '@/features/auth/api/auth-api';
+import { normalizeAuthResponse } from '@/features/auth/auth-mapper';
 import { env } from '@/shared/config/env';
 import { ROLES } from '@/shared/constants/roles';
 import { getStoredUser, setStoredUser, clearStoredUser, getStoredToken, setStoredToken } from '@/features/auth/utils/auth-storage';
@@ -18,67 +22,74 @@ function createDevUser() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-
-  useEffect(() => {
+  const [initialSession] = useState(() => {
     const savedUser = getStoredUser();
     const token = getStoredToken();
 
-    if (token) apiClient.setAuthToken(token);
-
     if (savedUser) {
-      setUser(savedUser);
-      setIsAuthReady(true);
-      return;
+      return { user: savedUser, token };
     }
 
     if (env.devAuthEnabled) {
-      const devUser = createDevUser();
-      setUser(devUser);
-      setStoredUser(devUser);
-      // dev mode doesn't use token
+      return { user: createDevUser(), token: 'mock-dev-token' };
     }
 
-    setIsAuthReady(true);
+    return { user: null, token: null };
+  });
+  const [user, setUser] = useState(initialSession.user);
+  const isAuthReady = true;
+
+  const applySession = useCallback((nextUser, token) => {
+    setUser(nextUser);
+    setStoredUser(nextUser);
+    setStoredToken(token);
+    apiClient.setAuthToken(token);
   }, []);
 
-  async function register(fullName, email, password) {
-    const res = await apiClient.post('/auth/register', { fullName, email, password });
-    const userData = {
-      id: res.userId,
-      fullName: res.fullName,
-      email: res.email,
-      role: res.role,
-    };
-    setUser(userData);
-    setStoredUser(userData);
-    setStoredToken(res.token);
-    apiClient.setAuthToken(res.token);
-    return userData;
-  }
-
-  async function login(email, password) {
-    const res = await apiClient.post('/auth/login', { email, password });
-    const userData = {
-      id: res.userId,
-      fullName: res.fullName,
-      email: res.email,
-      role: res.role,
-    };
-    setUser(userData);
-    setStoredUser(userData);
-    setStoredToken(res.token);
-    apiClient.setAuthToken(res.token);
-    return userData;
-  }
-
-  function logout() {
+  const clearSession = useCallback((shouldRedirect = false) => {
     clearStoredUser();
     apiClient.setAuthToken(null);
     setUser(null);
-    window.location.href = '/login';
-  }
+
+    if (shouldRedirect) {
+      window.location.href = ROUTES.login;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialSession.token) {
+      apiClient.setAuthToken(initialSession.token);
+    }
+
+    if (initialSession.user) {
+      setStoredUser(initialSession.user);
+    }
+
+    if (initialSession.token) {
+      setStoredToken(initialSession.token);
+    }
+  }, [initialSession]);
+
+  useEffect(() => {
+    apiClient.setUnauthorizedHandler(() => clearSession(true));
+    return () => apiClient.setUnauthorizedHandler(null);
+  }, [clearSession]);
+
+  const register = useCallback(async (firstName, lastName, email, password) => {
+    const session = normalizeAuthResponse(await authApi.register({ firstName, lastName, email, password }));
+    applySession(session.user, session.token);
+    return session.user;
+  }, [applySession]);
+
+  const login = useCallback(async (email, password) => {
+    const session = normalizeAuthResponse(await authApi.login({ email, password }));
+    applySession(session.user, session.token);
+    return session.user;
+  }, [applySession]);
+
+  const logout = useCallback(() => {
+    clearSession(true);
+  }, [clearSession]);
 
   const value = useMemo(
     () => ({
@@ -90,7 +101,7 @@ export function AuthProvider({ children }) {
       login,
       logout,
     }),
-    [user, isAuthReady]
+    [isAuthReady, login, logout, register, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
