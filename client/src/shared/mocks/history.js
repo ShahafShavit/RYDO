@@ -2,6 +2,7 @@
 export const MOCK_HISTORY = [
     {
         id: 1,
+        userId: 1,
         routeId: 1,
         routeTitle: 'Mountain Peak Trail',
         routeDifficulty: 'hard',
@@ -18,6 +19,7 @@ export const MOCK_HISTORY = [
     },
     {
         id: 2,
+        userId: 1,
         routeId: 2,
         routeTitle: 'City Loop Road',
         routeDifficulty: 'casual',

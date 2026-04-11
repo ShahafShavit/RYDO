@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,17 @@ public class DashboardController(RydoDbContext db) : ControllerBase
     [HttpGet("summary")]
     public async Task<IActionResult> Summary(CancellationToken ct)
     {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+
+        var completedRides = await db.HistoryEntries.CountAsync(h => h.UserId == userId, ct);
+        var savedRoutes = await db.SavedRoutes.CountAsync(s => s.UserId == userId, ct);
+        var groupRidesJoined = await db.RideParticipants.CountAsync(p => p.UserId == userId, ct);
+
         return Ok(new
         {
-            totalRoutes = await db.Routes.CountAsync(ct),
-            totalRides = await db.RideGroups.CountAsync(ct),
-            totalUsers = await db.Users.CountAsync(ct),
+            completedRides,
+            savedRoutes,
+            groupRidesJoined,
         });
     }
 }

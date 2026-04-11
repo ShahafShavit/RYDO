@@ -157,11 +157,14 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/dashboard/summary' && method === 'GET') {
+    const uid = profile.id;
+    const completedRides = historyEntries.filter((h) => h.userId === uid).length;
+    const savedRoutes = savedRouteIds.length;
+    const groupRidesJoined = rides.filter((r) => Array.isArray(r.participants) && r.participants.includes(uid)).length;
     return {
-      totalRoutes: routes.length,
-      totalRides: rides.length,
-      totalUsers: users.length,
-      totalHazards: hazards.filter((hazard) => hazard.status === 'active').length,
+      completedRides,
+      savedRoutes,
+      groupRidesJoined,
     };
   }
 

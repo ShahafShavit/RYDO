@@ -54,9 +54,9 @@ export function useDashboardData() {
   return {
     greeting: 'Everything you need for your next ride is in one place.',
     stats: [
-      { label: 'Routes', value: String(summary.totalRoutes ?? '0') },
-      { label: 'Group rides', value: String(summary.totalRides ?? '0') },
-      { label: 'Users', value: String(summary.totalUsers ?? '0') },
+      { label: 'Rides logged', value: String(summary.completedRides ?? '0') },
+      { label: 'Saved routes', value: String(summary.savedRoutes ?? '0') },
+      { label: 'Group rides joined', value: String(summary.groupRidesJoined ?? '0') },
     ],
     home,
     isLoading: summaryQuery.isPending || homeLoading,
