@@ -50,6 +50,18 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         int Int(string key, int d) => int.TryParse(form[key], out var v) ? v : d;
         double Dbl(string key, double d) => double.TryParse(form[key], out var v) ? v : d;
 
+        var distanceKm = Dbl("distanceKm", 0);
+        var elevationGainM = Dbl("elevationGainM", 0);
+        var previewJson = "[]";
+        if (GpxTrackParser.TryParse(bytes, out var parsedPreview, out var pathKm, out var pathElev))
+        {
+            previewJson = parsedPreview;
+            if (distanceKm <= 0)
+                distanceKm = pathKm;
+            if (elevationGainM <= 0)
+                elevationGainM = pathElev;
+        }
+
         var uid = GetUserId() ?? 0;
         var route = new RouteEntity
         {
@@ -58,14 +70,14 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             Terrain = string.IsNullOrWhiteSpace(Str("terrain")) ? "mixed" : Str("terrain"),
             Difficulty = string.IsNullOrWhiteSpace(Str("difficulty")) ? "moderate" : Str("difficulty"),
             Region = string.IsNullOrWhiteSpace(Str("region")) ? null : Str("region"),
-            DistanceKm = Dbl("distanceKm", 0),
-            ElevationGainM = Dbl("elevationGainM", 0),
+            DistanceKm = distanceKm,
+            ElevationGainM = elevationGainM,
             EstimatedDurationMinutes = Int("estimatedDurationMinutes", Int("durationMinutes", 60)),
             WarningsJson = string.IsNullOrWhiteSpace(Str("warnings")) ? "[]" : Str("warnings"),
             Notes = string.IsNullOrWhiteSpace(Str("notes")) ? null : Str("notes"),
             GpxBlob = bytes,
             GpxReference = $"routes/upload-{Guid.NewGuid():N}.gpx",
-            PreviewCoordinatesJson = "[]",
+            PreviewCoordinatesJson = previewJson,
             CreatedByUserId = uid,
             CreatedAt = DateTime.UtcNow,
             Status = "published",

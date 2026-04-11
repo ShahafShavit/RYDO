@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace Rydo.Api.Data;
@@ -6,8 +7,10 @@ namespace Rydo.Api.Data;
 /// <summary>Parses common GPX 1.0/1.1 track/route/waypoint structures for seed metrics.</summary>
 public static class GpxTrackParser
 {
+    private const int MaxPreviewPoints = 400;
+
     /// <summary>
-    /// Extracts first/last coordinates for preview JSON, approximate path distance, and elevation gain from &lt;ele&gt; tags when present.
+    /// Builds a downsampled track as GeoJSON coordinate order <c>[longitude, latitude]</c> JSON, plus distance and elevation gain from &lt;ele&gt; tags when present.
     /// </summary>
     public static bool TryParse(byte[] gpxBytes, out string previewCoordinatesJson, out double distanceKm, out double elevationGainM)
     {
@@ -33,11 +36,11 @@ public static class GpxTrackParser
         if (points.Count < 2)
             return false;
 
-        var first = points[0];
-        var last = points[^1];
-        previewCoordinatesJson =
-            $"[[{first.Lat.ToString("F5", CultureInfo.InvariantCulture)},{first.Lon.ToString("F5", CultureInfo.InvariantCulture)}]," +
-            $"[{last.Lat.ToString("F5", CultureInfo.InvariantCulture)},{last.Lon.ToString("F5", CultureInfo.InvariantCulture)}]]";
+        var sampled = DownsampleTrack(points, MaxPreviewPoints);
+        var lonLatPairs = new List<List<double>>(sampled.Count);
+        foreach (var p in sampled)
+            lonLatPairs.Add(new List<double> { p.Lon, p.Lat });
+        previewCoordinatesJson = JsonSerializer.Serialize(lonLatPairs);
 
         for (var i = 1; i < points.Count; i++)
             distanceKm += HaversineKm(points[i - 1].Lat, points[i - 1].Lon, points[i].Lat, points[i].Lon);
@@ -56,6 +59,32 @@ public static class GpxTrackParser
 
         elevationGainM = Math.Round(elevationGainM, 0);
         return true;
+    }
+
+    private static List<TrackPoint> DownsampleTrack(IReadOnlyList<TrackPoint> points, int maxPoints)
+    {
+        if (points.Count <= maxPoints)
+            return points.ToList();
+
+        var picked = new List<TrackPoint>(maxPoints);
+        for (var i = 0; i < maxPoints; i++)
+        {
+            var idx = (int)Math.Round(i / (double)(maxPoints - 1) * (points.Count - 1));
+            picked.Add(points[idx]);
+        }
+
+        var result = new List<TrackPoint>(picked.Count);
+        foreach (var p in picked)
+        {
+            if (result.Count == 0 || result[^1].Lat != p.Lat || result[^1].Lon != p.Lon)
+                result.Add(p);
+        }
+
+        var last = points[^1];
+        if (result.Count == 0 || result[^1].Lat != last.Lat || result[^1].Lon != last.Lon)
+            result.Add(last);
+
+        return result.Count >= 2 ? result : points.ToList();
     }
 
     private readonly record struct TrackPoint(double Lat, double Lon, double? EleMeters);

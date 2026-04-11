@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,16 +21,30 @@ public class HistoryController(RydoDbContext db) : ControllerBase
             .Where(h => h.UserId == uid)
             .OrderByDescending(h => h.CompletedAt)
             .ToListAsync(ct);
-        var items = list.Select(h => new
+        var items = list.Select(h =>
         {
-            id = h.Id,
-            routeId = h.RouteId,
-            routeTitle = h.RouteTitle,
-            routeDifficulty = h.Route != null ? h.Route.Difficulty : (string?)null,
-            completedAt = h.CompletedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            durationMinutes = h.DurationMinutes,
-            distanceKm = h.DistanceKm,
-            elevationGainM = h.ElevationGainM,
+            List<List<double>>? previewCoords = null;
+            if (h.Route != null
+                && !string.IsNullOrWhiteSpace(h.Route.PreviewCoordinatesJson)
+                && h.Route.PreviewCoordinatesJson != "[]")
+            {
+                previewCoords = JsonSerializer.Deserialize<List<List<double>>>(h.Route.PreviewCoordinatesJson);
+            }
+
+            return new
+            {
+                id = h.Id,
+                routeId = h.RouteId,
+                routeTitle = h.RouteTitle,
+                routeDifficulty = h.Route != null ? h.Route.Difficulty : (string?)null,
+                completedAt = h.CompletedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                durationMinutes = h.DurationMinutes,
+                distanceKm = h.DistanceKm,
+                elevationGainM = h.ElevationGainM,
+                preview = previewCoords is { Count: > 0 }
+                    ? new { coordinates = previewCoords }
+                    : null,
+            };
         }).ToList();
         return Ok(items);
     }

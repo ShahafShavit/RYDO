@@ -1,7 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
+
+const RouteMapPreview = lazy(() => import('@/features/routes/components/RouteMapPreview'));
 
 function ProgressBar({ value }) {
   return (
@@ -184,8 +187,27 @@ export default function DashboardHomeCards() {
             </div>
 
             <div className="mt-6 rounded-4xl border border-white/10 bg-white/5 p-4 text-white/64">
-              <div className="h-40 rounded-3xl bg-white/5" />
-              <p className="mt-3 text-sm">Trail map preview placeholder</p>
+              {home.lastRide.mapGeoJson ? (
+                <Suspense
+                  fallback={
+                    <div className="h-40 rounded-3xl bg-white/5 animate-pulse" aria-hidden />
+                  }
+                >
+                  <RouteMapPreview
+                    geoJson={home.lastRide.mapGeoJson}
+                    className="h-40 rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                  />
+                </Suspense>
+              ) : (
+                <>
+                  <div className="h-40 rounded-3xl bg-white/5" />
+                  <p className="mt-3 text-sm">
+                    {home.lastRide.routeName === 'No rides logged yet'
+                      ? 'Your trail preview will appear here after you complete a ride with a saved route.'
+                      : 'No trail preview available for this ride.'}
+                  </p>
+                </>
+              )}
             </div>
           </Card>
         </div>

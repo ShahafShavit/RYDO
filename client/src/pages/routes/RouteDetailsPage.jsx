@@ -5,43 +5,16 @@ import RouteMapPreview from '@/features/routes/components/RouteMapPreview';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
+import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
   const { route } = useRouteDetails(routeId);
 
-  const geoJson = useMemo(() => {
-    if (!route) return null;
-
-    if (route.preview?.geoJson?.type === 'FeatureCollection') {
-      return route.preview.geoJson;
-    }
-
-    if (route.preview?.geoJson) {
-      return {
-        type: 'FeatureCollection',
-        features: [{ type: 'Feature', properties: {}, geometry: route.preview.geoJson }],
-      };
-    }
-
-    if (Array.isArray(route.preview?.coordinates) && route.preview.coordinates.length > 1) {
-      return {
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: route.preview.coordinates,
-            },
-          },
-        ],
-      };
-    }
-
-    return null;
-  }, [route]);
+  const geoJson = useMemo(
+    () => buildRoutePreviewFeatureCollection(route?.preview ?? null),
+    [route],
+  );
 
   return (
     <section className="space-y-6">

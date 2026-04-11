@@ -81,8 +81,8 @@ function createRouteFromUpload(data) {
     createdBy: profile.fullName,
     createdAt: new Date().toISOString(),
     coordinates: [
-      [31.7683, 35.2137],
-      [31.769, 35.214],
+      [35.2137, 31.7683],
+      [35.214, 31.769],
     ],
     status: 'published',
   };

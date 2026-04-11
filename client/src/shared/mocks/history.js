@@ -9,6 +9,12 @@ export const MOCK_HISTORY = [
         durationMinutes: 280,
         distanceKm: 45.5,
         elevationGainM: 1200,
+        preview: {
+            coordinates: [
+                [35.2137, 31.7683],
+                [35.214, 31.769],
+            ],
+        },
     },
     {
         id: 2,
@@ -19,5 +25,11 @@ export const MOCK_HISTORY = [
         durationMinutes: 80,
         distanceKm: 15.2,
         elevationGainM: 120,
+        preview: {
+            coordinates: [
+                [34.7818, 32.0853],
+                [34.782, 32.086],
+            ],
+        },
     },
 ];

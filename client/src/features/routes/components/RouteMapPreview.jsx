@@ -10,7 +10,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-export default function RouteMapPreview({ geoJson }) {
+export default function RouteMapPreview({ geoJson, className }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
 
@@ -59,7 +59,9 @@ export default function RouteMapPreview({ geoJson }) {
   return (
     <div
       ref={mapContainer}
-      className="h-64 rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+      className={
+        className ?? 'h-64 rounded-3xl border border-white/10 bg-white/5 overflow-hidden'
+      }
     />
   );
 }

@@ -206,7 +206,7 @@ public static class DbSeeder
                 ? """["Busy traffic on weekends","Loose gravel after rain"]"""
                 : rnd.Next(4) == 0 ? """["Cattle crossing possible"]""" : "[]";
 
-            string previewJson = $"[[{lat:F5},{lng:F5}],[{lat2:F5},{lng2:F5}]]";
+            string previewJson = $"[[{lng:F5},{lat:F5}],[{lng2:F5},{lat2:F5}]]";
             string gpxRef = $"routes/seed-{i + 1}.gpx";
             byte[]? gpxBlob = null;
 

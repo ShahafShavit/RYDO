@@ -1,3 +1,5 @@
+import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
+
 function formatDifficulty(raw) {
   if (raw == null || raw === '') return '—';
   const s = String(raw).replace(/_/g, ' ');
@@ -111,6 +113,7 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, challeng
         duration: formatDurationMinutes(last.durationMinutes),
         difficulty: formatDifficulty(last.routeDifficulty),
         mapLabel: 'Trail summary',
+        mapGeoJson: buildRoutePreviewFeatureCollection(last.preview ?? null),
       }
     : {
         title: 'Last RYDO',
@@ -119,6 +122,7 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, challeng
         duration: '—',
         difficulty: '—',
         mapLabel: 'Your history will appear here',
+        mapGeoJson: null,
       };
 
   const upcomingRide = upcoming
