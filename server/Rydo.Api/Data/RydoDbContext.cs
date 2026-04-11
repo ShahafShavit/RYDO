@@ -1,0 +1,65 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace Rydo.Api.Data;
+
+public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>
+{
+    public RydoDbContext(DbContextOptions<RydoDbContext> options) : base(options) { }
+
+    public DbSet<RouteEntity> Routes => Set<RouteEntity>();
+    public DbSet<SavedRoute> SavedRoutes => Set<SavedRoute>();
+    public DbSet<HazardEntity> Hazards => Set<HazardEntity>();
+    public DbSet<RideGroup> RideGroups => Set<RideGroup>();
+    public DbSet<RideParticipant> RideParticipants => Set<RideParticipant>();
+    public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
+    public DbSet<ChallengeEntity> Challenges => Set<ChallengeEntity>();
+    public DbSet<HistoryEntry> HistoryEntries => Set<HistoryEntry>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<SavedRoute>(e =>
+        {
+            e.HasKey(x => new { x.UserId, x.RouteId });
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RouteEntity>(e =>
+        {
+            e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<HazardEntity>(e =>
+        {
+            e.HasOne(x => x.ReportedBy).WithMany().HasForeignKey(x => x.ReportedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RideGroup>(e =>
+        {
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RideParticipant>(e =>
+        {
+            e.HasKey(x => new { x.RideGroupId, x.UserId });
+            e.HasOne(x => x.RideGroup).WithMany(g => g.Participants).HasForeignKey(x => x.RideGroupId);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<UserPreference>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.HasOne(x => x.User).WithOne().HasForeignKey<UserPreference>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HistoryEntry>(e =>
+        {
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+}

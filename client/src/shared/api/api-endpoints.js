@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
     list: '/history',
   },
   admin: {
+    summary: '/admin/summary',
     users: '/admin/users',
     deleteUser: (userId) => `/admin/users/${userId}`,
     routes: '/admin/routes',

@@ -209,6 +209,14 @@ export async function mockRequest(path, options = {}) {
     return findRoute(pathname.split('/')[2]);
   }
 
+  if (pathname === '/admin/summary' && method === 'GET') {
+    return {
+      totalUsers: users.length,
+      totalRoutes: routes.length,
+      liveHazards: hazards.filter((h) => h.status === 'active').length,
+    };
+  }
+
   if (pathname === '/admin/users' && method === 'GET') {
     return paginate(users.map(toAuthUser), searchParams);
   }

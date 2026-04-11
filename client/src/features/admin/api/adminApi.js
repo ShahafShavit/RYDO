@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/shared/api/api-endpoints';
 
 export const adminKeys = {
   all: ['admin'],
+  summary: () => [...adminKeys.all, 'summary'],
   users: () => [...adminKeys.all, 'users'],
   userList: (filters) => [...adminKeys.users(), filters],
   routes: () => [...adminKeys.all, 'routes'],
@@ -12,6 +13,7 @@ export const adminKeys = {
 };
 
 export const adminApi = {
+  getSummary: () => apiClient.get(API_ENDPOINTS.admin.summary),
   getUsers: (params = {}) => apiClient.get(API_ENDPOINTS.admin.users, { query: params }),
   deleteUser: (userId) => apiClient.delete(API_ENDPOINTS.admin.deleteUser(userId)),
   getRoutes: (params = {}) => apiClient.get(API_ENDPOINTS.admin.routes, { query: params }),

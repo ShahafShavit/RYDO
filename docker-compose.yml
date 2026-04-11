@@ -1,0 +1,29 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - rydo-sqldata:/var/opt/mssql
+
+  api:
+    build:
+      context: ./server/Rydo.Api
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=db;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False"
+      Jwt__Key: "rydo-dev-secret-key-min-32-chars-long!!"
+      Jwt__Issuer: "rydo"
+      Jwt__Audience: "rydo-client"
+    depends_on:
+      - db
+    restart: on-failure
+
+volumes:
+  rydo-sqldata:

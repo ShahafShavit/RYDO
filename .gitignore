@@ -21,3 +21,10 @@ Thumbs.db
 .github/
 plans/
 ReadmeFiles/
+
+# .NET
+server/**/bin/
+server/**/obj/
+server/**/[Bb]in/
+server/**/[Oo]bj/
+*.user
