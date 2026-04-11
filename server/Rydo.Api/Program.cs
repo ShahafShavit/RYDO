@@ -65,12 +65,33 @@ builder.Services.AddCors(o =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+const int dbMaxAttempts = 24;
+for (var attempt = 1; attempt <= dbMaxAttempts; attempt++)
 {
-    var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
-    await db.Database.EnsureCreatedAsync();
-    await db.Database.ExecuteSqlRawAsync("SELECT 1");
-    await DbSeeder.SeedAsync(app.Services);
+    try
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
+            await db.Database.EnsureCreatedAsync();
+            await db.Database.ExecuteSqlRawAsync("SELECT 1");
+            await DbSeeder.SeedAsync(app.Services);
+        }
+
+        break;
+    }
+    catch (Exception) when (attempt < dbMaxAttempts)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(5));
+    }
+}
+
+var webRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var indexHtml = Path.Combine(webRoot, "index.html");
+if (File.Exists(indexHtml))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
 }
 
 app.UseCors();
@@ -79,5 +100,10 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+if (File.Exists(indexHtml))
+{
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();

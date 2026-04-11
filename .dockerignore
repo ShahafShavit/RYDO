@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/node_modules
+**/.git
+client/dist
+server/Rydo.Api/wwwroot
+.vs
+.idea
+**/*.user
+infra/cdk.out
+**/cdk.out

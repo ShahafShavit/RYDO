@@ -142,7 +142,7 @@ export async function mockRequest(path, options = {}) {
   const url = new URL(path, 'http://localhost');
   const { pathname, searchParams } = url;
 
-  if (pathname === '/auth/login' && method === 'POST') {
+  if (pathname === '/api/auth/login' && method === 'POST') {
     const body = parseJsonBody(options.body);
     const user = users.find((item) => item.email === body.email);
 
@@ -155,7 +155,7 @@ export async function mockRequest(path, options = {}) {
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
 
-  if (pathname === '/auth/register' && method === 'POST') {
+  if (pathname === '/api/auth/register' && method === 'POST') {
     const body = parseJsonBody(options.body);
 
     if (users.some((item) => item.email === body.email)) {
@@ -183,7 +183,7 @@ export async function mockRequest(path, options = {}) {
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
 
-  if (pathname === '/dashboard/summary' && method === 'GET') {
+  if (pathname === '/api/dashboard/summary' && method === 'GET') {
     const uid = profile.id;
     const completedRides = historyEntries.filter((h) => h.userId === uid).length;
     const savedRoutes = savedRouteIds.filter((id) => routes.some((r) => r.id === id)).length;
@@ -195,11 +195,11 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (pathname === '/routes' && method === 'GET') {
+  if (pathname === '/api/routes' && method === 'GET') {
     return paginate(routes, searchParams);
   }
 
-  if (pathname === '/routes/upload' && method === 'POST') {
+  if (pathname === '/api/routes/upload' && method === 'POST') {
     const formData = options.body;
     const payload = {
       title: formData.get('title'),
@@ -216,33 +216,33 @@ export async function mockRequest(path, options = {}) {
     return route;
   }
 
-  if (pathname === '/routes/saved' && method === 'GET') {
+  if (pathname === '/api/routes/saved' && method === 'GET') {
     const savedRoutes = routes.filter((route) => savedRouteIds.includes(route.id));
     return paginate(savedRoutes, searchParams);
   }
 
-  if (pathname === '/routes/my' && method === 'GET') {
+  if (pathname === '/api/routes/my' && method === 'GET') {
     const myRoutes = routes.filter((route) => route.createdBy === profile.fullName || route.createdBy?.fullName === profile.fullName);
     return paginate(myRoutes, searchParams);
   }
 
-  if (/^\/routes\/\d+\/save$/.test(pathname) && method === 'POST') {
-    const routeId = Number(pathname.split('/')[2]);
+  if (/^\/api\/routes\/\d+\/save$/.test(pathname) && method === 'POST') {
+    const routeId = Number(pathname.split('/')[3]);
     if (!savedRouteIds.includes(routeId)) savedRouteIds.push(routeId);
     return { routeId, saved: true };
   }
 
-  if (/^\/routes\/\d+\/save$/.test(pathname) && method === 'DELETE') {
-    const routeId = Number(pathname.split('/')[2]);
+  if (/^\/api\/routes\/\d+\/save$/.test(pathname) && method === 'DELETE') {
+    const routeId = Number(pathname.split('/')[3]);
     savedRouteIds = savedRouteIds.filter((id) => id !== routeId);
     return null;
   }
 
-  if (/^\/routes\/\d+$/.test(pathname) && method === 'GET') {
-    return findRoute(pathname.split('/')[2]);
+  if (/^\/api\/routes\/\d+$/.test(pathname) && method === 'GET') {
+    return findRoute(pathname.split('/')[3]);
   }
 
-  if (pathname === '/admin/summary' && method === 'GET') {
+  if (pathname === '/api/admin/summary' && method === 'GET') {
     return {
       totalUsers: users.length,
       totalRoutes: routes.length,
@@ -250,41 +250,41 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (pathname === '/admin/users' && method === 'GET') {
+  if (pathname === '/api/admin/users' && method === 'GET') {
     return paginate(users.map(toAuthUser), searchParams);
   }
 
-  if (/^\/admin\/users\/\d+$/.test(pathname) && method === 'DELETE') {
-    const userId = Number(pathname.split('/')[3]);
+  if (/^\/api\/admin\/users\/\d+$/.test(pathname) && method === 'DELETE') {
+    const userId = Number(pathname.split('/')[4]);
     users = users.filter((user) => user.id !== userId);
     return null;
   }
 
-  if (pathname === '/admin/routes' && method === 'GET') {
+  if (pathname === '/api/admin/routes' && method === 'GET') {
     return paginate(routes, searchParams);
   }
 
-  if (/^\/admin\/routes\/\d+$/.test(pathname) && method === 'DELETE') {
-    const routeId = Number(pathname.split('/')[3]);
+  if (/^\/api\/admin\/routes\/\d+$/.test(pathname) && method === 'DELETE') {
+    const routeId = Number(pathname.split('/')[4]);
     routes = routes.filter((route) => route.id !== routeId);
     savedRouteIds = savedRouteIds.filter((id) => id !== routeId);
     return null;
   }
 
-  if (/^\/admin\/routes\/\d+\/moderation$/.test(pathname) && method === 'PATCH') {
-    const routeId = Number(pathname.split('/')[3]);
+  if (/^\/api\/admin\/routes\/\d+\/moderation$/.test(pathname) && method === 'PATCH') {
+    const routeId = Number(pathname.split('/')[4]);
     const updates = parseJsonBody(options.body);
     const route = findRoute(routeId);
     Object.assign(route, { status: updates.status || route.status || 'published' });
     return route;
   }
 
-  if (pathname === '/admin/hazards' && method === 'GET') {
+  if (pathname === '/api/admin/hazards' && method === 'GET') {
     return paginate(hazards, searchParams);
   }
 
-  if (/^\/admin\/hazards\/\d+\/status$/.test(pathname) && method === 'PATCH') {
-    const hazardId = Number(pathname.split('/')[3]);
+  if (/^\/api\/admin\/hazards\/\d+\/status$/.test(pathname) && method === 'PATCH') {
+    const hazardId = Number(pathname.split('/')[4]);
     const updates = parseJsonBody(options.body);
     const hazard = hazards.find((item) => item.id === hazardId);
 
@@ -296,11 +296,11 @@ export async function mockRequest(path, options = {}) {
     return hazard;
   }
 
-  if (pathname === '/account/profile' && method === 'GET') {
+  if (pathname === '/api/account/profile' && method === 'GET') {
     return toAuthUser(profile);
   }
 
-  if (pathname === '/account/profile' && method === 'PUT') {
+  if (pathname === '/api/account/profile' && method === 'PUT') {
     const updates = parseJsonBody(options.body);
     profile = {
       ...profile,
@@ -309,11 +309,11 @@ export async function mockRequest(path, options = {}) {
     return toAuthUser(profile);
   }
 
-  if (pathname === '/account/preferences' && method === 'GET') {
+  if (pathname === '/api/account/preferences' && method === 'GET') {
     return preferences;
   }
 
-  if (pathname === '/account/preferences' && method === 'PUT') {
+  if (pathname === '/api/account/preferences' && method === 'PUT') {
     preferences = {
       ...preferences,
       ...parseJsonBody(options.body),
@@ -321,15 +321,15 @@ export async function mockRequest(path, options = {}) {
     return preferences;
   }
 
-  if (pathname === '/account/password' && method === 'PUT') {
+  if (pathname === '/api/account/password' && method === 'PUT') {
     return null;
   }
 
-  if (pathname === '/hazards' && method === 'GET') {
+  if (pathname === '/api/hazards' && method === 'GET') {
     return hazards;
   }
 
-  if (pathname === '/hazards' && method === 'POST') {
+  if (pathname === '/api/hazards' && method === 'POST') {
     const payload = parseJsonBody(options.body);
     const hazard = {
       id: Math.max(...hazards.map((item) => item.id), 0) + 1,
@@ -346,15 +346,15 @@ export async function mockRequest(path, options = {}) {
     return hazard;
   }
 
-  if (pathname === '/challenges' && method === 'GET') {
+  if (pathname === '/api/challenges' && method === 'GET') {
     return challenges;
   }
 
-  if (pathname === '/history' && method === 'GET') {
+  if (pathname === '/api/history' && method === 'GET') {
     return historyEntries.map(({ userId: _u, ...rest }) => rest);
   }
 
-  if (pathname === '/users/me/rides' && method === 'GET') {
+  if (pathname === '/api/users/me/rides' && method === 'GET') {
     const q = (searchParams.get('q') || '').trim().toLowerCase();
     const when = (searchParams.get('when') || 'all').toLowerCase();
     const now = Date.now();
@@ -380,7 +380,7 @@ export async function mockRequest(path, options = {}) {
     return list.map((r) => findRide(String(r.id)));
   }
 
-  if (pathname === '/users/me/rides' && method === 'POST') {
+  if (pathname === '/api/users/me/rides' && method === 'POST') {
     const payload = parseJsonBody(options.body);
     const routeId =
       payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
@@ -408,9 +408,9 @@ export async function mockRequest(path, options = {}) {
     return findRide(String(ride.id));
   }
 
-  if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {
+  if (/^\/api\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {
     const payload = parseJsonBody(options.body);
-    const clubId = Number(pathname.split('/')[2]);
+    const clubId = Number(pathname.split('/')[3]);
     const routeId =
       payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
     if (routeId != null && Number.isNaN(routeId)) {
@@ -446,8 +446,8 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (/^\/rides\/\d+\/join$/.test(pathname) && method === 'POST') {
-    const rideId = Number(pathname.split('/')[2]);
+  if (/^\/api\/rides\/\d+\/join$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
     const ride = rides.find((r) => r.id === rideId);
     if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
     if (!ride.participants.includes(profile.id)) ride.participants.push(profile.id);
@@ -455,8 +455,8 @@ export async function mockRequest(path, options = {}) {
     return { status: 'joined' };
   }
 
-  if (/^\/rides\/\d+\/leave$/.test(pathname) && method === 'POST') {
-    const rideId = Number(pathname.split('/')[2]);
+  if (/^\/api\/rides\/\d+\/leave$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
     const ride = rides.find((r) => r.id === rideId);
     if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
     ride.participants = ride.participants.filter((id) => id !== profile.id);
@@ -464,14 +464,14 @@ export async function mockRequest(path, options = {}) {
     return null;
   }
 
-  if (pathname === '/clubs' && method === 'GET') {
+  if (pathname === '/api/clubs' && method === 'GET') {
     return clubs.map((c) => ({
       ...c,
       membershipPending: false,
     }));
   }
 
-  if (pathname === '/clubs' && method === 'POST') {
+  if (pathname === '/api/clubs' && method === 'POST') {
     const body = parseJsonBody(options.body);
     const nextId = Math.max(...clubs.map((c) => c.id), 0) + 1;
     const row = {
@@ -495,8 +495,8 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (/^\/clubs\/\d+$/.test(pathname) && method === 'GET') {
-    const cid = Number(pathname.split('/')[2]);
+  if (/^\/api\/clubs\/\d+$/.test(pathname) && method === 'GET') {
+    const cid = Number(pathname.split('/')[3]);
     const c = clubs.find((x) => x.id === cid);
     if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
     return {
@@ -511,48 +511,48 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (/^\/clubs\/\d+\/members$/.test(pathname) && method === 'GET') {
+  if (/^\/api\/clubs\/\d+\/members$/.test(pathname) && method === 'GET') {
     return [
       { userId: profile.id, displayName: profile.fullName, role: 'admin', membershipStatus: 'active' },
       { userId: 3, displayName: 'Alex Cohen', role: 'member', membershipStatus: 'active' },
     ];
   }
 
-  if (/^\/clubs\/\d+\/join-requests$/.test(pathname) && method === 'GET') {
+  if (/^\/api\/clubs\/\d+\/join-requests$/.test(pathname) && method === 'GET') {
     return [];
   }
 
-  if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'GET') {
-    const cid = Number(pathname.split('/')[2]);
+  if (/^\/api\/clubs\/\d+\/rides$/.test(pathname) && method === 'GET') {
+    const cid = Number(pathname.split('/')[3]);
     return rides.filter((r) => r.clubId === cid).map((r) => findRide(String(r.id)));
   }
 
-  if (/^\/clubs\/\d+\/join$/.test(pathname) && method === 'POST') {
+  if (/^\/api\/clubs\/\d+\/join$/.test(pathname) && method === 'POST') {
     return { status: 'active' };
   }
 
-  if (/^\/clubs\/\d+\/leave$/.test(pathname) && method === 'POST') {
+  if (/^\/api\/clubs\/\d+\/leave$/.test(pathname) && method === 'POST') {
     return null;
   }
 
-  if (/^\/clubs\/\d+\/invites$/.test(pathname) && method === 'POST') {
-    return { inviteCode: `mock-invite-${Date.now()}`, clubId: Number(pathname.split('/')[2]) };
+  if (/^\/api\/clubs\/\d+\/invites$/.test(pathname) && method === 'POST') {
+    return { inviteCode: `mock-invite-${Date.now()}`, clubId: Number(pathname.split('/')[3]) };
   }
 
-  if (pathname === '/clubs/invites/redeem' && method === 'POST') {
+  if (pathname === '/api/clubs/invites/redeem' && method === 'POST') {
     return { clubId: 1, status: 'active' };
   }
 
-  if (/^\/rides\/\d+$/.test(pathname) && method === 'GET') {
-    return findRide(pathname.split('/')[2]);
+  if (/^\/api\/rides\/\d+$/.test(pathname) && method === 'GET') {
+    return findRide(pathname.split('/')[3]);
   }
 
-  if (/^\/chat\/\d+$/.test(pathname) && method === 'GET') {
-    return chatMessages[pathname.split('/')[2]] || [];
+  if (/^\/api\/chat\/\d+$/.test(pathname) && method === 'GET') {
+    return chatMessages[pathname.split('/')[3]] || [];
   }
 
-  if (/^\/chat\/\d+$/.test(pathname) && method === 'POST') {
-    const rideId = pathname.split('/')[2];
+  if (/^\/api\/chat\/\d+$/.test(pathname) && method === 'POST') {
+    const rideId = pathname.split('/')[3];
     const payload = parseJsonBody(options.body);
     const messages = chatMessages[rideId] || [];
     const message = {

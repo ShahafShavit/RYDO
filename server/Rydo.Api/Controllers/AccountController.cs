@@ -8,7 +8,7 @@ using Rydo.Api.Data;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("account")]
+[Route("api/account")]
 [Authorize]
 public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
 {

@@ -8,7 +8,7 @@ using Rydo.Api.Services;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("routes")]
+[Route("api/routes")]
 public class RoutesController(RydoDbContext db) : ControllerBase
 {
     [HttpGet]

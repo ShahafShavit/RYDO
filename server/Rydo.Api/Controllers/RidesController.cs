@@ -7,7 +7,7 @@ using Rydo.Api.Data;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("rides")]
+[Route("api/rides")]
 public class RidesController(RydoDbContext db) : ControllerBase
 {
     private int? CurrentUserId()

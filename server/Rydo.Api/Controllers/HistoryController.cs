@@ -9,7 +9,7 @@ using Rydo.Api.Services;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("history")]
+[Route("api/history")]
 [Authorize]
 public class HistoryController(RydoDbContext db) : ControllerBase
 {

@@ -9,7 +9,7 @@ using Rydo.Api.Services;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("admin")]
+[Route("api/admin")]
 [Authorize(Roles = "admin")]
 public class AdminController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
 {

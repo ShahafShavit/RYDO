@@ -6,7 +6,7 @@ using Rydo.Api.Data;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("challenges")]
+[Route("api/challenges")]
 public class ChallengesController(RydoDbContext db) : ControllerBase
 {
     [HttpGet]

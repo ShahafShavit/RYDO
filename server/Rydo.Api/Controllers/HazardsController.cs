@@ -7,7 +7,7 @@ using Rydo.Api.Data;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("hazards")]
+[Route("api/hazards")]
 public class HazardsController(RydoDbContext db) : ControllerBase
 {
     [HttpGet]

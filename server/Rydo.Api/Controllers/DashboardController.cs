@@ -7,7 +7,7 @@ using Rydo.Api.Security;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("dashboard")]
+[Route("api/dashboard")]
 [Authorize]
 public class DashboardController(RydoDbContext db) : ControllerBase
 {

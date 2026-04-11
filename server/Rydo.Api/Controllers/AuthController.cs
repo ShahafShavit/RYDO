@@ -7,7 +7,7 @@ using Rydo.Api.Services;
 namespace Rydo.Api.Controllers;
 
 [ApiController]
-[Route("auth")]
+[Route("api/auth")]
 public class AuthController(UserManager<ApplicationUser> users, JwtTokenService jwt) : ControllerBase
 {
     public record LoginRequest(string Email, string Password);

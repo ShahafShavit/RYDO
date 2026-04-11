@@ -1,3 +1,4 @@
+# API-only image (no SPA). For production-style single host, use the repo-root Dockerfile.
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY Rydo.Api.csproj .

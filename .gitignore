@@ -23,6 +23,12 @@ Thumbs.db
 plans/
 ReadmeFiles/
 
+# CDK / deploy
+infra/cdk.out/
+infra/node_modules/
+infra/deploy.env
+infra/cdk-outputs.json
+
 # .NET
 server/**/bin/
 server/**/obj/
