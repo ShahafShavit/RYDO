@@ -14,8 +14,9 @@ logs/
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/
+# IDE — ignore VS Code workspace files except shared tasks we commit
+.vscode/*
+!.vscode/tasks.json
 .idea/
 
 .github/
