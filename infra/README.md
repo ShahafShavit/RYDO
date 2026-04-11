@@ -22,6 +22,24 @@ This runs `cdk deploy`, builds the root `Dockerfile`, logs in to ECR, pushes `ry
 - **`SKIP_CDK_DEPLOY=1`** in `deploy.env` — only build, push, and roll ECS (infra already deployed).
 - First time in an account/region, run **`npx cdk bootstrap`** once (from `infra/` or with the same `AWS_REGION` / profile).
 
+## Pause or resume ECS (scale to zero)
+
+[`scripts/ecs-scale.sh`](../scripts/ecs-scale.sh) (run from the **repository root**) uses the same `deploy.env` and CloudFormation outputs as `deploy-aws.sh`:
+
+| Command | What it does |
+|---------|----------------|
+| `bash scripts/ecs-scale.sh status` | Prints desired/running/pending counts, deployment count, and recent ECS service events. |
+| `bash scripts/ecs-scale.sh off` | Sets **desiredCount** to **0**, waits until the service is **stable**, then verifies desired and running counts are **0**. |
+| `bash scripts/ecs-scale.sh on` | Sets **desiredCount** to **`DESIRED_COUNT_ON`** (default **1** in `deploy.env.example`), waits until stable, verifies counts. |
+
+Optional in `deploy.env`: **`DESIRED_COUNT_ON`** (integer ≥ 1) if you change desired capacity in the CDK template later.
+
+**Note:** A full **`cdk deploy`** that updates the ECS service may reset **desiredCount** to the template default (`1` in `lib/rydo-stack.ts`). After such a deploy, run **`ecs-scale.sh off`** again if you want tasks stopped. Image-only workflows can use **`SKIP_CDK_DEPLOY=1`** in `deploy-aws.sh` to avoid resetting desired count.
+
+**Cost:** scaling to **0** stops **Fargate** charges; **ALB**, **CloudFront**, **ECR** storage, and **CloudWatch** can still incur fees until the stack is destroyed. Approximate monthly costs when running are summarized in the root [`README.md`](../README.md).
+
+**ALB:** there is no **scale-to-zero** for a load balancer. While the ALB exists, it is billed hourly. Removing it means deleting the resource (or tearing down the stack), not an ECS-style desired count.
+
 ## Deploy (manual steps)
 
 From `infra/`:
