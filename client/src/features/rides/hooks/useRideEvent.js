@@ -11,7 +11,11 @@ function normalizeRide(raw) {
   return {
     id: raw.id,
     name: raw.name,
-    routeName: raw.routeTitle || raw.routeName || raw.route?.title || `Route #${raw.routeId ?? ''}`,
+    routeName:
+      raw.routeTitle ||
+      raw.routeName ||
+      raw.route?.title ||
+      (raw.routeId != null ? `Route #${raw.routeId}` : 'No route yet'),
     routeId: raw.routeId,
     time: scheduled,
     notes: raw.description || raw.notes || '',

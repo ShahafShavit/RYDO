@@ -21,7 +21,7 @@ public class UsersController(RydoDbContext db) : ControllerBase
         string Name,
         string Description,
         DateTime ScheduledDate,
-        int RouteId,
+        int? RouteId,
         int MaxParticipants);
 
     [HttpGet("me/rides")]
@@ -86,7 +86,7 @@ public class UsersController(RydoDbContext db) : ControllerBase
     {
         var uid = CurrentUserId();
         if (uid == null) return Unauthorized();
-        if (!await db.Routes.AnyAsync(r => r.Id == body.RouteId, ct)) return NotFound();
+        if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct)) return NotFound();
 
         var g = new RideGroup
         {

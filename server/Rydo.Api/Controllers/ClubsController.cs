@@ -492,7 +492,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         string Name,
         string Description,
         DateTime ScheduledDate,
-        int RouteId,
+        int? RouteId,
         int MaxParticipants,
         bool ScheduleForWholeClub);
 
@@ -501,7 +501,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
     public async Task<IActionResult> CreateClubRide(int id, [FromBody] CreateClubRideBody body, CancellationToken ct)
     {
         if (!await db.CyclingClubs.AnyAsync(c => c.Id == id, ct)) return NotFound();
-        if (!await db.Routes.AnyAsync(r => r.Id == body.RouteId, ct)) return NotFound();
+        if (body.RouteId is int routeIdCheck && !await db.Routes.AnyAsync(r => r.Id == routeIdCheck, ct)) return NotFound();
 
         var uid = CurrentUserId() ?? 0;
         var canLink = await db.ClubMembers.AnyAsync(
@@ -529,7 +529,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             if (!isClubAdmin)
             {
                 await db.SaveChangesAsync(ct);
-                var route = await db.Routes.AsNoTracking().FirstAsync(r => r.Id == g.RouteId, ct);
+                var routeTitleEarly = await RouteTitleIfAnyAsync(g.RouteId, ct);
                 return Ok(new
                 {
                     id = g.Id,
@@ -537,7 +537,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                     description = g.Description,
                     scheduledDate = g.ScheduledDate,
                     routeId = g.RouteId,
-                    routeTitle = route.Title,
+                    routeTitle = routeTitleEarly,
                     participants = new[] { uid },
                     maxParticipants = g.MaxParticipants,
                     clubId = g.ClubId,
@@ -561,7 +561,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
 
         await db.SaveChangesAsync(ct);
 
-        var createdRoute = await db.Routes.AsNoTracking().FirstAsync(r => r.Id == g.RouteId, ct);
+        var routeTitle = await RouteTitleIfAnyAsync(g.RouteId, ct);
         var finalParts = await db.RideParticipants.Where(p => p.RideGroupId == g.Id).Select(p => p.UserId).ToListAsync(ct);
         return Ok(new
         {
@@ -570,11 +570,18 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             description = g.Description,
             scheduledDate = g.ScheduledDate,
             routeId = g.RouteId,
-            routeTitle = createdRoute.Title,
+            routeTitle = routeTitle,
             participants = finalParts,
             maxParticipants = g.MaxParticipants,
             clubId = g.ClubId,
         });
+    }
+
+    private async Task<string> RouteTitleIfAnyAsync(int? routeId, CancellationToken ct)
+    {
+        if (routeId is not int rid) return "";
+        var r = await db.Routes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == rid, ct);
+        return r?.Title ?? "";
     }
 
     [HttpGet("{id:int}/rides")]

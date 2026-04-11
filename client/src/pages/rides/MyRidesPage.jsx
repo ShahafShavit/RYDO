@@ -32,7 +32,7 @@ function ScheduledRideCard({ ride }) {
     <Card>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="neon">Scheduled</Badge>
-        <Badge>{ride.routeTitle || 'Route'}</Badge>
+        <Badge>{ride.routeTitle || 'No route yet'}</Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (
@@ -58,7 +58,7 @@ function PastScheduledCard({ ride }) {
     <Card>
       <div className="flex flex-wrap items-center gap-2">
         <Badge>Past event</Badge>
-        <Badge>{ride.routeTitle || 'Route'}</Badge>
+        <Badge>{ride.routeTitle || 'No route yet'}</Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (

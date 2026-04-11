@@ -94,6 +94,7 @@ public static class DbSeeder
 
             var personalRideGroups = SeedPersonalRideGroups(routes, rnd);
             var rideGroups = SeedRideGroups(routes, rnd, clubs).Concat(personalRideGroups).ToList();
+            CapUpcomingRideGroups(rideGroups, maxUpcoming: 5);
             db.RideGroups.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
@@ -135,6 +136,9 @@ public static class DbSeeder
 
         if (!await db.UserPreferences.AnyAsync())
             SeedUserPreferences(db, userIds);
+
+        // Participant seeding must not increase the number of future-dated rides; enforce cap last.
+        CapUpcomingRideGroups(rideGroups, maxUpcoming: 5);
 
         await db.SaveChangesAsync();
     }
@@ -566,6 +570,20 @@ public static class DbSeeder
         });
     }
 
+    /// <summary>
+    /// Keeps total upcoming (scheduled in the future) club + personal rides at or below the cap.
+    /// </summary>
+    private static void CapUpcomingRideGroups(IList<RideGroup> groups, int maxUpcoming)
+    {
+        var now = DateTime.UtcNow;
+        var future = groups.Where(g => g.ScheduledDate >= now).OrderBy(g => g.ScheduledDate).ToList();
+        for (var i = maxUpcoming; i < future.Count; i++)
+        {
+            var g = future[i];
+            g.ScheduledDate = now.AddDays(-12 - (i - maxUpcoming)).Date.AddHours(10 + (i % 5));
+        }
+    }
+
     private static List<RideGroup> SeedRideGroups(List<RouteEntity> routes, Random rnd, List<CyclingClub> clubs)
     {
         var names = new[]
@@ -578,16 +596,30 @@ public static class DbSeeder
             "Fondo Training Block", "Criterium Practice", "Family Fun Pedal",
         };
 
+        var now = DateTime.UtcNow;
+        const int upcomingClub = 3;
+        var pastCount = names.Length - upcomingClub;
+
         var list = new List<RideGroup>();
         for (var i = 0; i < names.Length; i++)
         {
             var route = routes[rnd.Next(routes.Count)];
-            var days = rnd.Next(-10, 45);
+            DateTime scheduled;
+            if (i < pastCount)
+            {
+                scheduled = now.AddDays(-(8 + rnd.Next(1, 380))).Date.AddHours(6 + rnd.Next(0, 12));
+            }
+            else
+            {
+                var u = i - pastCount;
+                scheduled = now.AddDays(5 + u * 6).Date.AddHours(6 + rnd.Next(0, 12));
+            }
+
             var rg = new RideGroup
             {
                 Name = names[i],
                 Description = $"Open group ride — {route.Region ?? "mixed terrain"}. Respect traffic rules.",
-                ScheduledDate = DateTime.UtcNow.AddDays(days).Date.AddHours(6 + rnd.Next(0, 12)),
+                ScheduledDate = scheduled,
                 RouteId = route.Id,
                 MaxParticipants = 8 + rnd.Next(0, 25),
             };
@@ -624,15 +656,6 @@ public static class DbSeeder
             },
             new()
             {
-                Name = "Lunch loop — personal",
-                Description = "Quick midday miles.",
-                ScheduledDate = now.AddDays(4).Date.AddHours(12.25),
-                RouteId = pick().Id,
-                MaxParticipants = 4,
-                ClubId = null,
-            },
-            new()
-            {
                 Name = "Evening recovery roll",
                 Description = "Easy solo spin.",
                 ScheduledDate = now.AddDays(-20).Date.AddHours(18.75),
@@ -642,20 +665,29 @@ public static class DbSeeder
             },
             new()
             {
-                Name = "Midweek tempo (solo)",
-                Description = "Personal midweek effort.",
-                ScheduledDate = now.AddDays(9).Date.AddHours(17),
-                RouteId = pick().Id,
-                MaxParticipants = 8,
-                ClubId = null,
-            },
-            new()
-            {
                 Name = "Gravel sampler — personal",
                 Description = "Testing mixed surfaces on your own.",
                 ScheduledDate = now.AddDays(-8).Date.AddHours(9.5),
                 RouteId = pick().Id,
                 MaxParticipants = 6,
+                ClubId = null,
+            },
+            new()
+            {
+                Name = "Lunch loop — personal",
+                Description = "Quick midday miles — route TBD.",
+                ScheduledDate = now.AddDays(4).Date.AddHours(12.25),
+                RouteId = null,
+                MaxParticipants = 4,
+                ClubId = null,
+            },
+            new()
+            {
+                Name = "Midweek tempo (solo)",
+                Description = "Personal midweek effort.",
+                ScheduledDate = now.AddDays(9).Date.AddHours(17),
+                RouteId = pick().Id,
+                MaxParticipants = 8,
                 ClubId = null,
             },
         };
@@ -904,22 +936,23 @@ public static class DbSeeder
             var userId = userIds[rnd.Next(userIds.Count)];
             var daysAgo = rnd.Next(1, 500);
             var dur = Math.Max(25, route.EstimatedDurationMinutes + rnd.Next(-40, 40));
+            var sparse = n % 11 == 0;
             list.Add(new HistoryEntry
             {
                 UserId = userId,
                 RouteId = route.Id,
                 RouteTitle = route.Title,
                 CompletedAt = DateTime.UtcNow.AddDays(-daysAgo),
-                DurationMinutes = dur,
-                DistanceKm = Math.Round(route.DistanceKm * (0.92 + rnd.NextDouble() * 0.12), 1),
-                ElevationGainM = Math.Round(route.ElevationGainM * (0.9 + rnd.NextDouble() * 0.15)),
+                DurationMinutes = sparse ? null : dur,
+                DistanceKm = sparse ? null : Math.Round(route.DistanceKm * (0.92 + rnd.NextDouble() * 0.12), 1),
+                ElevationGainM = sparse ? null : Math.Round(route.ElevationGainM * (0.9 + rnd.NextDouble() * 0.15)),
             });
         }
 
         var now = DateTime.UtcNow;
-        foreach (var g in personalRideGroups.Where(x => x.ScheduledDate < now))
+        foreach (var g in personalRideGroups.Where(x => x.ScheduledDate < now && x.RouteId.HasValue))
         {
-            var route = routes.First(r => r.Id == g.RouteId);
+            var route = routes.First(r => r.Id == g.RouteId!.Value);
             foreach (var uid in userIds)
             {
                 var dur = Math.Max(25, route.EstimatedDurationMinutes + rnd.Next(-15, 20));

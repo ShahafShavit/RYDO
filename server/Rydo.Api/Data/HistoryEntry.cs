@@ -9,9 +9,12 @@ public class HistoryEntry
     public RouteEntity? Route { get; set; }
     public string RouteTitle { get; set; } = "";
     public DateTime CompletedAt { get; set; }
-    public int DurationMinutes { get; set; }
-    public double DistanceKm { get; set; }
-    public double ElevationGainM { get; set; }
+    /// <summary>When null, effective value falls back to the linked route.</summary>
+    public int? DurationMinutes { get; set; }
+    /// <summary>When null, effective value falls back to the linked route.</summary>
+    public double? DistanceKm { get; set; }
+    /// <summary>When null, effective value falls back to the linked route.</summary>
+    public double? ElevationGainM { get; set; }
 
     /// <summary>Optional link to a scheduled group ride (club or personal) this completion is tied to.</summary>
     public int? RideGroupId { get; set; }

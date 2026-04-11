@@ -6,7 +6,8 @@ public class RideGroup
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public DateTime ScheduledDate { get; set; }
-    public int RouteId { get; set; }
+    /// <summary>Optional; upcoming rides can be scheduled before a route is chosen.</summary>
+    public int? RouteId { get; set; }
     public RouteEntity? Route { get; set; }
     public int MaxParticipants { get; set; } = 20;
     public int? ClubId { get; set; }

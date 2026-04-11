@@ -27,8 +27,13 @@ export default function CreatePersonalRideModal({ open, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const rid = Number(routeId);
-    if (!name.trim() || !rid) return;
+    let rid = null;
+    if (routeId) {
+      const n = Number(routeId);
+      if (Number.isNaN(n)) return;
+      rid = n;
+    }
+    if (!name.trim()) return;
     const scheduledDate = new Date(scheduledLocal);
     if (Number.isNaN(scheduledDate.getTime())) return;
     createPersonal.mutate(
@@ -90,10 +95,9 @@ export default function CreatePersonalRideModal({ open, onClose }) {
               className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171717] px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
               value={routeId}
               onChange={(ev) => setRouteId(ev.target.value)}
-              required
               disabled={routesLoading}
             >
-              <option value="">Select a route</option>
+              <option value="">No route yet (optional)</option>
               {routes.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title || `Route #${r.id}`}

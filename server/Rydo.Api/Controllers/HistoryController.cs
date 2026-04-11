@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
 using Rydo.Api.Security;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
@@ -24,12 +25,13 @@ public class HistoryController(RydoDbContext db) : ControllerBase
             .ToListAsync(ct);
         var items = list.Select(h =>
         {
+            var route = h.Route;
             List<List<double>>? previewCoords = null;
-            if (h.Route != null
-                && !string.IsNullOrWhiteSpace(h.Route.PreviewCoordinatesJson)
-                && h.Route.PreviewCoordinatesJson != "[]")
+            if (route != null
+                && !string.IsNullOrWhiteSpace(route.PreviewCoordinatesJson)
+                && route.PreviewCoordinatesJson != "[]")
             {
-                previewCoords = JsonSerializer.Deserialize<List<List<double>>>(h.Route.PreviewCoordinatesJson);
+                previewCoords = JsonSerializer.Deserialize<List<List<double>>>(route.PreviewCoordinatesJson);
             }
 
             string? rideKind = null;
@@ -42,17 +44,21 @@ public class HistoryController(RydoDbContext db) : ControllerBase
                 rideGroupClubName = h.RideGroup.Club?.Name;
             }
 
+            var durationMinutes = HistoryMergeHelper.EffectiveDurationMinutes(h, route);
+            var distanceKm = HistoryMergeHelper.EffectiveDistanceKm(h, route);
+            var elevationGainM = HistoryMergeHelper.EffectiveElevationGainM(h, route);
+
             return new
             {
                 id = h.Id,
                 routeId = h.RouteId,
                 routeTitle = h.RouteTitle,
-                routeDifficulty = h.Route != null ? h.Route.Difficulty : (string?)null,
-                estimatedDurationMinutes = h.Route != null ? h.Route.EstimatedDurationMinutes : (int?)null,
+                routeDifficulty = route != null ? route.Difficulty : (string?)null,
+                estimatedDurationMinutes = route != null ? route.EstimatedDurationMinutes : (int?)null,
                 completedAt = h.CompletedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                durationMinutes = h.DurationMinutes,
-                distanceKm = h.DistanceKm,
-                elevationGainM = h.ElevationGainM,
+                durationMinutes,
+                distanceKm,
+                elevationGainM,
                 rideGroupId = h.RideGroupId,
                 rideKind,
                 clubId = rideGroupClubId,

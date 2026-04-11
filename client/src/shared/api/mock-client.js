@@ -121,7 +121,8 @@ function findRide(rideId) {
   if (!ride) {
     throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
   }
-  const route = routes.find((r) => r.id === Number(ride.routeId));
+  const route =
+    ride.routeId != null ? routes.find((r) => r.id === Number(ride.routeId)) : null;
   const routeTitle = ride.routeTitle || route?.title || '';
   const participantDetails =
     ride.participantDetails || participantDetailsFromIds(ride.participants);
@@ -381,9 +382,13 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/users/me/rides' && method === 'POST') {
     const payload = parseJsonBody(options.body);
-    const routeId = Number(payload.routeId || 0);
-    const route = routes.find((r) => r.id === routeId);
-    if (!route) throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
+    const routeId =
+      payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
+    if (routeId != null && Number.isNaN(routeId)) {
+      throw new ApiError({ message: 'Invalid route', status: 400, code: 'bad_request' });
+    }
+    const route = routeId != null ? routes.find((r) => r.id === routeId) : null;
+    if (routeId != null && !route) throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
     const nextId = Math.max(...rides.map((item) => item.id), 0) + 1;
     const parts = [profile.id];
     const ride = {
@@ -406,8 +411,12 @@ export async function mockRequest(path, options = {}) {
   if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {
     const payload = parseJsonBody(options.body);
     const clubId = Number(pathname.split('/')[2]);
-    const routeId = Number(payload.routeId || 0);
-    const route = routes.find((r) => r.id === routeId);
+    const routeId =
+      payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
+    if (routeId != null && Number.isNaN(routeId)) {
+      throw new ApiError({ message: 'Invalid route', status: 400, code: 'bad_request' });
+    }
+    const route = routeId != null ? routes.find((r) => r.id === routeId) : null;
     const nextId = Math.max(...rides.map((item) => item.id), 0) + 1;
     const parts = [profile.id];
     const ride = {

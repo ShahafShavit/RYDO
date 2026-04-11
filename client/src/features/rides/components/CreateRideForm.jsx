@@ -42,7 +42,8 @@ export default function CreateRideForm({
   const handleSubmit = async (event) => {
     event.preventDefault();
     const scheduled = form.scheduledDate ? new Date(form.scheduledDate).toISOString() : new Date().toISOString();
-    const routeId = fixedRouteId != null ? fixedRouteId : Number(form.routeId || 0);
+    const routeId =
+      fixedRouteId != null ? fixedRouteId : form.routeId ? Number(form.routeId) : null;
     await createRide({
       clubId,
       name: form.name,
@@ -76,10 +77,9 @@ export default function CreateRideForm({
             className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25 disabled:opacity-50"
             value={form.routeId}
             onChange={handleChange}
-            required
             disabled={routesLoading}
           >
-            <option value="">Select a route</option>
+            <option value="">No route yet (optional)</option>
             {routes.map((r) => (
               <option key={r.id} value={r.id}>
                 #{r.id} — {r.title}
