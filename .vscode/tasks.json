@@ -21,6 +21,25 @@
       "problemMatcher": []
     },
     {
+      "label": "RYDO: Stop — kill Vite + Docker down",
+      "type": "shell",
+      "command": "npm run kill-dev --prefix client && docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {}
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "RYDO: Docker — down (remove volumes, re-seed DB next up)",
       "type": "shell",
       "command": "docker compose down -v",
@@ -74,6 +93,22 @@
         "kind": "build",
         "isDefault": true
       },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "RYDO: Full restart — stop all, then Docker + Vite",
+      "dependsOn": [
+        "RYDO: Stop — kill Vite + Docker down",
+        "RYDO: Docker — rebuild & up",
+        "RYDO: Client — dev server"
+      ],
+      "dependsOrder": "sequence",
+      "group": "build",
       "problemMatcher": [],
       "presentation": {
         "echo": true,
