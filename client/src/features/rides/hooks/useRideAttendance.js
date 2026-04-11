@@ -6,7 +6,8 @@ export function useRideAttendance(rideId) {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['rides', 'detail', rideId] });
-    queryClient.invalidateQueries({ queryKey: ['rides', 'groups'] });
+    queryClient.invalidateQueries({ queryKey: ['rides', 'me'] });
+    queryClient.invalidateQueries({ queryKey: ['clubs', 'rides'] });
   };
 
   const join = useMutation({

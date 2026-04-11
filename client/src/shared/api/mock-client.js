@@ -116,7 +116,9 @@ function findRide(rideId) {
   const routeTitle = ride.routeTitle || route?.title || '';
   const participantDetails =
     ride.participantDetails || participantDetailsFromIds(ride.participants);
-  return { ...ride, routeTitle, participantDetails };
+  const participantCount =
+    ride.participantCount ?? participantDetails.length ?? (ride.participants?.length ?? 0);
+  return { ...ride, routeTitle, participantDetails, participantCount, participants: ride.participants };
 }
 
 export async function mockRequest(path, options = {}) {
@@ -339,12 +341,15 @@ export async function mockRequest(path, options = {}) {
     return historyEntries;
   }
 
-  if (pathname === '/rides/groups' && method === 'GET') {
-    return rides;
+  if (pathname === '/users/me/rides' && method === 'GET') {
+    return rides
+      .filter((r) => Array.isArray(r.participants) && r.participants.includes(profile.id))
+      .map((r) => findRide(String(r.id)));
   }
 
-  if (pathname === '/rides/groups' && method === 'POST') {
+  if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {
     const payload = parseJsonBody(options.body);
+    const clubId = Number(pathname.split('/')[2]);
     const routeId = Number(payload.routeId || 0);
     const route = routes.find((r) => r.id === routeId);
     const nextId = Math.max(...rides.map((item) => item.id), 0) + 1;
@@ -359,8 +364,8 @@ export async function mockRequest(path, options = {}) {
       participants: parts,
       participantDetails: participantDetailsFromIds(parts),
       maxParticipants: Number(payload.maxParticipants || 10),
-      clubId: payload.clubId ?? null,
-      clubName: payload.clubId ? clubs.find((c) => c.id === Number(payload.clubId))?.name ?? null : null,
+      clubId,
+      clubName: clubs.find((c) => c.id === clubId)?.name ?? null,
     };
     rides.unshift(ride);
     return {
@@ -376,8 +381,8 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  if (/^\/rides\/groups\/\d+\/join$/.test(pathname) && method === 'POST') {
-    const rideId = Number(pathname.split('/')[3]);
+  if (/^\/rides\/\d+\/join$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[2]);
     const ride = rides.find((r) => r.id === rideId);
     if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
     if (!ride.participants.includes(profile.id)) ride.participants.push(profile.id);
@@ -385,8 +390,8 @@ export async function mockRequest(path, options = {}) {
     return { status: 'joined' };
   }
 
-  if (/^\/rides\/groups\/\d+\/leave$/.test(pathname) && method === 'POST') {
-    const rideId = Number(pathname.split('/')[3]);
+  if (/^\/rides\/\d+\/leave$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[2]);
     const ride = rides.find((r) => r.id === rideId);
     if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
     ride.participants = ride.participants.filter((id) => id !== profile.id);
@@ -454,16 +459,7 @@ export async function mockRequest(path, options = {}) {
 
   if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'GET') {
     const cid = Number(pathname.split('/')[2]);
-    return rides
-      .filter((r) => r.clubId === cid)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        scheduledDate: r.scheduledDate,
-        routeId: r.routeId,
-        routeTitle: r.routeTitle,
-        maxParticipants: r.maxParticipants,
-      }));
+    return rides.filter((r) => r.clubId === cid).map((r) => findRide(String(r.id)));
   }
 
   if (/^\/clubs\/\d+\/join$/.test(pathname) && method === 'POST') {
@@ -482,8 +478,8 @@ export async function mockRequest(path, options = {}) {
     return { clubId: 1, status: 'active' };
   }
 
-  if (/^\/rides\/events\/\d+$/.test(pathname) && method === 'GET') {
-    return findRide(pathname.split('/')[3]);
+  if (/^\/rides\/\d+$/.test(pathname) && method === 'GET') {
+    return findRide(pathname.split('/')[2]);
   }
 
   if (/^\/chat\/\d+$/.test(pathname) && method === 'GET') {

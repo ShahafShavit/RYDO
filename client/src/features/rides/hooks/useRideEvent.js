@@ -4,6 +4,10 @@ import { ridesApi } from '@/features/rides/api/rides-api';
 function normalizeRide(raw) {
   if (!raw) return null;
   const scheduled = raw.scheduledDate || raw.time || '';
+  const details = Array.isArray(raw.participantDetails) ? raw.participantDetails : [];
+  const parts = Array.isArray(raw.participants) ? raw.participants : [];
+  const participantCount =
+    raw.participantCount != null ? Number(raw.participantCount) : details.length > 0 ? details.length : parts.length;
   return {
     id: raw.id,
     name: raw.name,
@@ -11,10 +15,9 @@ function normalizeRide(raw) {
     routeId: raw.routeId,
     time: scheduled,
     notes: raw.description || raw.notes || '',
-    participantDetails: Array.isArray(raw.participantDetails)
-      ? raw.participantDetails
-      : [],
-    participants: Array.isArray(raw.participants) ? raw.participants : [],
+    participantDetails: details,
+    participants: parts,
+    participantCount,
     maxParticipants: raw.maxParticipants ?? 20,
     clubId: raw.clubId ?? null,
     clubName: raw.clubName ?? null,

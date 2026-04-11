@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import RouteDetailsHeader from '@/features/routes/components/RouteDetailsHeader';
-import RouteMapPreview from '@/features/routes/components/RouteMapPreview';
+import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
@@ -22,7 +22,7 @@ export default function RouteDetailsPage() {
         <RouteDetailsHeader route={route} />
         <SavedRouteButton routeId={route?.id} />
       </div>
-      <RouteMapPreview geoJson={geoJson} />
+      <RouteMapWithElevation geoJson={geoJson} />
       <RouteMetadataPanel route={route} />
     </section>
   );

@@ -5,7 +5,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 
-const RouteMapPreview = lazy(() => import('@/features/routes/components/RouteMapPreview'));
+const RouteMapWithElevation = lazy(() => import('@/features/routes/components/RouteMapWithElevation'));
 
 function ProgressBar({ value }) {
   return (
@@ -145,7 +145,7 @@ export default function DashboardHomeCards() {
       <>
         <DashboardHomeSkeleton />
         <div className="mt-8 flex gap-3">
-          <Link to="?upload=true">
+          <Link to={`${ROUTES.yourRoutes}?upload=true`}>
             <Button variant="primary">Upload New GPX Route</Button>
           </Link>
         </div>
@@ -214,9 +214,9 @@ export default function DashboardHomeCards() {
                     <div className="h-40 rounded-3xl bg-white/5 animate-pulse" aria-hidden />
                   }
                 >
-                  <RouteMapPreview
+                  <RouteMapWithElevation
                     geoJson={home.lastRide.mapGeoJson}
-                    className="h-40 rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
+                    mapClassName="h-40 rounded-3xl border border-white/10 bg-white/5 overflow-hidden"
                   />
                 </Suspense>
               ) : (
@@ -239,7 +239,7 @@ export default function DashboardHomeCards() {
         </div>
       </div>
       <div className="mt-8 flex gap-3">
-        <Link to="?upload=true">
+        <Link to={`${ROUTES.yourRoutes}?upload=true`}>
           <Button variant="primary">Upload New GPX Route</Button>
         </Link>
       </div>

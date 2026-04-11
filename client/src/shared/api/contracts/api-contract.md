@@ -196,7 +196,7 @@ Response (counts are platform-wide):
 }
 ```
 
-The home dashboard UI also composes **`GET /history`**, **`GET /rides/groups`**, **`GET /clubs`**, and **`GET /challenges`** client-side (see shapes below).
+The home dashboard UI also composes **`GET /history`**, **`GET /users/me/rides`**, **`GET /clubs`**, and **`GET /challenges`** client-side (see shapes below).
 
 ## History
 ### `GET /history`
@@ -215,9 +215,15 @@ Returns a JSON array of completed rides for the authenticated user, newest first
 ```
 `routeDifficulty` mirrors the linked route’s difficulty when the route exists; otherwise it may be omitted or null.
 
-## Rides (group events)
-### `GET /rides/groups`
-Returns a JSON array. Each item includes `routeTitle`, optional `clubId` / `clubName`, participant id list, and `participantDetails` for display names:
+## Rides (club scheduled rides)
+
+### `GET /users/me/rides` (authenticated)
+Returns a JSON array of rides where the current user is a participant, ordered by `scheduledDate`. Each item uses the **ride JSON shape** below (with roster visibility rules applied).
+
+### `GET /rides/:rideId` (anonymous or authenticated)
+Returns one scheduled ride. **Roster privacy:** active members of the ride’s club receive `participants`, `participantDetails`, and `participantCount`. Anonymous users and authenticated users who are **not** active members of that club receive **`participantCount` only** (no `participants` / `participantDetails`).
+
+**Ride JSON shape** (when roster is visible):
 ```json
 {
   "id": 1,
@@ -226,6 +232,7 @@ Returns a JSON array. Each item includes `routeTitle`, optional `clubId` / `club
   "scheduledDate": "2026-06-15T08:00:00.000Z",
   "routeId": 1,
   "routeTitle": "Mountain Peak Trail",
+  "participantCount": 2,
   "participants": [1, 2],
   "participantDetails": [
     { "userId": 1, "displayName": "John Rider" }
@@ -236,11 +243,10 @@ Returns a JSON array. Each item includes `routeTitle`, optional `clubId` / `club
 }
 ```
 
-### `GET /rides/events/:rideId`
-Same shape as one element from `GET /rides/groups`, including `participantDetails`, `clubId`, and `clubName` when set.
+When roster is hidden, `participantDetails` and `participants` are omitted or null; `participantCount` is always present.
 
-### `POST /rides/groups` (authenticated)
-Creates a scheduled group ride. Creator is added as a participant. Body:
+### `POST /clubs/:clubId/rides` (authenticated)
+Creates a scheduled ride for that club. The caller must be an **active** club member. Creator is added as a participant. Body (no `clubId` — it comes from the URL):
 ```json
 {
   "name": "Morning roll",
@@ -248,14 +254,13 @@ Creates a scheduled group ride. Creator is added as a participant. Body:
   "scheduledDate": "2026-07-01T06:30:00.000Z",
   "routeId": 3,
   "maxParticipants": 20,
-  "clubId": null,
   "scheduleForWholeClub": false
 }
 ```
-If `clubId` is set, the user must be an **active** member of that club. If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator).
+If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator).
 
-### `POST /rides/groups/:rideId/join` / `POST /rides/groups/:rideId/leave` (authenticated)
-Join or leave the ride roster (`leave` returns `204 No Content`).
+### `POST /rides/:rideId/join` / `POST /rides/:rideId/leave` (authenticated)
+Join or leave the ride roster. Join requires an **active** membership in the ride’s club when the ride is linked to a club (`leave` returns `204 No Content`).
 
 ## Cycling clubs
 Visibility is `public` or `private` in JSON responses; create/patch use numeric enum **`0` = public, `1` = private** (`ClubVisibility`).
@@ -297,7 +302,7 @@ Demote is rejected if it would remove the last admin.
 Cannot remove the last admin.
 
 ### `GET /clubs/:id/rides`
-Scheduled `RideGroup` rows linked via `clubId`.
+Scheduled `RideGroup` rows for that club. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only.
 
 ## Secondary Feature Endpoints
 These feature modules exist and use the shared client path:
@@ -305,11 +310,11 @@ These feature modules exist and use the shared client path:
 - `GET /dashboard/summary`
 - `GET /hazards`
 - `POST /hazards`
-- `GET /rides/groups`
-- `POST /rides/groups`
-- `GET /rides/events/:rideId`
-- `POST /rides/groups/:rideId/join`
-- `POST /rides/groups/:rideId/leave`
+- `GET /users/me/rides`
+- `POST /clubs/:clubId/rides`
+- `GET /rides/:rideId`
+- `POST /rides/:rideId/join`
+- `POST /rides/:rideId/leave`
 - `GET /clubs`, `POST /clubs`, club sub-resources as above
 - `GET /chat/:rideId`
 - `POST /chat/:rideId`

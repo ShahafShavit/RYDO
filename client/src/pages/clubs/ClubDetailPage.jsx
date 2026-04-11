@@ -3,16 +3,32 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
+import CreateClubRideModal from '@/features/rides/components/CreateClubRideModal';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
+
+function ridePeopleSummary(r) {
+  const n = r.participantCount ?? r.participantDetails?.length ?? r.participants?.length ?? 0;
+  if (Array.isArray(r.participantDetails) && r.participantDetails.length > 0) {
+    const names = r.participantDetails
+      .map((p) => p.displayName?.trim() || `Rider #${p.userId}`)
+      .slice(0, 4)
+      .join(', ');
+    const extra = r.participantDetails.length > 4 ? ` +${r.participantDetails.length - 4}` : '';
+    return `${names}${extra}`;
+  }
+  return `${n} signed up`;
+}
+
 export default function ClubDetailPage() {
   const { clubId } = useParams();
   const id = Number(clubId);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [inviteToken, setInviteToken] = useState('');
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const clubQuery = useQuery({
     queryKey: ['clubs', 'detail', id],
@@ -42,7 +58,8 @@ export default function ClubDetailPage() {
 
   const invalidateClub = () => {
     queryClient.invalidateQueries({ queryKey: ['clubs'] });
-    queryClient.invalidateQueries({ queryKey: ['rides', 'groups'] });
+    queryClient.invalidateQueries({ queryKey: ['rides', 'me'] });
+    queryClient.invalidateQueries({ queryKey: ['clubs', 'rides', id] });
   };
 
   const joinMut = useMutation({
@@ -93,6 +110,23 @@ export default function ClubDetailPage() {
   });
 
   const club = clubQuery.data;
+
+  const { upcomingRides, pastRides } = useMemo(() => {
+    const list = ridesQuery.data;
+    if (!Array.isArray(list) || list.length === 0) return { upcomingRides: [], pastRides: [] };
+    const now = Date.now();
+    const upcoming = [];
+    const past = [];
+    for (const r of list) {
+      const t = new Date(r.scheduledDate).getTime();
+      if (Number.isNaN(t)) continue;
+      if (t >= now) upcoming.push(r);
+      else past.push(r);
+    }
+    upcoming.sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate));
+    past.sort((a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate));
+    return { upcomingRides: upcoming, pastRides: past };
+  }, [ridesQuery.data]);
 
   const membershipLabel = useMemo(() => {
     if (!club) return '';
@@ -161,7 +195,9 @@ export default function ClubDetailPage() {
             Leave club
           </Button>
         ) : null}
-        {club.visibility === 'private' && club.currentUserMembership === 'none' ? (
+        {club.visibility === 'private' &&
+        user &&
+        (club.currentUserMembership === 'none' || club.currentUserMembership === 'pending') ? (
           <Card className="max-w-md">
             <p className="text-sm text-white/72">Have an invite code?</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -170,6 +206,7 @@ export default function ClubDetailPage() {
                 Redeem
               </Button>
             </div>
+            {redeemMut.isError ? <p className="mt-2 text-xs text-red-400">Invalid or expired code.</p> : null}
           </Card>
         ) : null}
       </div>
@@ -244,14 +281,37 @@ export default function ClubDetailPage() {
       ) : null}
 
       <Card>
-        <h2 className="text-lg font-semibold">Club rides</h2>
-        {ridesQuery.data?.length ? (
-          <ul className="mt-4 space-y-3">
-            {ridesQuery.data.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <div>
+        <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold">Club rides</h2>
+            <p className="mt-1 max-w-xl text-sm text-white/48">
+              Rides are created for this club only. Members opt in from each ride&apos;s page.
+            </p>
+          </div>
+          {canSeeMembers ? (
+            <Button
+              variant="neon"
+              type="button"
+              className="shrink-0 !py-2.5 text-sm sm:self-start"
+              onClick={() => setScheduleOpen(true)}
+            >
+              + Schedule a ride
+            </Button>
+          ) : null}
+        </div>
+
+        <h3 className="mt-6 text-sm font-semibold text-white/88">Upcoming</h3>
+        {upcomingRides.length ? (
+          <ul className="mt-3 space-y-3">
+            {upcomingRides.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-white">{r.name}</p>
                   <p className="text-xs text-white/56">{new Date(r.scheduledDate).toLocaleString()}</p>
+                  <p className="mt-1 text-xs text-white/48">{ridePeopleSummary(r)}</p>
                 </div>
                 <Link to={ROUTES.rideEvent.replace(':rideId', String(r.id))}>
                   <Button variant="secondary" className="!py-1.5 text-xs">
@@ -262,14 +322,42 @@ export default function ClubDetailPage() {
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-white/56">No rides linked to this club yet.</p>
+          <p className="mt-2 text-sm text-white/56">No upcoming rides.</p>
         )}
-        <div className="mt-6">
-          <Link to={`${ROUTES.rideGroups}?club=${id}`}>
-            <Button variant="neon">Schedule a club ride</Button>
-          </Link>
-        </div>
+
+        <h3 className="mt-8 text-sm font-semibold text-white/88">Past</h3>
+        {pastRides.length ? (
+          <ul className="mt-3 space-y-3">
+            {pastRides.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-white">{r.name}</p>
+                  <p className="text-xs text-white/56">{new Date(r.scheduledDate).toLocaleString()}</p>
+                  <p className="mt-1 text-xs text-white/48">{ridePeopleSummary(r)}</p>
+                </div>
+                <Link to={ROUTES.rideEvent.replace(':rideId', String(r.id))}>
+                  <Button variant="secondary" className="!py-1.5 text-xs">
+                    View
+                  </Button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-white/56">No past rides yet.</p>
+        )}
       </Card>
+
+      <CreateClubRideModal
+        clubId={id}
+        clubName={club.name}
+        isOpen={scheduleOpen}
+        onClose={() => setScheduleOpen(false)}
+        onSuccess={invalidateClub}
+      />
     </section>
   );
 }

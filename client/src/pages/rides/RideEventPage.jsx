@@ -16,8 +16,14 @@ export default function RideEventPage() {
 
   const myUserId = user?.id != null ? Number(user.id) : null;
   const amParticipant = useMemo(() => {
-    if (myUserId == null || !ride?.participants) return false;
-    return ride.participants.map(Number).includes(myUserId);
+    if (myUserId == null || !ride) return false;
+    if (Array.isArray(ride.participants) && ride.participants.length > 0) {
+      return ride.participants.map(Number).includes(myUserId);
+    }
+    if (Array.isArray(ride.participantDetails)) {
+      return ride.participantDetails.some((p) => Number(p.userId) === myUserId);
+    }
+    return false;
   }, [myUserId, ride]);
 
   if (isLoading) {
@@ -58,7 +64,7 @@ export default function RideEventPage() {
       ) : (
         <p className="text-sm text-white/56">Sign in to join this ride.</p>
       )}
-      <RideMembersList members={ride.participantDetails} />
+      <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />
     </section>
   );
 }

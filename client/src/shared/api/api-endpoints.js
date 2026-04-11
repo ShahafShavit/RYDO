@@ -17,12 +17,13 @@ export const API_ENDPOINTS = {
     save: (routeId) => `/routes/${routeId}/save`,
     unsave: (routeId) => `/routes/${routeId}/save`,
   },
+  users: {
+    myRides: '/users/me/rides',
+  },
   rides: {
-    groups: '/rides/groups',
-    create: '/rides/groups',
-    details: (rideId) => `/rides/events/${rideId}`,
-    join: (rideId) => `/rides/groups/${rideId}/join`,
-    leave: (rideId) => `/rides/groups/${rideId}/leave`,
+    details: (rideId) => `/rides/${rideId}`,
+    join: (rideId) => `/rides/${rideId}/join`,
+    leave: (rideId) => `/rides/${rideId}/leave`,
   },
   clubs: {
     list: '/clubs',
@@ -41,6 +42,7 @@ export const API_ENDPOINTS = {
     demote: (clubId, userId) => `/clubs/${clubId}/members/${userId}/demote`,
     removeMember: (clubId, userId) => `/clubs/${clubId}/members/${userId}`,
     rides: (clubId) => `/clubs/${clubId}/rides`,
+    createRide: (clubId) => `/clubs/${clubId}/rides`,
   },
   chat: {
     messages: (rideId) => `/chat/${rideId}`,

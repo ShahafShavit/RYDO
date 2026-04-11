@@ -48,8 +48,19 @@ a {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
+}
+
+/* Native <select> dropdowns: OS often paints a light list while inheriting light text — unreadable. */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--rydo-bg-deep);
+  color: var(--rydo-text);
 }
 
 .rydo-brand {

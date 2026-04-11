@@ -488,27 +488,113 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         return NoContent();
     }
 
+    public record CreateClubRideBody(
+        string Name,
+        string Description,
+        DateTime ScheduledDate,
+        int RouteId,
+        int MaxParticipants,
+        bool ScheduleForWholeClub);
+
+    [HttpPost("{id:int}/rides")]
+    [Authorize]
+    public async Task<IActionResult> CreateClubRide(int id, [FromBody] CreateClubRideBody body, CancellationToken ct)
+    {
+        if (!await db.CyclingClubs.AnyAsync(c => c.Id == id, ct)) return NotFound();
+        if (!await db.Routes.AnyAsync(r => r.Id == body.RouteId, ct)) return NotFound();
+
+        var uid = CurrentUserId() ?? 0;
+        var canLink = await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid && m.MembershipStatus == ClubMembershipStatus.Active, ct);
+        if (!canLink) return Forbid();
+
+        var g = new RideGroup
+        {
+            Name = body.Name,
+            Description = body.Description ?? "",
+            ScheduledDate = body.ScheduledDate.ToUniversalTime(),
+            RouteId = body.RouteId,
+            MaxParticipants = body.MaxParticipants > 0 ? body.MaxParticipants : 20,
+            ClubId = id,
+        };
+        db.RideGroups.Add(g);
+        await db.SaveChangesAsync(ct);
+
+        db.RideParticipants.Add(new RideParticipant { RideGroupId = g.Id, UserId = uid });
+
+        if (body.ScheduleForWholeClub)
+        {
+            var isClubAdmin = await db.ClubMembers.AnyAsync(
+                m => m.ClubId == id && m.UserId == uid && m.Role == ClubMemberRole.Admin && m.MembershipStatus == ClubMembershipStatus.Active, ct);
+            if (!isClubAdmin)
+            {
+                await db.SaveChangesAsync(ct);
+                var route = await db.Routes.AsNoTracking().FirstAsync(r => r.Id == g.RouteId, ct);
+                return Ok(new
+                {
+                    id = g.Id,
+                    name = g.Name,
+                    description = g.Description,
+                    scheduledDate = g.ScheduledDate,
+                    routeId = g.RouteId,
+                    routeTitle = route.Title,
+                    participants = new[] { uid },
+                    maxParticipants = g.MaxParticipants,
+                    clubId = g.ClubId,
+                });
+            }
+
+            var memberIds = await db.ClubMembers.AsNoTracking()
+                .Where(m => m.ClubId == id && m.MembershipStatus == ClubMembershipStatus.Active)
+                .OrderBy(m => m.UserId)
+                .Select(m => m.UserId)
+                .ToListAsync(ct);
+
+            var added = new HashSet<int> { uid };
+            foreach (var muid in memberIds)
+            {
+                if (added.Count >= g.MaxParticipants) break;
+                if (added.Add(muid))
+                    db.RideParticipants.Add(new RideParticipant { RideGroupId = g.Id, UserId = muid });
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var createdRoute = await db.Routes.AsNoTracking().FirstAsync(r => r.Id == g.RouteId, ct);
+        var finalParts = await db.RideParticipants.Where(p => p.RideGroupId == g.Id).Select(p => p.UserId).ToListAsync(ct);
+        return Ok(new
+        {
+            id = g.Id,
+            name = g.Name,
+            description = g.Description,
+            scheduledDate = g.ScheduledDate,
+            routeId = g.RouteId,
+            routeTitle = createdRoute.Title,
+            participants = finalParts,
+            maxParticipants = g.MaxParticipants,
+            clubId = g.ClubId,
+        });
+    }
+
     [HttpGet("{id:int}/rides")]
     [AllowAnonymous]
     public async Task<IActionResult> ClubRides(int id, CancellationToken ct)
     {
         if (!await db.CyclingClubs.AnyAsync(c => c.Id == id, ct)) return NotFound();
 
+        var uid = CurrentUserId();
+        var canViewRoster = await RideGroupResponseHelper.ViewerCanSeeRoster(db, id, uid, ct);
+
         var rides = await db.RideGroups.AsNoTracking()
+            .Include(r => r.Participants).ThenInclude(p => p.User)
             .Include(r => r.Route)
+            .Include(r => r.Club)
             .Where(r => r.ClubId == id)
             .OrderBy(r => r.ScheduledDate)
-            .Select(r => new
-            {
-                id = r.Id,
-                name = r.Name,
-                scheduledDate = r.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                routeId = r.RouteId,
-                routeTitle = r.Route != null ? r.Route.Title : "",
-                maxParticipants = r.MaxParticipants,
-            })
             .ToListAsync(ct);
 
-        return Ok(rides);
+        var items = rides.Select(r => RideGroupResponseHelper.ToResponse(r, canViewRoster)).ToList();
+        return Ok(items);
     }
 }

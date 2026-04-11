@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ROUTES } from './route-paths';
 import { ProtectedRoute, AdminRoute } from './route-guards';
 
@@ -22,7 +22,6 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
 const AdminHazardsPage = lazy(() => import('@/pages/admin/AdminHazardsPage'));
 const NotFoundPage = lazy(() => import('@/pages/not-found/NotFoundPage'));
-const RideGroupsPage = lazy(() => import('@/pages/rides/RideGroupsPage'));
 const RideEventPage = lazy(() => import('@/pages/rides/RideEventPage'));
 const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
 const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
@@ -47,7 +46,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.routeDetails, element: <RouteDetailsPage /> },
           { path: ROUTES.yourRoutes, element: <YourRoutesPage /> },
 
-          { path: ROUTES.rideGroups, element: <RideGroupsPage /> },
+          { path: '/rides/groups', element: <Navigate to={ROUTES.clubs} replace /> },
           { path: ROUTES.clubs, element: <ClubsPage /> },
           { path: ROUTES.clubDetails, element: <ClubDetailPage /> },
           { path: ROUTES.rideEvent, element: <RideEventPage /> },

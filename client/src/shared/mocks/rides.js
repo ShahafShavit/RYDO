@@ -26,7 +26,7 @@ export const MOCK_RIDE_GROUPS = [
     participants: [2],
     participantDetails: [{ userId: 2, displayName: 'Jane Rider' }],
     maxParticipants: 8,
-    clubId: null,
-    clubName: null,
+    clubId: 1,
+    clubName: 'Mock Open Club',
   },
 ];

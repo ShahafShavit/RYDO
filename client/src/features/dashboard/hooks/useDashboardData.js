@@ -24,8 +24,8 @@ export function useDashboardData() {
         queryFn: () => historyApi.getHistory(),
       },
       {
-        queryKey: ['rides', 'groups'],
-        queryFn: () => ridesApi.getGroups(),
+        queryKey: ['rides', 'me'],
+        queryFn: () => ridesApi.getMyRides(),
       },
       {
         queryKey: ['clubs', 'list'],

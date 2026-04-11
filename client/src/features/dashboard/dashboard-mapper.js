@@ -39,8 +39,10 @@ function userInGroup(group, userId) {
   if (userId == null) return false;
   const uid = Number(userId);
   const parts = group?.participants;
-  if (!Array.isArray(parts)) return false;
-  return parts.map(Number).includes(uid);
+  if (Array.isArray(parts) && parts.map(Number).includes(uid)) return true;
+  const details = group?.participantDetails;
+  if (Array.isArray(details) && details.some((p) => Number(p.userId) === uid)) return true;
+  return false;
 }
 
 /**

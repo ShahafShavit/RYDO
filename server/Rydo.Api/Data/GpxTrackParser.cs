@@ -10,7 +10,7 @@ public static class GpxTrackParser
     private const int MaxPreviewPoints = 400;
 
     /// <summary>
-    /// Builds a downsampled track as GeoJSON coordinate order <c>[longitude, latitude]</c> JSON, plus distance and elevation gain from &lt;ele&gt; tags when present.
+    /// Builds a downsampled track as JSON arrays of <c>[longitude, latitude]</c> or <c>[longitude, latitude, elevationMeters]</c> when &lt;ele&gt; is present on a point, plus distance and elevation gain from &lt;ele&gt; tags when present.
     /// </summary>
     public static bool TryParse(byte[] gpxBytes, out string previewCoordinatesJson, out double distanceKm, out double elevationGainM)
     {
@@ -39,7 +39,14 @@ public static class GpxTrackParser
         var sampled = DownsampleTrack(points, MaxPreviewPoints);
         var lonLatPairs = new List<List<double>>(sampled.Count);
         foreach (var p in sampled)
-            lonLatPairs.Add(new List<double> { p.Lon, p.Lat });
+        {
+            // GeoJSON allows optional third coordinate (elevation in meters). The client uses this for the elevation profile chart.
+            if (p.EleMeters.HasValue)
+                lonLatPairs.Add(new List<double> { p.Lon, p.Lat, p.EleMeters.Value });
+            else
+                lonLatPairs.Add(new List<double> { p.Lon, p.Lat });
+        }
+
         previewCoordinatesJson = JsonSerializer.Serialize(lonLatPairs);
 
         for (var i = 1; i < points.Count; i++)

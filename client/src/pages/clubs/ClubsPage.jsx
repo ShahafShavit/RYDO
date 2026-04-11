@@ -1,90 +1,44 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
+import CreateClubModal from '@/features/clubs/components/CreateClubModal';
+import RedeemClubInviteModal from '@/features/clubs/components/RedeemClubInviteModal';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
-import Input from '@/shared/components/ui/input/Input';
-import FormField from '@/shared/components/ui/form-field/FormField';
 
 export default function ClubsPage() {
-  const queryClient = useQueryClient();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+
   const { data: clubs = [], isLoading } = useQuery({
     queryKey: ['clubs', 'list'],
     queryFn: () => clubsApi.list(),
   });
 
-  const [form, setForm] = useState({ name: '', description: '', region: '', visibility: 'public' });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      clubsApi.create({
-        name: form.name,
-        description: form.description,
-        region: form.region || null,
-        visibility: form.visibility === 'private' ? 1 : 0,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clubs', 'list'] });
-      setForm({ name: '', description: '', region: '', visibility: 'public' });
-    },
-  });
-
   return (
     <section className="space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/42">Clubs</p>
-        <h1 className="mt-2 text-3xl font-semibold">Cycling clubs</h1>
-        <p className="mt-2 text-sm text-white/64">Public clubs are open to join. Private clubs require approval or an invite.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Clubs</p>
+          <h1 className="mt-2 text-3xl font-semibold">Cycling clubs</h1>
+          <p className="mt-2 text-sm text-white/64">
+            Public clubs are open to join. Private clubs require approval or an invite.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" type="button" onClick={() => setInviteOpen(true)}>
+            Have an invite code?
+          </Button>
+          <Button variant="neon" type="button" onClick={() => setCreateOpen(true)}>
+            Create a club
+          </Button>
+        </div>
       </div>
 
-      <Card className="max-w-xl">
-        <h2 className="text-xl font-semibold">Create a club</h2>
-        <form
-          className="mt-4 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            createMutation.mutate();
-          }}
-        >
-          <FormField label="Name">
-            <Input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Friday Social Roll"
-              required
-            />
-          </FormField>
-          <FormField label="Description">
-            <Input
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Who we are and how we ride"
-            />
-          </FormField>
-          <FormField label="Region (optional)">
-            <Input
-              value={form.region}
-              onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-              placeholder="Tel Aviv"
-            />
-          </FormField>
-          <FormField label="Visibility">
-            <select
-              className="w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white"
-              value={form.visibility}
-              onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))}
-            >
-              <option value="public">Public — anyone can join</option>
-              <option value="private">Private — approval or invite</option>
-            </select>
-          </FormField>
-          <Button type="submit" variant="neon" disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Creating…' : 'Create club'}
-          </Button>
-        </form>
-      </Card>
+      <CreateClubModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
+      <RedeemClubInviteModal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} />
 
       <div>
         <h2 className="text-lg font-semibold text-white/88">All clubs</h2>

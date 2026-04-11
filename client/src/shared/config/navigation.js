@@ -11,9 +11,7 @@ export const primaryNavigation = [
 export const dashboardNavigation = [
   { label: 'Home', to: ROUTES.dashboard },
   { label: 'Explore Routes', to: ROUTES.routes },
-  { label: 'Upload Route', to: '?upload=true' },
   { label: 'Your routes', to: ROUTES.yourRoutes },
-  { label: 'Ride groups', to: ROUTES.rideGroups },
   { label: 'Clubs', to: ROUTES.clubs },
   { label: 'Settings', to: ROUTES.settings },
 ];

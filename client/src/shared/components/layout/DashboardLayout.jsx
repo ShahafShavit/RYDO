@@ -1,31 +1,15 @@
 import { Suspense } from 'react';
-import { NavLink, Outlet, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import MobileNavbar from '@/shared/components/layout/MobileNavbar';
-import UploadRouteModal from '@/features/routes/components/UploadRouteModal';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const isUploadModalOpen = searchParams.get('upload') === 'true';
-
-  const closeUploadModal = () => {
-    setSearchParams((prev) => {
-      prev.delete('upload');
-      return prev;
-    });
-  };
-
-  const handleUploadSuccess = () => {
-    closeUploadModal();
-    navigate(ROUTES.yourRoutes);
-  };
 
   return (
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[#171717]">
@@ -73,11 +57,6 @@ export default function DashboardLayout() {
           }>
             <Outlet />
           </Suspense>
-          <UploadRouteModal
-            isOpen={isUploadModalOpen}
-            onClose={closeUploadModal}
-            onSuccess={handleUploadSuccess}
-          />
         </div>
       </main>
     </div>

@@ -10,7 +10,6 @@ export const ROUTES = {
   routeDetails: '/routes/:routeId',
   yourRoutes: '/your-routes',
   settings: '/settings',
-  rideGroups: '/rides/groups',
   rideEvent: '/rides/:rideId',
   clubs: '/clubs',
   clubDetails: '/clubs/:clubId',
