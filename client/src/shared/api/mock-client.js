@@ -375,7 +375,7 @@ export async function mockRequest(path, options = {}) {
     const sortDesc = (a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate);
     const sortAsc = (a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate);
     if (when === 'past') list = [...list].sort(sortDesc);
-    else if (when === 'upcoming') list = [...list].sort(sortAsc);
+    else if (when === 'upcoming') list = [...list].sort(sortAsc).slice(0, 4);
     else list = [...list].sort(sortDesc);
     return list.map((r) => findRide(String(r.id)));
   }

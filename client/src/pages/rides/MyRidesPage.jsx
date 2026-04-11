@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
@@ -9,6 +9,9 @@ import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
+
+/** First screenful of upcoming cards before "Show more". */
+const UPCOMING_PREVIEW_COUNT = 2;
 
 function formatWhen(iso) {
   if (!iso) return '—';
@@ -141,11 +144,21 @@ function HistoryRideCard({ entry }) {
 export default function MyRidesPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [upcomingExpanded, setUpcomingExpanded] = useState(false);
   const { upcoming: upcomingRaw, pastScheduled: pastRaw, historyRows, isLoading, isError } =
     useMyRidesPanel(search);
 
   const upcoming = useMemo(() => (Array.isArray(upcomingRaw) ? upcomingRaw.map(mapRideDto) : []), [upcomingRaw]);
+  const upcomingVisible = useMemo(() => {
+    if (upcomingExpanded || upcoming.length <= UPCOMING_PREVIEW_COUNT) return upcoming;
+    return upcoming.slice(0, UPCOMING_PREVIEW_COUNT);
+  }, [upcoming, upcomingExpanded]);
+  const upcomingHiddenCount = upcoming.length - UPCOMING_PREVIEW_COUNT;
   const pastScheduled = useMemo(() => (Array.isArray(pastRaw) ? pastRaw.map(mapRideDto) : []), [pastRaw]);
+
+  useEffect(() => {
+    setUpcomingExpanded(false);
+  }, [search]);
 
   return (
     <section className="space-y-8">
@@ -197,11 +210,37 @@ export default function MyRidesPage() {
             {upcoming.length === 0 ? (
               <p className="mt-3 text-sm text-white/56">No upcoming rides. Schedule a personal ride or join a club event.</p>
             ) : (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {upcoming.map((ride) => (
-                  <ScheduledRideCard key={ride.id} ride={ride} />
-                ))}
-              </div>
+              <>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {upcomingVisible.map((ride) => (
+                    <ScheduledRideCard key={ride.id} ride={ride} />
+                  ))}
+                </div>
+                {!upcomingExpanded && upcomingHiddenCount > 0 ? (
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="text-sm"
+                      onClick={() => setUpcomingExpanded(true)}
+                    >
+                      Show more ({upcomingHiddenCount} more)…
+                    </Button>
+                  </div>
+                ) : null}
+                {upcomingExpanded && upcoming.length > UPCOMING_PREVIEW_COUNT ? (
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="text-sm"
+                      onClick={() => setUpcomingExpanded(false)}
+                    >
+                      Show less
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
 

@@ -11,6 +11,8 @@ namespace Rydo.Api.Controllers;
 [Authorize]
 public class UsersController(RydoDbContext db) : ControllerBase
 {
+    private const int MaxUpcomingMyRides = 4;
+
     private int? CurrentUserId()
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -60,6 +62,9 @@ public class UsersController(RydoDbContext db) : ControllerBase
             : scope == "upcoming"
                 ? query.OrderBy(g => g.ScheduledDate)
                 : query.OrderByDescending(g => g.ScheduledDate);
+
+        if (scope == "upcoming")
+            query = query.Take(MaxUpcomingMyRides);
 
         var groups = await query.ToListAsync(ct);
 

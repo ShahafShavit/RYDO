@@ -228,7 +228,7 @@ When this completion is tied to a scheduled group ride (`rideGroupId` set), `rid
 Query parameters (optional):
 
 - `q` — case-sensitive substring match on ride name, route title, and club name (server may use provider-specific case rules).
-- `when` — `upcoming` (scheduled date in the future), `past` (before now), or `all` (default). For `upcoming`, results are ordered soonest first; for `past`, most recent first; for `all`, most recent scheduled date first.
+- `when` — `upcoming` (scheduled date in the future), `past` (before now), or `all` (default). For `upcoming`, results are ordered soonest first and **capped at 4** rides; for `past`, most recent first; for `all`, most recent scheduled date first.
 
 Returns a JSON array of rides where the current user is a participant. Each item uses the **ride JSON shape** below (with roster visibility rules applied).
 
