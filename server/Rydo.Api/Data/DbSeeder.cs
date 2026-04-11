@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace Rydo.Api.Data;
 
@@ -71,7 +72,10 @@ public static class DbSeeder
         var userIds = allUsers.Select(u => u.Id).ToList();
         var rnd = new Random(42);
 
-        var routes = SeedRoutes(allUsers, rnd);
+        var hostEnv = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var gpxPool = LoadGpxSeedPool(hostEnv.ContentRootPath);
+
+        var routes = SeedRoutes(allUsers, rnd, gpxPool);
         db.Routes.AddRange(routes);
         await db.SaveChangesAsync();
 
@@ -131,7 +135,32 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<RouteEntity> SeedRoutes(IReadOnlyList<ApplicationUser> users, Random rnd)
+    private static List<(string FileName, byte[] Bytes)> LoadGpxSeedPool(string contentRoot)
+    {
+        var dir = Path.Combine(contentRoot, "GpxSeed");
+        if (!Directory.Exists(dir))
+            return [];
+
+        var list = new List<(string FileName, byte[] Bytes)>();
+        foreach (var path in Directory.EnumerateFiles(dir, "*.gpx", SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                var name = Path.GetFileName(path);
+                var bytes = File.ReadAllBytes(path);
+                if (bytes.Length > 0)
+                    list.Add((name, bytes));
+            }
+            catch
+            {
+                // skip unreadable entries
+            }
+        }
+
+        return list;
+    }
+
+    private static List<RouteEntity> SeedRoutes(IReadOnlyList<ApplicationUser> users, Random rnd, IReadOnlyList<(string FileName, byte[] Bytes)> gpxPool)
     {
         var regions = new[]
         {
@@ -177,6 +206,25 @@ public static class DbSeeder
                 ? """["Busy traffic on weekends","Loose gravel after rain"]"""
                 : rnd.Next(4) == 0 ? """["Cattle crossing possible"]""" : "[]";
 
+            string previewJson = $"[[{lat:F5},{lng:F5}],[{lat2:F5},{lng2:F5}]]";
+            string gpxRef = $"routes/seed-{i + 1}.gpx";
+            byte[]? gpxBlob = null;
+
+            if (gpxPool.Count > 0)
+            {
+                var pick = gpxPool[rnd.Next(gpxPool.Count)];
+                gpxBlob = pick.Bytes;
+                gpxRef = $"routes/{pick.FileName}";
+                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev))
+                {
+                    previewJson = parsedPreview;
+                    dist = pathKm;
+                    if (pathElev > 0)
+                        elev = pathElev;
+                    dur = Math.Max(25, (int)(dist * 3.2 + rnd.Next(-10, 25)));
+                }
+            }
+
             routes.Add(new RouteEntity
             {
                 Title = titles[i],
@@ -188,11 +236,12 @@ public static class DbSeeder
                 ElevationGainM = elev,
                 EstimatedDurationMinutes = dur,
                 WarningsJson = warnings,
-                PreviewCoordinatesJson = $"[[{lat:F5},{lng:F5}],[{lat2:F5},{lng2:F5}]]",
+                PreviewCoordinatesJson = previewJson,
                 CreatedByUserId = creator.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-daysAgo),
                 Status = rnd.Next(12) == 0 ? "pending_review" : "published",
-                GpxReference = $"routes/seed-{i + 1}.gpx",
+                GpxReference = gpxRef,
+                GpxBlob = gpxBlob,
             });
         }
 
