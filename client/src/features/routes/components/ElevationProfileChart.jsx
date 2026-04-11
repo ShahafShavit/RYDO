@@ -21,12 +21,10 @@ function elevationAtDistance(profile, distanceM) {
  * Compact elevation vs distance profile (SVG). Distance on horizontal axis.
  * Hover to see distance, absolute elevation, and Δ from start.
  */
-export default function ElevationProfileChart({ profile, className = '' }) {
+export default function ElevationProfileChart({ profile, className = '', onScrubChange }) {
   const svgRef = useRef(null);
   const fillGradientId = `elevFill-${useId().replace(/:/g, '')}`;
   const [hover, setHover] = useState(null);
-
-  if (!profile || profile.length < 2) return null;
 
   const w = 400;
   const h = 112;
@@ -35,12 +33,52 @@ export default function ElevationProfileChart({ profile, className = '' }) {
   const chartW = w - padX * 2;
   const chartH = h - padY * 2;
 
-  const maxD = Math.max(profile[profile.length - 1].distanceM, 1);
-  const els = profile.map((p) => p.elevationM);
-  const minEl = Math.min(...els);
-  const maxEl = Math.max(...els);
+  const valid = Array.isArray(profile) && profile.length >= 2;
+
+  const maxD = valid ? Math.max(profile[profile.length - 1].distanceM, 1) : 1;
+  const els = valid ? profile.map((p) => p.elevationM) : [0, 0];
+  const minEl = valid ? Math.min(...els) : 0;
+  const maxEl = valid ? Math.max(...els) : 0;
   const elRange = Math.max(maxEl - minEl, 1);
-  const startEl = profile[0].elevationM;
+  const startEl = valid ? profile[0].elevationM : 0;
+
+  const updateHover = useCallback(
+    (clientX, clientY) => {
+      if (!valid || !profile) return;
+      const svg = svgRef.current;
+      if (!svg) return;
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const p = pt.matrixTransform(ctm.inverse());
+      if (p.x < padX || p.x > w - padX || p.y < padY || p.y > padY + chartH) {
+        setHover(null);
+        onScrubChange?.(null);
+        return;
+      }
+      const distanceM = Math.max(0, Math.min(maxD, ((p.x - padX) / chartW) * maxD));
+      const elevationM = elevationAtDistance(profile, distanceM);
+      const deltaM = elevationM - startEl;
+      const svgX = padX + (distanceM / maxD) * chartW;
+      const svgY = padY + (1 - (elevationM - minEl) / elRange) * chartH;
+      setHover({ svgX, svgY, distanceM, elevationM, deltaM });
+      onScrubChange?.(distanceM);
+    },
+    [valid, profile, maxD, chartW, padX, padY, chartH, w, startEl, minEl, elRange, onScrubChange],
+  );
+
+  const handlePointer = (e) => {
+    updateHover(e.clientX, e.clientY);
+  };
+
+  const clearHover = () => {
+    setHover(null);
+    onScrubChange?.(null);
+  };
+
+  if (!valid) return null;
 
   const toX = (d) => padX + (d / maxD) * chartW;
   const toY = (el) => padY + (1 - (el - minEl) / elRange) * chartH;
@@ -53,36 +91,6 @@ export default function ElevationProfileChart({ profile, className = '' }) {
   const areaPath = `M ${firstX} ${baseY} L ${topLine} L ${lastX} ${baseY} Z`;
 
   const km = (maxD / 1000).toFixed(1);
-
-  const updateHover = useCallback(
-    (clientX, clientY) => {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const pt = svg.createSVGPoint();
-      pt.x = clientX;
-      pt.y = clientY;
-      const ctm = svg.getScreenCTM();
-      if (!ctm) return;
-      const p = pt.matrixTransform(ctm.inverse());
-      if (p.x < padX || p.x > w - padX || p.y < padY || p.y > padY + chartH) {
-        setHover(null);
-        return;
-      }
-      const distanceM = Math.max(0, Math.min(maxD, ((p.x - padX) / chartW) * maxD));
-      const elevationM = elevationAtDistance(profile, distanceM);
-      const deltaM = elevationM - startEl;
-      const svgX = padX + (distanceM / maxD) * chartW;
-      const svgY = padY + (1 - (elevationM - minEl) / elRange) * chartH;
-      setHover({ svgX, svgY, distanceM, elevationM, deltaM });
-    },
-    [profile, maxD, chartW, padX, padY, chartH, w, startEl, minEl, elRange],
-  );
-
-  const handlePointer = (e) => {
-    updateHover(e.clientX, e.clientY);
-  };
-
-  const clearHover = () => setHover(null);
 
   return (
     <div
@@ -98,7 +106,7 @@ export default function ElevationProfileChart({ profile, className = '' }) {
       <svg
         ref={svgRef}
         viewBox={`0 0 ${w} ${h}`}
-        className="h-auto w-full max-h-36 cursor-crosshair touch-none text-[#7B5CFF]"
+        className="aspect-[400/112] w-full cursor-crosshair touch-none text-[#7B5CFF]"
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={handlePointer}
         onPointerDown={handlePointer}

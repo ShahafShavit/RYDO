@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
 
 // Fix missing marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,11 +31,12 @@ function applyRouteView(map, layer) {
   map.setView(b.getCenter(), targetZoom, { animate: false });
 }
 
-export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true }) {
+export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true, scrubDistanceM = null }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
   const geoJsonLayerRef = useRef(null);
+  const scrubMarkerRef = useRef(null);
   const resizeObserverRef = useRef(null);
   /** Bumps when a new L.Map instance exists (incl. React Strict Mode remount) so GeoJSON re-syncs. */
   const [mapEpoch, setMapEpoch] = useState(0);
@@ -133,6 +135,35 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
       tiles?.off('load', onLoad);
     };
   }, [geoJson, mapEpoch]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (scrubDistanceM == null || !geoJson?.features?.length) {
+      return () => {};
+    }
+
+    const ll = latLngAtDistanceAlongGeoJson(geoJson, scrubDistanceM);
+    if (!ll) {
+      return () => {};
+    }
+
+    const marker = L.circleMarker([ll.lat, ll.lng], {
+      radius: 6,
+      color: '#21F1A8',
+      weight: 2,
+      fillColor: '#0f0f14',
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(map);
+    scrubMarkerRef.current = marker;
+
+    return () => {
+      map.removeLayer(marker);
+      if (scrubMarkerRef.current === marker) scrubMarkerRef.current = null;
+    };
+  }, [geoJson, mapEpoch, scrubDistanceM]);
 
   return (
     <div

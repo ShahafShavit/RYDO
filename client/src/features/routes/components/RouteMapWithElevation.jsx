@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import ElevationProfileChart from '@/features/routes/components/ElevationProfileChart';
 import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAnalysis';
 
@@ -25,13 +25,25 @@ export default function RouteMapWithElevation({
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
 
+  const [scrubDistanceM, setScrubDistanceM] = useState(null);
+  const profileReady = profile && profile.length >= 2;
+
   return (
     <div className="space-y-3">
       <Suspense fallback={mapFallback}>
-        <RouteMapPreview geoJson={geoJson} className={mapClassName} scrollWheelZoom={scrollWheelZoom} />
+        <RouteMapPreview
+          geoJson={geoJson}
+          className={mapClassName}
+          scrollWheelZoom={scrollWheelZoom}
+          scrubDistanceM={profileReady ? scrubDistanceM : null}
+        />
       </Suspense>
       {profile && profile.length >= 2 ? (
-        <ElevationProfileChart profile={profile} className={chartClassName} />
+        <ElevationProfileChart
+          profile={profile}
+          className={chartClassName}
+          onScrubChange={setScrubDistanceM}
+        />
       ) : null}
     </div>
   );

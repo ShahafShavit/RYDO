@@ -407,3 +407,36 @@ export function buildElevationProfileFromGeoJson(geoJson) {
   const smoothed = movingAverage(filled, win);
   return buildElevationProfile(points, smoothed);
 }
+
+/**
+ * Lat/lng along the same vertex order as {@link buildElevationProfileFromGeoJson} / cumulative distance.
+ * Used to place a scrub marker on a Leaflet map at `distanceM` from the route start.
+ *
+ * @param {unknown} geoJson
+ * @param {number} distanceM
+ * @returns {{ lat: number, lng: number } | null}
+ */
+export function latLngAtDistanceAlongGeoJson(geoJson, distanceM) {
+  const points = collectLinePointsFromGeoJson(geoJson);
+  if (points.length < 2) return null;
+  const cum = cumulativeDistancesM(points);
+  const total = cum[cum.length - 1];
+  const d = Math.max(0, Math.min(Number(distanceM) || 0, total));
+  if (d <= 0) {
+    return { lat: points[0].lat, lng: points[0].lon };
+  }
+  if (d >= total) {
+    const last = points[points.length - 1];
+    return { lat: last.lat, lng: last.lon };
+  }
+  let i = 0;
+  while (i < cum.length - 1 && cum[i + 1] < d) i += 1;
+  const a = points[i];
+  const b = points[i + 1];
+  const span = cum[i + 1] - cum[i];
+  const t = span > 0 ? (d - cum[i]) / span : 0;
+  return {
+    lat: a.lat + t * (b.lat - a.lat),
+    lng: a.lon + t * (b.lon - a.lon),
+  };
+}
