@@ -11,6 +11,8 @@
   --rydo-text-muted: rgba(255, 255, 255, 0.72);
   --rydo-purple: #7b5cff;
   --rydo-green: #21f1a8;
+  --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rydo-transition-nav: 300ms var(--rydo-ease-out);
   --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 42%);
   --rydo-glow-purple: radial-gradient(circle at 20% 0%, rgba(123, 92, 255, 0.18), transparent 32%);
 }
@@ -85,6 +87,26 @@ select option {
 
 .rydo-section {
   padding: 7rem 0;
+}
+
+@keyframes rydo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rydo-fade-in {
+  animation: rydo-fade-in 0.3s var(--rydo-ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rydo-fade-in {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* Removed empty .rydo-grid-noise ruleset (unused) */

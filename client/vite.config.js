@@ -33,6 +33,10 @@ export default defineConfig({
             return 'vendor-ui';
           }
 
+          if (id.includes('framer-motion')) {
+            return 'vendor-motion';
+          }
+
           return undefined;
         },
       },

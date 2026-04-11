@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import MobileNavbar from '@/shared/components/layout/MobileNavbar';
+import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 
 export default function DashboardLayout() {
@@ -27,7 +28,7 @@ export default function DashboardLayout() {
               key={item.label}
               to={item.to}
               className={({ isActive }) =>
-                `rounded-2xl px-4 py-3 text-sm transition ${isActive && !item.to.includes('?upload=true')
+                `rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
                   ? 'bg-[#7B5CFF]/18 text-white shadow-[0_0_24px_rgba(123,92,255,0.18)]'
                   : 'text-white/72 hover:bg-white/5 hover:text-white'
                 }`
@@ -55,7 +56,7 @@ export default function DashboardLayout() {
               <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
             </div>
           }>
-            <Outlet />
+            <AnimatedOutlet />
           </Suspense>
         </div>
       </main>

@@ -38,19 +38,19 @@ const SettingsPage = () => {
         <Card className="flex-1 sm:p-8 ">
           <div className="h-full flex flex-col items-center">
             {activeTab === 'password' && (
-              <div className="w-full flex justify-center animate-in fade-in duration-300">
+              <div className="w-full flex justify-center rydo-fade-in">
                 <ChangePasswordForm />
               </div>
             )}
 
             {activeTab === 'preferences' && (
-              <div className="w-full flex justify-center animate-in fade-in duration-300">
+              <div className="w-full flex justify-center rydo-fade-in">
                 <RidingPreferencesForm />
               </div>
             )}
 
             {activeTab === 'data' && (
-              <div className="w-full flex justify-center animate-in fade-in duration-300">
+              <div className="w-full flex justify-center rydo-fade-in">
                 <UserDataDisplay />
               </div>
             )}
