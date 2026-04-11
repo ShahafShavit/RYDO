@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 
 const RouteMapPreview = lazy(() => import('@/features/routes/components/RouteMapPreview'));
@@ -20,21 +21,33 @@ function DashboardGroupsCard({ groups }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.16em] text-white/42">RYDO Groups</p>
-          <h3 className="mt-3 text-xl font-semibold">Your ride groups</h3>
+          <h3 className="mt-3 text-xl font-semibold">Your cycling clubs</h3>
         </div>
+        <Link to={ROUTES.clubs} className="text-sm text-[#7B5CFF] hover:underline">
+          Browse clubs
+        </Link>
       </div>
 
       <div className="mt-6 space-y-4">
         {groups.length === 0 ? (
-          <p className="text-sm text-white/64">Join a group ride to see it listed here.</p>
+          <p className="text-sm text-white/64">Join a club to see it listed here.</p>
         ) : (
           groups.map((group) => (
-            <div key={group.id} className="rounded-3xl border border-white/10 bg-white/5 p-4">
-              <div>
-                <p className="font-semibold text-white">{group.name}</p>
-                <p className="mt-1 text-sm text-white/64">{group.detail}</p>
+            <Link
+              key={group.id}
+              to={ROUTES.clubDetails.replace(':clubId', group.id)}
+              className="block rounded-3xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-white">{group.name}</p>
+                  <p className="mt-1 text-sm text-white/64">{group.detail}</p>
+                </div>
+                {group.visibility === 'private' ? (
+                  <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/56">Private</span>
+                ) : null}
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>
@@ -62,9 +75,17 @@ function DashboardUpcomingRideCard({ ride, hasUpcomingRide }) {
       </div>
 
       <div className="mt-6">
-        <Button variant="secondary" className="w-full" disabled={!hasUpcomingRide}>
-          {hasUpcomingRide ? 'View ride' : 'No upcoming ride'}
-        </Button>
+        {hasUpcomingRide && ride.id != null ? (
+          <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))} className="block">
+            <Button variant="secondary" className="w-full">
+              View ride
+            </Button>
+          </Link>
+        ) : (
+          <Button variant="secondary" className="w-full" disabled>
+            No upcoming ride
+          </Button>
+        )}
       </div>
     </Card>
   );

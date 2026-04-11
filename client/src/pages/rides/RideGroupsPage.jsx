@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Button from '@/shared/components/ui/button/Button';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 import RideGroupCard from '@/features/rides/components/RideGroupCard';
@@ -7,6 +8,9 @@ import { useRideGroups } from '@/features/rides/hooks/useRideGroups';
 
 export default function RideGroupsPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const clubParam = searchParams.get('club');
+  const initialClubId = clubParam != null && clubParam !== '' ? Number(clubParam) : undefined;
   const { groups } = useRideGroups();
 
   return (
@@ -20,7 +24,7 @@ export default function RideGroupsPage() {
           Upload GPX Route
         </Button>
       </div>
-      <CreateRideForm />
+      <CreateRideForm initialClubId={initialClubId} />
       <div className="grid gap-6 lg:grid-cols-2">
         {groups.map((group) => <RideGroupCard key={group.id} group={group} />)}
       </div>

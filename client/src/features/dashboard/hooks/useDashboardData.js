@@ -6,6 +6,7 @@ import { dashboardApi } from '@/features/dashboard/api/dashboard-api';
 import { historyApi } from '@/features/history/api/history-api';
 import { ridesApi } from '@/features/rides/api/rides-api';
 import { challengesApi } from '@/features/challenges/api/challenges-api';
+import { clubsApi } from '@/features/clubs/api/clubs-api';
 
 export function useDashboardData() {
   const { user } = useAuth();
@@ -27,13 +28,17 @@ export function useDashboardData() {
         queryFn: () => ridesApi.getGroups(),
       },
       {
+        queryKey: ['clubs', 'list'],
+        queryFn: () => clubsApi.list(),
+      },
+      {
         queryKey: ['challenges'],
         queryFn: () => challengesApi.getChallenges(),
       },
     ],
   });
 
-  const [historyQuery, ridesQuery, challengesQuery] = homeQueries;
+  const [historyQuery, ridesQuery, clubsQuery, challengesQuery] = homeQueries;
 
   const home = useMemo(
     () =>
@@ -41,9 +46,10 @@ export function useDashboardData() {
         userId,
         historyRaw: historyQuery.data,
         rideGroupsRaw: ridesQuery.data,
+        clubsRaw: clubsQuery.data,
         challengesRaw: challengesQuery.data,
       }),
-    [userId, historyQuery.data, ridesQuery.data, challengesQuery.data],
+    [userId, historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data],
   );
 
   const summary = summaryQuery.data || {};

@@ -16,6 +16,9 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
     public DbSet<ChallengeEntity> Challenges => Set<ChallengeEntity>();
     public DbSet<HistoryEntry> HistoryEntries => Set<HistoryEntry>();
+    public DbSet<CyclingClub> CyclingClubs => Set<CyclingClub>();
+    public DbSet<ClubMember> ClubMembers => Set<ClubMember>();
+    public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -41,6 +44,26 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         builder.Entity<RideGroup>(e =>
         {
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Club).WithMany(c => c.RideGroups).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<CyclingClub>(e =>
+        {
+            e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ClubMember>(e =>
+        {
+            e.HasKey(x => new { x.ClubId, x.UserId });
+            e.HasOne(x => x.Club).WithMany(c => c.Members).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ClubInvite>(e =>
+        {
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasOne(x => x.Club).WithMany(c => c.Invites).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<RideParticipant>(e =>

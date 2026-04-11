@@ -6,7 +6,10 @@ export function useCreateRide() {
 
   const mutation = useMutation({
     mutationFn: ridesApi.createRide,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rides', 'groups'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rides', 'groups'] });
+      queryClient.invalidateQueries({ queryKey: ['clubs'] });
+    },
   });
 
   return {

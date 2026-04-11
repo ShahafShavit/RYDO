@@ -22,6 +22,10 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
 const AdminHazardsPage = lazy(() => import('@/pages/admin/AdminHazardsPage'));
 const NotFoundPage = lazy(() => import('@/pages/not-found/NotFoundPage'));
+const RideGroupsPage = lazy(() => import('@/pages/rides/RideGroupsPage'));
+const RideEventPage = lazy(() => import('@/pages/rides/RideEventPage'));
+const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
+const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
 
 export const router = createBrowserRouter([
   {
@@ -42,6 +46,11 @@ export const router = createBrowserRouter([
           { path: ROUTES.routes, element: <RoutesExplorePage /> },
           { path: ROUTES.routeDetails, element: <RouteDetailsPage /> },
           { path: ROUTES.yourRoutes, element: <YourRoutesPage /> },
+
+          { path: ROUTES.rideGroups, element: <RideGroupsPage /> },
+          { path: ROUTES.clubs, element: <ClubsPage /> },
+          { path: ROUTES.clubDetails, element: <ClubDetailPage /> },
+          { path: ROUTES.rideEvent, element: <RideEventPage /> },
 
           { path: ROUTES.settings, element: <SettingsPage /> },
         ],

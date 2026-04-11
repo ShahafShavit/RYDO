@@ -4,6 +4,7 @@ import { MOCK_CHAT_MESSAGES } from '@/shared/mocks/chat';
 import { MOCK_CHALLENGES } from '@/shared/mocks/challenges';
 import { MOCK_HAZARDS } from '@/shared/mocks/hazards';
 import { MOCK_HISTORY } from '@/shared/mocks/history';
+import { MOCK_CLUBS } from '@/shared/mocks/clubs';
 import { MOCK_RIDE_GROUPS } from '@/shared/mocks/rides';
 import { MOCK_ROUTES, MOCK_SAVED_ROUTES } from '@/shared/mocks/routes';
 import { MOCK_USERS } from '@/shared/mocks/users';
@@ -12,7 +13,8 @@ let users = [...MOCK_USERS];
 let routes = [...MOCK_ROUTES];
 let savedRouteIds = [...MOCK_SAVED_ROUTES];
 let hazards = [...MOCK_HAZARDS];
-let rides = [...MOCK_RIDE_GROUPS];
+let rides = MOCK_RIDE_GROUPS.map((r) => ({ ...r }));
+let clubs = [...MOCK_CLUBS];
 let challenges = [...MOCK_CHALLENGES];
 let historyEntries = [...MOCK_HISTORY];
 let chatMessages = structuredClone(MOCK_CHAT_MESSAGES);
@@ -96,6 +98,15 @@ function findRoute(routeId) {
   return route;
 }
 
+function participantDetailsFromIds(ids) {
+  const list = Array.isArray(ids) ? ids : [];
+  return list.map((uid) => {
+    const u = users.find((x) => x.id === Number(uid));
+    const displayName = u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`;
+    return { userId: Number(uid), displayName };
+  });
+}
+
 function findRide(rideId) {
   const ride = rides.find((item) => item.id === Number(rideId));
   if (!ride) {
@@ -103,7 +114,9 @@ function findRide(rideId) {
   }
   const route = routes.find((r) => r.id === Number(ride.routeId));
   const routeTitle = ride.routeTitle || route?.title || '';
-  return { ...ride, routeTitle };
+  const participantDetails =
+    ride.participantDetails || participantDetailsFromIds(ride.participants);
+  return { ...ride, routeTitle, participantDetails };
 }
 
 export async function mockRequest(path, options = {}) {
@@ -334,18 +347,139 @@ export async function mockRequest(path, options = {}) {
     const payload = parseJsonBody(options.body);
     const routeId = Number(payload.routeId || 0);
     const route = routes.find((r) => r.id === routeId);
+    const nextId = Math.max(...rides.map((item) => item.id), 0) + 1;
+    const parts = [profile.id];
     const ride = {
-      id: Math.max(...rides.map((item) => item.id), 0) + 1,
+      id: nextId,
       name: payload.name,
       description: payload.description || '',
       scheduledDate: payload.scheduledDate,
       routeId,
       routeTitle: route?.title || '',
-      participants: [],
+      participants: parts,
+      participantDetails: participantDetailsFromIds(parts),
       maxParticipants: Number(payload.maxParticipants || 10),
+      clubId: payload.clubId ?? null,
+      clubName: payload.clubId ? clubs.find((c) => c.id === Number(payload.clubId))?.name ?? null : null,
     };
     rides.unshift(ride);
-    return ride;
+    return {
+      id: ride.id,
+      name: ride.name,
+      description: ride.description,
+      scheduledDate: ride.scheduledDate,
+      routeId: ride.routeId,
+      routeTitle: ride.routeTitle,
+      participants: ride.participants,
+      maxParticipants: ride.maxParticipants,
+      clubId: ride.clubId,
+    };
+  }
+
+  if (/^\/rides\/groups\/\d+\/join$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    if (!ride.participants.includes(profile.id)) ride.participants.push(profile.id);
+    ride.participantDetails = participantDetailsFromIds(ride.participants);
+    return { status: 'joined' };
+  }
+
+  if (/^\/rides\/groups\/\d+\/leave$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    ride.participants = ride.participants.filter((id) => id !== profile.id);
+    ride.participantDetails = participantDetailsFromIds(ride.participants);
+    return null;
+  }
+
+  if (pathname === '/clubs' && method === 'GET') {
+    return clubs.map((c) => ({
+      ...c,
+      membershipPending: false,
+    }));
+  }
+
+  if (pathname === '/clubs' && method === 'POST') {
+    const body = parseJsonBody(options.body);
+    const nextId = Math.max(...clubs.map((c) => c.id), 0) + 1;
+    const row = {
+      id: nextId,
+      name: body.name,
+      description: body.description || '',
+      region: body.region || null,
+      visibility: body.visibility === 1 ? 'private' : 'public',
+      membershipPending: false,
+      myRole: 'admin',
+      createdAt: new Date().toISOString(),
+    };
+    clubs.push(row);
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      region: row.region,
+      visibility: row.visibility,
+      createdAt: row.createdAt,
+    };
+  }
+
+  if (/^\/clubs\/\d+$/.test(pathname) && method === 'GET') {
+    const cid = Number(pathname.split('/')[2]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    return {
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      region: c.region,
+      visibility: c.visibility,
+      createdAt: c.createdAt,
+      memberCount: 4,
+      currentUserMembership: c.myRole === 'admin' ? 'admin' : c.myRole === 'member' ? 'member' : 'none',
+    };
+  }
+
+  if (/^\/clubs\/\d+\/members$/.test(pathname) && method === 'GET') {
+    return [
+      { userId: profile.id, displayName: profile.fullName, role: 'admin', membershipStatus: 'active' },
+      { userId: 3, displayName: 'Alex Cohen', role: 'member', membershipStatus: 'active' },
+    ];
+  }
+
+  if (/^\/clubs\/\d+\/join-requests$/.test(pathname) && method === 'GET') {
+    return [];
+  }
+
+  if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'GET') {
+    const cid = Number(pathname.split('/')[2]);
+    return rides
+      .filter((r) => r.clubId === cid)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        scheduledDate: r.scheduledDate,
+        routeId: r.routeId,
+        routeTitle: r.routeTitle,
+        maxParticipants: r.maxParticipants,
+      }));
+  }
+
+  if (/^\/clubs\/\d+\/join$/.test(pathname) && method === 'POST') {
+    return { status: 'active' };
+  }
+
+  if (/^\/clubs\/\d+\/leave$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/clubs\/\d+\/invites$/.test(pathname) && method === 'POST') {
+    return { inviteCode: `mock-invite-${Date.now()}`, clubId: Number(pathname.split('/')[2]) };
+  }
+
+  if (pathname === '/clubs/invites/redeem' && method === 'POST') {
+    return { clubId: 1, status: 'active' };
   }
 
   if (/^\/rides\/events\/\d+$/.test(pathname) && method === 'GET') {

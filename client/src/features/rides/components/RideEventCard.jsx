@@ -7,6 +7,7 @@ export default function RideEventCard({ ride }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="neon">Upcoming</Badge>
         <Badge>{ride.routeName}</Badge>
+        {ride.clubName ? <Badge variant="success">Club: {ride.clubName}</Badge> : null}
       </div>
       <h1 className="mt-4 text-3xl font-semibold">{ride.name}</h1>
       <p className="mt-2 text-white/64">{ride.time}</p>

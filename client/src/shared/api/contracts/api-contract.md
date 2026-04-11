@@ -196,7 +196,7 @@ Response (counts are platform-wide):
 }
 ```
 
-The home dashboard UI also composes **`GET /history`**, **`GET /rides/groups`**, and **`GET /challenges`** client-side (see shapes below).
+The home dashboard UI also composes **`GET /history`**, **`GET /rides/groups`**, **`GET /clubs`**, and **`GET /challenges`** client-side (see shapes below).
 
 ## History
 ### `GET /history`
@@ -217,7 +217,7 @@ Returns a JSON array of completed rides for the authenticated user, newest first
 
 ## Rides (group events)
 ### `GET /rides/groups`
-Returns a JSON array. Each item includes `routeTitle` (from the linked route) for display:
+Returns a JSON array. Each item includes `routeTitle`, optional `clubId` / `clubName`, participant id list, and `participantDetails` for display names:
 ```json
 {
   "id": 1,
@@ -227,15 +227,80 @@ Returns a JSON array. Each item includes `routeTitle` (from the linked route) fo
   "routeId": 1,
   "routeTitle": "Mountain Peak Trail",
   "participants": [1, 2],
-  "maxParticipants": 10
+  "participantDetails": [
+    { "userId": 1, "displayName": "John Rider" }
+  ],
+  "maxParticipants": 10,
+  "clubId": 1,
+  "clubName": "Coastal Open Rollers"
 }
 ```
 
 ### `GET /rides/events/:rideId`
-Same fields as a single element from `GET /rides/groups`, including `routeTitle`.
+Same shape as one element from `GET /rides/groups`, including `participantDetails`, `clubId`, and `clubName` when set.
+
+### `POST /rides/groups` (authenticated)
+Creates a scheduled group ride. Creator is added as a participant. Body:
+```json
+{
+  "name": "Morning roll",
+  "description": "",
+  "scheduledDate": "2026-07-01T06:30:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20,
+  "clubId": null,
+  "scheduleForWholeClub": false
+}
+```
+If `clubId` is set, the user must be an **active** member of that club. If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator).
+
+### `POST /rides/groups/:rideId/join` / `POST /rides/groups/:rideId/leave` (authenticated)
+Join or leave the ride roster (`leave` returns `204 No Content`).
+
+## Cycling clubs
+Visibility is `public` or `private` in JSON responses; create/patch use numeric enum **`0` = public, `1` = private** (`ClubVisibility`).
+
+### `GET /clubs`
+- Anonymous: public clubs only.
+- Authenticated: public clubs plus private clubs the user belongs to; each row may include `membershipPending` and `myRole` (`member` | `admin` | `pending` | null).
+
+### `POST /clubs` (authenticated)
+Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member.
+
+### `GET /clubs/:id`
+Returns `visibility`, `memberCount`, and `currentUserMembership`: `none` | `pending` | `member` | `admin`.
+
+### `GET /clubs/:id/members` (authenticated, members only)
+Member roster with `userId`, `displayName`, `email`, `role`, `membershipStatus`.
+
+### `POST /clubs/:id/join` / `POST /clubs/:id/leave` (authenticated)
+Public clubs: immediate **active** membership. Private clubs: **pending** until approved. Leave blocked for sole admin (HTTP 400 with problem details).
+
+### `GET /clubs/:id/join-requests` (club admins)
+Pending membership requests.
+
+### `POST /clubs/:id/join-requests/:userId/approve` | `.../reject` (club admins)
+
+### `POST /clubs/:id/invites` (club admins)
+Returns `{ "inviteCode": "<token>", "clubId": n }`.
+
+### `POST /clubs/invites/redeem` (authenticated)
+Body: `{ "token": "<code>" }` — grants **active** membership when valid.
+
+### `PATCH /clubs/:id` (club admins)
+Update metadata including `visibility`.
+
+### `POST /clubs/:id/members/:userId/promote` | `.../demote` (club admins)
+Demote is rejected if it would remove the last admin.
+
+### `DELETE /clubs/:id/members/:userId` (club admins)
+Cannot remove the last admin.
+
+### `GET /clubs/:id/rides`
+Scheduled `RideGroup` rows linked via `clubId`.
 
 ## Secondary Feature Endpoints
-These feature modules exist and use the shared client path, even if not all pages are currently mounted:
+These feature modules exist and use the shared client path:
 
 - `GET /dashboard/summary`
 - `GET /hazards`
@@ -243,6 +308,9 @@ These feature modules exist and use the shared client path, even if not all page
 - `GET /rides/groups`
 - `POST /rides/groups`
 - `GET /rides/events/:rideId`
+- `POST /rides/groups/:rideId/join`
+- `POST /rides/groups/:rideId/leave`
+- `GET /clubs`, `POST /clubs`, club sub-resources as above
 - `GET /chat/:rideId`
 - `POST /chat/:rideId`
 - `GET /history`

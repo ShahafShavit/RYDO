@@ -48,10 +48,11 @@ function userInGroup(group, userId) {
  *   userId: number | null,
  *   historyRaw: unknown,
  *   rideGroupsRaw: unknown,
+ *   clubsRaw: unknown,
  *   challengesRaw: unknown,
  * }} input
  */
-export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, challengesRaw }) {
+export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, clubsRaw, challengesRaw }) {
   const history = Array.isArray(historyRaw)
     ? [...historyRaw].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
     : [];
@@ -66,15 +67,16 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, challeng
 
   const upcoming = futureMine[0];
 
-  const myGroups = rides
-    .filter((g) => userInGroup(g, userId))
-    .sort((a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate))
-    .slice(0, 5);
+  const clubs = Array.isArray(clubsRaw) ? clubsRaw : [];
+  const myClubs = clubs
+    .filter((c) => c.myRole === 'member' || c.myRole === 'admin')
+    .slice(0, 6);
 
-  const groups = myGroups.map((g) => ({
-    id: String(g.id),
-    name: g.name || 'Group',
-    detail: g.description?.trim() || formatShortDate(g.scheduledDate) || '—',
+  const groups = myClubs.map((c) => ({
+    id: String(c.id),
+    name: c.name || 'Club',
+    detail: c.region?.trim() || c.description?.trim()?.slice(0, 72) || '—',
+    visibility: c.visibility === 'private' ? 'private' : 'public',
   }));
 
   const chList = Array.isArray(challengesRaw) ? challengesRaw : [];
@@ -127,12 +129,14 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, challeng
 
   const upcomingRide = upcoming
     ? {
+        id: upcoming.id,
         title: 'Upcoming Group RYDO',
         dateTime: formatLongDateTime(upcoming.scheduledDate),
         routeName: upcoming.routeTitle || 'Route',
         chatGroup: upcoming.name || 'Group ride',
       }
     : {
+        id: null,
         title: 'Upcoming Group RYDO',
         dateTime: '—',
         routeName: 'No upcoming rides',

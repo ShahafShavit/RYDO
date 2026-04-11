@@ -81,11 +81,19 @@ public static class DbSeeder
 
         SeedSavedRoutes(db, routes, userIds, rnd);
         db.Hazards.AddRange(SeedHazards(allUsers, rnd));
-        var rideGroups = SeedRideGroups(routes, rnd);
+
+        var clubs = SeedCyclingClubs(routes, admin, rider, rnd);
+        db.CyclingClubs.AddRange(clubs);
+        await db.SaveChangesAsync();
+
+        SeedClubMembersAndInvites(db, clubs, admin, rider, allUsers, rnd);
+
+        var rideGroups = SeedRideGroups(routes, rnd, clubs);
         db.RideGroups.AddRange(rideGroups);
         await db.SaveChangesAsync();
 
         SeedRideParticipants(db, rideGroups, userIds, rnd);
+        EnsureRiderOnFutureGroupRide(db, rideGroups, rider.Id, userIds, rnd);
         db.Challenges.AddRange(SeedChallenges(rnd));
         db.HistoryEntries.AddRange(SeedHistory(routes, userIds, rnd));
         SeedUserPreferences(db, userIds);
@@ -308,7 +316,190 @@ public static class DbSeeder
             _ => $"Hazard reported in {region}.",
         };
 
-    private static List<RideGroup> SeedRideGroups(List<RouteEntity> routes, Random rnd)
+    private static List<CyclingClub> SeedCyclingClubs(List<RouteEntity> routes, ApplicationUser admin, ApplicationUser rider, Random rnd)
+    {
+        var region = routes[0].Region ?? "Israel";
+        return new List<CyclingClub>
+        {
+            new()
+            {
+                Name = "Coastal Open Rollers",
+                Description = "Public club — all paces welcome along the coast.",
+                Region = region,
+                Visibility = ClubVisibility.Public,
+                CreatedByUserId = admin.Id,
+                CreatedAt = DateTime.UtcNow.AddDays(-120),
+            },
+            new()
+            {
+                Name = "Jerusalem Hills Collective",
+                Description = "Private club — request to join or use an invite.",
+                Region = "Jerusalem Hills",
+                Visibility = ClubVisibility.Private,
+                CreatedByUserId = admin.Id,
+                CreatedAt = DateTime.UtcNow.AddDays(-90),
+            },
+            new()
+            {
+                Name = "Negev Dawn Patrol",
+                Description = "Public weekend rides in the south.",
+                Region = "Negev Desert Route",
+                Visibility = ClubVisibility.Public,
+                CreatedByUserId = rider.Id,
+                CreatedAt = DateTime.UtcNow.AddDays(-60),
+            },
+            new()
+            {
+                Name = "Corporate Wellness Riders",
+                Description = "Private team club for organized lunch rides.",
+                Region = "Tel Aviv–Jaffa",
+                Visibility = ClubVisibility.Private,
+                CreatedByUserId = admin.Id,
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+            },
+        };
+    }
+
+    private static void SeedClubMembersAndInvites(
+        RydoDbContext db,
+        List<CyclingClub> clubs,
+        ApplicationUser admin,
+        ApplicationUser rider,
+        List<ApplicationUser> allUsers,
+        Random rnd)
+    {
+        var a = admin.Id;
+        var r = rider.Id;
+        var others = allUsers.Where(u => u.Id != a && u.Id != r).ToList();
+
+        // Club 0 — public, two admins (admin + rider), more members
+        var c0 = clubs[0].Id;
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c0,
+            UserId = a,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-100),
+            ActivatedAt = DateTime.UtcNow.AddDays(-100),
+        });
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c0,
+            UserId = r,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-99),
+            ActivatedAt = DateTime.UtcNow.AddDays(-99),
+        });
+        foreach (var u in others.Take(8))
+        {
+            db.ClubMembers.Add(new ClubMember
+            {
+                ClubId = c0,
+                UserId = u.Id,
+                Role = ClubMemberRole.Member,
+                MembershipStatus = ClubMembershipStatus.Active,
+                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 80)),
+                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 80)),
+            });
+        }
+
+        // Club 1 — private, admin + another admin, rider pending, invite token
+        var c1 = clubs[1].Id;
+        var secondAdmin = others[0];
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c1,
+            UserId = a,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-80),
+            ActivatedAt = DateTime.UtcNow.AddDays(-80),
+        });
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c1,
+            UserId = secondAdmin.Id,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-79),
+            ActivatedAt = DateTime.UtcNow.AddDays(-79),
+        });
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c1,
+            UserId = r,
+            Role = ClubMemberRole.Member,
+            MembershipStatus = ClubMembershipStatus.Pending,
+            RequestedAt = DateTime.UtcNow.AddDays(-2),
+        });
+        db.ClubInvites.Add(new ClubInvite
+        {
+            ClubId = c1,
+            Token = "seed-invite-jerusalem-hills-demo",
+            CreatedByUserId = a,
+            CreatedAt = DateTime.UtcNow.AddDays(-5),
+            MaxUses = 50,
+            UsedCount = 0,
+        });
+
+        // Club 2 — public, rider admin
+        var c2 = clubs[2].Id;
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c2,
+            UserId = r,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-50),
+            ActivatedAt = DateTime.UtcNow.AddDays(-50),
+        });
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c2,
+            UserId = a,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-49),
+            ActivatedAt = DateTime.UtcNow.AddDays(-49),
+        });
+        foreach (var u in others.Skip(2).Take(6))
+        {
+            db.ClubMembers.Add(new ClubMember
+            {
+                ClubId = c2,
+                UserId = u.Id,
+                Role = ClubMemberRole.Member,
+                MembershipStatus = ClubMembershipStatus.Active,
+                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 40)),
+                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 40)),
+            });
+        }
+
+        // Club 3 — private, two admins
+        var c3 = clubs[3].Id;
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c3,
+            UserId = a,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-20),
+            ActivatedAt = DateTime.UtcNow.AddDays(-20),
+        });
+        db.ClubMembers.Add(new ClubMember
+        {
+            ClubId = c3,
+            UserId = others[1].Id,
+            Role = ClubMemberRole.Admin,
+            MembershipStatus = ClubMembershipStatus.Active,
+            RequestedAt = DateTime.UtcNow.AddDays(-19),
+            ActivatedAt = DateTime.UtcNow.AddDays(-19),
+        });
+    }
+
+    private static List<RideGroup> SeedRideGroups(List<RouteEntity> routes, Random rnd, List<CyclingClub> clubs)
     {
         var names = new[]
         {
@@ -323,17 +514,43 @@ public static class DbSeeder
         {
             var route = routes[rnd.Next(routes.Count)];
             var days = rnd.Next(-10, 45);
-            list.Add(new RideGroup
+            var rg = new RideGroup
             {
                 Name = names[i],
                 Description = $"Open group ride — {route.Region ?? "mixed terrain"}. Respect traffic rules.",
                 ScheduledDate = DateTime.UtcNow.AddDays(days).Date.AddHours(6 + rnd.Next(0, 12)),
                 RouteId = route.Id,
                 MaxParticipants = 8 + rnd.Next(0, 25),
-            });
+            };
+            rg.ClubId = clubs[i % clubs.Count].Id;
+            list.Add(rg);
         }
 
         return list;
+    }
+
+    private static void EnsureRiderOnFutureGroupRide(
+        RydoDbContext db,
+        List<RideGroup> rides,
+        int riderUserId,
+        IReadOnlyList<int> userIds,
+        Random rnd)
+    {
+        var now = DateTime.UtcNow;
+        var future = rides.Where(r => r.ScheduledDate >= now).ToList();
+        RideGroup target;
+        if (future.Count == 0)
+        {
+            target = rides[rnd.Next(rides.Count)];
+            target.ScheduledDate = now.AddDays(14).Date.AddHours(8);
+        }
+        else
+            target = future.OrderBy(r => r.ScheduledDate).First();
+
+        if (db.RideParticipants.Any(p => p.RideGroupId == target.Id && p.UserId == riderUserId))
+            return;
+
+        db.RideParticipants.Add(new RideParticipant { RideGroupId = target.Id, UserId = riderUserId });
     }
 
     private static void SeedRideParticipants(RydoDbContext db, List<RideGroup> rides, IReadOnlyList<int> userIds, Random rnd)
