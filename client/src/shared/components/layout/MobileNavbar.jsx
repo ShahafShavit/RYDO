@@ -2,12 +2,14 @@ import { NavLink } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { dashboardNavigation, adminNavigation } from '@/shared/config/navigation';
+import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
+import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export default function MobileNavbar({ isAdminLayout }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { logout } = useAuth();
+    const { logout, isAdmin } = useAuth();
     const navItems = isAdminLayout ? adminNavigation : dashboardNavigation;
 
     return (
@@ -39,6 +41,20 @@ export default function MobileNavbar({ isAdminLayout }) {
                             {item.label}
                         </NavLink>
                     ))}
+                    {!isAdminLayout && isAdmin && (
+                        <NavLink to={ROUTES.admin} onClick={() => setIsOpen(false)} className="w-full block">
+                            <Button variant="secondary" className="w-full justify-center">
+                                Admin Mode
+                            </Button>
+                        </NavLink>
+                    )}
+                    {isAdminLayout && (
+                        <NavLink to={ROUTES.dashboard} onClick={() => setIsOpen(false)} className="w-full block">
+                            <Button variant="secondary" className="w-full justify-center">
+                                Exit Admin
+                            </Button>
+                        </NavLink>
+                    )}
                     <div className="mt-4 pt-4 border-t border-white/8">
                         <button
                             onClick={() => { logout(); setIsOpen(false); }}
