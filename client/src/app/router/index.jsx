@@ -2,6 +2,7 @@
 import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ROUTES } from './route-paths';
+import { LegacyRideSpaRedirect, LegacyYourRoutesRedirect } from './legacy-redirects';
 import { ProtectedRoute, AdminRoute } from './route-guards';
 
 import PublicLayout from '@/shared/components/layout/PublicLayout';
@@ -45,13 +46,15 @@ export const router = createBrowserRouter([
           { path: ROUTES.dashboard, element: <DashboardPage /> },
           { path: ROUTES.routes, element: <RoutesExplorePage /> },
           { path: ROUTES.routeDetails, element: <RouteDetailsPage /> },
-          { path: ROUTES.yourRoutes, element: <YourRoutesPage /> },
+          { path: ROUTES.myRoutes, element: <YourRoutesPage /> },
+          { path: '/your-routes', element: <LegacyYourRoutesRedirect /> },
           { path: ROUTES.myRides, element: <MyRidesPage /> },
 
           { path: '/rides/groups', element: <Navigate to={ROUTES.clubs} replace /> },
           { path: ROUTES.clubs, element: <ClubsPage /> },
           { path: ROUTES.clubDetails, element: <ClubDetailPage /> },
           { path: ROUTES.rideEvent, element: <RideEventPage /> },
+          { path: '/rides/:rideId', element: <LegacyRideSpaRedirect /> },
 
           { path: ROUTES.settings, element: <SettingsPage /> },
         ],

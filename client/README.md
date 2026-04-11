@@ -42,7 +42,9 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `/dashboard`
 - `/routes`
 - `/routes/:routeId`
-- `/your-routes`
+- `/my-routes` (uploaded and saved routes)
+- `/my-rides`
+- `/ride/:rideId`
 - `/settings`
 
 ### Admin routes
@@ -52,7 +54,7 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `/admin/hazards`
 
 ### Important note
-Some feature modules exist without being mounted in the main router yet, including chat, hazards reporting, rides, history, and challenges pages. Their APIs and hooks are implemented, but they are not currently reachable through the routed app shell.
+Some feature modules exist without being mounted in the main router yet (e.g. chat). APIs and hooks for rides, history, and challenges are used from routed pages such as dashboard and My rides.
 
 ## Data Models
 Detailed canonical models live in [`src/shared/api/contracts/models.md`]

@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
+import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
+import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
 
 function formatWhen(iso) {
@@ -30,9 +32,10 @@ function ScheduledRideCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CompactRouteMapPreview preview={ride.preview} />
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge variant="neon">Scheduled</Badge>
-        <Badge>{ride.routeTitle || 'No route yet'}</Badge>
+        <Badge>{ride.routeTitle || ride.routeName || 'No route yet'}</Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (
@@ -56,9 +59,10 @@ function PastScheduledCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CompactRouteMapPreview preview={ride.preview} />
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge>Past event</Badge>
-        <Badge>{ride.routeTitle || 'No route yet'}</Badge>
+        <Badge>{ride.routeTitle || ride.routeName || 'No route yet'}</Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (
@@ -137,7 +141,11 @@ function HistoryRideCard({ entry }) {
 export default function MyRidesPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const { upcoming, pastScheduled, historyRows, isLoading, isError } = useMyRidesPanel(search);
+  const { upcoming: upcomingRaw, pastScheduled: pastRaw, historyRows, isLoading, isError } =
+    useMyRidesPanel(search);
+
+  const upcoming = useMemo(() => (Array.isArray(upcomingRaw) ? upcomingRaw.map(mapRideDto) : []), [upcomingRaw]);
+  const pastScheduled = useMemo(() => (Array.isArray(pastRaw) ? pastRaw.map(mapRideDto) : []), [pastRaw]);
 
   return (
     <section className="space-y-8">

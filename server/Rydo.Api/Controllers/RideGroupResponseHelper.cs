@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
 
@@ -29,6 +30,7 @@ internal static class RideGroupResponseHelper
     public static object ToResponse(RideGroup g, bool includeRoster, int? totalParticipantCount = null)
     {
         var count = totalParticipantCount ?? g.Participants.Count;
+        var routePreview = RoutePreviewPayload(g.Route);
         if (!includeRoster)
         {
             return new
@@ -39,6 +41,7 @@ internal static class RideGroupResponseHelper
                 scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                 routeId = g.RouteId,
                 routeTitle = g.Route != null ? g.Route.Title : "",
+                routePreview,
                 participantCount = count,
                 participants = (int[]?)null,
                 participantDetails = (object?)null,
@@ -57,6 +60,7 @@ internal static class RideGroupResponseHelper
             scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             routeId = g.RouteId,
             routeTitle = g.Route != null ? g.Route.Title : "",
+            routePreview,
             participantCount = count,
             participants = participantIds,
             participantDetails = g.Participants
@@ -66,5 +70,19 @@ internal static class RideGroupResponseHelper
             clubId = g.ClubId,
             clubName = g.Club != null ? g.Club.Name : null,
         };
+    }
+
+    /// <summary>Same shape as history list <c>preview</c> — coordinates for map thumbnails.</summary>
+    private static object? RoutePreviewPayload(RouteEntity? route)
+    {
+        if (route == null
+            || string.IsNullOrWhiteSpace(route.PreviewCoordinatesJson)
+            || route.PreviewCoordinatesJson == "[]")
+            return null;
+
+        var previewCoords = JsonSerializer.Deserialize<List<List<double>>>(route.PreviewCoordinatesJson);
+        return previewCoords is { Count: > 0 }
+            ? new { coordinates = previewCoords }
+            : null;
     }
 }

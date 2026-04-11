@@ -257,6 +257,7 @@ Returns one scheduled ride. **Roster privacy:** active members of the ride’s c
   "scheduledDate": "2026-06-15T08:00:00.000Z",
   "routeId": 1,
   "routeTitle": "Mountain Peak Trail",
+  "routePreview": { "coordinates": [[34.8, 32.1], [34.81, 32.11]] },
   "participantCount": 2,
   "participants": [1, 2],
   "participantDetails": [
@@ -267,6 +268,8 @@ Returns one scheduled ride. **Roster privacy:** active members of the ride’s c
   "clubName": "Coastal Open Rollers"
 }
 ```
+
+`routePreview` is omitted or null when the ride has no route or no stored polyline; when present, `coordinates` are `[longitude, latitude]` pairs (same as history `preview`) for map thumbnails.
 
 When roster is hidden, `participantDetails` and `participants` are omitted or null; `participantCount` is always present.
 

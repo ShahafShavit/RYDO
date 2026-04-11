@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
+import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -21,11 +23,13 @@ export default function RouteCard({ route }) {
   const distance = route?.distanceKm ? `${route.distanceKm} km` : null;
 
   const routeId = route?.id ?? '';
+  const mapPreview = useMemo(() => route?.preview ?? null, [route]);
 
   return (
     <Card className="flex h-full flex-col justify-between">
       <div>
-        <div className="flex items-start justify-between gap-3">
+        <CompactRouteMapPreview preview={mapPreview} />
+        <div className="mt-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-xl font-semibold">{title}</h3>
             <p className="mt-2 text-sm text-white/60">{description}</p>

@@ -94,7 +94,7 @@ public static class DbSeeder
 
             var personalRideGroups = SeedPersonalRideGroups(routes, rnd);
             var rideGroups = SeedRideGroups(routes, rnd, clubs).Concat(personalRideGroups).ToList();
-            CapUpcomingRideGroups(rideGroups, maxUpcoming: 5);
+            ApplyRideScheduleCaps(rideGroups, maxUpcomingTotal: 4, maxUpcomingPerClub: 2);
             db.RideGroups.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
@@ -138,7 +138,7 @@ public static class DbSeeder
             SeedUserPreferences(db, userIds);
 
         // Participant seeding must not increase the number of future-dated rides; enforce cap last.
-        CapUpcomingRideGroups(rideGroups, maxUpcoming: 5);
+        ApplyRideScheduleCaps(rideGroups, maxUpcomingTotal: 4, maxUpcomingPerClub: 2);
 
         await db.SaveChangesAsync();
     }
@@ -570,6 +570,12 @@ public static class DbSeeder
         });
     }
 
+    private static void ApplyRideScheduleCaps(IList<RideGroup> groups, int maxUpcomingTotal, int maxUpcomingPerClub)
+    {
+        CapUpcomingRideGroups(groups, maxUpcomingTotal);
+        CapFutureClubRidesPerClub(groups, maxUpcomingPerClub);
+    }
+
     /// <summary>
     /// Keeps total upcoming (scheduled in the future) club + personal rides at or below the cap.
     /// </summary>
@@ -581,6 +587,27 @@ public static class DbSeeder
         {
             var g = future[i];
             g.ScheduledDate = now.AddDays(-12 - (i - maxUpcoming)).Date.AddHours(10 + (i % 5));
+        }
+    }
+
+    /// <summary>
+    /// Pushes excess future-dated club rides into the past so each club has at most <paramref name="maxPerClub"/> upcoming.
+    /// </summary>
+    private static void CapFutureClubRidesPerClub(IList<RideGroup> groups, int maxPerClub)
+    {
+        var now = DateTime.UtcNow;
+        var clubIds = groups.Where(g => g.ClubId.HasValue).Select(g => g.ClubId!.Value).Distinct();
+        foreach (var cid in clubIds)
+        {
+            var futureForClub = groups
+                .Where(g => g.ClubId == cid && g.ScheduledDate >= now)
+                .OrderBy(g => g.ScheduledDate)
+                .ToList();
+            for (var i = maxPerClub; i < futureForClub.Count; i++)
+            {
+                var g = futureForClub[i];
+                g.ScheduledDate = now.AddDays(-14 - (i - maxPerClub)).Date.AddHours(10 + (i % 5));
+            }
         }
     }
 

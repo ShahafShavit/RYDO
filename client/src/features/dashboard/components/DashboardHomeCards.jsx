@@ -145,7 +145,7 @@ export default function DashboardHomeCards() {
       <>
         <DashboardHomeSkeleton />
         <div className="mt-8 flex gap-3">
-          <Link to={`${ROUTES.yourRoutes}?upload=true`}>
+          <Link to={`${ROUTES.myRoutes}?upload=true`}>
             <Button variant="primary">Upload New GPX Route</Button>
           </Link>
         </div>
@@ -239,7 +239,7 @@ export default function DashboardHomeCards() {
         </div>
       </div>
       <div className="mt-8 flex gap-3">
-        <Link to={`${ROUTES.yourRoutes}?upload=true`}>
+        <Link to={`${ROUTES.myRoutes}?upload=true`}>
           <Button variant="primary">Upload New GPX Route</Button>
         </Link>
       </div>

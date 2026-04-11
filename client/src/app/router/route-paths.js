@@ -8,10 +8,10 @@ export const ROUTES = {
   dashboard: '/dashboard',
   routes: '/routes',
   routeDetails: '/routes/:routeId',
-  yourRoutes: '/your-routes',
+  myRoutes: '/my-routes',
   myRides: '/my-rides',
   settings: '/settings',
-  rideEvent: '/rides/:rideId',
+  rideEvent: '/ride/:rideId',
   clubs: '/clubs',
   clubDetails: '/clubs/:clubId',
 

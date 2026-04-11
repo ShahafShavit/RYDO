@@ -1,18 +1,30 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import RideMembersList from '@/features/rides/components/RideMembersList';
 import RideStatusBanner from '@/features/rides/components/RideStatusBanner';
+import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
+import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useRideAttendance } from '@/features/rides/hooks/useRideAttendance';
+import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Button from '@/shared/components/ui/button/Button';
+import { ROUTES } from '@/app/router/route-paths';
+import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 
 export default function RideEventPage() {
   const { rideId } = useParams();
   const { user } = useAuth();
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
   const { joinRide, leaveRide, isJoining, isLeaving } = useRideAttendance(rideId);
+  const rid = ride?.routeId != null ? String(ride.routeId) : '';
+  const { route: linkedRoute, isLoading: routeLoading } = useRouteDetails(rid);
+
+  const geoJson = useMemo(
+    () => buildRoutePreviewFeatureCollection(linkedRoute?.preview ?? null),
+    [linkedRoute],
+  );
 
   const myUserId = user?.id != null ? Number(user.id) : null;
   const amParticipant = useMemo(() => {
@@ -49,6 +61,26 @@ export default function RideEventPage() {
     <section className="space-y-6">
       <RideStatusBanner />
       <RideEventCard ride={ride} />
+      {ride.routeId ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Link
+              to={ROUTES.routeDetails.replace(':routeId', String(ride.routeId))}
+              className="text-sm font-medium text-[#7B5CFF] hover:underline"
+            >
+              Open full route profile
+            </Link>
+          </div>
+          {routeLoading ? (
+            <div className="h-64 animate-pulse rounded-3xl bg-white/10" />
+          ) : (
+            <RouteMapWithElevation geoJson={geoJson} />
+          )}
+          <RouteMetadataPanel route={linkedRoute} />
+        </div>
+      ) : (
+        <p className="text-sm text-white/56">No route is linked to this event yet.</p>
+      )}
       {user ? (
         <div className="flex flex-wrap gap-3">
           {amParticipant ? (
