@@ -48,21 +48,15 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
         string Str(string key) => form[key].ToString();
         int Int(string key, int d) => int.TryParse(form[key], out var v) ? v : d;
-        double Dbl(string key, double d) => double.TryParse(form[key], out var v) ? v : d;
 
-        var distanceKm = Dbl("distanceKm", 0);
-        var elevationGainM = Dbl("elevationGainM", 0);
-        var previewJson = "[]";
-        var parserDurationSource = RouteDurationSource.Unknown;
-        if (GpxTrackParser.TryParse(bytes, out var parsedPreview, out var pathKm, out var pathElev, out _, out var derivedSrc))
-        {
-            previewJson = parsedPreview;
-            parserDurationSource = derivedSrc;
-            if (distanceKm <= 0)
-                distanceKm = pathKm;
-            if (elevationGainM <= 0)
-                elevationGainM = pathElev;
-        }
+        if (!GpxTrackParser.TryParse(bytes, out var parsedPreview, out var distanceKm, out var elevationGainM, out _, out var derivedSrc))
+            return Problem(statusCode: 400, detail: "GPX must contain a readable track with at least two points.");
+
+        if (!GpxTrackParser.IsTrackPlausible(bytes, out var rejectReason))
+            return Problem(statusCode: 400, detail: rejectReason ?? "This GPX file failed validation.");
+
+        var previewJson = parsedPreview;
+        var parserDurationSource = derivedSrc;
 
         var uid = GetUserId() ?? 0;
         var route = new RouteEntity

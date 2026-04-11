@@ -65,6 +65,19 @@ export function deriveDurationMinutesFromGpx(gpxDom) {
 /** Assumed average moving speed when inferring duration from track length (GPX has no timestamps). */
 export const SUGGESTED_DURATION_SPEED_KMH = 20;
 
+/** Keep numeric values aligned with server `GpxTrackParser.Validation.cs`. */
+export const GPX_PLAUSIBILITY = {
+  maxGainPerKm: 350,
+  maxAggregateGainM: 15000,
+  minAggregateGainFloorM: 200,
+  spikeVerticalM: 150,
+  spikeHorizontalM: 40,
+  minHorizontalForGradeM: 40,
+  maxAbsGrade: 0.5,
+  maxHorizontalSpeedMps: 45,
+  sameTimestampTeleportM: 50,
+};
+
 /**
  * Whole minutes from Haversine path length and an assumed average speed (no GPX timestamps required).
  *
@@ -79,7 +92,7 @@ export function deriveDurationMinutesFromDistance(distanceM, speedKmh = SUGGESTE
 }
 
 /**
- * @returns {{ lat: number, lon: number, ele: number | null }[]}
+ * @returns {{ lat: number, lon: number, ele: number | null, timeMs: number | null }[]}
  */
 export function extractTrackPointsFromGpx(gpxDom) {
   const pts = gpxDom.getElementsByTagName('trkpt');
@@ -95,9 +108,79 @@ export function extractTrackPointsFromGpx(gpxDom) {
       const v = parseFloat(eleNodes[0].textContent);
       if (!Number.isNaN(v)) ele = v;
     }
-    out.push({ lat, lon, ele });
+    const timeMs = readGpxTimeMs(pt);
+    out.push({ lat, lon, ele, timeMs });
   }
   return out;
+}
+
+function computeSequentialElevationGainM(points) {
+  let lastEle = null;
+  let gain = 0;
+  for (const p of points) {
+    if (p.ele == null || Number.isNaN(p.ele)) continue;
+    if (lastEle != null && p.ele > lastEle) gain += p.ele - lastEle;
+    lastEle = p.ele;
+  }
+  return gain;
+}
+
+/**
+ * Mirrors server `GpxTrackParser.IsTrackPlausible` for upload UX.
+ *
+ * @param {{ lat: number, lon: number, ele: number | null, timeMs: number | null }[]} points
+ * @returns {string | null} null if plausible, else user-facing error message
+ */
+export function validateTrackPlausibility(points) {
+  const c = GPX_PLAUSIBILITY;
+  if (points.length < 2) {
+    return 'No track points found in GPX (need at least 2 trkpt elements).';
+  }
+
+  let distanceKm = 0;
+  for (let i = 1; i < points.length; i++) {
+    distanceKm +=
+      haversineM(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon) / 1000;
+  }
+
+  const elevationGainM = computeSequentialElevationGainM(points);
+  const maxAllowedGain = Math.min(
+    c.maxAggregateGainM,
+    Math.max(c.minAggregateGainFloorM, distanceKm * c.maxGainPerKm),
+  );
+  if (elevationGainM > maxAllowedGain) {
+    return 'This GPX has unrealistic total elevation gain for its distance (possible corrupt elevation data).';
+  }
+
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const horizM = haversineM(a.lat, a.lon, b.lat, b.lon);
+
+    if (a.ele != null && !Number.isNaN(a.ele) && b.ele != null && !Number.isNaN(b.ele)) {
+      const dEle = Math.abs(b.ele - a.ele);
+      if (dEle > c.spikeVerticalM && horizM < c.spikeHorizontalM) {
+        return 'This GPX contains a near-instantaneous elevation jump (possible corrupt elevation data).';
+      }
+      if (horizM >= c.minHorizontalForGradeM && dEle / horizM > c.maxAbsGrade) {
+        return 'This GPX contains an impossible slope between two points (possible corrupt data).';
+      }
+    }
+
+    const ta = a.timeMs;
+    const tb = b.timeMs;
+    if (ta != null && tb != null) {
+      const dtSec = (tb - ta) / 1000;
+      if (dtSec <= 0 && horizM > c.sameTimestampTeleportM) {
+        return 'This GPX shows large movement with zero or negative time between points (possible corrupt timestamps).';
+      }
+      if (dtSec > 0 && horizM / dtSec > c.maxHorizontalSpeedMps) {
+        return 'This GPX implies impossible speed between two points (possible corrupt timestamps or positions).';
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -222,6 +305,14 @@ export function analyzeGpxTrack(gpxDom) {
   if (points.length < 2) {
     return {
       error: 'No track points found in GPX (need at least 2 trkpt elements).',
+      ...buildDurationHints(gpxDom, 0),
+    };
+  }
+
+  const plausibilityError = validateTrackPlausibility(points);
+  if (plausibilityError) {
+    return {
+      error: plausibilityError,
       ...buildDurationHints(gpxDom, 0),
     };
   }

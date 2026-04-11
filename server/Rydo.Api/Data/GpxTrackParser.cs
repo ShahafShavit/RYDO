@@ -5,7 +5,7 @@ using System.Xml.Linq;
 namespace Rydo.Api.Data;
 
 /// <summary>Parses common GPX 1.0/1.1 track/route/waypoint structures for seed metrics.</summary>
-public static class GpxTrackParser
+public static partial class GpxTrackParser
 {
     private const int MaxPreviewPoints = 400;
 
@@ -177,7 +177,7 @@ public static class GpxTrackParser
         return result.Count >= 2 ? result : points.ToList();
     }
 
-    private readonly record struct TrackPoint(double Lat, double Lon, double? EleMeters);
+    private readonly record struct TrackPoint(double Lat, double Lon, double? EleMeters, DateTimeOffset? TimeUtc);
 
     private static List<TrackPoint> CollectPoints(XDocument doc)
     {
@@ -188,7 +188,7 @@ public static class GpxTrackParser
                 continue;
             if (!TryReadLatLon(el, out var lat, out var lon))
                 continue;
-            list.Add(new TrackPoint(lat, lon, ReadEle(el)));
+            list.Add(new TrackPoint(lat, lon, ReadEle(el), ReadTime(el)));
         }
 
         if (list.Count >= 2)
@@ -201,7 +201,7 @@ public static class GpxTrackParser
                 continue;
             if (!TryReadLatLon(el, out var lat, out var lon))
                 continue;
-            list.Add(new TrackPoint(lat, lon, ReadEle(el)));
+            list.Add(new TrackPoint(lat, lon, ReadEle(el), ReadTime(el)));
         }
 
         return list;

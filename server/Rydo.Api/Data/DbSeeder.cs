@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -156,8 +157,15 @@ public static class DbSeeder
             {
                 var name = Path.GetFileName(path);
                 var bytes = File.ReadAllBytes(path);
-                if (bytes.Length > 0)
-                    list.Add((name, bytes));
+                if (bytes.Length == 0)
+                    continue;
+                if (!GpxTrackParser.IsTrackPlausible(bytes, out _))
+                {
+                    Debug.WriteLine($"[DbSeeder] Skipped implausible GPX seed file: {name}");
+                    continue;
+                }
+
+                list.Add((name, bytes));
             }
             catch
             {
