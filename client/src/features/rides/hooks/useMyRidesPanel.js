@@ -4,7 +4,7 @@ import { normalizePaginatedResult } from '@/shared/api/api-helpers';
 import { ridesApi } from '@/features/rides/api/rides-api';
 import { historyApi } from '@/features/history/api/history-api';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 8;
 
 export function useMyRidesPanel(search) {
   const q = useDeferredValue(search.trim());

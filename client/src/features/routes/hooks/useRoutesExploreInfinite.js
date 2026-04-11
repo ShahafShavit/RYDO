@@ -3,7 +3,7 @@ import { normalizePaginatedResult } from '@/shared/api/api-helpers';
 import { routeKeys, routesApi } from '@/features/routes/api/routesApi';
 import { normalizeRoute } from '@/features/routes/route-mapper';
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 18;
 
 /**
  * Server-side filtered + paginated route list for Explore (/routes).
