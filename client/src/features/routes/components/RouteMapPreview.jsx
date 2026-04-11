@@ -30,7 +30,7 @@ function applyRouteView(map, layer) {
   map.setView(b.getCenter(), targetZoom, { animate: false });
 }
 
-export default function RouteMapPreview({ geoJson, className }) {
+export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
@@ -43,7 +43,7 @@ export default function RouteMapPreview({ geoJson, className }) {
     const el = mapContainerRef.current;
     if (!el || mapRef.current) return;
 
-    const map = L.map(el).setView([45.5, 10], 6);
+    const map = L.map(el, { scrollWheelZoom }).setView([45.5, 10], 6);
     mapRef.current = map;
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',

@@ -15,14 +15,20 @@ const mapFallback = (
  * - If `profile` is set (including `null`), it is used instead of deriving from GeoJSON (e.g. GPX analysis on upload).
  * - If `profile` is omitted, the profile is built from GeoJSON when coordinates include a third (elevation) value.
  */
-export default function RouteMapWithElevation({ geoJson, mapClassName, chartClassName = '', profile: profileProp }) {
+export default function RouteMapWithElevation({
+  geoJson,
+  mapClassName,
+  chartClassName = '',
+  profile: profileProp,
+  scrollWheelZoom = true,
+}) {
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
 
   return (
     <div className="space-y-3">
       <Suspense fallback={mapFallback}>
-        <RouteMapPreview geoJson={geoJson} className={mapClassName} />
+        <RouteMapPreview geoJson={geoJson} className={mapClassName} scrollWheelZoom={scrollWheelZoom} />
       </Suspense>
       {profile && profile.length >= 2 ? (
         <ElevationProfileChart profile={profile} className={chartClassName} />

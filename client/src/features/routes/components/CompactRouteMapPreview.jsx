@@ -10,10 +10,12 @@ import RouteMapPreview from './RouteMapPreview';
 export default function CompactRouteMapPreview({
   preview,
   className = 'h-28 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5',
+  /** Card grids: wheel zoom steals page scroll; detail pages use `RouteMapWithElevation` with zoom enabled. */
+  scrollWheelZoom = false,
 }) {
   const geoJson = useMemo(() => buildRoutePreviewFeatureCollection(preview ?? null), [preview]);
   if (!geoJson?.features?.length) {
     return <div className={className} aria-hidden />;
   }
-  return <RouteMapPreview geoJson={geoJson} className={className} />;
+  return <RouteMapPreview geoJson={geoJson} className={className} scrollWheelZoom={scrollWheelZoom} />;
 }
