@@ -21,6 +21,7 @@ public class RidesController(RydoDbContext db) : ControllerBase
             description = g.Description,
             scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             routeId = g.RouteId,
+            routeTitle = g.Route != null ? g.Route.Title : "",
             participants = g.Participants.Select(p => p.UserId).ToList(),
             maxParticipants = g.MaxParticipants,
         }).ToList();
@@ -45,7 +46,8 @@ public class RidesController(RydoDbContext db) : ControllerBase
         };
         db.RideGroups.Add(g);
         await db.SaveChangesAsync(ct);
-        return Ok(new { id = g.Id, name = g.Name, description = g.Description, scheduledDate = g.ScheduledDate, routeId = g.RouteId, participants = Array.Empty<int>(), maxParticipants = g.MaxParticipants });
+        var createdRoute = await db.Routes.AsNoTracking().FirstAsync(r => r.Id == g.RouteId, ct);
+        return Ok(new { id = g.Id, name = g.Name, description = g.Description, scheduledDate = g.ScheduledDate, routeId = g.RouteId, routeTitle = createdRoute.Title, participants = Array.Empty<int>(), maxParticipants = g.MaxParticipants });
     }
 
     [HttpGet("events/{rideId:int}")]
@@ -61,6 +63,7 @@ public class RidesController(RydoDbContext db) : ControllerBase
             description = g.Description,
             scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             routeId = g.RouteId,
+            routeTitle = g.Route != null ? g.Route.Title : "",
             participants = g.Participants.Select(p => p.UserId).ToList(),
             maxParticipants = g.MaxParticipants,
         });

@@ -101,7 +101,9 @@ function findRide(rideId) {
   if (!ride) {
     throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
   }
-  return ride;
+  const route = routes.find((r) => r.id === Number(ride.routeId));
+  const routeTitle = ride.routeTitle || route?.title || '';
+  return { ...ride, routeTitle };
 }
 
 export async function mockRequest(path, options = {}) {
@@ -327,12 +329,15 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/rides/groups' && method === 'POST') {
     const payload = parseJsonBody(options.body);
+    const routeId = Number(payload.routeId || 0);
+    const route = routes.find((r) => r.id === routeId);
     const ride = {
       id: Math.max(...rides.map((item) => item.id), 0) + 1,
       name: payload.name,
       description: payload.description || '',
       scheduledDate: payload.scheduledDate,
-      routeId: Number(payload.routeId || 0),
+      routeId,
+      routeTitle: route?.title || '',
       participants: [],
       maxParticipants: Number(payload.maxParticipants || 10),
     };

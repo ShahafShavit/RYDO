@@ -2,7 +2,20 @@ import Card from '@/shared/components/ui/card/Card';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function DashboardStats() {
-  const { stats } = useDashboardData();
+  const { stats, statsLoading } = useDashboardData();
+
+  if (statsLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((key) => (
+          <Card key={key}>
+            <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+            <div className="mt-4 h-10 w-16 animate-pulse rounded bg-white/10" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3">

@@ -185,6 +185,55 @@ Request:
 
 Response: `204 No Content`
 
+## Dashboard
+### `GET /dashboard/summary`
+Response (counts are platform-wide):
+```json
+{
+  "totalRoutes": 0,
+  "totalRides": 0,
+  "totalUsers": 0
+}
+```
+
+The home dashboard UI also composes **`GET /history`**, **`GET /rides/groups`**, and **`GET /challenges`** client-side (see shapes below).
+
+## History
+### `GET /history`
+Returns a JSON array of completed rides for the authenticated user, newest first. Each item includes:
+```json
+{
+  "id": 1,
+  "routeId": 1,
+  "routeTitle": "Oak Ridge Loop",
+  "routeDifficulty": "moderate",
+  "completedAt": "2026-04-10T12:00:00.000Z",
+  "durationMinutes": 90,
+  "distanceKm": 22.5,
+  "elevationGainM": 120
+}
+```
+`routeDifficulty` mirrors the linked route’s difficulty when the route exists; otherwise it may be omitted or null.
+
+## Rides (group events)
+### `GET /rides/groups`
+Returns a JSON array. Each item includes `routeTitle` (from the linked route) for display:
+```json
+{
+  "id": 1,
+  "name": "Weekend Warriors",
+  "description": "Saturday social pace",
+  "scheduledDate": "2026-06-15T08:00:00.000Z",
+  "routeId": 1,
+  "routeTitle": "Mountain Peak Trail",
+  "participants": [1, 2],
+  "maxParticipants": 10
+}
+```
+
+### `GET /rides/events/:rideId`
+Same fields as a single element from `GET /rides/groups`, including `routeTitle`.
+
 ## Secondary Feature Endpoints
 These feature modules exist and use the shared client path, even if not all pages are currently mounted:
 
