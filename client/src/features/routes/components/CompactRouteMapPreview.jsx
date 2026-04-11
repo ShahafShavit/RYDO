@@ -1,12 +1,11 @@
-import { Suspense, lazy, useMemo } from 'react';
+import { useMemo } from 'react';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
-
-const RouteMapPreview = lazy(() => import('./RouteMapPreview'));
-
-const fallback = <div className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/5" />;
+import RouteMapPreview from './RouteMapPreview';
 
 /**
  * Small Leaflet preview for cards. `preview` matches API preview / routePreview shape ({ coordinates }).
+ * Loaded synchronously so the map mounts in the same commit as `geoJson` (lazy+Suspense deferred Leaflet
+ * until after paint, so the default world zoom was visible and fitBounds ran too late).
  */
 export default function CompactRouteMapPreview({
   preview,
@@ -16,9 +15,5 @@ export default function CompactRouteMapPreview({
   if (!geoJson?.features?.length) {
     return <div className={className} aria-hidden />;
   }
-  return (
-    <Suspense fallback={fallback}>
-      <RouteMapPreview geoJson={geoJson} className={className} />
-    </Suspense>
-  );
+  return <RouteMapPreview geoJson={geoJson} className={className} />;
 }
