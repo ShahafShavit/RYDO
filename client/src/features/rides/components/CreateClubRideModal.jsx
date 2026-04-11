@@ -1,6 +1,6 @@
-import { useEffect, useId } from 'react';
-import { createPortal } from 'react-dom';
+import { useId } from 'react';
 import Card from '@/shared/components/ui/card/Card';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 
 /**
@@ -10,38 +10,13 @@ import CreateRideForm from '@/features/rides/components/CreateRideForm';
 export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose, onSuccess }) {
   const titleId = useId();
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const handleBackdropPointerDown = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
-  const modal = (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm sm:p-6"
-      role="presentation"
-      onMouseDown={handleBackdropPointerDown}
-    >
+  return (
+    <AnimatedModal open={isOpen} onClose={onClose} zIndexClass="z-[100]">
       <Card
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[min(90vh,720px)] w-full max-w-xl overflow-y-auto border border-white/12 bg-[#0f0f14]/95 shadow-2xl shadow-black/40"
-        onMouseDown={(e) => e.stopPropagation()}
+        className="max-h-[min(90vh,720px)] w-full overflow-y-auto border border-white/12 bg-[#0f0f14]/95 shadow-2xl shadow-black/40"
       >
         <div className="border-b border-white/10 pb-4">
           <div className="flex items-start justify-between gap-4">
@@ -79,8 +54,6 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
           }}
         />
       </Card>
-    </div>
+    </AnimatedModal>
   );
-
-  return createPortal(modal, document.body);
 }

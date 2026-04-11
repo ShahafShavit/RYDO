@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Settings, LogOut } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-const MotionDiv = motion.div;
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/app/router/route-paths';
 import { cn } from '@/shared/lib/cn';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+
+const MotionDiv = motion.div;
 
 export default function UserProfileDropdown() {
     const { user, logout } = useAuth();
@@ -49,19 +49,7 @@ export default function UserProfileDropdown() {
             .toUpperCase();
     };
 
-    const panelVariants = reducedMotion
-        ? {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-          }
-        : {
-              initial: { opacity: 0, y: 8 },
-              animate: { opacity: 1, y: 0 },
-              exit: { opacity: 0, y: 4 },
-          };
-
-    const transition = { duration: reducedMotion ? 0.12 : 0.22, ease: [0.22, 1, 0.36, 1] };
+    const tFast = { duration: reducedMotion ? 0.09 : 0.14, ease: [0.32, 0.72, 0, 1] };
 
     return (
         <div className="relative w-full" ref={dropdownRef}>
@@ -69,11 +57,10 @@ export default function UserProfileDropdown() {
                 {isOpen && (
                     <MotionDiv
                         className="absolute bottom-full left-0 mb-2 w-full rounded-2xl rydo-glass border border-white/8 p-1.5 shadow-xl z-50 origin-bottom"
-                        variants={panelVariants}
-                        initial="initial"
-                        animate="animate"
-                        exit="exit"
-                        transition={transition}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={tFast}
                         role="menu"
                         aria-label="Account"
                     >

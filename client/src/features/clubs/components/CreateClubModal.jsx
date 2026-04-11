@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
 
@@ -28,15 +29,9 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
     },
   });
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
-      role="presentation"
-      onClick={onClose}
-    >
-      <Card className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+    <AnimatedModal open={isOpen} onClose={onClose} contentClassName="p-6">
+      <Card className="w-full" role="dialog" aria-modal="true">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-xl font-semibold">Create a club</h2>
           <button type="button" className="text-white/60 transition hover:text-white" onClick={onClose} aria-label="Close">
@@ -92,6 +87,6 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
           </div>
         </form>
       </Card>
-    </div>
+    </AnimatedModal>
   );
 }

@@ -1,42 +1,61 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Suspense } from 'react';
+import { useOutlet, useLocation, useNavigation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 
 const MotionDiv = motion.div;
 
-const ease = [0.22, 1, 0.36, 1];
+function RouteTransitionFallback() {
+  return (
+    <div
+      className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-4 rounded-2xl bg-white/[0.06] px-6 py-12"
+      aria-busy="true"
+      aria-label="Loading page"
+    >
+      <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
+      <p className="text-sm text-white/45">Loading…</p>
+    </div>
+  );
+}
 
+/**
+ * Single `useOutlet()` + keyed motion (not multiple `<Outlet />`), so exit/enter animations
+ * see the correct route elements. Prefetch (see layouts) keeps lazy chunks warm so transitions
+ * aren’t skipped behind a long network wait.
+ */
 export default function AnimatedOutlet() {
+  const outlet = useOutlet();
   const location = useLocation();
+  const navigation = useNavigation();
   const reducedMotion = useReducedMotion();
 
-  const variants = reducedMotion
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-      }
-    : {
-        initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -6 },
-      };
+  const routeKey = `${location.pathname}${location.search}`;
+  const isLoadingRoute = navigation.state === 'loading';
 
-  const duration = reducedMotion ? 0.12 : 0.26;
+  const duration = reducedMotion ? 0.1 : 0.22;
+  const ease = [0.25, 0.1, 0.25, 1];
 
   return (
-    <AnimatePresence mode="wait">
-      <MotionDiv
-        key={location.pathname}
-        variants={variants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={{ duration, ease }}
-        className="min-h-0"
-      >
-        <Outlet />
-      </MotionDiv>
-    </AnimatePresence>
+    <div className="relative min-h-0 min-w-0">
+      {isLoadingRoute ? (
+        <div
+          className="pointer-events-none absolute left-0 right-0 top-0 z-20 h-0.5 rounded-full bg-[#7B5CFF]/35 animate-pulse"
+          aria-hidden
+        />
+      ) : null}
+
+      <AnimatePresence mode="wait" initial={false}>
+        <MotionDiv
+          key={routeKey}
+          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          transition={{ duration, ease }}
+          className="min-h-0 min-w-0"
+        >
+          <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
+        </MotionDiv>
+      </AnimatePresence>
+    </div>
   );
 }

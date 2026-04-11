@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { adminNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
@@ -6,9 +6,14 @@ import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
+import { prefetchAdminRoutes } from '@/shared/components/layout/prefetchAdminRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 
 export default function AdminLayout() {
+  useEffect(() => {
+    prefetchAdminRoutes();
+  }, []);
+
   return (
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[#0f0f10]">
       <MobileNavbar isAdminLayout />
@@ -46,13 +51,7 @@ export default function AdminLayout() {
 
       <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8 relative z-0">
         <div className="mx-auto max-w-6xl">
-          <Suspense fallback={
-            <div className="flex h-[50vh] items-center justify-center">
-              <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
-            </div>
-          }>
-            <AnimatedOutlet />
-          </Suspense>
+          <AnimatedOutlet />
         </div>
       </main>
     </div>

@@ -141,16 +141,7 @@ export default function DashboardHomeCards() {
   const { home, homeLoading, homeError } = useDashboardData();
 
   if (homeLoading) {
-    return (
-      <>
-        <DashboardHomeSkeleton />
-        <div className="mt-8 flex gap-3">
-          <Link to={`${ROUTES.myRoutes}?upload=true`}>
-            <Button variant="primary">Upload New GPX Route</Button>
-          </Link>
-        </div>
-      </>
-    );
+    return <DashboardHomeSkeleton />;
   }
 
   return (
@@ -237,11 +228,6 @@ export default function DashboardHomeCards() {
           <DashboardGroupsCard groups={home.groups} />
           <DashboardUpcomingRideCard ride={home.upcomingRide} hasUpcomingRide={home.hasUpcomingRide} />
         </div>
-      </div>
-      <div className="mt-8 flex gap-3">
-        <Link to={`${ROUTES.myRoutes}?upload=true`}>
-          <Button variant="primary">Upload New GPX Route</Button>
-        </Link>
       </div>
     </>
   );

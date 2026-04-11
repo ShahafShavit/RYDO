@@ -6,6 +6,7 @@ import { clubsApi } from '@/features/clubs/api/clubs-api';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import Input from '@/shared/components/ui/input/Input';
 
 export default function RedeemClubInviteModal({ isOpen, onClose }) {
@@ -27,15 +28,9 @@ export default function RedeemClubInviteModal({ isOpen, onClose }) {
     },
   });
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
-      role="presentation"
-      onClick={onClose}
-    >
-      <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <AnimatedModal open={isOpen} onClose={onClose} contentClassName="p-6" maxWidthClassName="max-w-md">
+      <Card className="w-full" role="dialog" aria-modal="true">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-xl font-semibold">Join with invite code</h2>
           <button type="button" className="text-white/60 transition hover:text-white" onClick={onClose} aria-label="Close">
@@ -74,6 +69,6 @@ export default function RedeemClubInviteModal({ isOpen, onClose }) {
           </Button>
         </div>
       </Card>
-    </div>
+    </AnimatedModal>
   );
 }

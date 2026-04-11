@@ -1,6 +1,7 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useId } from 'react';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
 import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
@@ -11,6 +12,7 @@ const DIFFICULTY_OPTIONS = ['casual', 'moderate', 'hard'];
 const TERRAIN_OPTIONS = ['road', 'gravel', 'trail', 'mixed'];
 
 export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
+  const titleId = useId();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [geoJson, setGeoJson] = useState(null);
@@ -34,8 +36,6 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
   });
 
   const { upload: uploadRoute } = useUploadRoute();
-
-  if (!isOpen) return null;
 
   const handleFileSelect = async (e) => {
     const selected = e.target.files[0];
@@ -174,10 +174,12 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <Card className="max-h-[90vh] w-full max-w-2xl space-y-6 overflow-y-auto p-8">
+    <AnimatedModal open={isOpen} onClose={handleClose} maxWidthClassName="max-w-2xl">
+      <Card className="max-h-[90vh] w-full space-y-6 overflow-y-auto p-8" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-semibold">Upload GPX Route</h2>
+          <h2 id={titleId} className="text-2xl font-semibold">
+            Upload GPX Route
+          </h2>
           <button
             type="button"
             onClick={handleClose}
@@ -375,6 +377,6 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
           )}
         </div>
       </Card>
-    </div>
+    </AnimatedModal>
   );
 }

@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
@@ -7,10 +7,15 @@ import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
+import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
+
+  useEffect(() => {
+    prefetchDashboardRoutes();
+  }, []);
 
   return (
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[#171717]">
@@ -51,13 +56,7 @@ export default function DashboardLayout() {
 
       <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8">
         <div className="mx-auto max-w-6xl">
-          <Suspense fallback={
-            <div className="flex h-[50vh] items-center justify-center">
-              <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
-            </div>
-          }>
-            <AnimatedOutlet />
-          </Suspense>
+          <AnimatedOutlet />
         </div>
       </main>
     </div>

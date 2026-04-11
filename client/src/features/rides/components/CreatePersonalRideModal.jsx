@@ -3,6 +3,7 @@ import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import Button from '@/shared/components/ui/button/Button';
 import Card from '@/shared/components/ui/card/Card';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return '';
@@ -22,8 +23,6 @@ export default function CreatePersonalRideModal({ open, onClose }) {
   const [scheduledLocal, setScheduledLocal] = useState(() =>
     toDatetimeLocalValue(new Date(Date.now() + 86400000).toISOString()),
   );
-
-  if (!open) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -56,8 +55,8 @@ export default function CreatePersonalRideModal({ open, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-      <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
+    <AnimatedModal open={open} onClose={onClose} zIndexClass="z-50">
+      <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
         <h2 className="text-xl font-semibold">Schedule a personal ride</h2>
         <p className="mt-2 text-sm text-white/64">No club — just you (and guests you invite later).</p>
 
@@ -146,6 +145,6 @@ export default function CreatePersonalRideModal({ open, onClose }) {
           </div>
         </form>
       </Card>
-    </div>
+    </AnimatedModal>
   );
 }

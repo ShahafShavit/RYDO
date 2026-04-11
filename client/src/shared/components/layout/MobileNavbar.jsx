@@ -2,15 +2,15 @@ import { NavLink } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-const MotionDiv = motion.div;
-const MotionButton = motion.button;
 import { dashboardNavigation, adminNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+
+const MotionDiv = motion.div;
+const MotionButton = motion.button;
 
 export default function MobileNavbar({ isAdminLayout }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +32,7 @@ export default function MobileNavbar({ isAdminLayout }) {
         if (!isOpen) return;
         const t = window.setTimeout(() => {
             firstLinkRef.current?.focus();
-        }, reducedMotion ? 0 : 50);
+        }, reducedMotion ? 0 : 40);
         return () => window.clearTimeout(t);
     }, [isOpen, reducedMotion]);
 
@@ -45,24 +45,11 @@ export default function MobileNavbar({ isAdminLayout }) {
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [isOpen]);
 
-    const panelVariants = reducedMotion
-        ? {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-          }
-        : {
-              initial: { opacity: 0, y: -8 },
-              animate: { opacity: 1, y: 0 },
-              exit: { opacity: 0, y: -6 },
-          };
-
-    const backdropTransition = { duration: reducedMotion ? 0.12 : 0.22 };
-    const panelTransition = { duration: reducedMotion ? 0.12 : 0.24, ease: [0.22, 1, 0.36, 1] };
+    const tFast = { duration: reducedMotion ? 0.09 : 0.14, ease: [0.32, 0.72, 0, 1] };
 
     return (
         <>
-            <div className="md:hidden sticky top-0 z-50 w-full border-b border-white/8 bg-black/40 backdrop-blur-2xl">
+            <div className="md:hidden sticky top-0 z-50 w-full border-b border-white/8 bg-black/40 backdrop-blur-xl">
                 <div className="flex items-center justify-between px-4 py-4">
                     <div className="flex items-center gap-3">
                         <span className={`h-3 w-3 rounded-full ${isAdminLayout ? 'bg-[#7B5CFF] shadow-[0_0_18px_rgba(123,92,255,0.75)]' : 'bg-[#21F1A8] shadow-[0_0_18px_rgba(33,241,168,0.65)]'}`} />
@@ -86,11 +73,10 @@ export default function MobileNavbar({ isAdminLayout }) {
                             id="mobile-nav-panel"
                             role="navigation"
                             aria-label="Main"
-                            variants={panelVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            transition={panelTransition}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={tFast}
                             className={`absolute top-full left-0 w-full border-b border-white/8 p-4 flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[#0f0f10]' : 'bg-[#171717]'}`}
                         >
                             {navItems.map((item, index) => (
@@ -151,7 +137,7 @@ export default function MobileNavbar({ isAdminLayout }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={backdropTransition}
+                        transition={tFast}
                         onClick={() => setIsOpen(false)}
                     />
                 )}
