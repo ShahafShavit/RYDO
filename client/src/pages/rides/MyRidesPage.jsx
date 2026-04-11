@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
@@ -9,6 +9,7 @@ import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
+import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
@@ -69,6 +70,50 @@ function ScheduledRideCard({ ride }) {
         </Link>
       </div>
     </Card>
+  );
+}
+
+function UpcomingRidesSection({ rides }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = useMemo(() => {
+    if (expanded || rides.length <= UPCOMING_PREVIEW_COUNT) return rides;
+    return rides.slice(0, UPCOMING_PREVIEW_COUNT);
+  }, [rides, expanded]);
+  const hiddenCount = rides.length - UPCOMING_PREVIEW_COUNT;
+  return (
+    <div>
+      <h2 className="text-lg font-semibold">Upcoming</h2>
+      {rides.length === 0 ? (
+        <p className="mt-3 text-sm text-white/56">No upcoming rides. Schedule a personal ride or join a club event.</p>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {visible.map((ride) => (
+              <ScheduledRideCard key={ride.id} ride={ride} />
+            ))}
+          </div>
+          {!expanded && hiddenCount > 0 ? (
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                className="text-sm"
+                onClick={() => setExpanded(true)}
+              >
+                Show more ({hiddenCount} more)…
+              </Button>
+            </div>
+          ) : null}
+          {expanded && rides.length > UPCOMING_PREVIEW_COUNT ? (
+            <div className="mt-3">
+              <Button type="button" variant="secondary" className="text-sm" onClick={() => setExpanded(false)}>
+                Show less
+              </Button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -176,21 +221,25 @@ function HistoryRideCard({ entry }) {
 export default function MyRidesPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [upcomingExpanded, setUpcomingExpanded] = useState(false);
-  const { upcoming: upcomingRaw, pastScheduled: pastRaw, historyRows, isLoading, isError } =
-    useMyRidesPanel(search);
+  const {
+    upcoming: upcomingRaw,
+    pastScheduled: pastRaw,
+    historyRows,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useMyRidesPanel(search);
+
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const pastLoggedSentinelRef = useIntersectionSentinel(loadMore, Boolean(hasNextPage && !isLoading));
 
   const upcoming = useMemo(() => (Array.isArray(upcomingRaw) ? upcomingRaw.map(mapRideDto) : []), [upcomingRaw]);
-  const upcomingVisible = useMemo(() => {
-    if (upcomingExpanded || upcoming.length <= UPCOMING_PREVIEW_COUNT) return upcoming;
-    return upcoming.slice(0, UPCOMING_PREVIEW_COUNT);
-  }, [upcoming, upcomingExpanded]);
-  const upcomingHiddenCount = upcoming.length - UPCOMING_PREVIEW_COUNT;
   const pastScheduled = useMemo(() => (Array.isArray(pastRaw) ? pastRaw.map(mapRideDto) : []), [pastRaw]);
-
-  useEffect(() => {
-    setUpcomingExpanded(false);
-  }, [search]);
 
   return (
     <section className="space-y-8">
@@ -237,44 +286,7 @@ export default function MyRidesPage() {
 
       {!isLoading && (
         <>
-          <div>
-            <h2 className="text-lg font-semibold">Upcoming</h2>
-            {upcoming.length === 0 ? (
-              <p className="mt-3 text-sm text-white/56">No upcoming rides. Schedule a personal ride or join a club event.</p>
-            ) : (
-              <>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  {upcomingVisible.map((ride) => (
-                    <ScheduledRideCard key={ride.id} ride={ride} />
-                  ))}
-                </div>
-                {!upcomingExpanded && upcomingHiddenCount > 0 ? (
-                  <div className="mt-4">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="text-sm"
-                      onClick={() => setUpcomingExpanded(true)}
-                    >
-                      Show more ({upcomingHiddenCount} more)…
-                    </Button>
-                  </div>
-                ) : null}
-                {upcomingExpanded && upcoming.length > UPCOMING_PREVIEW_COUNT ? (
-                  <div className="mt-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="text-sm"
-                      onClick={() => setUpcomingExpanded(false)}
-                    >
-                      Show less
-                    </Button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
+          <UpcomingRidesSection key={search} rides={upcoming} />
 
           <div>
             <h2 className="text-lg font-semibold">Past &amp; logged</h2>
@@ -284,14 +296,24 @@ export default function MyRidesPage() {
             {historyRows.length === 0 && pastScheduled.length === 0 ? (
               <p className="mt-4 text-sm text-white/56">Nothing in the past yet.</p>
             ) : (
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {historyRows.map((entry) => (
-                  <HistoryRideCard key={`h-${entry.id}`} entry={entry} />
-                ))}
-                {pastScheduled.map((ride) => (
-                  <PastScheduledCard key={`p-${ride.id}`} ride={ride} />
-                ))}
-              </div>
+              <>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {historyRows.map((entry) => (
+                    <HistoryRideCard key={`h-${entry.id}`} entry={entry} />
+                  ))}
+                  {pastScheduled.map((ride) => (
+                    <PastScheduledCard key={`p-${ride.id}`} ride={ride} />
+                  ))}
+                </div>
+                <div
+                  ref={pastLoggedSentinelRef}
+                  className="mt-4 flex min-h-8 justify-center"
+                  aria-hidden="true"
+                />
+                {isFetchingNextPage ? (
+                  <p className="mt-2 text-center text-sm text-white/48">Loading more…</p>
+                ) : null}
+              </>
             )}
           </div>
         </>

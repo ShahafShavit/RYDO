@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
@@ -12,6 +13,7 @@ namespace Rydo.Api.Controllers;
 public class UsersController(RydoDbContext db) : ControllerBase
 {
     private const int MaxUpcomingMyRides = 4;
+    private const int MaxPastMyRidesTake = 100;
 
     private int? CurrentUserId()
     {
@@ -27,7 +29,12 @@ public class UsersController(RydoDbContext db) : ControllerBase
         int MaxParticipants);
 
     [HttpGet("me/rides")]
-    public async Task<IActionResult> MyRides([FromQuery] string? q, [FromQuery] string? when, CancellationToken ct)
+    public async Task<IActionResult> MyRides(
+        [FromQuery] string? q,
+        [FromQuery] string? when,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        CancellationToken ct = default)
     {
         var uid = CurrentUserId();
         if (uid == null) return Unauthorized();
@@ -46,7 +53,10 @@ public class UsersController(RydoDbContext db) : ControllerBase
         if (scope == "upcoming")
             query = query.Where(g => g.ScheduledDate >= now);
         else if (scope == "past")
+        {
             query = query.Where(g => g.ScheduledDate < now);
+            query = query.Where(g => !db.HistoryEntries.Any(h => h.UserId == uid.Value && h.RideGroupId == g.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -66,7 +76,25 @@ public class UsersController(RydoDbContext db) : ControllerBase
         if (scope == "upcoming")
             query = query.Take(MaxUpcomingMyRides);
 
-        var groups = await query.ToListAsync(ct);
+        IReadOnlyList<RideGroup> groups;
+        int? pagedTotal = null;
+        int? pagedSkip = null;
+        int? pagedTake = null;
+
+        if (scope == "past")
+        {
+            take = Math.Clamp(take, 1, MaxPastMyRidesTake);
+            if (skip < 0) skip = 0;
+            var page = Pagination.PageQueryable(query, skip, take);
+            groups = page.Items;
+            pagedTotal = page.Total;
+            pagedSkip = page.Skip;
+            pagedTake = page.Take;
+        }
+        else
+        {
+            groups = await query.ToListAsync(ct);
+        }
 
         var groupIds = groups.Select(g => g.Id).ToList();
         var countRows = await db.RideParticipants.AsNoTracking()
@@ -82,6 +110,9 @@ public class UsersController(RydoDbContext db) : ControllerBase
             var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
             items.Add(RideGroupResponseHelper.ToResponse(g, include, countByRide.GetValueOrDefault(g.Id, 0)));
         }
+
+        if (scope == "past" && pagedTotal.HasValue && pagedSkip.HasValue && pagedTake.HasValue)
+            return Ok(new { items, total = pagedTotal.Value, skip = pagedSkip.Value, take = pagedTake.Value });
 
         return Ok(items);
     }

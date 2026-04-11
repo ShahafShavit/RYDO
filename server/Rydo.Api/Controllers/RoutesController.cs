@@ -11,11 +11,47 @@ namespace Rydo.Api.Controllers;
 [Route("api/routes")]
 public class RoutesController(RydoDbContext db) : ControllerBase
 {
+    private const int MaxRouteListTake = 200;
+
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult List([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    public IActionResult List(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? q = null,
+        [FromQuery] string? terrain = null,
+        [FromQuery] string? difficulty = null,
+        [FromQuery] string? distance = null)
     {
-        var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).OrderByDescending(r => r.CreatedAt);
+        take = Math.Clamp(take, 1, MaxRouteListTake);
+        if (skip < 0) skip = 0;
+
+        var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(r => r.Title.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(terrain) && !string.Equals(terrain, "all", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(r => r.Terrain == terrain);
+
+        if (!string.IsNullOrWhiteSpace(difficulty) && !string.Equals(difficulty, "all", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(r => r.Difficulty == difficulty);
+
+        if (!string.IsNullOrWhiteSpace(distance) && !string.Equals(distance, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            query = distance.ToLowerInvariant() switch
+            {
+                "short" => query.Where(r => r.DistanceKm < 20),
+                "medium" => query.Where(r => r.DistanceKm >= 20 && r.DistanceKm <= 50),
+                "long" => query.Where(r => r.DistanceKm > 50),
+                _ => query,
+            };
+        }
+
+        query = query.OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
         var items = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });

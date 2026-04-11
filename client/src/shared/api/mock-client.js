@@ -196,7 +196,26 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/routes' && method === 'GET') {
-    return paginate(routes, searchParams);
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    const terrain = (searchParams.get('terrain') || '').toLowerCase();
+    const difficulty = (searchParams.get('difficulty') || '').toLowerCase();
+    const distance = (searchParams.get('distance') || '').toLowerCase();
+
+    let list = [...routes];
+    if (q) list = list.filter((r) => (r.title || '').toLowerCase().includes(q));
+    if (terrain && terrain !== 'all') list = list.filter((r) => (r.terrain || '') === terrain);
+    if (difficulty && difficulty !== 'all') list = list.filter((r) => (r.difficulty || '') === difficulty);
+    if (distance && distance !== 'all') {
+      list = list.filter((r) => {
+        const km = Number(r.distanceKm);
+        if (distance === 'short') return km < 20;
+        if (distance === 'medium') return km >= 20 && km <= 50;
+        if (distance === 'long') return km > 50;
+        return true;
+      });
+    }
+    list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return paginate(list, searchParams);
   }
 
   if (pathname === '/api/routes/upload' && method === 'POST') {
@@ -351,7 +370,24 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/history' && method === 'GET') {
-    return historyEntries.map(({ userId: _u, ...rest }) => rest);
+    const uid = profile.id;
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    let list = historyEntries.filter((h) => h.userId === uid);
+    if (q) {
+      list = list.filter((h) => {
+        const title = (h.routeTitle || '').toLowerCase();
+        const diff = (h.routeDifficulty || '').toLowerCase();
+        const club = (h.clubName || '').toLowerCase();
+        return title.includes(q) || diff.includes(q) || club.includes(q);
+      });
+    }
+    list = [...list].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    const mapped = list.map((h) => {
+      const copy = { ...h };
+      delete copy.userId;
+      return copy;
+    });
+    return paginate(mapped, searchParams);
   }
 
   if (pathname === '/api/users/me/rides' && method === 'GET') {
@@ -363,6 +399,12 @@ export async function mockRequest(path, options = {}) {
       list = list.filter((r) => new Date(r.scheduledDate).getTime() >= now);
     } else if (when === 'past') {
       list = list.filter((r) => new Date(r.scheduledDate).getTime() < now);
+      const linkedGroupIds = new Set(
+        historyEntries
+          .filter((h) => h.userId === profile.id && h.rideGroupId != null)
+          .map((h) => h.rideGroupId),
+      );
+      list = list.filter((r) => !linkedGroupIds.has(r.id));
     }
     if (q) {
       list = list.filter((r) => {
@@ -374,8 +416,13 @@ export async function mockRequest(path, options = {}) {
     }
     const sortDesc = (a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate);
     const sortAsc = (a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate);
-    if (when === 'past') list = [...list].sort(sortDesc);
-    else if (when === 'upcoming') list = [...list].sort(sortAsc).slice(0, 4);
+    if (when === 'past') {
+      list = [...list].sort(sortDesc);
+      const paged = paginate(list, searchParams);
+      const items = paged.items.map((r) => findRide(String(r.id)));
+      return { items, total: paged.total, skip: paged.skip, take: paged.take };
+    }
+    if (when === 'upcoming') list = [...list].sort(sortAsc).slice(0, 4);
     else list = [...list].sort(sortDesc);
     return list.map((r) => findRide(String(r.id)));
   }

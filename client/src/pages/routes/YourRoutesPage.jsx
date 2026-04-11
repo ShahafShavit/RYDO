@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSavedRoutes } from '@/features/routes/hooks/useSavedRoutes';
 import { useMyRoutes } from '@/features/routes/hooks/useMyRoutes';
@@ -14,6 +14,7 @@ export default function YourRoutesPage() {
   const uploadModalOpen = searchParams.get('upload') === 'true';
 
   const openUploadModal = () => {
+    setActiveTab('uploaded');
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('upload', 'true');
@@ -28,12 +29,6 @@ export default function YourRoutesPage() {
       return next;
     });
   };
-
-  useEffect(() => {
-    if (uploadModalOpen) {
-      setActiveTab('uploaded');
-    }
-  }, [uploadModalOpen]);
 
   const {
     savedRoutes,

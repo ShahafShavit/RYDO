@@ -28,13 +28,6 @@ function formatLongDateTime(iso) {
   }).format(d);
 }
 
-function formatShortDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d);
-}
-
 function userInGroup(group, userId) {
   if (userId == null) return false;
   const uid = Number(userId);
@@ -54,10 +47,20 @@ function userInGroup(group, userId) {
  *   challengesRaw: unknown,
  * }} input
  */
+function normalizeHistoryRaw(historyRaw) {
+  const items = Array.isArray(historyRaw?.items)
+    ? historyRaw.items
+    : Array.isArray(historyRaw)
+      ? historyRaw
+      : [];
+  const total =
+    typeof historyRaw?.total === 'number' ? historyRaw.total : items.length;
+  const history = [...items].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+  return { history, total };
+}
+
 export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, clubsRaw, challengesRaw }) {
-  const history = Array.isArray(historyRaw)
-    ? [...historyRaw].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-    : [];
+  const { history, total: historyTotal } = normalizeHistoryRaw(historyRaw);
   const last = history[0];
 
   const rides = Array.isArray(rideGroupsRaw) ? rideGroupsRaw : [];
@@ -102,7 +105,7 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, clubsRaw
   }
 
   const RIDES_PER_LEVEL = 5;
-  const count = history.length;
+  const count = historyTotal;
   const currentLevel = Math.max(1, 1 + Math.floor(count / RIDES_PER_LEVEL));
   const within = count % RIDES_PER_LEVEL;
   const progress = count === 0 ? 0 : Math.round((within / RIDES_PER_LEVEL) * 100);

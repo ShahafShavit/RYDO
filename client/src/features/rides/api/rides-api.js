@@ -6,6 +6,8 @@ export const ridesApi = {
     const query = {};
     if (params.q) query.q = params.q;
     if (params.when) query.when = params.when;
+    if (params.skip != null) query.skip = params.skip;
+    if (params.take != null) query.take = params.take;
     return apiClient.get(API_ENDPOINTS.users.myRides, { query });
   },
   createPersonalRide: (payload) => apiClient.post(API_ENDPOINTS.users.myRides, payload),

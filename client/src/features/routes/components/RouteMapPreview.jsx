@@ -62,7 +62,9 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
     ro.observe(el);
     resizeObserverRef.current = ro;
 
-    setMapEpoch((n) => n + 1);
+    queueMicrotask(() => {
+      setMapEpoch((n) => n + 1);
+    });
 
     return () => {
       ro.disconnect();
@@ -72,7 +74,7 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
       geoJsonLayerRef.current = null;
       resizeObserverRef.current = null;
     };
-  }, []);
+  }, [scrollWheelZoom]);
 
   useLayoutEffect(() => {
     const map = mapRef.current;

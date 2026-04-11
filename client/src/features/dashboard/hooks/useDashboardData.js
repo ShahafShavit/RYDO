@@ -23,7 +23,7 @@ export function useDashboardData() {
     queries: [
       {
         queryKey: ['history', scopedKey],
-        queryFn: () => historyApi.getHistory(),
+        queryFn: () => historyApi.getHistory({ skip: 0, take: 500 }),
         enabled: userId != null,
       },
       {

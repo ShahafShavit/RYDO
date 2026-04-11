@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
@@ -118,10 +118,17 @@ export default function ClubDetailPage() {
 
   const club = clubQuery.data;
 
+  const [ridePartitionNowMs, setRidePartitionNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    queueMicrotask(() => {
+      setRidePartitionNowMs(Date.now());
+    });
+  }, [ridesQuery.data]);
+
   const { upcomingRides, pastRides } = useMemo(() => {
     const list = ridesQuery.data;
     if (!Array.isArray(list) || list.length === 0) return { upcomingRides: [], pastRides: [] };
-    const now = Date.now();
+    const now = ridePartitionNowMs;
     const upcoming = [];
     const past = [];
     for (const r of list) {
@@ -133,7 +140,7 @@ export default function ClubDetailPage() {
     upcoming.sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate));
     past.sort((a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate));
     return { upcomingRides: upcoming, pastRides: past };
-  }, [ridesQuery.data]);
+  }, [ridesQuery.data, ridePartitionNowMs]);
 
   const membershipLabel = useMemo(() => {
     if (!club) return '';
