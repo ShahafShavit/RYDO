@@ -13,6 +13,10 @@ import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalR
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
 
+function routeDetailsPath(routeId) {
+  return ROUTES.routeDetails.replace(':routeId', String(routeId));
+}
+
 function formatWhen(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -33,12 +37,15 @@ function rideKindFromScheduled(ride) {
 
 function ScheduledRideCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
+  const hasRoute = ride.routeId != null;
   return (
     <Card>
-      <CompactRouteMapPreview preview={ride.preview} />
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : null}
+      <div className={`flex flex-wrap items-center gap-2 ${hasRoute ? 'mt-4' : ''}`}>
         <Badge variant="neon">Scheduled</Badge>
-        <Badge>{ride.routeTitle || ride.routeName || 'No route yet'}</Badge>
+        <Badge variant={ride.routeId != null ? 'default' : 'warning'}>
+          {ride.routeTitle || ride.routeName || 'No route yet'}
+        </Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (
@@ -47,7 +54,14 @@ function ScheduledRideCard({ ride }) {
       </div>
       <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
       <p className="mt-2 text-sm text-white/64">{formatWhen(ride.scheduledDate)}</p>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap gap-3">
+        {ride.routeId != null ? (
+          <Link to={routeDetailsPath(ride.routeId)}>
+            <Button variant="secondary" type="button" className="text-sm">
+              View route
+            </Button>
+          </Link>
+        ) : null}
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
             View ride
@@ -60,12 +74,15 @@ function ScheduledRideCard({ ride }) {
 
 function PastScheduledCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
+  const hasRoute = ride.routeId != null;
   return (
     <Card>
-      <CompactRouteMapPreview preview={ride.preview} />
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : null}
+      <div className={`flex flex-wrap items-center gap-2 ${hasRoute ? 'mt-4' : ''}`}>
         <Badge>Past event</Badge>
-        <Badge>{ride.routeTitle || ride.routeName || 'No route yet'}</Badge>
+        <Badge variant={ride.routeId != null ? 'default' : 'warning'}>
+          {ride.routeTitle || ride.routeName || 'No route yet'}
+        </Badge>
         {kind === 'club' ? (
           <Badge variant="success">Club: {ride.clubName || 'Club'}</Badge>
         ) : (
@@ -75,7 +92,14 @@ function PastScheduledCard({ ride }) {
       <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
       <p className="mt-2 text-sm text-white/64">{formatWhen(ride.scheduledDate)}</p>
       <p className="mt-2 text-sm text-white/48">No logged stats for this event yet.</p>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap gap-3">
+        {ride.routeId != null ? (
+          <Link to={routeDetailsPath(ride.routeId)}>
+            <Button variant="secondary" type="button" className="text-sm">
+              View route
+            </Button>
+          </Link>
+        ) : null}
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
             Open ride
@@ -102,7 +126,8 @@ function HistoryRideCard({ entry }) {
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CompactRouteMapPreview preview={entry.preview} />
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge variant="neon">Logged</Badge>
         {entry.routeDifficulty ? <Badge>{String(entry.routeDifficulty).replace(/_/g, ' ')}</Badge> : null}
         {kind === 'club' ? (
@@ -129,6 +154,13 @@ function HistoryRideCard({ entry }) {
       </div>
       {paceNote ? <p className="mt-3 text-sm text-white/56">{paceNote}</p> : null}
       <div className="mt-4 flex flex-wrap gap-3">
+        {entry.routeId != null ? (
+          <Link to={routeDetailsPath(entry.routeId)}>
+            <Button variant="secondary" type="button" className="text-sm">
+              View route
+            </Button>
+          </Link>
+        ) : null}
         {entry.rideGroupId ? (
           <Link to={ROUTES.rideEvent.replace(':rideId', String(entry.rideGroupId))}>
             <Button variant="secondary" type="button" className="text-sm">
