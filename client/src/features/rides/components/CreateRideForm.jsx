@@ -6,20 +6,28 @@ import Input from '@/shared/components/ui/input/Input';
 import { useCreateRide } from '@/features/rides/hooks/useCreateRide';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 
-const emptyFields = () => ({
-  name: '',
+const emptyFields = (defaults = {}) => ({
+  name: defaults.name ?? '',
   description: '',
-  routeId: '',
+  routeId: defaults.routeId != null ? String(defaults.routeId) : '',
   scheduledDate: '',
   maxParticipants: '20',
   scheduleForWholeClub: false,
 });
 
 /**
- * @param {{ clubId: number, clubName?: string, embedded?: boolean, onCancel?: () => void, onSuccess?: () => void }} props
+ * @param {{ clubId: number, clubName?: string, embedded?: boolean, onCancel?: () => void, onSuccess?: () => void, fixedRouteId?: number, defaultName?: string }} props
  */
-export default function CreateRideForm({ clubId, clubName, embedded = false, onCancel, onSuccess }) {
-  const [form, setForm] = useState(emptyFields);
+export default function CreateRideForm({
+  clubId,
+  clubName,
+  embedded = false,
+  onCancel,
+  onSuccess,
+  fixedRouteId,
+  defaultName,
+}) {
+  const [form, setForm] = useState(() => emptyFields({ routeId: fixedRouteId, name: defaultName }));
   const { createRide, isPending } = useCreateRide();
   const { routes, isLoading: routesLoading } = useRoutesList({ take: 120 });
 
@@ -34,16 +42,17 @@ export default function CreateRideForm({ clubId, clubName, embedded = false, onC
   const handleSubmit = async (event) => {
     event.preventDefault();
     const scheduled = form.scheduledDate ? new Date(form.scheduledDate).toISOString() : new Date().toISOString();
+    const routeId = fixedRouteId != null ? fixedRouteId : Number(form.routeId || 0);
     await createRide({
       clubId,
       name: form.name,
       description: form.description || '',
       scheduledDate: scheduled,
-      routeId: Number(form.routeId || 0),
+      routeId,
       maxParticipants: Number(form.maxParticipants || 20),
       scheduleForWholeClub: Boolean(form.scheduleForWholeClub),
     });
-    setForm(emptyFields());
+    setForm(emptyFields({ routeId: fixedRouteId, name: defaultName }));
     onSuccess?.();
   };
 
@@ -60,23 +69,29 @@ export default function CreateRideForm({ clubId, clubName, embedded = false, onC
       <FormField label="Description">
         <Input name="description" value={form.description} onChange={handleChange} placeholder="Pace, meeting spot, notes" />
       </FormField>
-      <FormField label="Route">
-        <select
-          name="routeId"
-          className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25 disabled:opacity-50"
-          value={form.routeId}
-          onChange={handleChange}
-          required
-          disabled={routesLoading}
-        >
-          <option value="">Select a route</option>
-          {routes.map((r) => (
-            <option key={r.id} value={r.id}>
-              #{r.id} — {r.title}
-            </option>
-          ))}
-        </select>
-      </FormField>
+      {fixedRouteId == null ? (
+        <FormField label="Route">
+          <select
+            name="routeId"
+            className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25 disabled:opacity-50"
+            value={form.routeId}
+            onChange={handleChange}
+            required
+            disabled={routesLoading}
+          >
+            <option value="">Select a route</option>
+            {routes.map((r) => (
+              <option key={r.id} value={r.id}>
+                #{r.id} — {r.title}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      ) : (
+        <p className="text-sm text-white/56">
+          Route is fixed to this page — #{fixedRouteId}
+        </p>
+      )}
       <FormField label="Date and time">
         <Input name="scheduledDate" value={form.scheduledDate} onChange={handleChange} type="datetime-local" required />
       </FormField>

@@ -9,6 +9,7 @@ export const ROUTES = {
   routes: '/routes',
   routeDetails: '/routes/:routeId',
   yourRoutes: '/your-routes',
+  myRides: '/my-rides',
   settings: '/settings',
   rideEvent: '/rides/:rideId',
   clubs: '/clubs',

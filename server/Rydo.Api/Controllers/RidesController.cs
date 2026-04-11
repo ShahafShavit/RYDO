@@ -29,7 +29,8 @@ public class RidesController(RydoDbContext db) : ControllerBase
 
         var uid = CurrentUserId();
         var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(g, include));
+        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
+        return Ok(RideGroupResponseHelper.ToResponse(g, include, participantTotal));
     }
 
     [HttpPost("{rideId:int}/join")]

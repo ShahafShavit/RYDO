@@ -12,4 +12,8 @@ public class HistoryEntry
     public int DurationMinutes { get; set; }
     public double DistanceKm { get; set; }
     public double ElevationGainM { get; set; }
+
+    /// <summary>Optional link to a scheduled group ride (club or personal) this completion is tied to.</summary>
+    public int? RideGroupId { get; set; }
+    public RideGroup? RideGroup { get; set; }
 }

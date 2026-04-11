@@ -23,9 +23,12 @@ internal static class RideGroupResponseHelper
             ct);
     }
 
-    public static object ToResponse(RideGroup g, bool includeRoster)
+    /// <param name="totalParticipantCount">
+    /// Optional authoritative count from <c>RideParticipants</c> (fixes EF cases where the in-memory collection is empty but rows exist).
+    /// </param>
+    public static object ToResponse(RideGroup g, bool includeRoster, int? totalParticipantCount = null)
     {
-        var count = g.Participants.Count;
+        var count = totalParticipantCount ?? g.Participants.Count;
         if (!includeRoster)
         {
             return new

@@ -25,7 +25,7 @@ export default function RouteMetadataPanel({ route }) {
     ['Difficulty', route.difficulty || '—'],
     ['Terrain', route.terrain || '—'],
     ['Region', route.region || '—'],
-    ['Elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],
+    ['Total elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],
     ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—'],
   ];
 

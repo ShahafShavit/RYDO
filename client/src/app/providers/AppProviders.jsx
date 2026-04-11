@@ -1,11 +1,6 @@
 import { AuthProvider } from '@/features/auth/context/AuthContext';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false },
-  },
-});
+import { queryClient } from '@/app/query-client';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 export default function AppProviders({ children }) {
   return (

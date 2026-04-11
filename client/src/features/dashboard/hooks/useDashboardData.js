@@ -11,29 +11,35 @@ import { clubsApi } from '@/features/clubs/api/clubs-api';
 export function useDashboardData() {
   const { user } = useAuth();
   const userId = user?.id != null ? Number(user.id) : null;
+  const scopedKey = userId ?? 'guest';
 
   const summaryQuery = useQuery({
-    queryKey: ['dashboard', 'summary'],
+    queryKey: ['dashboard', 'summary', scopedKey],
     queryFn: () => dashboardApi.getSummary(),
+    enabled: userId != null,
   });
 
   const homeQueries = useQueries({
     queries: [
       {
-        queryKey: ['history'],
+        queryKey: ['history', scopedKey],
         queryFn: () => historyApi.getHistory(),
+        enabled: userId != null,
       },
       {
-        queryKey: ['rides', 'me'],
+        queryKey: ['rides', 'me', scopedKey],
         queryFn: () => ridesApi.getMyRides(),
+        enabled: userId != null,
       },
       {
-        queryKey: ['clubs', 'list'],
+        queryKey: ['clubs', 'list', scopedKey],
         queryFn: () => clubsApi.list(),
+        enabled: userId != null,
       },
       {
-        queryKey: ['challenges'],
+        queryKey: ['challenges', scopedKey],
         queryFn: () => challengesApi.getChallenges(),
+        enabled: userId != null,
       },
     ],
   });
@@ -71,5 +77,6 @@ export function useDashboardData() {
     isError: summaryQuery.isError || homeQueries.some((q) => q.isError),
     error: summaryQuery.error || homeError,
     homeError,
+    statsError: summaryQuery.isError,
   };
 }

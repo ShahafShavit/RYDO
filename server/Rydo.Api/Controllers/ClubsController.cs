@@ -594,7 +594,17 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             .OrderBy(r => r.ScheduledDate)
             .ToListAsync(ct);
 
-        var items = rides.Select(r => RideGroupResponseHelper.ToResponse(r, canViewRoster)).ToList();
+        var rideIds = rides.Select(r => r.Id).ToList();
+        var countRows = await db.RideParticipants.AsNoTracking()
+            .Where(p => rideIds.Contains(p.RideGroupId))
+            .GroupBy(p => p.RideGroupId)
+            .Select(grp => new { grp.Key, Cnt = grp.Count() })
+            .ToListAsync(ct);
+        var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
+
+        var items = rides
+            .Select(r => RideGroupResponseHelper.ToResponse(r, canViewRoster, countByRide.GetValueOrDefault(r.Id, 0)))
+            .ToList();
         return Ok(items);
     }
 }

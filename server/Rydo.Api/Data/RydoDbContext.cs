@@ -83,6 +83,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.RideGroup).WithMany().HasForeignKey(x => x.RideGroupId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

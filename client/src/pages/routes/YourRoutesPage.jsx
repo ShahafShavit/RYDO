@@ -63,9 +63,9 @@ export default function YourRoutesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Library</p>
-          <h1 className="mt-2 text-3xl font-semibold">Your routes</h1>
+          <h1 className="mt-2 text-3xl font-semibold">My routes</h1>
           <p className="mt-3 max-w-2xl text-white/64">
-            Manage the routes you&apos;ve uploaded and the ones you&apos;ve saved for later.
+            Routes you&apos;ve uploaded and routes you&apos;ve saved for later.
           </p>
         </div>
         <Button variant="neon" type="button" className="shrink-0 sm:mt-8" onClick={openUploadModal}>

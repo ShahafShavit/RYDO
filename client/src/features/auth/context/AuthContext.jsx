@@ -6,6 +6,7 @@ import { normalizeAuthResponse } from '@/features/auth/auth-mapper';
 import { env } from '@/shared/config/env';
 import { ROLES } from '@/shared/constants/roles';
 import { getStoredUser, setStoredUser, clearStoredUser, getStoredToken, setStoredToken } from '@/features/auth/utils/auth-storage';
+import { queryClient } from '@/app/query-client';
 import { apiClient } from '@/shared/api/api-client';
 
 export const AuthContext = createContext(null);
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
     setStoredUser(nextUser);
     setStoredToken(token);
     apiClient.setAuthToken(token);
+    queryClient.invalidateQueries();
   }, []);
 
   const clearSession = useCallback((shouldRedirect = false) => {

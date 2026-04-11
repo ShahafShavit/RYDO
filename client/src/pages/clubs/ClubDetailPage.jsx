@@ -10,7 +10,14 @@ import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 
 function ridePeopleSummary(r) {
-  const n = r.participantCount ?? r.participantDetails?.length ?? r.participants?.length ?? 0;
+  const fromDetails = Array.isArray(r.participantDetails) ? r.participantDetails.length : 0;
+  const fromParts = Array.isArray(r.participants) ? r.participants.length : 0;
+  let count = 0;
+  if (r.participantCount != null && r.participantCount !== '') {
+    const n = Number(r.participantCount);
+    if (Number.isFinite(n)) count = n;
+  }
+  if (count === 0) count = fromDetails || fromParts || 0;
   if (Array.isArray(r.participantDetails) && r.participantDetails.length > 0) {
     const names = r.participantDetails
       .map((p) => p.displayName?.trim() || `Rider #${p.userId}`)
@@ -19,7 +26,7 @@ function ridePeopleSummary(r) {
     const extra = r.participantDetails.length > 4 ? ` +${r.participantDetails.length - 4}` : '';
     return `${names}${extra}`;
   }
-  return `${n} signed up`;
+  return `${count} signed up`;
 }
 
 export default function ClubDetailPage() {

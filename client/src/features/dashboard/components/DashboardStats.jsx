@@ -2,7 +2,15 @@ import Card from '@/shared/components/ui/card/Card';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 
 export default function DashboardStats() {
-  const { stats, statsLoading } = useDashboardData();
+  const { stats, statsLoading, statsError } = useDashboardData();
+
+  if (statsError) {
+    return (
+      <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        Dashboard stats could not be loaded. Try refreshing the page.
+      </div>
+    );
+  }
 
   if (statsLoading) {
     return (

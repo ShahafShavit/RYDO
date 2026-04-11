@@ -9,9 +9,16 @@ import { MOCK_RIDE_GROUPS } from '@/shared/mocks/rides';
 import { MOCK_ROUTES, MOCK_SAVED_ROUTES } from '@/shared/mocks/routes';
 import { MOCK_USERS } from '@/shared/mocks/users';
 
+/** Baseline saved route ids per mock user (session `savedRouteIds` resets on login/register). */
+const DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID = {
+  1: [...MOCK_SAVED_ROUTES],
+  2: [1],
+  3: [],
+};
+
 let users = [...MOCK_USERS];
 let routes = [...MOCK_ROUTES];
-let savedRouteIds = [...MOCK_SAVED_ROUTES];
+let savedRouteIds = [...DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID[1]];
 let hazards = [...MOCK_HAZARDS];
 let rides = MOCK_RIDE_GROUPS.map((r) => ({ ...r }));
 let clubs = [...MOCK_CLUBS];
@@ -143,6 +150,7 @@ export async function mockRequest(path, options = {}) {
     }
 
     profile = { ...profile, ...toAuthUser(user) };
+    savedRouteIds = [...(DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID[user.id] ?? [])];
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
 
@@ -170,13 +178,14 @@ export async function mockRequest(path, options = {}) {
 
     users.push(user);
     profile = toAuthUser(user);
+    savedRouteIds = [...(DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID[user.id] ?? [])];
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
 
   if (pathname === '/dashboard/summary' && method === 'GET') {
     const uid = profile.id;
     const completedRides = historyEntries.filter((h) => h.userId === uid).length;
-    const savedRoutes = savedRouteIds.length;
+    const savedRoutes = savedRouteIds.filter((id) => routes.some((r) => r.id === id)).length;
     const groupRidesJoined = rides.filter((r) => Array.isArray(r.participants) && r.participants.includes(uid)).length;
     return {
       completedRides,
@@ -341,13 +350,57 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/history' && method === 'GET') {
-    return historyEntries;
+    return historyEntries.map(({ userId: _u, ...rest }) => rest);
   }
 
   if (pathname === '/users/me/rides' && method === 'GET') {
-    return rides
-      .filter((r) => Array.isArray(r.participants) && r.participants.includes(profile.id))
-      .map((r) => findRide(String(r.id)));
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    const when = (searchParams.get('when') || 'all').toLowerCase();
+    const now = Date.now();
+    let list = rides.filter((r) => Array.isArray(r.participants) && r.participants.includes(profile.id));
+    if (when === 'upcoming') {
+      list = list.filter((r) => new Date(r.scheduledDate).getTime() >= now);
+    } else if (when === 'past') {
+      list = list.filter((r) => new Date(r.scheduledDate).getTime() < now);
+    }
+    if (q) {
+      list = list.filter((r) => {
+        const name = (r.name || '').toLowerCase();
+        const rt = (r.routeTitle || '').toLowerCase();
+        const cn = (r.clubName || '').toLowerCase();
+        return name.includes(q) || rt.includes(q) || cn.includes(q);
+      });
+    }
+    const sortDesc = (a, b) => new Date(b.scheduledDate) - new Date(a.scheduledDate);
+    const sortAsc = (a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate);
+    if (when === 'past') list = [...list].sort(sortDesc);
+    else if (when === 'upcoming') list = [...list].sort(sortAsc);
+    else list = [...list].sort(sortDesc);
+    return list.map((r) => findRide(String(r.id)));
+  }
+
+  if (pathname === '/users/me/rides' && method === 'POST') {
+    const payload = parseJsonBody(options.body);
+    const routeId = Number(payload.routeId || 0);
+    const route = routes.find((r) => r.id === routeId);
+    if (!route) throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
+    const nextId = Math.max(...rides.map((item) => item.id), 0) + 1;
+    const parts = [profile.id];
+    const ride = {
+      id: nextId,
+      name: payload.name || 'Personal ride',
+      description: payload.description || '',
+      scheduledDate: payload.scheduledDate,
+      routeId,
+      routeTitle: route?.title || '',
+      participants: parts,
+      participantDetails: participantDetailsFromIds(parts),
+      maxParticipants: Number(payload.maxParticipants || 20),
+      clubId: null,
+      clubName: null,
+    };
+    rides.unshift(ride);
+    return findRide(String(ride.id));
   }
 
   if (/^\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {

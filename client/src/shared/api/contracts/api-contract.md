@@ -187,12 +187,12 @@ Response: `204 No Content`
 
 ## Dashboard
 ### `GET /dashboard/summary`
-Response (counts are platform-wide):
+Response (counts are **per authenticated user**):
 ```json
 {
-  "totalRoutes": 0,
-  "totalRides": 0,
-  "totalUsers": 0
+  "completedRides": 0,
+  "savedRoutes": 0,
+  "groupRidesJoined": 0
 }
 ```
 
@@ -207,18 +207,43 @@ Returns a JSON array of completed rides for the authenticated user, newest first
   "routeId": 1,
   "routeTitle": "Oak Ridge Loop",
   "routeDifficulty": "moderate",
+  "estimatedDurationMinutes": 120,
   "completedAt": "2026-04-10T12:00:00.000Z",
   "durationMinutes": 90,
   "distanceKm": 22.5,
-  "elevationGainM": 120
+  "elevationGainM": 120,
+  "rideGroupId": null,
+  "rideKind": null,
+  "clubId": null,
+  "clubName": null
 }
 ```
-`routeDifficulty` mirrors the linked route’s difficulty when the route exists; otherwise it may be omitted or null.
+`routeDifficulty` and `estimatedDurationMinutes` mirror the linked route when the route exists; otherwise they may be omitted or null.
 
-## Rides (club scheduled rides)
+When this completion is tied to a scheduled group ride (`rideGroupId` set), `rideKind` is `"club"` or `"personal"` (no club), and `clubId` / `clubName` match that ride’s club when it is a club ride.
+
+## Rides (scheduled rides — club or personal)
 
 ### `GET /users/me/rides` (authenticated)
-Returns a JSON array of rides where the current user is a participant, ordered by `scheduledDate`. Each item uses the **ride JSON shape** below (with roster visibility rules applied).
+Query parameters (optional):
+
+- `q` — case-sensitive substring match on ride name, route title, and club name (server may use provider-specific case rules).
+- `when` — `upcoming` (scheduled date in the future), `past` (before now), or `all` (default). For `upcoming`, results are ordered soonest first; for `past`, most recent first; for `all`, most recent scheduled date first.
+
+Returns a JSON array of rides where the current user is a participant. Each item uses the **ride JSON shape** below (with roster visibility rules applied).
+
+### `POST /users/me/rides` (authenticated)
+Creates a **personal** scheduled ride (no club). Body:
+```json
+{
+  "name": "Morning solo loop",
+  "description": "",
+  "scheduledDate": "2026-07-01T06:30:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20
+}
+```
+The creator is added as a participant. Response uses the **ride JSON shape** with roster visible (`clubId` and `clubName` are null).
 
 ### `GET /rides/:rideId` (anonymous or authenticated)
 Returns one scheduled ride. **Roster privacy:** active members of the ride’s club receive `participants`, `participantDetails`, and `participantCount`. Anonymous users and authenticated users who are **not** active members of that club receive **`participantCount` only** (no `participants` / `participantDetails`).
@@ -310,7 +335,8 @@ These feature modules exist and use the shared client path:
 - `GET /dashboard/summary`
 - `GET /hazards`
 - `POST /hazards`
-- `GET /users/me/rides`
+- `GET /users/me/rides` (optional `q`, `when`)
+- `POST /users/me/rides`
 - `POST /clubs/:clubId/rides`
 - `GET /rides/:rideId`
 - `POST /rides/:rideId/join`

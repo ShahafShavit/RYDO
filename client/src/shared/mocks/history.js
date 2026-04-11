@@ -6,10 +6,15 @@ export const MOCK_HISTORY = [
         routeId: 1,
         routeTitle: 'Mountain Peak Trail',
         routeDifficulty: 'hard',
+        estimatedDurationMinutes: 240,
         completedAt: '2024-03-10T12:00:00Z',
         durationMinutes: 280,
         distanceKm: 45.5,
         elevationGainM: 1200,
+        rideGroupId: 3,
+        rideKind: 'personal',
+        clubId: null,
+        clubName: null,
         preview: {
             coordinates: [
                 [35.2137, 31.7683],
@@ -23,10 +28,15 @@ export const MOCK_HISTORY = [
         routeId: 2,
         routeTitle: 'City Loop Road',
         routeDifficulty: 'casual',
+        estimatedDurationMinutes: 75,
         completedAt: '2024-03-12T11:30:00Z',
         durationMinutes: 80,
         distanceKm: 15.2,
         elevationGainM: 120,
+        rideGroupId: null,
+        rideKind: null,
+        clubId: null,
+        clubName: null,
         preview: {
             coordinates: [
                 [34.7818, 32.0853],
