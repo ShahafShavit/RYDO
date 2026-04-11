@@ -11,6 +11,9 @@ public class RouteEntity
     public double DistanceKm { get; set; }
     public double ElevationGainM { get; set; }
     public int EstimatedDurationMinutes { get; set; }
+
+    /// <summary>See <see cref="RouteDurationSource"/>.</summary>
+    public string EstimatedDurationSource { get; set; } = RouteDurationSource.Unknown;
     public string WarningsJson { get; set; } = "[]";
     public string? Notes { get; set; }
     public string? GpxReference { get; set; }

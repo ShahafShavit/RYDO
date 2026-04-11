@@ -81,6 +81,7 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             ["elevationGainM"] = r.ElevationGainM,
             ["estimatedDurationMinutes"] = r.EstimatedDurationMinutes,
             ["durationMinutes"] = r.EstimatedDurationMinutes,
+            ["estimatedDurationSource"] = r.EstimatedDurationSource,
             ["warnings"] = System.Text.Json.JsonSerializer.Deserialize<List<string>>(r.WarningsJson),
             ["notes"] = r.Notes,
             ["gpx"] = new { fileUrl = (string?)null, reference = r.GpxReference },

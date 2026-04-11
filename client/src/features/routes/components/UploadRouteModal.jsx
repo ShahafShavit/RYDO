@@ -2,7 +2,8 @@ import { useState, lazy, Suspense } from 'react';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
-import { analyzeGpxTrack } from '@/features/routes/utils/gpxAnalysis';
+import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
+import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
 
 const RouteMapWithElevation = lazy(() => import('./RouteMapWithElevation'));
 
@@ -16,6 +17,10 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
   const [stats, setStats] = useState(null);
   const [elevationProfile, setElevationProfile] = useState(null);
   const [missingElevation, setMissingElevation] = useState(false);
+  // How the duration field was auto-filled: GPX clock times, pace from distance, or fallback.
+  const [durationSuggestionSource, setDurationSuggestionSource] = useState(null);
+  /** Value suggested at parse time; used to detect user edits for `estimatedDurationSource`. */
+  const [suggestedMinutesSnapshot, setSuggestedMinutesSnapshot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -64,6 +69,12 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
       });
       setElevationProfile(analysis.elevationProfile);
       setMissingElevation(Boolean(analysis.missingElevation));
+      setDurationSuggestionSource(analysis.durationSuggestionSource ?? 'none');
+      setSuggestedMinutesSnapshot(analysis.suggestedDurationMinutes ?? 60);
+      setFormData((prev) => ({
+        ...prev,
+        estimatedDurationMinutes: analysis.suggestedDurationMinutes ?? 60,
+      }));
 
       setStep(2);
     } catch (err) {
@@ -73,6 +84,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
       setStats(null);
       setElevationProfile(null);
       setMissingElevation(false);
+      setDurationSuggestionSource(null);
+      setSuggestedMinutesSnapshot(null);
     } finally {
       setLoading(false);
     }
@@ -92,12 +105,24 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
     setError(null);
 
     try {
+      const curMin = Number(formData.estimatedDurationMinutes);
+      const snapMin = suggestedMinutesSnapshot != null ? Number(suggestedMinutesSnapshot) : null;
+      const estimatedDurationSource =
+        snapMin != null && !Number.isNaN(curMin) && curMin !== snapMin
+          ? ESTIMATED_DURATION_SOURCE.USER
+          : durationSuggestionSource === 'timestamps'
+            ? ESTIMATED_DURATION_SOURCE.GPX_TIMESTAMPS
+            : durationSuggestionSource === 'pace'
+              ? ESTIMATED_DURATION_SOURCE.ESTIMATED_PACE
+              : ESTIMATED_DURATION_SOURCE.ESTIMATED;
+
       const response = await uploadRoute({
         file,
         title: formData.title,
         difficulty: formData.difficulty,
         terrain: formData.terrain,
         estimatedDurationMinutes: formData.estimatedDurationMinutes,
+        estimatedDurationSource,
         description: formData.description,
         region: formData.region,
       });
@@ -109,6 +134,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
       setStats(null);
       setElevationProfile(null);
       setMissingElevation(false);
+      setDurationSuggestionSource(null);
+      setSuggestedMinutesSnapshot(null);
       setFormData({
         title: '',
         difficulty: 'moderate',
@@ -132,6 +159,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
     setStats(null);
     setElevationProfile(null);
     setMissingElevation(false);
+    setDurationSuggestionSource(null);
+    setSuggestedMinutesSnapshot(null);
     setError(null);
     setFormData({
       title: '',
@@ -216,7 +245,14 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-widest text-white/42">Duration</p>
                 <p className="mt-2 text-2xl font-semibold">{formData.estimatedDurationMinutes} min</p>
-                <p className="mt-1 text-[11px] text-white/40">Your estimate</p>
+                <p className="mt-1 text-[11px] leading-snug text-white/40">
+                  {durationSuggestionSource === 'timestamps' &&
+                    'Recorded — from GPX clock times (first to last point with times)'}
+                  {durationSuggestionSource === 'pace' &&
+                    `Inferred at ${SUGGESTED_DURATION_SPEED_KMH} km/h average (no GPX clock)`}
+                  {durationSuggestionSource === 'none' &&
+                    'Inferred (no GPX clock) — default 60 min until you change it below'}
+                </p>
               </div>
             </div>
 
@@ -236,10 +272,31 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 <label className="mb-2 block text-sm font-semibold">Duration (minutes) *</label>
                 <input
                   type="number"
+                  min={1}
                   value={formData.estimatedDurationMinutes}
                   onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-[#7B5CFF]/50 focus:outline-none"
                 />
+                <p className="mt-2 text-[12px] leading-snug text-white/45">
+                  {durationSuggestionSource === 'timestamps' && (
+                    <>
+                      This matches the GPX recording clock (wall time). Change it only if you want to store a different
+                      story than the file&apos;s timestamps.
+                    </>
+                  )}
+                  {durationSuggestionSource === 'pace' && (
+                    <>
+                      Inferred from track length at{' '}
+                      <span className="text-white/70">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock
+                      in the file. Adjust minutes to match how you ride.
+                    </>
+                  )}
+                  {durationSuggestionSource === 'none' && (
+                    <>
+                      Inferred (no GPX clock) — we default to 60 minutes; set a value that fits this route.
+                    </>
+                  )}
+                </p>
               </div>
 
               <div>

@@ -15,6 +15,70 @@ function haversineM(lat1, lon1, lat2, lon2) {
 }
 
 /**
+ * Reads first GPX &lt;time&gt; child on a trkpt/rtept/wpt (ISO 8601).
+ * @param {Element} pt
+ * @returns {number | null} Unix ms
+ */
+function readGpxTimeMs(pt) {
+  const times = pt.getElementsByTagName('time');
+  if (times.length === 0) return null;
+  const txt = times[0].textContent?.trim();
+  if (!txt) return null;
+  const ms = Date.parse(txt);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Wall-clock duration from GPX timestamps: span between earliest and latest time on track points
+ * (or route points if the file has no track). Returns null if fewer than two valid timestamps.
+ *
+ * @param {Document} gpxDom
+ * @returns {number | null} Whole minutes, at least 1 when defined
+ */
+export function deriveDurationMinutesFromGpx(gpxDom) {
+  const collected = [];
+  const trkpts = gpxDom.getElementsByTagName('trkpt');
+  for (let i = 0; i < trkpts.length; i++) {
+    const ms = readGpxTimeMs(trkpts[i]);
+    if (ms != null) collected.push(ms);
+  }
+  if (collected.length < 2) {
+    const rtepts = gpxDom.getElementsByTagName('rtept');
+    for (let i = 0; i < rtepts.length; i++) {
+      const ms = readGpxTimeMs(rtepts[i]);
+      if (ms != null) collected.push(ms);
+    }
+  }
+  if (collected.length < 2) return null;
+
+  let minT = collected[0];
+  let maxT = collected[0];
+  for (const t of collected) {
+    if (t < minT) minT = t;
+    if (t > maxT) maxT = t;
+  }
+  const spanMs = maxT - minT;
+  if (spanMs <= 0) return null;
+  return Math.max(1, Math.round(spanMs / 60000));
+}
+
+/** Assumed average moving speed when inferring duration from track length (GPX has no timestamps). */
+export const SUGGESTED_DURATION_SPEED_KMH = 20;
+
+/**
+ * Whole minutes from Haversine path length and an assumed average speed (no GPX timestamps required).
+ *
+ * @param {number} distanceM
+ * @param {number} [speedKmh=SUGGESTED_DURATION_SPEED_KMH]
+ * @returns {number | null}
+ */
+export function deriveDurationMinutesFromDistance(distanceM, speedKmh = SUGGESTED_DURATION_SPEED_KMH) {
+  if (!(distanceM > 0) || !(speedKmh > 0)) return null;
+  const hours = (distanceM / 1000) / speedKmh;
+  return Math.max(1, Math.round(hours * 60));
+}
+
+/**
  * @returns {{ lat: number, lon: number, ele: number | null }[]}
  */
 export function extractTrackPointsFromGpx(gpxDom) {
@@ -128,6 +192,29 @@ export function buildElevationProfile(points, elevationsM) {
 }
 
 /**
+ * Duration hints for upload UI: prefers GPX timestamps, else pace from path length.
+ * @param {Document} gpxDom
+ * @param {number} totalM
+ */
+function buildDurationHints(gpxDom, totalM) {
+  const derivedDurationMinutes = deriveDurationMinutesFromGpx(gpxDom);
+  const paceDerivedDurationMinutes =
+    derivedDurationMinutes == null ? deriveDurationMinutesFromDistance(totalM) : null;
+  const suggestedDurationMinutes = derivedDurationMinutes ?? paceDerivedDurationMinutes ?? null;
+
+  let durationSuggestionSource = 'none';
+  if (derivedDurationMinutes != null) durationSuggestionSource = 'timestamps';
+  else if (paceDerivedDurationMinutes != null) durationSuggestionSource = 'pace';
+
+  return {
+    derivedDurationMinutes,
+    paceDerivedDurationMinutes,
+    suggestedDurationMinutes,
+    durationSuggestionSource,
+  };
+}
+
+/**
  * Full analysis from GPX DOM (same points used for distance, gain, and profile).
  */
 export function analyzeGpxTrack(gpxDom) {
@@ -135,6 +222,7 @@ export function analyzeGpxTrack(gpxDom) {
   if (points.length < 2) {
     return {
       error: 'No track points found in GPX (need at least 2 trkpt elements).',
+      ...buildDurationHints(gpxDom, 0),
     };
   }
 
@@ -149,6 +237,7 @@ export function analyzeGpxTrack(gpxDom) {
       elevationGainM: 0,
       elevationProfile: points.map((_, i) => ({ distanceM: cum[i], elevationM: 0 })),
       missingElevation: true,
+      ...buildDurationHints(gpxDom, totalM),
     };
   }
 
@@ -165,6 +254,7 @@ export function analyzeGpxTrack(gpxDom) {
     elevationGainM: gain,
     elevationProfile,
     missingElevation: false,
+    ...buildDurationHints(gpxDom, totalM),
   };
 }
 

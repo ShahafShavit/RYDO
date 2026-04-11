@@ -1,3 +1,5 @@
+import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
+
 function normalizeDifficulty(value) {
   const difficulty = String(value || '').toLowerCase();
 
@@ -63,6 +65,8 @@ export function normalizeRoute(rawRoute = {}) {
     distanceKm: Number(rawRoute.distanceKm || rawRoute.distance || 0),
     elevationGainM: Number(rawRoute.elevationGainM || rawRoute.elevation || 0),
     estimatedDurationMinutes: Number(rawRoute.estimatedDurationMinutes || rawRoute.durationMinutes || rawRoute.duration || 0),
+    estimatedDurationSource:
+      rawRoute.estimatedDurationSource || rawRoute.durationSource || ESTIMATED_DURATION_SOURCE.UNKNOWN,
     warnings: normalizeWarnings(rawRoute.warnings),
     notes: rawRoute.notes || null,
     gpx: {
@@ -90,6 +94,8 @@ export function toRouteUploadPayload(formData) {
     terrain: normalizeTerrain(formData.terrain),
     difficulty: normalizeDifficulty(formData.difficulty),
     estimatedDurationMinutes: Number(formData.estimatedDurationMinutes || 0),
+    estimatedDurationSource:
+      formData.estimatedDurationSource || ESTIMATED_DURATION_SOURCE.ESTIMATED,
     region: formData.region?.trim() || '',
     warnings: Array.isArray(formData.warnings) ? formData.warnings : [],
   };

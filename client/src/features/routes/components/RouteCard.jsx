@@ -3,6 +3,7 @@ import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
+import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -35,7 +36,11 @@ export default function RouteCard({ route }) {
         <div className="mt-5 flex flex-wrap gap-2">
           <Badge>{terrain}</Badge>
           {distance && <Badge>{distance}</Badge>}
-          {duration && <Badge>{duration}</Badge>}
+          {duration && (
+            <span title={durationSourceLabel(route?.estimatedDurationSource)}>
+              <Badge>{duration}</Badge>
+            </span>
+          )}
         </div>
       </div>
 

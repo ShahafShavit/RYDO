@@ -53,9 +53,11 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         var distanceKm = Dbl("distanceKm", 0);
         var elevationGainM = Dbl("elevationGainM", 0);
         var previewJson = "[]";
-        if (GpxTrackParser.TryParse(bytes, out var parsedPreview, out var pathKm, out var pathElev))
+        var parserDurationSource = RouteDurationSource.Unknown;
+        if (GpxTrackParser.TryParse(bytes, out var parsedPreview, out var pathKm, out var pathElev, out _, out var derivedSrc))
         {
             previewJson = parsedPreview;
+            parserDurationSource = derivedSrc;
             if (distanceKm <= 0)
                 distanceKm = pathKm;
             if (elevationGainM <= 0)
@@ -73,6 +75,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             DistanceKm = distanceKm,
             ElevationGainM = elevationGainM,
             EstimatedDurationMinutes = Int("estimatedDurationMinutes", Int("durationMinutes", 60)),
+            EstimatedDurationSource = ResolveEstimatedDurationSource(Request.Form, parserDurationSource),
             WarningsJson = string.IsNullOrWhiteSpace(Str("warnings")) ? "[]" : Str("warnings"),
             Notes = string.IsNullOrWhiteSpace(Str("notes")) ? null : Str("notes"),
             GpxBlob = bytes,
@@ -148,5 +151,28 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(s, out var id) ? id : null;
+    }
+
+    /// <summary>Prefer a valid client hint; otherwise use GPX parser default (timestamps vs pace).</summary>
+    private static string ResolveEstimatedDurationSource(IFormCollection form, string parserDefault)
+    {
+        var client = form["estimatedDurationSource"].ToString().Trim();
+        string[] allowed =
+        [
+            RouteDurationSource.GpxTimestamps,
+            RouteDurationSource.EstimatedPace,
+            RouteDurationSource.Estimated,
+            RouteDurationSource.User,
+            RouteDurationSource.Unknown,
+        ];
+        if (!string.IsNullOrEmpty(client) && allowed.Contains(client))
+        {
+            // Do not trust a client claim of recording-based duration if the GPX file did not yield timestamps.
+            if (client == RouteDurationSource.GpxTimestamps && parserDefault != RouteDurationSource.GpxTimestamps)
+                return string.IsNullOrEmpty(parserDefault) ? RouteDurationSource.Unknown : parserDefault;
+            return client;
+        }
+
+        return string.IsNullOrEmpty(parserDefault) ? RouteDurationSource.Unknown : parserDefault;
     }
 }

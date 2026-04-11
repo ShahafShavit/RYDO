@@ -22,6 +22,7 @@ public static class RouteJsonMapper
             elevationGainM = r.ElevationGainM,
             estimatedDurationMinutes = r.EstimatedDurationMinutes,
             durationMinutes = r.EstimatedDurationMinutes,
+            estimatedDurationSource = r.EstimatedDurationSource,
             warnings,
             notes = r.Notes,
             gpx = new

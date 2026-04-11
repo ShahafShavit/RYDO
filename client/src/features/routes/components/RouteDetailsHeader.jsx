@@ -1,4 +1,5 @@
 import Badge from '@/shared/components/ui/badge/Badge';
+import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -15,7 +16,10 @@ export default function RouteDetailsHeader({ route }) {
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="neon">{route.difficulty || 'unknown'}</Badge>
         <Badge>{route.terrain || 'mixed'}</Badge>
-        <Badge>{formatDuration(route.estimatedDurationMinutes)}</Badge>
+        <div className="flex max-w-[min(100%,18rem)] flex-col gap-0.5">
+          <Badge>{formatDuration(route.estimatedDurationMinutes)}</Badge>
+          <span className="text-[11px] leading-snug text-white/42">{durationSourceLabel(route.estimatedDurationSource)}</span>
+        </div>
       </div>
       <div>
         <h1 className="text-3xl font-semibold">{route.title || 'Untitled'}</h1>

@@ -217,19 +217,22 @@ public static class DbSeeder
             string previewJson = $"[[{lng:F5},{lat:F5}],[{lng2:F5},{lat2:F5}]]";
             string gpxRef = $"routes/seed-{i + 1}.gpx";
             byte[]? gpxBlob = null;
+            var estimatedDurationSource = RouteDurationSource.Estimated;
 
             if (gpxPool.Count > 0)
             {
                 var pick = gpxPool[rnd.Next(gpxPool.Count)];
                 gpxBlob = pick.Bytes;
                 gpxRef = $"routes/{pick.FileName}";
-                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev))
+                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc))
                 {
                     previewJson = parsedPreview;
                     dist = pathKm;
                     if (pathElev > 0)
                         elev = pathElev;
-                    dur = Math.Max(25, (int)(dist * 3.2 + rnd.Next(-10, 25)));
+                    estimatedDurationSource = derivedSrc;
+                    // Match client upload: timestamps → minutes, else distance ÷ SuggestedDurationSpeedKmh (see GpxTrackParser).
+                    dur = suggestedDur ?? Math.Max(1, (int)Math.Round(pathKm / GpxTrackParser.SuggestedDurationSpeedKmh * 60.0));
                 }
             }
 
@@ -243,6 +246,7 @@ public static class DbSeeder
                 DistanceKm = dist,
                 ElevationGainM = elev,
                 EstimatedDurationMinutes = dur,
+                EstimatedDurationSource = estimatedDurationSource,
                 WarningsJson = warnings,
                 PreviewCoordinatesJson = previewJson,
                 CreatedByUserId = creator.Id,

@@ -1,4 +1,5 @@
 import Card from '@/shared/components/ui/card/Card';
+import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -12,7 +13,15 @@ export default function RouteMetadataPanel({ route }) {
 
   const items = [
     ['Distance', route.distanceKm ? `${route.distanceKm} km` : '—'],
-    ['Estimated time', formatDuration(route.estimatedDurationMinutes)],
+    [
+      'Estimated time',
+      <>
+        <span className="block">{formatDuration(route.estimatedDurationMinutes)}</span>
+        <span className="mt-1 block text-sm font-normal leading-snug text-white/45">
+          {durationSourceLabel(route.estimatedDurationSource)}
+        </span>
+      </>,
+    ],
     ['Difficulty', route.difficulty || '—'],
     ['Terrain', route.terrain || '—'],
     ['Region', route.region || '—'],
@@ -27,7 +36,7 @@ export default function RouteMetadataPanel({ route }) {
         {items.map(([label, value]) => (
           <div key={label} className="rounded-2xl border border-white/8 bg-black/20 p-4">
             <p className="text-sm text-white/44">{label}</p>
-            <p className="mt-2 text-lg font-medium">{value}</p>
+            <div className="mt-2 text-lg font-medium">{value}</div>
           </div>
         ))}
       </div>

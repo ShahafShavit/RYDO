@@ -78,6 +78,8 @@ function createRouteFromUpload(data) {
     difficulty: data.difficulty || 'moderate',
     terrain: data.terrain || 'mixed',
     durationMinutes: Number(data.estimatedDurationMinutes || 120),
+    estimatedDurationMinutes: Number(data.estimatedDurationMinutes || 120),
+    estimatedDurationSource: data.estimatedDurationSource || 'gpx_timestamps',
     region: data.region || null,
     warnings: Array.isArray(data.warnings) ? data.warnings : [],
     createdBy: profile.fullName,
@@ -195,6 +197,7 @@ export async function mockRequest(path, options = {}) {
       terrain: formData.get('terrain'),
       difficulty: formData.get('difficulty'),
       estimatedDurationMinutes: formData.get('estimatedDurationMinutes'),
+      estimatedDurationSource: formData.get('estimatedDurationSource'),
       region: formData.get('region'),
       warnings: JSON.parse(formData.get('warnings') || '[]'),
     };
