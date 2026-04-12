@@ -1,0 +1,13 @@
+{
+  "name": "rydo-groopy-scraper",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node scrape.mjs",
+    "scrape": "node scrape.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.51.0"
+  }
+}
