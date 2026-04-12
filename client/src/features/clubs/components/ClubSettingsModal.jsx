@@ -107,7 +107,6 @@ export default function ClubSettingsModal({
 
         <div className="mt-6 border-b border-white/10 pb-6">
           <p className="text-sm font-semibold text-white/88">Invites</p>
-          <p className="mt-1 text-sm text-white/48">Generate a code for riders to redeem and join.</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button variant="secondary" type="button" onClick={() => inviteMut.mutate()} disabled={inviteMut.isPending}>
               {inviteMut.isPending ? 'Creating…' : 'Create invite code'}

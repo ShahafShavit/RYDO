@@ -59,7 +59,6 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
           <h2 id={titleId} className="text-xl font-semibold">
             Who rode this route
           </h2>
-          <p className="mt-1 text-sm text-white/48">{riders.length} riders listed</p>
         </div>
         <button
           type="button"

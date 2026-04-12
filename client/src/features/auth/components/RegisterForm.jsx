@@ -39,7 +39,6 @@ export default function RegisterForm() {
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <div>
           <h1 className="text-2xl font-semibold">Create your RYDO account</h1>
-          <p className="mt-2 text-white/64">Join the platform for routes, group rides, hazards and challenges.</p>
         </div>
 
         <FormField label="First name">

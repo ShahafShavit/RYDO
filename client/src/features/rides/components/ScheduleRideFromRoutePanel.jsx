@@ -71,15 +71,8 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
         <>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Plan</p>
           <h2 className="mt-2 text-xl font-semibold">Schedule a ride</h2>
-          <p className="mt-2 text-sm text-white/64">
-            Create a personal ride on this route, or schedule it for a club you belong to.
-          </p>
         </>
-      ) : (
-        <p className="text-sm text-white/64">
-          Create a personal ride on this route, or schedule it for a club you belong to.
-        </p>
-      )}
+      ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Ride type">
         <button

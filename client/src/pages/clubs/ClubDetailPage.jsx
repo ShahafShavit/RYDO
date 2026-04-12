@@ -62,9 +62,6 @@ export default function ClubDetailPage() {
 
   const canSeeMembers = clubQuery.data?.currentUserMembership === 'member' || clubQuery.data?.currentUserMembership === 'admin';
 
-  const isPrivateRestricted =
-    clubQuery.data?.visibility === 'private' && !canSeeMembers;
-
   const membersQuery = useQuery({
     queryKey: ['clubs', 'members', id],
     queryFn: () => clubsApi.getMembers(id),
@@ -172,20 +169,6 @@ export default function ClubDetailPage() {
     return { upcomingRides: upcoming, pastRides: past };
   }, [ridesQuery.data, ridePartitionNowMs]);
 
-  const membershipLabel = useMemo(() => {
-    if (!club) return '';
-    switch (club.currentUserMembership) {
-      case 'admin':
-        return '';
-      case 'member':
-        return 'You are a member';
-      case 'pending':
-        return '';
-      default:
-        return 'You are not a member';
-    }
-  }, [club]);
-
   const sortedMembers = useMemo(() => {
     const raw = membersQuery.data;
     if (!Array.isArray(raw)) return [];
@@ -229,13 +212,7 @@ export default function ClubDetailPage() {
             <div className="min-w-0 flex-1">
             <p className="text-xs uppercase tracking-[0.16em] text-white/42">Club</p>
             <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
-            {club.description ? (
-              <p className="mt-2 text-white/72">{club.description}</p>
-            ) : isPrivateRestricted ? (
-              <p className="mt-2 text-sm text-white/48">
-                This club is private. Join or redeem an invite to see the full description and location.
-              </p>
-            ) : null}
+            {club.description ? <p className="mt-2 text-white/72">{club.description}</p> : null}
             {club.region ? <p className="mt-2 text-sm text-white/56">{club.region}</p> : null}
             </div>
           </div>
@@ -280,7 +257,6 @@ export default function ClubDetailPage() {
             )}
           </div>
         </div>
-        {membershipLabel ? <p className="mt-3 text-sm text-white/56">{membershipLabel}</p> : null}
       </div>
 
       <div className="flex flex-col gap-4">
@@ -289,10 +265,6 @@ export default function ClubDetailPage() {
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-amber-200/95">Request pending</p>
-                <p className="mt-1 text-sm text-white/58">
-                  An admin still needs to approve you. Until then, ride names and schedules stay hidden for this private
-                  club.
-                </p>
               </div>
               {club.visibility === 'private' && user ? (
                 <div className="w-full shrink-0 lg:max-w-sm">
@@ -352,11 +324,6 @@ export default function ClubDetailPage() {
         <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold">Club rides</h2>
-            <p className="mt-1 max-w-xl text-sm text-white/48">
-              {isPrivateRestricted
-                ? 'Only members can see ride names, times, and routes. Everyone else sees counts only.'
-                : 'Rides are created for this club only. Members opt in from each ride&apos;s page.'}
-            </p>
           </div>
           {canSeeMembers ? (
             <Button

@@ -61,9 +61,6 @@ export default function RoutesExplorePage() {
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-white/42">Repository</p>
         <h1 className="mt-2 text-3xl font-semibold">Explore routes</h1>
-        <p className="mt-3 max-w-2xl text-white/64">
-          The website version should feel broader, cleaner and more decision-friendly than the mobile screens.
-        </p>
       </div>
       <RouteFilters
         filters={filters}

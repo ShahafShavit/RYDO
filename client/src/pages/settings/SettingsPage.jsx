@@ -88,7 +88,6 @@ const SettingsPage = () => {
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-white/42">Account</p>
         <h1 className="mt-2 text-3xl font-semibold">Account Settings</h1>
-        <p className="mt-3 max-w-2xl text-white/64">Edit how others see your profile, preferences, and security</p>
       </div>
 
       <div className="flex flex-col flex-1">

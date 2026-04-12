@@ -39,7 +39,6 @@ export default function LoginForm() {
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <div>
           <h1 className="text-2xl font-semibold">Login to RYDO</h1>
-          <p className="mt-2 text-white/64">Continue to routes, rides, navigation and live group coordination.</p>
         </div>
 
         <FormField label="Email">

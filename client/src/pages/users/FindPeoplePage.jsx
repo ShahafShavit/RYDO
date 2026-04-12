@@ -22,10 +22,6 @@ export default function FindPeoplePage() {
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-white/42">Community</p>
         <h1 className="mt-2 text-3xl font-semibold text-white">Find People</h1>
-        <p className="mt-2 max-w-md text-sm text-white/56">
-          Search by first name, last name, or email. Results are limited to signed-in members you can open in their
-          profile.
-        </p>
       </div>
 
       <Card className="p-4 sm:p-6 bg-white/5 border-white/10">

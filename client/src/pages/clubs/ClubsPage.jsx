@@ -94,9 +94,6 @@ export default function ClubsPage() {
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Clubs</p>
           <h1 className="mt-2 text-3xl font-semibold">Cycling clubs</h1>
-          <p className="mt-2 text-sm text-white/64">
-            Public clubs are open to join. Private clubs require approval or an invite.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" type="button" onClick={() => setInviteOpen(true)}>
@@ -138,7 +135,6 @@ export default function ClubsPage() {
             <>
               <div>
                 <h2 className="text-lg font-semibold text-white/88">Your clubs</h2>
-                <p className="mt-1 text-sm text-white/48">Where you&apos;re an active member or admin.</p>
                 {memberClubs.length === 0 ? (
                   <p className="mt-4 text-sm text-white/48">
                     {q ? 'No matching clubs in this section.' : 'You are not an active member of any club yet.'}
@@ -154,10 +150,6 @@ export default function ClubsPage() {
 
               <div>
                 <h2 className="text-lg font-semibold text-white/88">Other clubs</h2>
-                <p className="mt-1 text-sm text-white/48">
-                  Public clubs you haven&apos;t joined yet appear here, together with private clubs where you&apos;re not
-                  an active member (including pending requests).
-                </p>
                 {otherClubsCount === 0 ? (
                   <p className="mt-4 text-sm text-white/48">
                     {q ? 'No matching clubs in this section.' : 'No other clubs to show.'}

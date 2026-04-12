@@ -86,7 +86,7 @@ function UpcomingRidesSection({ rides }) {
     <div>
       <h2 className="text-lg font-semibold">Upcoming</h2>
       {rides.length === 0 ? (
-        <p className="mt-3 text-sm text-white/56">No upcoming rides. Schedule a personal ride or join a club event.</p>
+        <p className="mt-3 text-sm text-white/56">No upcoming rides.</p>
       ) : (
         <>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -250,10 +250,6 @@ export default function MyRidesPage() {
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Rides</p>
           <h1 className="mt-2 text-3xl font-semibold">My Rides</h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/64">
-            Upcoming and past scheduled rides (club or personal), plus your logged performance. Search by route, ride
-            name, or club.
-          </p>
         </div>
         <Button variant="primary" type="button" onClick={() => setModalOpen(true)}>
           Schedule personal ride
@@ -293,9 +289,6 @@ export default function MyRidesPage() {
 
           <div>
             <h2 className="text-lg font-semibold">Past &amp; logged</h2>
-            <p className="mt-2 text-sm text-white/56">
-              Logged rides include your stats. Past scheduled events without a log stay as reminders.
-            </p>
             {historyRows.length === 0 && pastScheduled.length === 0 ? (
               <p className="mt-4 text-sm text-white/56">Nothing in the past yet.</p>
             ) : (

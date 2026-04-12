@@ -20,7 +20,6 @@ export default function ScheduleRideFromRouteModal({ open, onClose, routeId, rou
               <h2 id={titleId} className="text-xl font-semibold">
                 Schedule a ride
               </h2>
-              <p className="mt-1 text-sm text-white/56">For this route</p>
             </div>
             <button
               type="button"

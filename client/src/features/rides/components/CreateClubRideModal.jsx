@@ -24,13 +24,6 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
               <h2 id={titleId} className="text-xl font-semibold">
                 Schedule a ride
               </h2>
-              {clubName ? (
-                <p className="mt-1 text-sm text-white/56">
-                  For <span className="text-white/80">{clubName}</span> — members opt in from this club.
-                </p>
-              ) : (
-                <p className="mt-1 text-sm text-white/56">Club members can join from the ride page.</p>
-              )}
             </div>
             <button
               type="button"

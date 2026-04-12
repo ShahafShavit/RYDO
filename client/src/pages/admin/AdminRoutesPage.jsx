@@ -4,7 +4,7 @@ import RoutesModerationTable from '@/features/admin/components/RoutesModerationT
 export default function AdminRoutesPage() {
   return (
     <section className="space-y-6">
-      <AdminHeader title="Routes moderation" description="Review route quality, metadata consistency and publication status." />
+      <AdminHeader title="Routes moderation" />
       <RoutesModerationTable />
     </section>
   );

@@ -58,7 +58,6 @@ export default function CreatePersonalRideModal({ open, onClose }) {
     <AnimatedModal open={open} onClose={onClose} zIndexClass="z-50">
       <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
         <h2 className="text-xl font-semibold">Schedule a personal ride</h2>
-        <p className="mt-2 text-sm text-white/64">No club — just you (and guests you invite later).</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>

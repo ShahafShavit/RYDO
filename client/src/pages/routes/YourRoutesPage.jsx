@@ -59,9 +59,6 @@ export default function YourRoutesPage() {
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Library</p>
           <h1 className="mt-2 text-3xl font-semibold">My Routes</h1>
-          <p className="mt-3 max-w-2xl text-white/64">
-            Routes you&apos;ve uploaded and routes you&apos;ve saved for later.
-          </p>
         </div>
         <Button variant="neon" type="button" className="shrink-0 sm:mt-8" onClick={openUploadModal}>
           Upload route

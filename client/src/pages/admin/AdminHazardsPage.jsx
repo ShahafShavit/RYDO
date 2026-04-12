@@ -4,7 +4,7 @@ import HazardsModerationTable from '@/features/admin/components/HazardsModeratio
 export default function AdminHazardsPage() {
   return (
     <section className="space-y-6">
-      <AdminHeader title="Hazards moderation" description="Monitor reported trail issues and validate what should stay live." />
+      <AdminHeader title="Hazards moderation" />
       <HazardsModerationTable />
     </section>
   );
