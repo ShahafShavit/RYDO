@@ -29,6 +29,15 @@ public class RidesController(RydoDbContext db) : ControllerBase
         if (g == null) return NotFound();
 
         var uid = CurrentUserId();
+        if (g.ClubId is { } rideClubId && g.Club != null && g.Club.Visibility == ClubVisibility.Private)
+        {
+            var isActiveMember = uid != null && await db.ClubMembers.AnyAsync(
+                m => m.ClubId == rideClubId && m.UserId == uid!.Value && m.MembershipStatus == ClubMembershipStatus.Active,
+                ct);
+            if (!isActiveMember)
+                return NotFound();
+        }
+
         var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
         var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
         var canEdit = uid is { } viewerId && await RideGroupResponseHelper.ViewerCanEditRideAsync(db, g, viewerId, ct);

@@ -23,6 +23,20 @@ let hazards = [...MOCK_HAZARDS];
 let rides = MOCK_RIDE_GROUPS.map((r) => ({ ...r }));
 let clubs = [...MOCK_CLUBS];
 let challenges = [...MOCK_CHALLENGES];
+
+/** Mirrors server: pending / none are not active members. */
+function mockClubCurrentMembership(c) {
+  if (!c) return 'none';
+  if (c.membershipPending) return 'pending';
+  if (c.myRole === 'admin') return 'admin';
+  if (c.myRole === 'member') return 'member';
+  return 'none';
+}
+
+function mockIsActiveClubMember(c) {
+  const m = mockClubCurrentMembership(c);
+  return m === 'admin' || m === 'member';
+}
 let historyEntries = [...MOCK_HISTORY];
 let chatMessages = structuredClone(MOCK_CHAT_MESSAGES);
 function mockDefaultPrivacy() {
@@ -800,22 +814,35 @@ export async function mockRequest(path, options = {}) {
     const cid = Number(pathname.split('/')[3]);
     const c = clubs.find((x) => x.id === cid);
     if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    const currentUserMembership = mockClubCurrentMembership(c);
+    const isActive = mockIsActiveClubMember(c);
+    let description = c.description;
+    let region = c.region;
+    let memberCount = 4;
+    if (c.visibility === 'private' && !isActive) {
+      description = null;
+      region = null;
+      memberCount = null;
+    }
     return {
       id: c.id,
       name: c.name,
-      description: c.description,
-      region: c.region,
+      description,
+      region,
       visibility: c.visibility,
       createdAt: c.createdAt,
-      memberCount: 4,
-      currentUserMembership: c.myRole === 'admin' ? 'admin' : c.myRole === 'member' ? 'member' : 'none',
+      memberCount,
+      currentUserMembership,
     };
   }
 
   if (/^\/api\/clubs\/\d+\/members$/.test(pathname) && method === 'GET') {
+    const cid = Number(pathname.split('/')[3]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
     const uOther = users.find((x) => x.id === 3);
     const name3 = uOther ? [uOther.firstName, uOther.lastName].filter(Boolean).join(' ') : 'Alex Cohen';
-    return [
+    const active = [
       {
         userId: profile.id,
         displayName: profile.fullName,
@@ -831,6 +858,20 @@ export async function mockRequest(path, options = {}) {
         membershipStatus: 'active',
       },
     ];
+    const isAdminViewer = c.myRole === 'admin' && !c.membershipPending;
+    if (isAdminViewer) {
+      active.push({
+        userId: 99,
+        displayName: 'Awaiting Approval',
+        avatarUrl: undefined,
+        role: 'member',
+        membershipStatus: 'pending',
+      });
+    }
+    if (!isAdminViewer) {
+      return active.filter((m) => m.membershipStatus === 'active');
+    }
+    return active;
   }
 
   if (/^\/api\/clubs\/\d+\/join-requests$/.test(pathname) && method === 'GET') {
@@ -839,6 +880,15 @@ export async function mockRequest(path, options = {}) {
 
   if (/^\/api\/clubs\/\d+\/rides$/.test(pathname) && method === 'GET') {
     const cid = Number(pathname.split('/')[3]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    if (c.visibility === 'private' && !mockIsActiveClubMember(c)) {
+      const now = Date.now();
+      const clubRides = rides.filter((r) => r.clubId === cid);
+      const upcomingCount = clubRides.filter((r) => new Date(r.scheduledDate).getTime() >= now).length;
+      const pastCount = clubRides.filter((r) => new Date(r.scheduledDate).getTime() < now).length;
+      return { summaryOnly: true, upcomingCount, pastCount };
+    }
     return rides.filter((r) => r.clubId === cid).map((r) => findRide(String(r.id)));
   }
 
@@ -856,6 +906,26 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/api/clubs/invites/redeem' && method === 'POST') {
     return { clubId: 1, status: 'active' };
+  }
+
+  if (/^\/api\/clubs\/\d+\/join-requests\/\d+\/approve$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/join-requests\/\d+\/reject$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/members\/\d+\/promote$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/members\/\d+\/demote$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/members\/\d+$/.test(pathname) && method === 'DELETE') {
+    return null;
   }
 
   if (/^\/api\/rides\/\d+$/.test(pathname) && method === 'PATCH') {
@@ -892,7 +962,16 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (/^\/api\/rides\/\d+$/.test(pathname) && method === 'GET') {
-    return findRide(pathname.split('/')[3]);
+    const rideId = Number(pathname.split('/')[3]);
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    if (ride.clubId != null) {
+      const c = clubs.find((x) => x.id === ride.clubId);
+      if (c?.visibility === 'private' && !mockIsActiveClubMember(c)) {
+        throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+      }
+    }
+    return findRide(String(rideId));
   }
 
   if (/^\/api\/chat\/\d+$/.test(pathname) && method === 'GET') {

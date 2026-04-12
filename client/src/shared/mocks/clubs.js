@@ -20,4 +20,14 @@ export const MOCK_CLUBS = [
     myRole: 'admin',
     createdAt: '2026-01-15T00:00:00.000Z',
   },
+  {
+    id: 3,
+    name: 'Jerusalem Hills Collective',
+    description: 'Private club — request to join or use an invite.',
+    region: 'Jerusalem Hills',
+    visibility: 'private',
+    membershipPending: true,
+    myRole: 'member',
+    createdAt: '2026-01-20T00:00:00.000Z',
+  },
 ];

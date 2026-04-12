@@ -248,6 +248,8 @@ The creator is added as a participant. Response uses the **ride JSON shape** wit
 ### `GET /rides/:rideId` (anonymous or authenticated)
 Returns one scheduled ride. **Roster privacy:** active members of the ride’s club receive `participants`, `participantDetails`, and `participantCount`. Anonymous users and authenticated users who are **not** active members of that club receive **`participantCount` only** (no `participants` / `participantDetails`).
 
+If the ride belongs to a **private** club and the viewer is **not** an active member of that club, the API returns **`404 Not Found`** (no ride details), so deep links cannot bypass club privacy.
+
 **Ride JSON shape** (when roster is visible):
 ```json
 {
@@ -324,8 +326,10 @@ Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes 
 ### `GET /clubs/:id`
 Returns `visibility`, `memberCount`, and `currentUserMembership`: `none` | `pending` | `member` | `admin`.
 
-### `GET /clubs/:id/members` (authenticated, members only)
-Member roster with `userId`, `displayName`, `email`, `role`, `membershipStatus`.
+For **private** clubs, if the viewer is **not** an active member (`pending` or `none`), `description`, `region`, and `memberCount` are omitted (null). The club **name** remains so people know which club they are requesting to join.
+
+### `GET /clubs/:id/members` (authenticated, active members only)
+Member roster with `userId`, `displayName`, `email`, `role`, `membershipStatus` (`active` | `pending`), and timestamps. **Regular members** receive **active** members only. **Club admins** also receive **pending** join requests in the same list (sorted with pending first), so the UI can show approve/deny alongside the roster.
 
 ### `POST /clubs/:id/join` / `POST /clubs/:id/leave` (authenticated)
 Public clubs: immediate **active** membership. Private clubs: **pending** until approved. Leave blocked for sole admin (HTTP 400 with problem details).
@@ -351,7 +355,8 @@ Demote is rejected if it would remove the last admin.
 Cannot remove the last admin.
 
 ### `GET /clubs/:id/rides`
-Scheduled `RideGroup` rows for that club. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only.
+- **Public** club: array of scheduled `RideGroup` rows. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only (names/times/routes still visible).
+- **Private** club, viewer **not** an active member: `{ "summaryOnly": true, "upcomingCount": n, "pastCount": n }` — no ride titles, times, or routes.
 
 ## Secondary Feature Endpoints
 These feature modules exist and use the shared client path:

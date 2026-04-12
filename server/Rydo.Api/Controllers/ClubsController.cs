@@ -176,15 +176,29 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         var memberCount = await db.ClubMembers.CountAsync(
             m => m.ClubId == id && m.MembershipStatus == ClubMembershipStatus.Active, ct);
 
+        var isActiveMember = uid != null && await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid!.Value && m.MembershipStatus == ClubMembershipStatus.Active,
+            ct);
+
+        string? description = club.Description;
+        string? region = club.Region;
+        int? memberCountPublic = memberCount;
+        if (club.Visibility == ClubVisibility.Private && !isActiveMember)
+        {
+            description = null;
+            region = null;
+            memberCountPublic = null;
+        }
+
         return Ok(new
         {
             id = club.Id,
             name = club.Name,
-            description = club.Description,
-            region = club.Region,
+            description,
+            region,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             createdAt = club.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            memberCount,
+            memberCount = memberCountPublic,
             currentUserMembership,
         });
     }
@@ -195,13 +209,32 @@ public class ClubsController(RydoDbContext db) : ControllerBase
     {
         var uid = CurrentUserId() ?? 0;
         var my = await db.ClubMembers.AsNoTracking()
-            .FirstOrDefaultAsync(m => m.ClubId == id && m.UserId == uid && m.MembershipStatus == ClubMembershipStatus.Active, ct);
-        if (my == null) return Forbid();
+            .FirstOrDefaultAsync(m => m.ClubId == id && m.UserId == uid, ct);
+        if (my == null || my.MembershipStatus != ClubMembershipStatus.Active) return Forbid();
 
-        var list = await db.ClubMembers.AsNoTracking()
+        var isAdmin = my.Role == ClubMemberRole.Admin;
+
+        var q = db.ClubMembers.AsNoTracking()
             .Include(m => m.User)
-            .Where(m => m.ClubId == id && m.MembershipStatus == ClubMembershipStatus.Active)
-            .OrderBy(m => m.User!.LastName).ThenBy(m => m.User!.FirstName)
+            .Where(m => m.ClubId == id);
+
+        if (isAdmin)
+            q = q.Where(m =>
+                m.MembershipStatus == ClubMembershipStatus.Active
+                || m.MembershipStatus == ClubMembershipStatus.Pending);
+        else
+            q = q.Where(m => m.MembershipStatus == ClubMembershipStatus.Active);
+
+        // Admins first, then active members, then pending; within each tier sort by name.
+        var list = await q
+            .OrderBy(m =>
+                m.MembershipStatus == ClubMembershipStatus.Pending
+                    ? 2
+                    : m.Role == ClubMemberRole.Admin
+                        ? 0
+                        : 1)
+            .ThenBy(m => m.User!.LastName)
+            .ThenBy(m => m.User!.FirstName)
             .ToListAsync(ct);
 
         return Ok(list.Select(MemberDto));
@@ -591,9 +624,26 @@ public class ClubsController(RydoDbContext db) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ClubRides(int id, CancellationToken ct)
     {
-        if (!await db.CyclingClubs.AnyAsync(c => c.Id == id, ct)) return NotFound();
+        var club = await db.CyclingClubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (club == null) return NotFound();
 
         var uid = CurrentUserId();
+        var isActiveMember = uid != null && await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid!.Value && m.MembershipStatus == ClubMembershipStatus.Active,
+            ct);
+
+        if (club.Visibility == ClubVisibility.Private && !isActiveMember)
+        {
+            var now = DateTime.UtcNow;
+            var dates = await db.RideGroups.AsNoTracking()
+                .Where(r => r.ClubId == id)
+                .Select(r => r.ScheduledDate)
+                .ToListAsync(ct);
+            var upcomingCount = dates.Count(t => t >= now);
+            var pastCount = dates.Count(t => t < now);
+            return Ok(new { summaryOnly = true, upcomingCount, pastCount });
+        }
+
         var canViewRoster = await RideGroupResponseHelper.ViewerCanSeeRoster(db, id, uid, ct);
 
         var rides = await db.RideGroups.AsNoTracking()

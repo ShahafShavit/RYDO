@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, generatePath } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
-import UserAvatar from '@/shared/components/user/UserAvatar';
 
 function formFromClub(club) {
   return {
@@ -24,10 +21,7 @@ export default function ClubSettingsModal({
   onClose,
   clubId,
   club,
-  joinRequests,
   inviteMut,
-  approveMut,
-  rejectMut,
 }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => formFromClub(club));
@@ -125,33 +119,6 @@ export default function ClubSettingsModal({
             ) : null}
           </div>
         </div>
-
-        {Array.isArray(joinRequests) && joinRequests.length > 0 ? (
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold text-white/88">Pending requests</h3>
-            <ul className="mt-3 space-y-2">
-              {joinRequests.map((r) => (
-                <li key={r.userId} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <Link
-                    to={generatePath(ROUTES.userProfile, { userId: String(r.userId) })}
-                    className="flex min-w-0 items-center gap-2 text-white/88 hover:text-white"
-                  >
-                    <UserAvatar avatarUrl={r.avatarUrl} displayName={r.displayName || `User ${r.userId}`} />
-                    <span className="truncate">{r.displayName || `User #${r.userId}`}</span>
-                  </Link>
-                  <div className="flex gap-2">
-                    <Button variant="neon" className="!py-1.5 text-xs" type="button" onClick={() => approveMut.mutate(r.userId)}>
-                      Approve
-                    </Button>
-                    <Button variant="secondary" className="!py-1.5 text-xs" type="button" onClick={() => rejectMut.mutate(r.userId)}>
-                      Reject
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
 
         <div className="mt-6 flex justify-end">
           <Button variant="secondary" type="button" onClick={onClose}>
