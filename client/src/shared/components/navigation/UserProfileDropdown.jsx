@@ -48,7 +48,7 @@ export default function UserProfileDropdown() {
             <AnimatePresence>
                 {isOpen && (
                     <MotionDiv
-                        className="absolute bottom-full left-0 mb-2 w-full rounded-2xl rydo-glass border border-border p-1.5 shadow-xl z-50 origin-bottom"
+                        className="absolute bottom-full left-0 z-50 mb-2 w-full origin-bottom rounded-2xl border border-border-strong bg-(--rydo-bg-deep) p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28),inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -63,9 +63,9 @@ export default function UserProfileDropdown() {
                                 setIsOpen(false);
                                 if (user?.id) navigate(generatePath(ROUTES.userProfile, { userId: String(user.id) }));
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-surface hover:text-fg"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-fg/90 transition-colors hover:bg-surface-strong hover:text-fg"
                         >
-                            <User className="w-4 h-4" />
+                            <User className="h-4 w-4 shrink-0 text-fg-muted" />
                             Profile
                         </button>
                         <button
@@ -75,19 +75,19 @@ export default function UserProfileDropdown() {
                                 setIsOpen(false);
                                 navigate(ROUTES.settings);
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-surface hover:text-fg"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-fg/90 transition-colors hover:bg-surface-strong hover:text-fg"
                         >
-                            <Settings className="w-4 h-4" />
+                            <Settings className="h-4 w-4 shrink-0 text-fg-muted" />
                             Settings
                         </button>
-                        <div className="my-1 h-px w-full bg-surface-strong" />
+                        <div className="my-1 h-px w-full bg-border" />
                         <button
                             type="button"
                             role="menuitem"
                             onClick={handleLogout}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-[#FF5C5C]/90 transition-colors hover:bg-[#FF5C5C]/10 hover:text-[#FF5C5C]"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[#FF5C5C] transition-colors hover:bg-[#FF5C5C]/12 hover:text-[#FF5C5C]"
                         >
-                            <LogOut className="w-4 h-4" />
+                            <LogOut className="h-4 w-4 shrink-0" />
                             Logout
                         </button>
                     </MotionDiv>
