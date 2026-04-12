@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { useUpdateRide } from '@/features/rides/hooks/useUpdateRide';
 import Button from '@/shared/components/ui/button/Button';
 import Card from '@/shared/components/ui/card/Card';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ROUTES } from '@/app/router/route-paths';
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return '';
@@ -57,7 +59,17 @@ function EditRideForm({ ride, onClose }) {
       <h2 className="text-xl font-semibold">Edit ride</h2>
       {ride.clubName ? (
         <p className="mt-2 text-sm text-fg-muted">
-          Club: <span className="text-fg/90">{ride.clubName}</span>
+          Club:{' '}
+          {ride.clubId != null ? (
+            <Link
+              to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
+              className="font-medium text-rydo-purple hover:underline"
+            >
+              {ride.clubName}
+            </Link>
+          ) : (
+            <span className="text-fg/90">{ride.clubName}</span>
+          )}
         </p>
       ) : (
         <p className="mt-2 text-sm text-fg-muted">Personal ride</p>

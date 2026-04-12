@@ -88,7 +88,7 @@ function ScheduledRideCard({ ride }) {
             to={routeDetailsPath(ride.routeId)}
             className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
           >
-            <Badge variant="default" className="max-w-full min-w-0 truncate">
+            <Badge variant="route" className="max-w-full min-w-0 truncate">
               {routeBadgeLabel}
             </Badge>
           </Link>
@@ -97,7 +97,7 @@ function ScheduledRideCard({ ride }) {
           {kind === 'club' ? (
             <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
           ) : (
-            <Badge>Personal</Badge>
+            <Badge variant="personal">Personal</Badge>
           )}
         </div>
       </div>
@@ -106,7 +106,7 @@ function ScheduledRideCard({ ride }) {
       <div className="mt-4 flex flex-wrap gap-3">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
-            View ride
+            View Ride
           </Button>
         </Link>
       </div>
@@ -174,7 +174,7 @@ function PastScheduledCard({ ride }) {
             to={routeDetailsPath(ride.routeId)}
             className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
           >
-            <Badge variant="default" className="max-w-full min-w-0 truncate">
+            <Badge variant="route" className="max-w-full min-w-0 truncate">
               {routeBadgeLabel}
             </Badge>
           </Link>
@@ -183,7 +183,7 @@ function PastScheduledCard({ ride }) {
           {kind === 'club' ? (
             <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
           ) : (
-            <Badge>Personal</Badge>
+            <Badge variant="personal">Personal</Badge>
           )}
         </div>
       </div>
@@ -193,7 +193,7 @@ function PastScheduledCard({ ride }) {
       <div className="mt-4 flex flex-wrap gap-3">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
-            Open ride
+            View Ride
           </Button>
         </Link>
       </div>
@@ -235,7 +235,7 @@ function HistoryRideCard({ entry }) {
             to={routeDetailsPath(entry.routeId)}
             className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
           >
-            <Badge variant="default" className="max-w-full min-w-0 truncate">
+            <Badge variant="route" className="max-w-full min-w-0 truncate">
               {routeBadgeLabel}
             </Badge>
           </Link>
@@ -245,7 +245,7 @@ function HistoryRideCard({ entry }) {
             {kind === 'club' ? (
               <ClubBadge clubId={entry.clubId} clubName={entry.clubName} />
             ) : (
-              <Badge>Personal</Badge>
+              <Badge variant="personal">Personal</Badge>
             )}
           </div>
         ) : null}

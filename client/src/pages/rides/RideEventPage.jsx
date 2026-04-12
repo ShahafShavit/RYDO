@@ -1,18 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
 import RideStatusBanner from '@/features/rides/components/RideStatusBanner';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
-import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useRideAttendance } from '@/features/rides/hooks/useRideAttendance';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Button from '@/shared/components/ui/button/Button';
-import { ROUTES } from '@/app/router/route-paths';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 
 export default function RideEventPage() {
@@ -50,9 +48,13 @@ export default function RideEventPage() {
   }
 
   if (isError || !ride) {
+    const loadError =
+      error?.status === 404
+        ? 'This ride was not found or is not visible with your account.'
+        : error?.message || 'Could not load this ride.';
     return (
       <section className="space-y-4">
-        <p className="text-red-400">{error?.message || 'Could not load this ride.'}</p>
+        <p className="text-red-400">{loadError}</p>
         <Button variant="secondary" type="button" onClick={() => refetch()}>
           Retry
         </Button>
@@ -60,7 +62,8 @@ export default function RideEventPage() {
     );
   }
 
-  const showEdit = Boolean(ride.viewerCanEdit && isRideUpcoming(ride));
+  const upcoming = isRideUpcoming(ride);
+  const showEdit = Boolean(ride.viewerCanEdit && upcoming);
 
   return (
     <section className="space-y-6">
@@ -73,26 +76,17 @@ export default function RideEventPage() {
       <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} />
       {ride.routeId ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <Link
-              to={ROUTES.routeDetails.replace(':routeId', String(ride.routeId))}
-              className="text-sm font-medium text-rydo-purple hover:underline"
-            >
-              Open full route profile
-            </Link>
-          </div>
           {routeLoading ? (
             <div className="h-64 animate-pulse rounded-3xl bg-surface-strong" />
           ) : (
             <RouteMapWithElevation geoJson={geoJson} />
           )}
-          <RouteRidersPanel routeRiders={linkedRoute?.routeRiders} />
           <RouteMetadataPanel route={linkedRoute} />
         </div>
       ) : (
         <p className="text-sm text-fg-muted">No route is linked to this event yet.</p>
       )}
-      {user && ride.rideKind !== 'soloLog' ? (
+      {user && ride.rideKind !== 'soloLog' && upcoming ? (
         <div className="flex flex-wrap gap-3">
           {amParticipant ? (
             <Button variant="secondary" type="button" onClick={() => leaveRide()} disabled={isLeaving}>
@@ -105,10 +99,7 @@ export default function RideEventPage() {
           )}
         </div>
       ) : null}
-      {user && ride.rideKind === 'soloLog' ? (
-        <p className="text-sm text-fg-muted">This is a personal ride log — joining is not available.</p>
-      ) : null}
-      {!user && ride.rideKind !== 'soloLog' ? (
+      {!user && ride.rideKind !== 'soloLog' && upcoming ? (
         <p className="text-sm text-fg-muted">Sign in to join this ride.</p>
       ) : null}
       <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />

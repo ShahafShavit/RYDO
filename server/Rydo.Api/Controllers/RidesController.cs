@@ -34,7 +34,8 @@ public class RidesController(RydoDbContext db) : ControllerBase
             var isActiveMember = uid != null && await db.ClubMembers.AnyAsync(
                 m => m.ClubId == rideClubId && m.UserId == uid!.Value && m.MembershipStatus == ClubMembershipStatus.Active,
                 ct);
-            if (!isActiveMember)
+            var isOnRoster = uid != null && g.Participants.Any(p => p.UserId == uid.Value);
+            if (!isActiveMember && !isOnRoster)
                 return NotFound();
         }
 

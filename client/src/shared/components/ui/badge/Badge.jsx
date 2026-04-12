@@ -8,6 +8,12 @@ export default function Badge({ children, className, variant = 'default' }) {
       'border-rydo-green/30 bg-rydo-green/10 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]',
     warning:
       'border-amber-500/40 bg-amber-500/12 text-amber-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]',
+    /** Route / trail name chips — distinct from status (neon) and club (success). */
+    route:
+      'border-sky-500/35 bg-sky-500/12 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_8%,transparent)]',
+    /** Personal / non-club rides — distinct from club (success) and route (sky). */
+    personal:
+      'border-violet-500/35 bg-violet-500/12 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_8%,transparent)]',
   };
 
   return (
