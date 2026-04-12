@@ -52,10 +52,11 @@ export const API_ENDPOINTS = {
     removeMember: (clubId, userId) => `${P}/clubs/${clubId}/members/${userId}`,
     rides: (clubId) => `${P}/clubs/${clubId}/rides`,
     createRide: (clubId) => `${P}/clubs/${clubId}/rides`,
-  },
-  chat: {
-    messages: (rideId) => `${P}/chat/${rideId}`,
-    send: (rideId) => `${P}/chat/${rideId}`,
+    chatMessages: (clubId) => `${P}/clubs/${clubId}/chat/messages`,
+    chatSend: (clubId) => `${P}/clubs/${clubId}/chat/messages`,
+    chatRead: (clubId) => `${P}/clubs/${clubId}/chat/read`,
+    chatMentionables: (clubId) => `${P}/clubs/${clubId}/chat/mentionables`,
+    clubChatSummary: `${P}/users/me/club-chat/summary`,
   },
   hazards: {
     list: `${P}/hazards`,

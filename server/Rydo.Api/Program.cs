@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Rydo.Api;
 using Rydo.Api.Data;
+using Rydo.Api.Hubs;
 using Rydo.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,20 +52,35 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         RoleClaimType = System.Security.Claims.ClaimTypes.Role,
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                context.Token = accessToken;
+            return Task.CompletedTask;
+        },
+    };
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
 });
 
+// SignalR negotiate uses cross-origin fetch with credentials; AllowCredentials requires a reflected
+// origin (SetIsOriginAllowed / WithOrigins), not AllowAnyOrigin.
 builder.Services.AddCors(o =>
 {
     o.AddDefaultPolicy(p => p
         .AllowAnyHeader()
         .AllowAnyMethod()
-        .SetIsOriginAllowed(_ => true));
+        .SetIsOriginAllowed(_ => true)
+        .AllowCredentials());
 });
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -126,6 +142,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ClubChatHub>("/hubs/club-chat");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 if (serveSpa is not null)

@@ -380,7 +380,12 @@ These feature modules exist and use the shared client path:
 - `POST /rides/:rideId/join`
 - `POST /rides/:rideId/leave`
 - `GET /clubs`, `POST /clubs`, club sub-resources as above
-- `GET /chat/:rideId`
-- `POST /chat/:rideId`
+- Club group chat (active members only; see `GET /clubs/:id/members` rules):
+  - `GET /clubs/:clubId/chat/messages?beforeMessageId=&take=` — paginated history (newest batch uses `beforeMessageId` cursor).
+  - `POST /clubs/:clubId/chat/messages` — body `{ "body": string, "mentions": [ { "kind": "user"|"route"|"ride", "id": number } ] }` (server validates each mention).
+  - `POST /clubs/:clubId/chat/read` — body `{ "lastReadMessageId": number }` or `{ "markLatest": true }`.
+  - `GET /clubs/:clubId/chat/mentionables?q=` — optional `q` filter; returns `{ "users", "routes", "rides" }` for `@` autocomplete.
+  - `GET /users/me/club-chat/summary` — array of `{ clubId, clubName, clubAvatarUrl, unreadCount, lastMessagePreview, lastMessageAt }` for the dock (preview is truncated server-side; `clubAvatarUrl` nullable).
+- SignalR hub: `/hubs/club-chat` — JWT via `access_token` query or bearer; client joins `JoinClub(clubId)`; server pushes `ReceiveMessage` after each successful `POST` message.
 - `GET /history`
 - `GET /challenges`

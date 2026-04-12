@@ -1,6 +1,5 @@
 import { ApiError } from '@/shared/api/api-errors';
 import { env } from '@/shared/config/env';
-import { MOCK_CHAT_MESSAGES } from '@/shared/mocks/chat';
 import { MOCK_CHALLENGES } from '@/shared/mocks/challenges';
 import { MOCK_HAZARDS } from '@/shared/mocks/hazards';
 import { MOCK_HISTORY } from '@/shared/mocks/history';
@@ -38,7 +37,6 @@ function mockIsActiveClubMember(c) {
   return m === 'admin' || m === 'member';
 }
 let historyEntries = [...MOCK_HISTORY];
-let chatMessages = structuredClone(MOCK_CHAT_MESSAGES);
 function mockDefaultPrivacy() {
   return {
     publicFirstName: true,
@@ -1094,23 +1092,37 @@ export async function mockRequest(path, options = {}) {
     return findRide(String(rideId));
   }
 
-  if (/^\/api\/chat\/\d+$/.test(pathname) && method === 'GET') {
-    return chatMessages[pathname.split('/')[3]] || [];
+  if (pathname === '/api/users/me/club-chat/summary' && method === 'GET') {
+    return [];
   }
 
-  if (/^\/api\/chat\/\d+$/.test(pathname) && method === 'POST') {
-    const rideId = pathname.split('/')[3];
-    const payload = parseJsonBody(options.body);
-    const messages = chatMessages[rideId] || [];
-    const message = {
-      id: Math.max(...messages.map((item) => item.id), 0) + 1,
-      userId: profile.id,
-      username: profile.fullName,
-      message: payload.message,
-      timestamp: new Date().toISOString(),
-    };
-    chatMessages[rideId] = [...messages, message];
-    return message;
+  {
+    const m = pathname.match(/^\/api\/clubs\/(\d+)\/chat\/(messages|read|mentionables)$/);
+    if (m) {
+      const sub = m[2];
+      if (sub === 'messages' && method === 'GET') return [];
+      if (sub === 'messages' && method === 'POST') {
+        const payload = parseJsonBody(options.body);
+        return {
+          id: Date.now(),
+          clubId: Number(m[1]),
+          clubNameHint: 'Club',
+          authorUserId: profile.id,
+          authorDisplayName: profile.fullName,
+          body: payload.body ?? '',
+          mentions: (payload.mentions || []).map((x) => ({
+            kind: x.kind,
+            id: x.id,
+            label: String(x.id),
+          })),
+          sentAt: new Date().toISOString(),
+        };
+      }
+      if (sub === 'read' && method === 'POST') return null;
+      if (sub === 'mentionables' && method === 'GET') {
+        return { users: [], routes: [], rides: [] };
+      }
+    }
   }
 
   throw new ApiError({

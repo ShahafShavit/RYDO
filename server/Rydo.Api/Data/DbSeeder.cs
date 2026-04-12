@@ -88,7 +88,10 @@ public static class DbSeeder
         // Completed seed includes history (saved in the same transaction as participants / challenges).
         // Changing SeedData/GpxSeed does not re-run this path on an existing DB; recreate the database (e.g. docker compose down -v) to apply updated seed assets.
         if (await db.HistoryEntries.AnyAsync())
+        {
+            await EnsureClubChatSeedAsync(db, rider.Id);
             return;
+        }
 
         var allUsers = new List<ApplicationUser> { admin, rider };
         allUsers.AddRange(await SeedCommunityUsersAsync(userManager));
@@ -121,6 +124,8 @@ public static class DbSeeder
             db.Rides.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
+            await EnsureClubChatSeedAsync(db, rider.Id);
+
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
             return;
         }
@@ -131,6 +136,133 @@ public static class DbSeeder
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
+        await EnsureClubChatSeedAsync(db, rider.Id);
+    }
+
+    /// <summary>
+    /// Inserts demo club chat for each club that has no messages yet and at least two active members.
+    /// Idempotent per club (skips clubs that already have any message). The first eligible club gets a richer
+    /// thread; others get a short demo line so members never see a blank thread after API restart.
+    /// </summary>
+    private static async Task EnsureClubChatSeedAsync(RydoDbContext db, int riderUserId)
+    {
+        var clubs = await db.CyclingClubs.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
+        if (clubs.Count == 0)
+            return;
+
+        var routes = await db.Routes.AsNoTracking().ToListAsync();
+        if (routes.Count == 0)
+            return;
+
+        var rideGroups = await db.Rides.AsNoTracking().ToListAsync();
+        var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+        var seededRichThread = false;
+        foreach (var club in clubs)
+        {
+            if (await db.ClubChatMessages.AsNoTracking().AnyAsync(m => m.ClubId == club.Id))
+                continue;
+
+            var memberIds = await db.ClubMembers.AsNoTracking()
+                .Where(m => m.ClubId == club.Id && m.MembershipStatus == ClubMembershipStatus.Active)
+                .OrderBy(m => m.UserId)
+                .Select(m => m.UserId)
+                .Take(8)
+                .ToListAsync();
+
+            if (memberIds.Count < 2)
+                continue;
+
+            if (!seededRichThread)
+            {
+                await SeedRichClubChatDemoAsync(db, club.Id, memberIds, routes, rideGroups, riderUserId, jsonOpts);
+                seededRichThread = true;
+            }
+            else
+            {
+                var a = memberIds[0];
+                var b = memberIds[1];
+                db.ClubChatMessages.Add(new ClubChatMessage
+                {
+                    ClubId = club.Id,
+                    AuthorUserId = a,
+                    Body = "Who's in for next week?",
+                    MentionsJson = JsonSerializer.Serialize(new[] { new { kind = "user", id = b } }, jsonOpts),
+                    SentAt = DateTime.UtcNow.AddHours(-2),
+                });
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
+    private static async Task SeedRichClubChatDemoAsync(
+        RydoDbContext db,
+        int clubId,
+        List<int> memberIds,
+        List<RouteEntity> routes,
+        List<Ride> rideGroups,
+        int riderUserId,
+        JsonSerializerOptions jsonOpts)
+    {
+        var u1 = memberIds[0];
+        var u2 = memberIds[1];
+
+        var savedRouteId = await db.SavedRoutes.AsNoTracking()
+            .Where(s => s.UserId == u1)
+            .Select(s => s.RouteId)
+            .FirstOrDefaultAsync();
+
+        if (savedRouteId == 0)
+            savedRouteId = routes[0].Id;
+
+        var routeEntity = routes.FirstOrDefault(r => r.Id == savedRouteId) ?? routes[0];
+        savedRouteId = routeEntity.Id;
+
+        var clubRide = rideGroups.FirstOrDefault(r => r.ClubId == clubId && r.Kind == RideKind.Scheduled);
+
+        var messages = new List<ClubChatMessage>
+        {
+            new()
+            {
+                ClubId = clubId,
+                AuthorUserId = u1,
+                Body = "Hey — hope you can make Saturday's roll-out!",
+                MentionsJson = JsonSerializer.Serialize(new[] { new { kind = "user", id = u2 } }, jsonOpts),
+                SentAt = DateTime.UtcNow.AddHours(-5),
+            },
+            new()
+            {
+                ClubId = clubId,
+                AuthorUserId = u2,
+                Body = $"Saved route worth a look: {routeEntity.Title}",
+                MentionsJson = JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts),
+                SentAt = DateTime.UtcNow.AddHours(-4),
+            },
+        };
+
+        if (clubRide != null)
+        {
+            messages.Add(new ClubChatMessage
+            {
+                ClubId = clubId,
+                AuthorUserId = u1,
+                Body = "Don't forget this club ride — everyone welcome.",
+                MentionsJson = JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts),
+                SentAt = DateTime.UtcNow.AddHours(-3),
+            });
+        }
+
+        db.ClubChatMessages.AddRange(messages);
+        await db.SaveChangesAsync();
+
+        var demoReader = memberIds.Contains(riderUserId) ? riderUserId : u2;
+        db.ClubChatReadStates.Add(new ClubChatReadState
+        {
+            ClubId = clubId,
+            UserId = demoReader,
+            LastReadMessageId = messages[0].Id,
+        });
+        await db.SaveChangesAsync();
     }
 
     private static async Task SeedActivityHistoryAndMetadataAsync(

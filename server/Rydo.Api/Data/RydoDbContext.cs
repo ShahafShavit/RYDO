@@ -19,6 +19,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<CyclingClub> CyclingClubs => Set<CyclingClub>();
     public DbSet<ClubMember> ClubMembers => Set<ClubMember>();
     public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
+    public DbSet<ClubChatMessage> ClubChatMessages => Set<ClubChatMessage>();
+    public DbSet<ClubChatReadState> ClubChatReadStates => Set<ClubChatReadState>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -65,6 +67,20 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasIndex(x => x.Token).IsUnique();
             e.HasOne(x => x.Club).WithMany(c => c.Invites).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ClubChatMessage>(e =>
+        {
+            e.HasOne(x => x.Club).WithMany().HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.ClubId, x.SentAt });
+        });
+
+        builder.Entity<ClubChatReadState>(e =>
+        {
+            e.HasKey(x => new { x.ClubId, x.UserId });
+            e.HasOne(x => x.Club).WithMany().HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RideParticipant>(e =>

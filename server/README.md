@@ -48,7 +48,7 @@ VITE_API_MODE=real
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-Chat endpoints are **not** implemented on the backend; use `VITE_API_MODE=mock` if the UI needs mock chat, or leave chat unused.
+**Club group chat** is implemented: REST under `/api/clubs/{clubId}/chat/*`, summary at `/api/users/me/club-chat/summary`, and SignalR at `/hubs/club-chat` (JWT). After pulling schema changes that add chat tables, recreate the Docker SQL volume (`docker compose down -v`) so `EnsureCreated` and `DbSeeder` run on a clean database.
 
 ## Project layout
 

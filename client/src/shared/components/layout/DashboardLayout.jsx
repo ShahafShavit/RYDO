@@ -9,6 +9,7 @@ import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
+import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
@@ -59,6 +60,7 @@ export default function DashboardLayout() {
           <AnimatedOutlet />
         </div>
       </main>
+      <ClubChatDock />
     </div>
   );
 }
