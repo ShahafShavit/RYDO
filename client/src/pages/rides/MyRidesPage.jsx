@@ -248,7 +248,7 @@ export default function MyRidesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-white/42">Rides</p>
-          <h1 className="mt-2 text-3xl font-semibold">My rides</h1>
+          <h1 className="mt-2 text-3xl font-semibold">My Rides</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/64">
             Upcoming and past scheduled rides (club or personal), plus your logged performance. Search by route, ride
             name, or club.

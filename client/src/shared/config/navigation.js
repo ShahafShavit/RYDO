@@ -11,10 +11,10 @@ export const primaryNavigation = [
 export const dashboardNavigation = [
   { label: 'Home', to: ROUTES.dashboard },
   { label: 'Explore Routes', to: ROUTES.routes },
-  { label: 'My routes', to: ROUTES.myRoutes },
-  { label: 'My rides', to: ROUTES.myRides },
+  { label: 'My Routes', to: ROUTES.myRoutes },
+  { label: 'My Rides', to: ROUTES.myRides },
   { label: 'Clubs', to: ROUTES.clubs },
-  { label: 'Find people', to: ROUTES.findPeople },
+  { label: 'Find People', to: ROUTES.findPeople },
   { label: 'Settings', to: ROUTES.settings },
 ];
 
