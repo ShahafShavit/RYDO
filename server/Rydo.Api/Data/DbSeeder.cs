@@ -1261,11 +1261,10 @@ public static class DbSeeder
                     var ride = orderedRides[(offset + step) % orderedRides.Count];
                     if (!UserMayJoinClubRide(ride, uid, clubsByUser))
                         continue;
+                    // Already on this ride — does not reduce `need`; must not set progressed (would spin forever
+                    // when need > 0 but user is on every ride they may join, e.g. fewer than `minimum` joinable rides).
                     if (partIndex.Has(ride.Id, uid))
-                    {
-                        progressed = true;
                         continue;
-                    }
 
                     ride.MaxParticipants = Math.Max(ride.MaxParticipants, partIndex.CountForRide(ride.Id) + need);
                     partIndex.Add(db, ride.Id, uid);
@@ -1486,14 +1485,17 @@ public static class DbSeeder
             select new { h.UserId, h.RideId, r.Kind }
         ).ToListAsync(ct);
 
+        var participantPairs = await db.RideParticipants.AsNoTracking()
+            .Select(p => new { p.RideId, p.UserId })
+            .ToListAsync(ct);
+        var participantSet = participantPairs.Select(p => (p.RideId, p.UserId)).ToHashSet();
+
         foreach (var h in historyRows)
         {
             if (h.Kind == RideKind.SoloLog)
                 continue;
 
-            var ok = await db.RideParticipants.AsNoTracking()
-                .AnyAsync(p => p.RideId == h.RideId && p.UserId == h.UserId, ct);
-            if (!ok)
+            if (!participantSet.Contains((h.RideId, h.UserId)))
                 throw new InvalidOperationException(
                     $"Seed validation: history entry for user {h.UserId} ride {h.RideId} has no matching participant.");
         }
