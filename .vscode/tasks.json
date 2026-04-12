@@ -23,7 +23,7 @@
     {
       "label": "RYDO: Stop — kill Vite + Docker down",
       "type": "shell",
-      "command": "npm run kill-dev --prefix client && docker compose down",
+      "command": "npm run kill-dev --prefix client && docker compose down -v",
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {}
@@ -53,6 +53,25 @@
         "reveal": "always",
         "focus": false,
         "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "RYDO: AWS — deploy stack (deploy-aws.sh)",
+      "type": "shell",
+      "command": "bash scripts/deploy-aws.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {}
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
         "showReuseMessage": true,
         "clear": false
       },

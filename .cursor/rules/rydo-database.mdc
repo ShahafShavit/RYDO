@@ -1,0 +1,29 @@
+---
+description: RYDO local database — wipe Docker volume and reseed; no startup migrations or model-downgrade shims
+alwaysApply: true
+---
+
+# RYDO database (local / Docker)
+
+## MUST NOT
+
+- Add ad-hoc `ALTER TABLE`, conditional column patches, or migration hacks in `Program.cs` (or similar startup) to “upgrade” an existing database.
+- “Fix” schema drift by **removing or weakening EF model properties** so an old volume keeps working. If the model needs new columns, **the database must be recreated** — not the model dumbed down.
+- Assume `EnsureCreated` will add new columns or alter existing tables. It only creates the database/schema when missing; **it does not migrate** an existing DB (e.g. Docker volume already has tables).
+
+## MUST (when you change `server/Rydo.Api/Data/**`, `RydoDbContext`, entities, or `DbSeeder`)
+
+1. Change the EF model / seed as required for the feature.
+2. Tell the user (and commit/PR text) that **local Docker DB must be recreated**: e.g. `docker compose down -v` then `docker compose up -d` (removes the `rydo-sqldata` volume so `EnsureCreated` + `DbSeeder` run on a clean schema).
+3. Do not rely on peers having run migrations; dev workflow is **fresh DB + reseed**, not incremental migrations.
+
+## Checklist (agent — follow before finishing a schema-related task)
+
+- [ ] Schema or seed data changed? → Document **volume wipe + recreate** for Docker users.
+- [ ] Avoided `Program.cs` / startup SQL patches? → Yes / N/A.
+- [ ] Did **not** remove entity fields only to match an old DB? → Confirmed.
+
+## Context
+
+- Reseeding runs via `DbSeeder` after `EnsureCreated` on an empty database.
+- Peers **recreate** the DB when pulling schema changes; that expectation belongs in commit/PR description.
