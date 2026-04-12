@@ -6,6 +6,12 @@ export function getClubListMembershipStatus(club) {
   return null;
 }
 
+/** Active member or club admin — not pending and not unaffiliated. */
+export function isActiveClubMember(club) {
+  const s = getClubListMembershipStatus(club);
+  return s === 'member' || s === 'admin';
+}
+
 const STYLES = {
   pending: 'border-white/12 text-amber-200/90',
   member: 'border-white/12 text-emerald-200/88',

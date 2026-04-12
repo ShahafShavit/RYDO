@@ -106,7 +106,7 @@ public static class DbSeeder
             SeedSavedRoutes(db, routes, userIds, rnd);
             db.Hazards.AddRange(SeedHazards(allUsers, rnd));
 
-            var clubs = SeedCyclingClubs(routes, admin, rider, rnd);
+            var clubs = SeedCyclingClubs(routes, allUsers);
             db.CyclingClubs.AddRange(clubs);
             await db.SaveChangesAsync();
 
@@ -544,9 +544,20 @@ public static class DbSeeder
             _ => $"Hazard reported in {region}.",
         };
 
-    private static List<CyclingClub> SeedCyclingClubs(List<RouteEntity> routes, ApplicationUser admin, ApplicationUser rider, Random rnd)
+    private static List<CyclingClub> SeedCyclingClubs(List<RouteEntity> routes, IReadOnlyList<ApplicationUser> allUsers)
     {
         var region = routes[0].Region ?? "Israel";
+        // Prefer community riders as founders so the graph is not anchored on Sarah (admin) and John.
+        var creatorPool = allUsers
+            .Where(u => u.Email != AdminEmail && u.Email != UserEmail)
+            .OrderBy(u => u.Id)
+            .ToList();
+        if (creatorPool.Count == 0)
+            creatorPool = allUsers.OrderBy(u => u.Id).ToList();
+
+        var creatorIdx = 0;
+        int NextCreatorId() => creatorPool[creatorIdx++ % creatorPool.Count].Id;
+
         return new List<CyclingClub>
         {
             new()
@@ -556,7 +567,7 @@ public static class DbSeeder
                 Region = region,
                 Visibility = ClubVisibility.Public,
                 AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=coastalOpenRollers",
-                CreatedByUserId = admin.Id,
+                CreatedByUserId = NextCreatorId(),
                 CreatedAt = DateTime.UtcNow.AddDays(-120),
             },
             new()
@@ -566,7 +577,7 @@ public static class DbSeeder
                 Region = "Jerusalem Hills",
                 Visibility = ClubVisibility.Private,
                 AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=jerusalemHillsCollective",
-                CreatedByUserId = admin.Id,
+                CreatedByUserId = NextCreatorId(),
                 CreatedAt = DateTime.UtcNow.AddDays(-90),
             },
             new()
@@ -576,7 +587,7 @@ public static class DbSeeder
                 Region = "Negev Desert Route",
                 Visibility = ClubVisibility.Public,
                 AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=negevDawnPatrol",
-                CreatedByUserId = rider.Id,
+                CreatedByUserId = NextCreatorId(),
                 CreatedAt = DateTime.UtcNow.AddDays(-60),
             },
             new()
@@ -586,8 +597,48 @@ public static class DbSeeder
                 Region = "Tel Aviv–Jaffa",
                 Visibility = ClubVisibility.Private,
                 AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=corporateWellnessRiders",
-                CreatedByUserId = admin.Id,
+                CreatedByUserId = NextCreatorId(),
                 CreatedAt = DateTime.UtcNow.AddDays(-30),
+            },
+            new()
+            {
+                Name = "Galilee Gravel Guild",
+                Description = "Mixed-surface explorers — north routes, coffee stops, and mud.",
+                Region = "Galilee West",
+                Visibility = ClubVisibility.Public,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=galileeGravelGuild",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-110),
+            },
+            new()
+            {
+                Name = "Haifa Harbour Chain Gang",
+                Description = "After-work spins and weekend tempo along the bay.",
+                Region = "Haifa Bay",
+                Visibility = ClubVisibility.Public,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=haifaHarbourChainGang",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-75),
+            },
+            new()
+            {
+                Name = "Carmel Ridge Race Lab",
+                Description = "Private squad — structured intervals and race recon.",
+                Region = "Carmel Ridge",
+                Visibility = ClubVisibility.Private,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=carmelRidgeRaceLab",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-45),
+            },
+            new()
+            {
+                Name = "Jezreel Draft Train",
+                Description = "Private — paceline practice and steady group rides.",
+                Region = "Jezreel Valley",
+                Visibility = ClubVisibility.Private,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=jezreelDraftTrain",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-55),
             },
         };
     }
@@ -602,132 +653,126 @@ public static class DbSeeder
     {
         var a = admin.Id;
         var r = rider.Id;
-        var others = allUsers.Where(u => u.Id != a && u.Id != r).ToList();
+        var others = allUsers.Where(u => u.Id != a && u.Id != r).OrderBy(u => u.Id).ToList();
+        var clubCount = clubs.Count;
+        var adminSlots = clubCount * 2;
+        if (others.Count < adminSlots)
+            throw new InvalidOperationException($"Seed needs at least {adminSlots} community users for club admins; got {others.Count}.");
 
-        // Club 0 — public, two admins (admin + rider), more members
-        var c0 = clubs[0].Id;
-        db.ClubMembers.Add(new ClubMember
+        // Extra riders distributed as members (not club admins) so Sarah & John are not the hub of every group.
+        var memberPool = others.Skip(adminSlots).ToList();
+
+        for (var i = 0; i < clubCount; i++)
         {
-            ClubId = c0,
-            UserId = a,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-100),
-            ActivatedAt = DateTime.UtcNow.AddDays(-100),
-        });
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = c0,
-            UserId = r,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-99),
-            ActivatedAt = DateTime.UtcNow.AddDays(-99),
-        });
-        foreach (var u in others.Take(8))
+            var clubId = clubs[i].Id;
+            var lead = others[i * 2];
+            var co = others[i * 2 + 1];
+
+            void AddMember(int userId, ClubMemberRole role, ClubMembershipStatus status, int daysBack)
+            {
+                var activated = status == ClubMembershipStatus.Active ? DateTime.UtcNow.AddDays(-daysBack) : (DateTime?)null;
+                db.ClubMembers.Add(new ClubMember
+                {
+                    ClubId = clubId,
+                    UserId = userId,
+                    Role = role,
+                    MembershipStatus = status,
+                    RequestedAt = activated?.AddDays(-1) ?? DateTime.UtcNow.AddDays(-daysBack),
+                    ActivatedAt = activated,
+                });
+            }
+
+            AddMember(lead.Id, ClubMemberRole.Admin, ClubMembershipStatus.Active, 95 - i * 4);
+            AddMember(co.Id, ClubMemberRole.Admin, ClubMembershipStatus.Active, 94 - i * 4);
+
+            // 3–5 additional active members per club from the non-admin pool.
+            var seenInClub = new HashSet<int> { lead.Id, co.Id };
+            var extra = Math.Min(memberPool.Count, 4 + rnd.Next(0, 2));
+            for (var j = 0; j < extra; j++)
+            {
+                var u = memberPool[(i * 5 + j) % memberPool.Count];
+                if (!seenInClub.Add(u.Id)) continue;
+                AddMember(u.Id, ClubMemberRole.Member, ClubMembershipStatus.Active, rnd.Next(5, 70));
+            }
+        }
+
+        // Sarah: club admin on Coastal Open Rollers; member on a couple of others.
+        if (clubCount > 0)
         {
             db.ClubMembers.Add(new ClubMember
             {
-                ClubId = c0,
-                UserId = u.Id,
+                ClubId = clubs[0].Id,
+                UserId = a,
+                Role = ClubMemberRole.Admin,
+                MembershipStatus = ClubMembershipStatus.Active,
+                RequestedAt = DateTime.UtcNow.AddDays(-101),
+                ActivatedAt = DateTime.UtcNow.AddDays(-100),
+            });
+        }
+        foreach (var idx in new[] { 3, 5 })
+        {
+            if (idx >= clubCount) continue;
+            if (db.ClubMembers.Any(m => m.ClubId == clubs[idx].Id && m.UserId == a)) continue;
+            db.ClubMembers.Add(new ClubMember
+            {
+                ClubId = clubs[idx].Id,
+                UserId = a,
                 Role = ClubMemberRole.Member,
                 MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 80)),
-                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 80)),
+                RequestedAt = DateTime.UtcNow.AddDays(-40),
+                ActivatedAt = DateTime.UtcNow.AddDays(-39),
             });
         }
 
-        // Club 1 — private, admin + another admin, rider pending, invite token
-        var c1 = clubs[1].Id;
-        var secondAdmin = others[0];
+        // John: pending on Jerusalem Hills (demo); club admin on Negev Dawn Patrol; member on other clubs.
+        var jerusalemId = clubs[1].Id;
         db.ClubMembers.Add(new ClubMember
         {
-            ClubId = c1,
-            UserId = a,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-80),
-            ActivatedAt = DateTime.UtcNow.AddDays(-80),
-        });
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = c1,
-            UserId = secondAdmin.Id,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-79),
-            ActivatedAt = DateTime.UtcNow.AddDays(-79),
-        });
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = c1,
+            ClubId = jerusalemId,
             UserId = r,
             Role = ClubMemberRole.Member,
             MembershipStatus = ClubMembershipStatus.Pending,
             RequestedAt = DateTime.UtcNow.AddDays(-2),
         });
-        db.ClubInvites.Add(new ClubInvite
-        {
-            ClubId = c1,
-            Token = "seed-invite-jerusalem-hills-demo",
-            CreatedByUserId = a,
-            CreatedAt = DateTime.UtcNow.AddDays(-5),
-            MaxUses = 50,
-            UsedCount = 0,
-        });
 
-        // Club 2 — public, rider admin
-        var c2 = clubs[2].Id;
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = c2,
-            UserId = r,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-50),
-            ActivatedAt = DateTime.UtcNow.AddDays(-50),
-        });
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = c2,
-            UserId = a,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-49),
-            ActivatedAt = DateTime.UtcNow.AddDays(-49),
-        });
-        foreach (var u in others.Skip(2).Take(6))
+        if (clubCount > 2)
         {
             db.ClubMembers.Add(new ClubMember
             {
-                ClubId = c2,
-                UserId = u.Id,
-                Role = ClubMemberRole.Member,
+                ClubId = clubs[2].Id,
+                UserId = r,
+                Role = ClubMemberRole.Admin,
                 MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 40)),
-                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(1, 40)),
+                RequestedAt = DateTime.UtcNow.AddDays(-52),
+                ActivatedAt = DateTime.UtcNow.AddDays(-50),
             });
         }
 
-        // Club 3 — private, two admins
-        var c3 = clubs[3].Id;
-        db.ClubMembers.Add(new ClubMember
+        foreach (var idx in new[] { 4, 6, 7 })
         {
-            ClubId = c3,
-            UserId = a,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-20),
-            ActivatedAt = DateTime.UtcNow.AddDays(-20),
-        });
-        db.ClubMembers.Add(new ClubMember
+            if (idx >= clubCount) continue;
+            if (idx == 1) continue;
+            if (db.ClubMembers.Any(m => m.ClubId == clubs[idx].Id && m.UserId == r)) continue;
+            db.ClubMembers.Add(new ClubMember
+            {
+                ClubId = clubs[idx].Id,
+                UserId = r,
+                Role = ClubMemberRole.Member,
+                MembershipStatus = ClubMembershipStatus.Active,
+                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(10, 55)),
+                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(8, 50)),
+            });
+        }
+
+        var jerusalemLead = others[2];
+        db.ClubInvites.Add(new ClubInvite
         {
-            ClubId = c3,
-            UserId = others[1].Id,
-            Role = ClubMemberRole.Admin,
-            MembershipStatus = ClubMembershipStatus.Active,
-            RequestedAt = DateTime.UtcNow.AddDays(-19),
-            ActivatedAt = DateTime.UtcNow.AddDays(-19),
+            ClubId = jerusalemId,
+            Token = "seed-invite-jerusalem-hills-demo",
+            CreatedByUserId = jerusalemLead.Id,
+            CreatedAt = DateTime.UtcNow.AddDays(-5),
+            MaxUses = 50,
+            UsedCount = 0,
         });
     }
 

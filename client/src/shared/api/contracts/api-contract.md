@@ -318,8 +318,8 @@ Visibility is `public` or `private` in JSON responses; create/patch use numeric 
 
 ### `GET /clubs`
 - Anonymous: public clubs only.
-- Authenticated: public clubs plus private clubs the user belongs to; each row may include `membershipPending` and `myRole` (`member` | `admin` | `pending` | null).
-- Each row includes optional `avatarUrl` (image URL string or null).
+- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending` and `myRole` (`member` | `admin` | `pending` | null). For **private** clubs, if the viewer is **not** an active member, `description`, `region`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
+- Each row includes optional `avatarUrl` when not redacted (image URL string or null).
 
 ### `POST /clubs` (authenticated)
 Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member. Response includes `avatarUrl` (typically `null` for new clubs).

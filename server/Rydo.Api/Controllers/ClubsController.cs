@@ -66,7 +66,6 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             .Select(m => new { m.ClubId, m.MembershipStatus, m.Role })
             .ToListAsync(ct);
         var pendingSet = memberRows.Where(m => m.MembershipStatus == ClubMembershipStatus.Pending).Select(m => m.ClubId).ToHashSet();
-        var memberClubIds = memberRows.Select(m => m.ClubId).ToHashSet();
 
         string? MyRole(int clubId)
         {
@@ -76,10 +75,8 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             return row.Role == ClubMemberRole.Admin ? "admin" : "member";
         }
 
+        // All clubs (public + private) for discovery. Private rows omit detail for non–active members (same rules as GET /clubs/:id).
         var list = await db.CyclingClubs.AsNoTracking()
-            .Where(c =>
-                c.Visibility == ClubVisibility.Public
-                || (c.Visibility == ClubVisibility.Private && memberClubIds.Contains(c.Id)))
             .OrderBy(c => c.Name)
             .Select(c => new
             {
@@ -88,22 +85,30 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                 c.Description,
                 c.Region,
                 avatarUrl = c.AvatarUrl,
-                visibility = c.Visibility == ClubVisibility.Public ? "public" : "private",
+                c.Visibility,
                 c.CreatedAt,
             })
             .ToListAsync(ct);
 
-        var result = list.Select(c => new
+        var result = list.Select(c =>
         {
-            c.Id,
-            c.Name,
-            c.Description,
-            c.Region,
-            c.avatarUrl,
-            c.visibility,
-            membershipPending = pendingSet.Contains(c.Id),
-            myRole = MyRole(c.Id),
-            c.CreatedAt,
+            var role = MyRole(c.Id);
+            var isActiveMember = role is "admin" or "member";
+            var hidePrivateFields = c.Visibility == ClubVisibility.Private && !isActiveMember;
+            var vis = c.Visibility == ClubVisibility.Public ? "public" : "private";
+            var avatar = string.IsNullOrWhiteSpace(c.avatarUrl) ? null : c.avatarUrl.Trim();
+            return new
+            {
+                c.Id,
+                c.Name,
+                description = hidePrivateFields ? null : c.Description,
+                region = hidePrivateFields ? null : c.Region,
+                avatarUrl = hidePrivateFields ? null : avatar,
+                visibility = vis,
+                membershipPending = pendingSet.Contains(c.Id),
+                myRole = role,
+                c.CreatedAt,
+            };
         }).ToList();
 
         return Ok(result);
