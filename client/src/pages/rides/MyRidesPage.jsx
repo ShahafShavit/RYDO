@@ -203,7 +203,12 @@ function PastScheduledCard({ ride }) {
 
 function HistoryRideCard({ entry }) {
   const { formatKm } = useFormatDistance();
-  const kind = entry.rideKind || (entry.clubId != null ? 'club' : entry.rideGroupId ? 'personal' : null);
+  const kind =
+    entry.clubId != null
+      ? 'club'
+      : entry.rideKind === 'soloLog' || entry.rideKind === 'personal'
+        ? 'personal'
+        : null;
   const dist = entry.distanceKm != null ? formatKm(Number(entry.distanceKm)) : '—';
   const elev = entry.elevationGainM != null ? `${Math.round(Number(entry.elevationGainM))} m` : '—';
   const est = entry.estimatedDurationMinutes;
@@ -261,9 +266,9 @@ function HistoryRideCard({ entry }) {
         </div>
       </div>
       {paceNote ? <p className="mt-3 text-sm text-fg-muted">{paceNote}</p> : null}
-      {entry.rideGroupId != null ? (
+      {entry.rideId != null ? (
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link to={ROUTES.rideEvent.replace(':rideId', String(entry.rideGroupId))}>
+          <Link to={ROUTES.rideEvent.replace(':rideId', String(entry.rideId))}>
             <Button variant="secondary" type="button" className="text-sm">
               View Ride
             </Button>

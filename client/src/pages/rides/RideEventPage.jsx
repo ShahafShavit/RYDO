@@ -92,7 +92,7 @@ export default function RideEventPage() {
       ) : (
         <p className="text-sm text-fg-muted">No route is linked to this event yet.</p>
       )}
-      {user ? (
+      {user && ride.rideKind !== 'soloLog' ? (
         <div className="flex flex-wrap gap-3">
           {amParticipant ? (
             <Button variant="secondary" type="button" onClick={() => leaveRide()} disabled={isLeaving}>
@@ -104,9 +104,13 @@ export default function RideEventPage() {
             </Button>
           )}
         </div>
-      ) : (
+      ) : null}
+      {user && ride.rideKind === 'soloLog' ? (
+        <p className="text-sm text-fg-muted">This is a personal ride log — joining is not available.</p>
+      ) : null}
+      {!user && ride.rideKind !== 'soloLog' ? (
         <p className="text-sm text-fg-muted">Sign in to join this ride.</p>
-      )}
+      ) : null}
       <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />
     </section>
   );

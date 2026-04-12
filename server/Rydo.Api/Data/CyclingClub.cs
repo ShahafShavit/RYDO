@@ -14,5 +14,5 @@ public class CyclingClub
 
     public ICollection<ClubMember> Members { get; set; } = new List<ClubMember>();
     public ICollection<ClubInvite> Invites { get; set; } = new List<ClubInvite>();
-    public ICollection<RideGroup> RideGroups { get; set; } = new List<RideGroup>();
+    public ICollection<Ride> Rides { get; set; } = new List<Ride>();
 }

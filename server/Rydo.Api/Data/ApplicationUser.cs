@@ -27,5 +27,5 @@ public class ApplicationUser : IdentityUser<int>
 
     public ICollection<RouteEntity> CreatedRoutes { get; set; } = new List<RouteEntity>();
 
-    public ICollection<RideGroup> CreatedRideGroups { get; set; } = new List<RideGroup>();
+    public ICollection<Ride> CreatedRides { get; set; } = new List<Ride>();
 }

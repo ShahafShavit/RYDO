@@ -5,7 +5,7 @@ using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
-internal static class RideGroupResponseHelper
+internal static class RideResponseHelper
 {
     private static string DisplayName(ApplicationUser? u) =>
         u == null ? "" : string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
@@ -27,10 +27,11 @@ internal static class RideGroupResponseHelper
 
     public static async Task<bool> ViewerCanEditRideAsync(
         RydoDbContext db,
-        RideGroup g,
+        Ride g,
         int viewerUserId,
         CancellationToken ct)
     {
+        if (g.Kind == RideKind.SoloLog) return false;
         if (g.ScheduledDate < DateTime.UtcNow) return false;
         if (g.ClubId == null) return g.CreatedByUserId == viewerUserId;
         if (g.CreatedByUserId == viewerUserId) return true;
@@ -46,7 +47,7 @@ internal static class RideGroupResponseHelper
     /// </summary>
     public static async Task<Dictionary<int, bool>> BuildViewerCanEditMapAsync(
         RydoDbContext db,
-        IReadOnlyList<RideGroup> groups,
+        IReadOnlyList<Ride> groups,
         int viewerUserId,
         CancellationToken ct)
     {
@@ -55,7 +56,7 @@ internal static class RideGroupResponseHelper
 
         var now = DateTime.UtcNow;
         var clubIdsNeedingAdminCheck = groups
-            .Where(g => g.ScheduledDate >= now && g.ClubId is int && g.CreatedByUserId != viewerUserId)
+            .Where(g => g.Kind != RideKind.SoloLog && g.ScheduledDate >= now && g.ClubId is int && g.CreatedByUserId != viewerUserId)
             .Select(g => g.ClubId!.Value)
             .Distinct()
             .ToList();
@@ -76,7 +77,7 @@ internal static class RideGroupResponseHelper
         foreach (var g in groups)
         {
             bool can;
-            if (g.ScheduledDate < now)
+            if (g.Kind == RideKind.SoloLog || g.ScheduledDate < now)
                 can = false;
             else if (g.ClubId == null)
                 can = g.CreatedByUserId == viewerUserId;
@@ -93,7 +94,7 @@ internal static class RideGroupResponseHelper
     /// <param name="totalParticipantCount">
     /// Optional authoritative count from <c>RideParticipants</c> (fixes EF cases where the in-memory collection is empty but rows exist).
     /// </param>
-    public static object ToResponse(RideGroup g, bool includeRoster, int? totalParticipantCount = null, bool viewerCanEdit = false)
+    public static object ToResponse(Ride g, bool includeRoster, int? totalParticipantCount = null, bool viewerCanEdit = false)
     {
         var count = totalParticipantCount ?? g.Participants.Count;
         var routePreview = RoutePreviewPayload(g.Route);
@@ -103,11 +104,14 @@ internal static class RideGroupResponseHelper
             fullName = DisplayName(g.CreatedBy),
         };
 
+        var rideKind = g.Kind == RideKind.SoloLog ? "soloLog" : "scheduled";
+
         if (!includeRoster)
         {
             return new
             {
                 id = g.Id,
+                rideKind,
                 name = g.Name,
                 description = g.Description,
                 scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
@@ -129,6 +133,7 @@ internal static class RideGroupResponseHelper
         return new
         {
             id = g.Id,
+            rideKind,
             name = g.Name,
             description = g.Description,
             scheduledDate = g.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

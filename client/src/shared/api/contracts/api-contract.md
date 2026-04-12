@@ -216,15 +216,17 @@ Returns a JSON array of completed rides for the authenticated user, newest first
   "durationMinutes": 90,
   "distanceKm": 22.5,
   "elevationGainM": 120,
-  "rideGroupId": null,
-  "rideKind": null,
+  "rideId": 1,
+  "rideKind": "personal",
   "clubId": null,
   "clubName": null
 }
 ```
 `routeDifficulty` and `estimatedDurationMinutes` mirror the linked route when the route exists; otherwise they may be omitted or null.
 
-When this completion is tied to a scheduled group ride (`rideGroupId` set), `rideKind` is `"club"` or `"personal"` (no club), and `clubId` / `clubName` match that ride’s club when it is a club ride.
+Every completion has a **`rideId`** (the ride screen at `GET /rides/:rideId`). **`rideKind`** is `"club"` (scheduled club ride), `"personal"` (scheduled personal ride), or `"soloLog"` (solo log / ad-hoc ride). **`clubId`** / **`clubName`** are set when the underlying ride belongs to a club.
+
+Schema changes require recreating the local Docker database volume (see project README / `docker compose down -v`).
 
 ## Rides (scheduled rides — club or personal)
 
@@ -258,6 +260,7 @@ If the ride belongs to a **private** club and the viewer is **not** an active me
 ```json
 {
   "id": 1,
+  "rideKind": "scheduled",
   "name": "Weekend Warriors",
   "description": "Saturday social pace",
   "scheduledDate": "2026-06-15T08:00:00.000Z",
@@ -360,7 +363,7 @@ Demote is rejected if it would remove the last admin.
 Cannot remove the last admin.
 
 ### `GET /clubs/:id/rides`
-- **Public** club: array of scheduled `RideGroup` rows. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only (names/times/routes still visible).
+- **Public** club: array of scheduled ride rows. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only (names/times/routes still visible).
 - **Private** club, viewer **not** an active member: `{ "summaryOnly": true, "upcomingCount": n, "pastCount": n }` — no ride titles, times, or routes.
 
 ## Secondary Feature Endpoints

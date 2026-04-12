@@ -668,8 +668,8 @@ export async function mockRequest(path, options = {}) {
       list = list.filter((r) => new Date(r.scheduledDate).getTime() < now);
       const linkedGroupIds = new Set(
         historyEntries
-          .filter((h) => h.userId === profile.id && h.rideGroupId != null)
-          .map((h) => h.rideGroupId),
+          .filter((h) => h.userId === profile.id && h.rideId != null)
+          .map((h) => h.rideId),
       );
       list = list.filter((r) => !linkedGroupIds.has(r.id));
     }

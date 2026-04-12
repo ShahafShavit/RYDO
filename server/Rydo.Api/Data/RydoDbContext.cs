@@ -11,7 +11,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<RouteEntity> Routes => Set<RouteEntity>();
     public DbSet<SavedRoute> SavedRoutes => Set<SavedRoute>();
     public DbSet<HazardEntity> Hazards => Set<HazardEntity>();
-    public DbSet<RideGroup> RideGroups => Set<RideGroup>();
+    public DbSet<Ride> Rides => Set<Ride>();
     public DbSet<RideParticipant> RideParticipants => Set<RideParticipant>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
     public DbSet<ChallengeEntity> Challenges => Set<ChallengeEntity>();
@@ -41,11 +41,11 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasOne(x => x.ReportedBy).WithMany().HasForeignKey(x => x.ReportedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<RideGroup>(e =>
+        builder.Entity<Ride>(e =>
         {
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(x => x.Club).WithMany(c => c.RideGroups).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRideGroups).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Club).WithMany(c => c.Rides).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRides).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<CyclingClub>(e =>
@@ -69,8 +69,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
 
         builder.Entity<RideParticipant>(e =>
         {
-            e.HasKey(x => new { x.RideGroupId, x.UserId });
-            e.HasOne(x => x.RideGroup).WithMany(g => g.Participants).HasForeignKey(x => x.RideGroupId);
+            e.HasKey(x => new { x.RideId, x.UserId });
+            e.HasOne(x => x.Ride).WithMany(g => g.Participants).HasForeignKey(x => x.RideId);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -84,7 +84,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.RideGroup).WithMany().HasForeignKey(x => x.RideGroupId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

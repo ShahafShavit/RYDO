@@ -20,7 +20,7 @@ public class RidesController(RydoDbContext db) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetRide(int rideId, CancellationToken ct)
     {
-        var g = await db.RideGroups.AsNoTracking()
+        var g = await db.Rides.AsNoTracking()
             .Include(x => x.Participants).ThenInclude(p => p.User)
             .Include(x => x.CreatedBy)
             .Include(x => x.Route)
@@ -38,10 +38,10 @@ public class RidesController(RydoDbContext db) : ControllerBase
                 return NotFound();
         }
 
-        var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
-        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
-        var canEdit = uid is { } viewerId && await RideGroupResponseHelper.ViewerCanEditRideAsync(db, g, viewerId, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(g, include, participantTotal, canEdit));
+        var include = await RideResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
+        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideId == rideId, ct);
+        var canEdit = uid is { } viewerId && await RideResponseHelper.ViewerCanEditRideAsync(db, g, viewerId, ct);
+        return Ok(RideResponseHelper.ToResponse(g, include, participantTotal, canEdit));
     }
 
     public record UpdateRideBody(
@@ -58,17 +58,17 @@ public class RidesController(RydoDbContext db) : ControllerBase
         var uid = CurrentUserId();
         if (uid == null) return Unauthorized();
 
-        var g = await db.RideGroups
+        var g = await db.Rides
             .FirstOrDefaultAsync(x => x.Id == rideId, ct);
         if (g == null) return NotFound();
 
-        if (!await RideGroupResponseHelper.ViewerCanEditRideAsync(db, g, uid.Value, ct))
+        if (!await RideResponseHelper.ViewerCanEditRideAsync(db, g, uid.Value, ct))
             return Forbid();
 
         if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct))
             return NotFound();
 
-        var participantCount = await db.RideParticipants.CountAsync(p => p.RideGroupId == rideId, ct);
+        var participantCount = await db.RideParticipants.CountAsync(p => p.RideId == rideId, ct);
         var max = body.MaxParticipants > 0 ? body.MaxParticipants : 20;
         if (max < participantCount)
             return Problem(
@@ -84,16 +84,16 @@ public class RidesController(RydoDbContext db) : ControllerBase
 
         await db.SaveChangesAsync(ct);
 
-        var updated = await db.RideGroups.AsNoTracking()
+        var updated = await db.Rides.AsNoTracking()
             .Include(x => x.Participants).ThenInclude(p => p.User)
             .Include(x => x.CreatedBy)
             .Include(x => x.Route)
             .Include(x => x.Club)
             .FirstAsync(x => x.Id == rideId, ct);
 
-        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
-        var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, updated.ClubId, uid, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(updated, include, participantTotal, viewerCanEdit: true));
+        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideId == rideId, ct);
+        var include = await RideResponseHelper.ViewerCanSeeRoster(db, updated.ClubId, uid, ct);
+        return Ok(RideResponseHelper.ToResponse(updated, include, participantTotal, viewerCanEdit: true));
     }
 
     [HttpPost("{rideId:int}/join")]
@@ -101,8 +101,11 @@ public class RidesController(RydoDbContext db) : ControllerBase
     public async Task<IActionResult> JoinRide(int rideId, CancellationToken ct)
     {
         var uid = CurrentUserId() ?? 0;
-        var g = await db.RideGroups.FirstOrDefaultAsync(r => r.Id == rideId, ct);
+        var g = await db.Rides.FirstOrDefaultAsync(r => r.Id == rideId, ct);
         if (g == null) return NotFound();
+
+        if (g.Kind == RideKind.SoloLog)
+            return Problem(statusCode: 400, title: "Not joinable", detail: "This ride cannot accept additional participants.");
 
         if (g.ClubId is int cid)
         {
@@ -111,14 +114,14 @@ public class RidesController(RydoDbContext db) : ControllerBase
             if (!isMember) return Forbid();
         }
 
-        var count = await db.RideParticipants.CountAsync(p => p.RideGroupId == rideId, ct);
+        var count = await db.RideParticipants.CountAsync(p => p.RideId == rideId, ct);
         if (count >= g.MaxParticipants)
             return Problem(statusCode: 400, title: "Full", detail: "Ride has reached max participants.");
 
-        if (await db.RideParticipants.AnyAsync(p => p.RideGroupId == rideId && p.UserId == uid, ct))
+        if (await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == uid, ct))
             return Ok(new { status = "already_joined" });
 
-        db.RideParticipants.Add(new RideParticipant { RideGroupId = rideId, UserId = uid });
+        db.RideParticipants.Add(new RideParticipant { RideId = rideId, UserId = uid });
         await db.SaveChangesAsync(ct);
         return Ok(new { status = "joined" });
     }
@@ -128,8 +131,15 @@ public class RidesController(RydoDbContext db) : ControllerBase
     public async Task<IActionResult> LeaveRide(int rideId, CancellationToken ct)
     {
         var uid = CurrentUserId() ?? 0;
-        var p = await db.RideParticipants.FirstOrDefaultAsync(x => x.RideGroupId == rideId && x.UserId == uid, ct);
+        var p = await db.RideParticipants.FirstOrDefaultAsync(x => x.RideId == rideId && x.UserId == uid, ct);
         if (p == null) return NotFound();
+
+        var remaining = await db.RideParticipants.CountAsync(x => x.RideId == rideId, ct);
+        if (remaining <= 1)
+            return Problem(
+                statusCode: 400,
+                title: "Cannot leave",
+                detail: "The last participant cannot leave the ride.");
 
         db.RideParticipants.Remove(p);
         await db.SaveChangesAsync(ct);

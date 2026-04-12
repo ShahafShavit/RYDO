@@ -561,8 +561,9 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             m => m.ClubId == id && m.UserId == uid && m.MembershipStatus == ClubMembershipStatus.Active, ct);
         if (!canLink) return Forbid();
 
-        var g = new RideGroup
+        var g = new Ride
         {
+            Kind = RideKind.Scheduled,
             Name = body.Name,
             Description = body.Description ?? "",
             ScheduledDate = body.ScheduledDate.ToUniversalTime(),
@@ -571,10 +572,10 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             ClubId = id,
             CreatedByUserId = uid,
         };
-        db.RideGroups.Add(g);
+        db.Rides.Add(g);
         await db.SaveChangesAsync(ct);
 
-        db.RideParticipants.Add(new RideParticipant { RideGroupId = g.Id, UserId = uid });
+        db.RideParticipants.Add(new RideParticipant { RideId = g.Id, UserId = uid });
 
         if (body.ScheduleForWholeClub)
         {
@@ -609,14 +610,14 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             {
                 if (added.Count >= g.MaxParticipants) break;
                 if (added.Add(muid))
-                    db.RideParticipants.Add(new RideParticipant { RideGroupId = g.Id, UserId = muid });
+                    db.RideParticipants.Add(new RideParticipant { RideId = g.Id, UserId = muid });
             }
         }
 
         await db.SaveChangesAsync(ct);
 
         var routeTitle = await RouteTitleIfAnyAsync(g.RouteId, ct);
-        var finalParts = await db.RideParticipants.Where(p => p.RideGroupId == g.Id).Select(p => p.UserId).ToListAsync(ct);
+        var finalParts = await db.RideParticipants.Where(p => p.RideId == g.Id).Select(p => p.UserId).ToListAsync(ct);
         return Ok(new
         {
             id = g.Id,
@@ -653,8 +654,8 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         if (club.Visibility == ClubVisibility.Private && !isActiveMember)
         {
             var now = DateTime.UtcNow;
-            var dates = await db.RideGroups.AsNoTracking()
-                .Where(r => r.ClubId == id)
+            var dates = await db.Rides.AsNoTracking()
+                .Where(r => r.ClubId == id && r.Kind != RideKind.SoloLog)
                 .Select(r => r.ScheduledDate)
                 .ToListAsync(ct);
             var upcomingCount = dates.Count(t => t >= now);
@@ -662,31 +663,31 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             return Ok(new { summaryOnly = true, upcomingCount, pastCount });
         }
 
-        var canViewRoster = await RideGroupResponseHelper.ViewerCanSeeRoster(db, id, uid, ct);
+        var canViewRoster = await RideResponseHelper.ViewerCanSeeRoster(db, id, uid, ct);
 
-        var rides = await db.RideGroups.AsNoTracking()
+        var rides = await db.Rides.AsNoTracking()
             .Include(r => r.Participants).ThenInclude(p => p.User)
             .Include(r => r.CreatedBy)
             .Include(r => r.Route)
             .Include(r => r.Club)
-            .Where(r => r.ClubId == id)
+            .Where(r => r.ClubId == id && r.Kind != RideKind.SoloLog)
             .OrderBy(r => r.ScheduledDate)
             .ToListAsync(ct);
 
         var rideIds = rides.Select(r => r.Id).ToList();
         var countRows = await db.RideParticipants.AsNoTracking()
-            .Where(p => rideIds.Contains(p.RideGroupId))
-            .GroupBy(p => p.RideGroupId)
+            .Where(p => rideIds.Contains(p.RideId))
+            .GroupBy(p => p.RideId)
             .Select(grp => new { grp.Key, Cnt = grp.Count() })
             .ToListAsync(ct);
         var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
 
         Dictionary<int, bool> editMap = new();
         if (uid is { } viewerId)
-            editMap = await RideGroupResponseHelper.BuildViewerCanEditMapAsync(db, rides, viewerId, ct);
+            editMap = await RideResponseHelper.BuildViewerCanEditMapAsync(db, rides, viewerId, ct);
 
         var items = rides
-            .Select(r => RideGroupResponseHelper.ToResponse(
+            .Select(r => RideResponseHelper.ToResponse(
                 r,
                 canViewRoster,
                 countByRide.GetValueOrDefault(r.Id, 0),

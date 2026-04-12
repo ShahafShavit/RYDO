@@ -48,6 +48,7 @@ export function mapRideDto(raw) {
     maxParticipants: raw.maxParticipants ?? 20,
     clubId: raw.clubId ?? null,
     clubName: raw.clubName ?? null,
+    rideKind: raw.rideKind ?? 'scheduled',
     viewerCanEdit: Boolean(raw.viewerCanEdit),
   };
 }

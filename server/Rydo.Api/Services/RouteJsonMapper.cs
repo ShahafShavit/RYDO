@@ -14,15 +14,15 @@ public static class RouteJsonMapper
     public static async Task<RouteRidersInfo> LoadRouteRidersInfoAsync(RydoDbContext db, int routeId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
-        var pastRideIds = await db.RideGroups.AsNoTracking()
-            .Where(g => g.RouteId == routeId && g.ScheduledDate < now)
+        var pastRideIds = await db.Rides.AsNoTracking()
+            .Where(g => g.Kind != RideKind.SoloLog && g.RouteId == routeId && g.ScheduledDate < now)
             .Select(g => g.Id)
             .ToListAsync(ct);
         if (pastRideIds.Count == 0)
             return new RouteRidersInfo(0, Array.Empty<RouteRiderVisible>());
 
         var riderIds = await db.RideParticipants.AsNoTracking()
-            .Where(p => pastRideIds.Contains(p.RideGroupId))
+            .Where(p => pastRideIds.Contains(p.RideId))
             .Select(p => p.UserId)
             .Distinct()
             .ToListAsync(ct);

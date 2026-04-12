@@ -16,7 +16,7 @@ export function useRideHistory() {
         title: ride.routeTitle || ride.title || 'Untitled route',
         date: ride.completedAt || ride.date,
         distanceKm: ride.distanceKm != null ? Number(ride.distanceKm) : null,
-        rideGroupId: ride.rideGroupId ?? null,
+        rideId: ride.rideId ?? null,
         rideKind: ride.rideKind ?? null,
         clubName: ride.clubName ?? null,
         durationMinutes: ride.durationMinutes,

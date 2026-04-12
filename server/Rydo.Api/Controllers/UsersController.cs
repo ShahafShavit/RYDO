@@ -100,11 +100,12 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (scope is not ("all" or "upcoming" or "past"))
             scope = "all";
 
-        var query = db.RideGroups.AsNoTracking()
+        var query = db.Rides.AsNoTracking()
             .Include(g => g.Participants).ThenInclude(p => p.User)
             .Include(g => g.CreatedBy)
             .Include(g => g.Route)
             .Include(g => g.Club)
+            .Where(g => g.Kind != RideKind.SoloLog)
             .Where(g => g.Participants.Any(p => p.UserId == uid.Value));
 
         if (scope == "upcoming")
@@ -112,7 +113,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         else if (scope == "past")
         {
             query = query.Where(g => g.ScheduledDate < now);
-            query = query.Where(g => !db.HistoryEntries.Any(h => h.UserId == uid.Value && h.RideGroupId == g.Id));
+            query = query.Where(g => !db.HistoryEntries.Any(h => h.UserId == uid.Value && h.RideId == g.Id));
         }
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -133,7 +134,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (scope == "upcoming")
             query = query.Take(MaxUpcomingMyRides);
 
-        IReadOnlyList<RideGroup> groups;
+        IReadOnlyList<Ride> groups;
         int? pagedTotal = null;
         int? pagedSkip = null;
         int? pagedTake = null;
@@ -155,19 +156,19 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         var groupIds = groups.Select(g => g.Id).ToList();
         var countRows = await db.RideParticipants.AsNoTracking()
-            .Where(p => groupIds.Contains(p.RideGroupId))
-            .GroupBy(p => p.RideGroupId)
+            .Where(p => groupIds.Contains(p.RideId))
+            .GroupBy(p => p.RideId)
             .Select(grp => new { grp.Key, Cnt = grp.Count() })
             .ToListAsync(ct);
         var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
 
-        var editMap = await RideGroupResponseHelper.BuildViewerCanEditMapAsync(db, groups, uid.Value, ct);
+        var editMap = await RideResponseHelper.BuildViewerCanEditMapAsync(db, groups, uid.Value, ct);
 
         var items = new List<object>();
         foreach (var g in groups)
         {
-            var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
-            items.Add(RideGroupResponseHelper.ToResponse(
+            var include = await RideResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
+            items.Add(RideResponseHelper.ToResponse(
                 g,
                 include,
                 countByRide.GetValueOrDefault(g.Id, 0),
@@ -187,8 +188,9 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (uid == null) return Unauthorized();
         if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct)) return NotFound();
 
-        var g = new RideGroup
+        var g = new Ride
         {
+            Kind = RideKind.Scheduled,
             Name = body.Name.Trim(),
             Description = body.Description?.Trim() ?? "",
             ScheduledDate = body.ScheduledDate.ToUniversalTime(),
@@ -197,21 +199,21 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             ClubId = null,
             CreatedByUserId = uid.Value,
         };
-        db.RideGroups.Add(g);
+        db.Rides.Add(g);
         await db.SaveChangesAsync(ct);
 
-        db.RideParticipants.Add(new RideParticipant { RideGroupId = g.Id, UserId = uid.Value });
+        db.RideParticipants.Add(new RideParticipant { RideId = g.Id, UserId = uid.Value });
         await db.SaveChangesAsync(ct);
 
-        var created = await db.RideGroups.AsNoTracking()
+        var created = await db.Rides.AsNoTracking()
             .Include(x => x.Participants).ThenInclude(p => p.User)
             .Include(x => x.CreatedBy)
             .Include(x => x.Route)
             .Include(x => x.Club)
             .FirstAsync(x => x.Id == g.Id, ct);
 
-        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == g.Id, ct);
-        var canEdit = await RideGroupResponseHelper.ViewerCanEditRideAsync(db, created, uid.Value, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(created, includeRoster: true, participantTotal, canEdit));
+        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideId == g.Id, ct);
+        var canEdit = await RideResponseHelper.ViewerCanEditRideAsync(db, created, uid.Value, ct);
+        return Ok(RideResponseHelper.ToResponse(created, includeRoster: true, participantTotal, canEdit));
     }
 }

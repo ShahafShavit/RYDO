@@ -24,7 +24,7 @@ public class HistoryController(RydoDbContext db) : ControllerBase
 
         var query = db.HistoryEntries.AsNoTracking()
             .Include(h => h.Route)
-            .Include(h => h.RideGroup).ThenInclude(rg => rg!.Club)
+            .Include(h => h.Ride).ThenInclude(r => r!.Club)
             .Where(h => h.UserId == uid);
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -33,7 +33,7 @@ public class HistoryController(RydoDbContext db) : ControllerBase
             query = query.Where(h =>
                 h.RouteTitle.Contains(term)
                 || (h.Route != null && h.Route.Difficulty.Contains(term))
-                || (h.RideGroup != null && h.RideGroup.Club != null && h.RideGroup.Club.Name.Contains(term)));
+                || (h.Ride != null && h.Ride.Club != null && h.Ride.Club.Name.Contains(term)));
         }
 
         query = query.OrderByDescending(h => h.CompletedAt);
@@ -53,14 +53,18 @@ public class HistoryController(RydoDbContext db) : ControllerBase
             previewCoords = JsonSerializer.Deserialize<List<List<double>>>(route.PreviewCoordinatesJson);
         }
 
-        string? rideKind = null;
-        int? rideGroupClubId = null;
-        string? rideGroupClubName = null;
-        if (h.RideGroupId != null && h.RideGroup != null)
+        string? rideKindDisplay = null;
+        int? clubId = null;
+        string? clubName = null;
+        var rg = h.Ride;
+        if (rg != null)
         {
-            rideKind = h.RideGroup.ClubId.HasValue ? "club" : "personal";
-            rideGroupClubId = h.RideGroup.ClubId;
-            rideGroupClubName = h.RideGroup.Club?.Name;
+            if (rg.Kind == RideKind.SoloLog)
+                rideKindDisplay = "soloLog";
+            else
+                rideKindDisplay = rg.ClubId.HasValue ? "club" : "personal";
+            clubId = rg.ClubId;
+            clubName = rg.Club?.Name;
         }
 
         var durationMinutes = HistoryMergeHelper.EffectiveDurationMinutes(h, route);
@@ -78,10 +82,10 @@ public class HistoryController(RydoDbContext db) : ControllerBase
             durationMinutes,
             distanceKm,
             elevationGainM,
-            rideGroupId = h.RideGroupId,
-            rideKind,
-            clubId = rideGroupClubId,
-            clubName = rideGroupClubName,
+            rideId = h.RideId,
+            rideKind = rideKindDisplay,
+            clubId,
+            clubName,
             preview = previewCoords is { Count: > 0 }
                 ? new { coordinates = previewCoords }
                 : null,
