@@ -89,7 +89,7 @@ public static class DbSeeder
         // Changing SeedData/GpxSeed does not re-run this path on an existing DB; recreate the database (e.g. docker compose down -v) to apply updated seed assets.
         if (await db.HistoryEntries.AnyAsync())
         {
-            await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
+            await EnsureClubChatSeedAsync(db, rider.Id);
             return;
         }
 
@@ -124,7 +124,7 @@ public static class DbSeeder
             db.Rides.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
-            await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
+            await EnsureClubChatSeedAsync(db, rider.Id);
 
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
             return;
@@ -136,14 +136,14 @@ public static class DbSeeder
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
-        await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
+        await EnsureClubChatSeedAsync(db, rider.Id);
     }
 
     /// <summary>
     /// Inserts demo club chat for each club that has no messages yet and at least two active members.
     /// Idempotent per club. Seeds a multi-day thread with several members so the demo reads like a real chat.
     /// </summary>
-    private static async Task EnsureClubChatSeedAsync(RydoDbContext db, int riderUserId, int adminUserId)
+    private static async Task EnsureClubChatSeedAsync(RydoDbContext db, int riderUserId)
     {
         var clubs = await db.CyclingClubs.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
         if (clubs.Count == 0)
@@ -171,7 +171,7 @@ public static class DbSeeder
             if (memberIds.Count < 2)
                 continue;
 
-            await SeedClubChatConversationAsync(db, club.Id, memberIds, routes, rideGroups, riderUserId, adminUserId, jsonOpts);
+            await SeedClubChatConversationAsync(db, club.Id, memberIds, routes, rideGroups, riderUserId, jsonOpts);
         }
     }
 
@@ -201,7 +201,6 @@ public static class DbSeeder
         List<RouteEntity> routes,
         List<Ride> rideGroups,
         int riderUserId,
-        int adminUserId,
         JsonSerializerOptions jsonOpts)
     {
         var clubName = await db.CyclingClubs.AsNoTracking()
@@ -359,32 +358,34 @@ public static class DbSeeder
                 break;
         }
 
+        // user@rydo.test often maps to the lowest member id (u0) and many scenarios end on u0 — that makes him the last
+        // speaker in every demo club. Append a short line from someone else when the tail author is the demo rider.
+        if (messages.Count > 0 && messages[^1].AuthorUserId == riderUserId)
+        {
+            var other = memberIds.FirstOrDefault(uid => uid != riderUserId);
+            if (other != 0)
+                Add(other, P(900, "Sounds good — see you then.", "See you out there.", "Catch you on the road."), null);
+        }
+
         db.ClubChatMessages.AddRange(messages);
         await db.SaveChangesAsync();
 
         var ordered = messages.OrderBy(m => m.Id).ToList();
-        var n = ordered.Count;
-        if (n > 0)
+        if (ordered.Count > 0)
         {
-            // Organic partial read for demo accounts so the summary shows unread badges (not everyone caught up).
-            var rCut = Math.Clamp((n * (38 + Math.Abs(mix % 23))) / 100, 1, Math.Max(1, n - 4));
-            var aCut = Math.Clamp((n * (58 + Math.Abs((mix >> 5) % 23))) / 100, Math.Min(rCut + 1, n - 1), n - 2);
-            if (aCut <= rCut) aCut = Math.Min(n - 2, rCut + 2);
-
-            void AddRead(int uid, int idx)
+            // Each member's read cursor is their last own message — they haven't "opened" anything after that send.
+            foreach (var uid in memberIds)
             {
-                if (!memberIds.Contains(uid)) return;
-                idx = Math.Clamp(idx, 0, n - 1);
+                var lastOwn = ordered.Where(m => m.AuthorUserId == uid).LastOrDefault();
+                if (lastOwn == null)
+                    continue;
                 db.ClubChatReadStates.Add(new ClubChatReadState
                 {
                     ClubId = clubId,
                     UserId = uid,
-                    LastReadMessageId = ordered[idx].Id,
+                    LastReadMessageId = lastOwn.Id,
                 });
             }
-
-            AddRead(riderUserId, rCut);
-            AddRead(adminUserId, aCut);
         }
 
         await db.SaveChangesAsync();

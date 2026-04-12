@@ -47,7 +47,13 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
                 .FirstOrDefaultAsync(r => r.ClubId == clubId && r.UserId == uid.Value, ct);
             var lastReadId = read?.LastReadMessageId;
 
-            // Unread = messages from others after your last read (your own messages never count as unread).
+            var lastMsg = await db.ClubChatMessages.AsNoTracking()
+                .Where(m => m.ClubId == clubId)
+                .OrderByDescending(m => m.Id)
+                .Select(m => new { m.Body, m.SentAt })
+                .FirstOrDefaultAsync(ct);
+
+            // Unread = messages from other members after your read pointer (your own messages never count).
             var unread = await db.ClubChatMessages.AsNoTracking()
                 .CountAsync(
                     m => m.ClubId == clubId
@@ -67,12 +73,6 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
                     .Select(m => (int?)m.Id)
                     .FirstOrDefaultAsync(ct);
             }
-
-            var lastMsg = await db.ClubChatMessages.AsNoTracking()
-                .Where(m => m.ClubId == clubId)
-                .OrderByDescending(m => m.Id)
-                .Select(m => new { m.Body, m.SentAt })
-                .FirstOrDefaultAsync(ct);
 
             var preview = lastMsg == null
                 ? (string?)null

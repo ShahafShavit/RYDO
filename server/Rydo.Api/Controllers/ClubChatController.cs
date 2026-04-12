@@ -109,6 +109,9 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
         db.ClubChatMessages.Add(msg);
         await db.SaveChangesAsync(ct);
 
+        // Sender has "seen" through their new message — keeps unread counts consistent (no phantom unreads on own posts).
+        await UpsertLastReadAsync(clubId, uid.Value, msg.Id, ct);
+
         await db.Entry(msg).Reference(m => m.Author).LoadAsync(ct);
         var dto = await BuildMessageDtoAsync(msg, ct);
         await hubContext.Clients.Group(ClubChatHub.ClubGroupName(clubId)).SendAsync("ReceiveMessage", dto, ct);
@@ -148,6 +151,25 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
 
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    /// <summary>Moves the member's read cursor to at least <paramref name="messageId"/> (monotonic).</summary>
+    private async Task UpsertLastReadAsync(int clubId, int userId, int messageId, CancellationToken ct)
+    {
+        var row = await db.ClubChatReadStates.FirstOrDefaultAsync(x => x.ClubId == clubId && x.UserId == userId, ct);
+        if (row == null)
+        {
+            db.ClubChatReadStates.Add(new ClubChatReadState
+            {
+                ClubId = clubId,
+                UserId = userId,
+                LastReadMessageId = messageId,
+            });
+        }
+        else if (row.LastReadMessageId == null || messageId > row.LastReadMessageId.Value)
+            row.LastReadMessageId = messageId;
+
+        await db.SaveChangesAsync(ct);
     }
 
     [HttpGet("mentionables")]

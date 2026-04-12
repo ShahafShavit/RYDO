@@ -33,10 +33,7 @@ export default function ClubChatDock() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [clubId, setClubId] = useState(null);
-  /** Snapshot when entering a thread: load from first unread forward; stays fixed until leaving the thread. */
-  const [messagesFetchAnchor, setMessagesFetchAnchor] = useState(null);
   const messagesScrollRef = useRef(null);
-  const anchorClubIdRef = useRef(null);
 
   const summaryQuery = useQuery({
     queryKey: ['clubChat', 'summary'],
@@ -64,7 +61,6 @@ export default function ClubChatDock() {
           window.focus();
           setOpen(true);
           if (payload.clubId != null) {
-            anchorClubIdRef.current = null;
             setClubId(payload.clubId);
           }
           n.close();
@@ -81,14 +77,8 @@ export default function ClubChatDock() {
   });
 
   const messagesQuery = useQuery({
-    queryKey: ['clubChat', 'messages', clubId, messagesFetchAnchor],
-    queryFn: () =>
-      clubChatApi.getMessages(
-        clubId,
-        messagesFetchAnchor != null
-          ? { fromMessageId: messagesFetchAnchor, take: 100 }
-          : {}
-      ),
+    queryKey: ['clubChat', 'messages', clubId],
+    queryFn: () => clubChatApi.getMessages(clubId, { take: 100 }),
     enabled: !!clubId && open,
   });
 
@@ -103,27 +93,8 @@ export default function ClubChatDock() {
   const messages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
 
   const openClubThread = useCallback((row) => {
-    anchorClubIdRef.current = row.clubId;
-    setMessagesFetchAnchor(
-      row.unreadCount > 0 && row.firstUnreadMessageId != null ? row.firstUnreadMessageId : null
-    );
     setClubId(row.clubId);
   }, []);
-
-  useEffect(() => {
-    if (!clubId) {
-      setMessagesFetchAnchor(null);
-      anchorClubIdRef.current = null;
-      return;
-    }
-    if (anchorClubIdRef.current === clubId) return;
-    const row = summary.find((s) => s.clubId === clubId);
-    if (!row) return;
-    anchorClubIdRef.current = clubId;
-    setMessagesFetchAnchor(
-      row.unreadCount > 0 && row.firstUnreadMessageId != null ? row.firstUnreadMessageId : null
-    );
-  }, [clubId, summary]);
 
   useEffect(() => {
     if (!messagesScrollRef.current || !messagesQuery.isSuccess || messages.length === 0) return;
@@ -199,7 +170,6 @@ export default function ClubChatDock() {
                     aria-label="Back to clubs"
                     className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
                     onClick={() => {
-                      anchorClubIdRef.current = null;
                       setClubId(null);
                     }}
                   >
