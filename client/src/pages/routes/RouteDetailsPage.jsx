@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import RouteDetailsHeader from '@/features/routes/components/RouteDetailsHeader';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
+import { RouteDetailsDescription } from '@/features/routes/components/RouteDescriptionSnippet';
 import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 import ScheduleRideFromRouteModal from '@/features/rides/components/ScheduleRideFromRouteModal';
 import Button from '@/shared/components/ui/button/Button';
@@ -31,6 +32,7 @@ export default function RouteDetailsPage() {
       </RouteDetailsHeader>
       <div className="relative z-0">
         <RouteMapWithElevation geoJson={geoJson} />
+        <RouteDetailsDescription description={route?.description} />
       </div>
       {route?.id ? (
         <ScheduleRideFromRouteModal

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +23,7 @@ public static class DbSeeder
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
 
         // Completed seed includes history (saved in the same transaction as participants / challenges).
+        // Changing SeedData/GpxSeed does not re-run this path on an existing DB; recreate the database (e.g. docker compose down -v) to apply updated seed assets.
         if (await db.HistoryEntries.AnyAsync())
             return;
 
@@ -95,8 +97,9 @@ public static class DbSeeder
         {
             var hostEnv = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
             var gpxPool = LoadGpxSeedPool(hostEnv.ContentRootPath);
-
-            var routes = SeedRoutes(allUsers, rnd, gpxPool);
+            var groopyRoutes = LoadGroopyRoutesFromSeed(hostEnv.ContentRootPath, allUsers, rnd);
+            var syntheticRoutes = SeedSyntheticRoutes(allUsers, rnd, gpxPool);
+            var routes = groopyRoutes.Concat(syntheticRoutes).ToList();
             db.Routes.AddRange(routes);
             await db.SaveChangesAsync();
 
@@ -243,7 +246,121 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<RouteEntity> SeedRoutes(IReadOnlyList<ApplicationUser> users, Random rnd, IReadOnlyList<(string FileName, byte[] Bytes)> gpxPool)
+    private static List<RouteEntity> LoadGroopyRoutesFromSeed(string contentRoot, IReadOnlyList<ApplicationUser> users, Random rnd)
+    {
+        var path = Path.Combine(contentRoot, "SeedData", "groopy-routes.json");
+        if (!File.Exists(path))
+            return [];
+
+        List<GroopySeedDto> rows;
+        try
+        {
+            var json = File.ReadAllText(path);
+            rows = JsonSerializer.Deserialize<List<GroopySeedDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+
+        var list = new List<RouteEntity>();
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.GpxFileName))
+                continue;
+
+            var gpxPath = Path.Combine(contentRoot, "GpxSeed", row.GpxFileName);
+            if (!File.Exists(gpxPath))
+                continue;
+
+            byte[] bytes;
+            try
+            {
+                bytes = File.ReadAllBytes(gpxPath);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (bytes.Length == 0 || !GpxTrackParser.IsTrackPlausible(bytes, out _))
+                continue;
+
+            if (!GpxTrackParser.TryParse(bytes, out var previewJson, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var startLat, out var startLng))
+                continue;
+
+            var dist = pathKm > 0 ? pathKm : (row.LengthKm ?? 12);
+            var elev = pathElev > 0 ? pathElev : (row.ElevationGainM ?? 0);
+            if (pathElev <= 0 && row.ElevationGainM.HasValue && row.ElevationGainM.Value > 0)
+                elev = row.ElevationGainM.Value;
+
+            int dur;
+            string durationSource;
+            if (suggestedDur.HasValue)
+            {
+                dur = suggestedDur.Value;
+                durationSource = derivedSrc;
+            }
+            else if (row.DurationMinutes.HasValue && row.DurationMinutes.Value > 0)
+            {
+                dur = row.DurationMinutes.Value;
+                durationSource = RouteDurationSource.Estimated;
+            }
+            else
+            {
+                dur = Math.Max(1, (int)Math.Round(dist / GpxTrackParser.SuggestedDurationSpeedKmh * 60.0));
+                durationSource = string.IsNullOrEmpty(derivedSrc) || derivedSrc == RouteDurationSource.Unknown
+                    ? RouteDurationSource.EstimatedPace
+                    : derivedSrc;
+            }
+
+            var creator = users[rnd.Next(users.Count)];
+            var daysAgo = rnd.Next(2, 400);
+
+            list.Add(new RouteEntity
+            {
+                Title = string.IsNullOrWhiteSpace(row.Title) ? $"Groopy {row.Pid}" : row.Title,
+                Description = row.Description ?? "",
+                Terrain = string.IsNullOrWhiteSpace(row.Terrain) ? "mixed" : row.Terrain!,
+                Difficulty = string.IsNullOrWhiteSpace(row.Difficulty) ? "moderate" : row.Difficulty!,
+                Region = string.IsNullOrWhiteSpace(row.Region) ? null : row.Region,
+                StartLatitude = startLat,
+                StartLongitude = startLng,
+                DistanceKm = dist,
+                ElevationGainM = Math.Round(elev, 0),
+                EstimatedDurationMinutes = dur,
+                EstimatedDurationSource = durationSource,
+                WarningsJson = "[]",
+                Notes = row.Notes,
+                PreviewCoordinatesJson = previewJson,
+                CreatedByUserId = creator.Id,
+                CreatedAt = DateTime.UtcNow.AddDays(-daysAgo),
+                Status = "published",
+                GpxReference = $"routes/{row.GpxFileName}",
+                GpxBlob = bytes,
+            });
+        }
+
+        return list;
+    }
+
+    private sealed class GroopySeedDto
+    {
+        public int Pid { get; set; }
+        public string Title { get; set; } = "";
+        public string? Region { get; set; }
+        public string? Terrain { get; set; }
+        public string? Difficulty { get; set; }
+        public string? Description { get; set; }
+        public double? LengthKm { get; set; }
+        public double? ElevationGainM { get; set; }
+        public int? DurationMinutes { get; set; }
+        public string? GpxFileName { get; set; }
+        public string? SourceUrl { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    private static List<RouteEntity> SeedSyntheticRoutes(IReadOnlyList<ApplicationUser> users, Random rnd, IReadOnlyList<(string FileName, byte[] Bytes)> gpxPool)
     {
         var regions = new[]
         {
@@ -273,6 +390,14 @@ public static class DbSeeder
         var baseLat = 32.08;
         var baseLng = 34.78;
 
+        IReadOnlyList<(string FileName, byte[] Bytes)> syntheticPool = gpxPool;
+        if (gpxPool.Count > 0)
+        {
+            var withoutGroopy = gpxPool.Where(p => !p.FileName.StartsWith("groopy-", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (withoutGroopy.Count > 0)
+                syntheticPool = withoutGroopy;
+        }
+
         for (var i = 0; i < titles.Length; i++)
         {
             var creator = users[rnd.Next(users.Count)];
@@ -296,9 +421,9 @@ public static class DbSeeder
             var routeStartLat = lat;
             var routeStartLng = lng;
 
-            if (gpxPool.Count > 0)
+            if (syntheticPool.Count > 0)
             {
-                var pick = gpxPool[rnd.Next(gpxPool.Count)];
+                var pick = syntheticPool[rnd.Next(syntheticPool.Count)];
                 gpxBlob = pick.Bytes;
                 gpxRef = $"routes/{pick.FileName}";
                 if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var seedStartLat, out var seedStartLng))

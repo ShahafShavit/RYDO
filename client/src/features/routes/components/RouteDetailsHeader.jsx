@@ -57,8 +57,6 @@ export default function RouteDetailsHeader({ route, children }) {
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">{children}</div>
           ) : null}
         </div>
-
-        <p className="mt-3 max-w-3xl text-white/64">{route.description}</p>
       </div>
     </div>
   );

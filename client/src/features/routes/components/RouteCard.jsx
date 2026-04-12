@@ -6,6 +6,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
+import { RouteCardDescription } from '@/features/routes/components/RouteDescriptionSnippet';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 function formatDuration(minutes) {
@@ -18,7 +19,8 @@ function formatDuration(minutes) {
 export default function RouteCard({ route }) {
   const { formatKm } = useFormatDistance();
   const title = route?.title || 'Untitled route';
-  const description = route?.description || 'Structured route metadata for fast decision-making before you ride.';
+  const descriptionFallback =
+    'Structured route metadata for fast decision-making before you ride.';
   const difficulty = route?.difficulty || 'unknown';
   const terrain = route?.terrain || 'mixed';
   const duration = formatDuration(route?.estimatedDurationMinutes);
@@ -38,7 +40,11 @@ export default function RouteCard({ route }) {
         <div className="mt-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-xl font-semibold">{title}</h3>
-            <p className="mt-2 text-sm text-white/60">{description}</p>
+            <RouteCardDescription
+              description={route?.description}
+              fallback={descriptionFallback}
+              routeId={routeId}
+            />
           </div>
           <Badge variant="neon">{difficulty}</Badge>
         </div>
