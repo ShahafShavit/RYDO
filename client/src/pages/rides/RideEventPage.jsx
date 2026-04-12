@@ -65,16 +65,11 @@ export default function RideEventPage() {
   return (
     <section className="space-y-6">
       <RideStatusBanner />
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <RideEventCard ride={ride} />
-        </div>
-        {showEdit ? (
-          <Button variant="secondary" type="button" className="shrink-0" onClick={() => setEditOpen(true)}>
-            Edit ride
-          </Button>
-        ) : null}
-      </div>
+      <RideEventCard
+        ride={ride}
+        showEdit={showEdit}
+        onEditClick={() => setEditOpen(true)}
+      />
       <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} />
       {ride.routeId ? (
         <div className="space-y-4">

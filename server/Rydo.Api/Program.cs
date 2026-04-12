@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,7 +67,17 @@ builder.Services.AddCors(o =>
         .SetIsOriginAllowed(_ => true));
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // ECS tasks are only reachable from the ALB (same SG); allow forwarded headers from that hop.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 const int dbMaxAttempts = 24;
 for (var attempt = 1; attempt <= dbMaxAttempts; attempt++)
@@ -91,10 +102,42 @@ for (var attempt = 1; attempt <= dbMaxAttempts; attempt++)
 
 var webRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var indexHtml = Path.Combine(webRoot, "index.html");
+
+static string GetPublicSiteOrigin(HttpContext context)
+{
+    // CloudFront adds this on the origin request (see infra CDK). Viewer URL is HTTPS while CF→ALB is HTTP.
+    var fromCf = context.Request.Headers["X-Rydo-Public-Origin-Proto"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(fromCf))
+    {
+        return $"{fromCf.Trim()}://{context.Request.Host.Value}";
+    }
+
+    // After UseForwardedHeaders, Scheme reflects X-Forwarded-Proto when the ALB sends it.
+    var scheme = context.Request.Scheme;
+    if (string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+        && context.Request.Host.Host.EndsWith(".cloudfront.net", StringComparison.OrdinalIgnoreCase))
+    {
+        scheme = "https";
+    }
+
+    return $"{scheme}://{context.Request.Host.Value}";
+}
+
+Func<HttpContext, Task>? serveSpa = null;
 if (File.Exists(indexHtml))
 {
-    app.UseDefaultFiles();
+    serveSpa = async context =>
+    {
+        context.Response.ContentType = "text/html; charset=utf-8";
+        var html = await File.ReadAllTextAsync(indexHtml);
+        var origin = GetPublicSiteOrigin(context);
+        html = html.Replace("%SITE_ORIGIN%", origin, StringComparison.Ordinal);
+        await context.Response.WriteAsync(html);
+    };
+
     app.UseStaticFiles();
+    app.MapGet("/", serveSpa);
+    app.MapGet("/index.html", serveSpa);
 }
 
 app.UseCors();
@@ -104,9 +147,9 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-if (File.Exists(indexHtml))
+if (serveSpa is not null)
 {
-    app.MapFallbackToFile("index.html");
+    app.MapFallback(serveSpa);
 }
 
 app.Run();

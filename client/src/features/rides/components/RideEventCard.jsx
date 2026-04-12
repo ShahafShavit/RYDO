@@ -1,17 +1,28 @@
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
+import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 
-export default function RideEventCard({ ride }) {
+/**
+ * @param {{ ride: object, showEdit?: boolean, onEditClick?: () => void }} props
+ */
+export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
   const upcoming = isRideUpcoming(ride);
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="neon">{upcoming ? 'Upcoming' : 'Past'}</Badge>
-        <Badge>{ride.routeName}</Badge>
-        {ride.clubName ? <Badge variant="success">Club: {ride.clubName}</Badge> : null}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <Badge variant="neon">{upcoming ? 'Upcoming' : 'Past'}</Badge>
+          <Badge>{ride.routeName}</Badge>
+          {ride.clubName ? <Badge variant="success">Club: {ride.clubName}</Badge> : null}
+        </div>
+        {showEdit ? (
+          <Button variant="secondary" type="button" className="shrink-0" onClick={onEditClick}>
+            Edit ride
+          </Button>
+        ) : null}
       </div>
       <h1 className="mt-4 text-3xl font-semibold">{ride.name}</h1>
       {ride.createdBy?.fullName ? (

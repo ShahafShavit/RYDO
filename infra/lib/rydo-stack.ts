@@ -142,6 +142,11 @@ export class RydoStack extends cdk.Stack {
         origin: new origins.HttpOrigin(alb.loadBalancerDnsName, {
           httpPort: 80,
           protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+          // Viewer uses HTTPS (see viewerProtocolPolicy); origin hop is HTTP, so the app would
+          // otherwise see http:// for og:url / og:image. Kestrel reads this for %SITE_ORIGIN%.
+          customHeaders: {
+            'X-Rydo-Public-Origin-Proto': 'https',
+          },
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
