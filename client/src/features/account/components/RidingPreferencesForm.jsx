@@ -17,6 +17,8 @@ export const RidingPreferencesForm = () => {
         distanceUnit: 'km',
         notificationsEnabled: true,
         publicInRouteRiderLists: true,
+        publicUploadedRoutesOnProfile: true,
+        publicParticipatedRidesOnProfile: true,
         colorScheme: 'midnight',
     };
 
@@ -116,6 +118,38 @@ export const RidingPreferencesForm = () => {
                     </div>
                     <p className="text-xs text-fg-subtle leading-snug">
                         When off, you still count toward totals, but your name is hidden from the rider list on route pages.
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-fg text-sm font-medium">Show uploaded routes on my profile</span>
+                        <input
+                            type="checkbox"
+                            name="publicUploadedRoutesOnProfile"
+                            checked={Boolean(formData.publicUploadedRoutesOnProfile)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-fg-subtle leading-snug">
+                        When off, other members cannot list routes you uploaded from your profile or explore filters.
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-fg text-sm font-medium">Show rides I join on my profile</span>
+                        <input
+                            type="checkbox"
+                            name="publicParticipatedRidesOnProfile"
+                            checked={Boolean(formData.publicParticipatedRidesOnProfile)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-fg-subtle leading-snug">
+                        When off, others won&apos;t see scheduled rides you participate in on your profile (club and ride visibility rules still apply when shown).
                     </p>
                 </div>
             </div>

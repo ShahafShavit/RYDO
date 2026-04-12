@@ -41,27 +41,34 @@ function ProfileRidePreviewCard({ ride }) {
 /**
  * Uploaded routes + participated rides preview with deep links to Explore routes and My rides.
  */
-export function UserProfileActivitySections({ userId, profile }) {
-  const id = Number(userId);
-  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(userId);
-  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(userId);
+function activityVisibility(profile, isOwn, key) {
+  if (isOwn) return true;
+  if (key === 'routes') {
+    return profile?.privacy?.publicUploadedRoutesOnProfile ?? profile?.publicUploadedRoutesOnProfile ?? true;
+  }
+  return profile?.privacy?.publicParticipatedRidesOnProfile ?? profile?.publicParticipatedRidesOnProfile ?? true;
+}
 
-  const searchHint = (profile?.fullName || '').trim();
-  const routesMoreHref = `${ROUTES.routes}${buildQueryString({
-    createdBy: id,
-    ...(searchHint ? { q: searchHint } : {}),
-  })}`;
-  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({
-    member: id,
-    ...(searchHint ? { q: searchHint } : {}),
-  })}`;
+export function UserProfileActivitySections({ userId, profile, isOwn }) {
+  const id = Number(userId);
+  const showRoutes = activityVisibility(profile, isOwn, 'routes');
+  const showRides = activityVisibility(profile, isOwn, 'rides');
+  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(userId, {
+    enabled: showRoutes,
+  });
+  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(userId, {
+    enabled: showRides,
+  });
+
+  const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: id })}`;
+  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: id })}`;
 
   const routeItems = routesPage?.items ?? [];
   const rideItems = ridesPage?.items?.filter(Boolean) ?? [];
   const routesTotal = routesPage?.total ?? 0;
   const ridesTotal = ridesPage?.total ?? 0;
 
-  if (routesLoading && ridesLoading) {
+  if ((showRoutes && routesLoading) || (showRides && ridesLoading)) {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         <div className="h-40 animate-pulse rounded-3xl bg-surface-strong" />
@@ -78,7 +85,7 @@ export function UserProfileActivitySections({ userId, profile }) {
             <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Routes</p>
             <h2 className="mt-1 text-xl font-semibold">Uploaded routes</h2>
           </div>
-          {routesTotal > 2 ? (
+          {showRoutes && routesTotal > 2 ? (
             <Link
               to={routesMoreHref}
               className="text-sm font-medium text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded"
@@ -87,7 +94,9 @@ export function UserProfileActivitySections({ userId, profile }) {
             </Link>
           ) : null}
         </div>
-        {routeItems.length === 0 ? (
+        {!showRoutes ? (
+          <p className="text-sm text-fg-muted">This member hides uploaded routes on their profile.</p>
+        ) : routeItems.length === 0 ? (
           <p className="text-sm text-fg-muted">No routes uploaded yet.</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2">
@@ -104,7 +113,7 @@ export function UserProfileActivitySections({ userId, profile }) {
             <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
             <h2 className="mt-1 text-xl font-semibold">Rides</h2>
           </div>
-          {ridesTotal > 2 ? (
+          {showRides && ridesTotal > 2 ? (
             <Link
               to={ridesMoreHref}
               className="text-sm font-medium text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded"
@@ -113,7 +122,9 @@ export function UserProfileActivitySections({ userId, profile }) {
             </Link>
           ) : null}
         </div>
-        {rideItems.length === 0 ? (
+        {!showRides ? (
+          <p className="text-sm text-fg-muted">This member hides rides they join on their profile.</p>
+        ) : rideItems.length === 0 ? (
           <p className="text-sm text-fg-muted">No rides to show yet.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

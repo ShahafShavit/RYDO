@@ -31,6 +31,9 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         take = Math.Clamp(take, 1, MaxRouteListTake);
         if (skip < 0) skip = 0;
 
+        if (createdByUserId is int cb && cb > 0 && !await MayListRoutesUploadedByUserAsync(cb, ct))
+            return Ok(new { items = Array.Empty<object>(), total = 0, skip, take });
+
         double? userLat = null;
         double? userLng = null;
         if (nearLat is { } nla && nearLng is { } nlo
@@ -284,6 +287,15 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(s, out var id) ? id : null;
+    }
+
+    /// <summary>Explore filter by uploader respects <see cref="UserPreference.PublicUploadedRoutesOnProfile"/> (owner always sees own).</summary>
+    private async Task<bool> MayListRoutesUploadedByUserAsync(int createdByUserId, CancellationToken ct)
+    {
+        if (GetUserId() is int v && v == createdByUserId) return true;
+        var pref = await db.UserPreferences.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == createdByUserId, ct);
+        return pref is not { PublicUploadedRoutesOnProfile: false };
     }
 
     /// <summary>Prefer a valid client hint; otherwise use GPX parser default (timestamps vs pace).</summary>

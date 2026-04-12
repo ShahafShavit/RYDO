@@ -49,6 +49,8 @@ function mockDefaultPrivacy() {
     publicLocation: true,
     publicAvatarUrl: true,
     publicDefaultBikeType: true,
+    publicUploadedRoutesOnProfile: true,
+    publicParticipatedRidesOnProfile: true,
   };
 }
 
@@ -57,7 +59,11 @@ function mergeMockPrivacy(p) {
 }
 
 function toFullProfile(p) {
-  const privacy = mergeMockPrivacy(p.privacy);
+  const privacy = {
+    ...mergeMockPrivacy(p.privacy),
+    publicUploadedRoutesOnProfile: preferences.publicUploadedRoutesOnProfile !== false,
+    publicParticipatedRidesOnProfile: preferences.publicParticipatedRidesOnProfile !== false,
+  };
   return {
     id: p.id,
     firstName: p.firstName,
@@ -87,6 +93,8 @@ function toPublicProfileView(u) {
     location: privacy.publicLocation ? u.location : null,
     avatarUrl: privacy.publicAvatarUrl ? u.avatarUrl : null,
     defaultBikeType: privacy.publicDefaultBikeType ? (u.defaultBikeType ?? 'road') : null,
+    publicUploadedRoutesOnProfile: true,
+    publicParticipatedRidesOnProfile: true,
   };
 }
 
@@ -99,6 +107,8 @@ let preferences = {
   distanceUnit: 'km',
   notificationsEnabled: true,
   publicInRouteRiderLists: true,
+  publicUploadedRoutesOnProfile: true,
+  publicParticipatedRidesOnProfile: true,
   colorScheme: 'midnight',
 };
 

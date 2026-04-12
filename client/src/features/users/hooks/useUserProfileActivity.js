@@ -10,22 +10,22 @@ export const userProfileActivityKeys = {
   rides: (userId) => [...userProfileActivityKeys.all, 'rides', Number(userId)],
 };
 
-export function useUserUploadedRoutesPreview(userId) {
+export function useUserUploadedRoutesPreview(userId, { enabled = true } = {}) {
   const id = Number(userId);
   return useQuery({
     queryKey: userProfileActivityKeys.routes(id),
     queryFn: async () =>
       normalizePaginatedResult(await usersApi.getUserRoutes(id, { skip: 0, take: 2 }), normalizeRoute),
-    enabled: Number.isFinite(id) && id > 0,
+    enabled: enabled && Number.isFinite(id) && id > 0,
   });
 }
 
-export function useUserParticipatedRidesPreview(userId) {
+export function useUserParticipatedRidesPreview(userId, { enabled = true } = {}) {
   const id = Number(userId);
   return useQuery({
     queryKey: userProfileActivityKeys.rides(id),
     queryFn: async () =>
       normalizePaginatedResult(await usersApi.getUserRides(id, { skip: 0, take: 2 }), mapRideDto),
-    enabled: Number.isFinite(id) && id > 0,
+    enabled: enabled && Number.isFinite(id) && id > 0,
   });
 }

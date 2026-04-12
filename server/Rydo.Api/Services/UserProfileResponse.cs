@@ -33,6 +33,8 @@ public static class UserProfileResponse
                 publicLocation = u.PublicLocation,
                 publicAvatarUrl = u.PublicAvatarUrl,
                 publicDefaultBikeType = u.PublicDefaultBikeType,
+                publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
+                publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
             },
         };
     }
@@ -52,6 +54,8 @@ public static class UserProfileResponse
             location = u.PublicLocation ? u.Location : null,
             avatarUrl = u.PublicAvatarUrl ? u.AvatarUrl : null,
             defaultBikeType = u.PublicDefaultBikeType && pref != null ? pref.DefaultBikeType : null,
+            publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
+            publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
         };
     }
 }

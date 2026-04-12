@@ -90,6 +90,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
+            publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
+            publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }
@@ -99,6 +101,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         string DistanceUnit,
         bool NotificationsEnabled,
         bool? PublicInRouteRiderLists,
+        bool? PublicUploadedRoutesOnProfile,
+        bool? PublicParticipatedRidesOnProfile,
         string? ColorScheme);
 
     [HttpPut("preferences")]
@@ -116,6 +120,10 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         p.NotificationsEnabled = body.NotificationsEnabled;
         if (body.PublicInRouteRiderLists.HasValue)
             p.PublicInRouteRiderLists = body.PublicInRouteRiderLists.Value;
+        if (body.PublicUploadedRoutesOnProfile.HasValue)
+            p.PublicUploadedRoutesOnProfile = body.PublicUploadedRoutesOnProfile.Value;
+        if (body.PublicParticipatedRidesOnProfile.HasValue)
+            p.PublicParticipatedRidesOnProfile = body.PublicParticipatedRidesOnProfile.Value;
         if (body.ColorScheme != null)
             p.ColorScheme = NormalizeColorScheme(body.ColorScheme);
         await db.SaveChangesAsync(ct);
@@ -125,6 +133,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
+            publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
+            publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }

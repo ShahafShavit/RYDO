@@ -96,6 +96,14 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         take = Math.Clamp(take, 1, MaxUserRoutesTake);
         if (skip < 0) skip = 0;
 
+        if (CurrentUserId() is { } routesViewerId && routesViewerId != userId)
+        {
+            var routesPref = await db.UserPreferences.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+            if (routesPref is { PublicUploadedRoutesOnProfile: false })
+                return Ok(new { items = Array.Empty<object>(), total = 0, skip, take });
+        }
+
         var query = db.Routes.AsNoTracking()
             .Include(r => r.CreatedBy)
             .Where(r => r.CreatedByUserId == userId);
@@ -142,6 +150,14 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         take = Math.Clamp(take, 1, MaxUserParticipatedRidesTake);
         if (skip < 0) skip = 0;
 
+        if (viewerId != userId)
+        {
+            var ridesPref = await db.UserPreferences.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == userId, ct);
+            if (ridesPref is { PublicParticipatedRidesOnProfile: false })
+                return Ok(new { items = Array.Empty<object>(), total = 0, skip, take });
+        }
+
         var now = DateTime.UtcNow;
 
         var query = db.Rides.AsNoTracking()
@@ -150,15 +166,16 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             .Include(g => g.Route)
             .Include(g => g.Club)
             .Where(g => g.Kind != RideKind.SoloLog)
-            .Where(g => g.Participants.Any(p => p.UserId == userId))
+            .Where(g => db.RideParticipants.Any(p => p.RideId == g.Id && p.UserId == userId))
+            // Use correlated subqueries (not g.Club in Where) so EF Core can translate to SQL.
             .Where(g =>
                 g.ClubId == null
-                || (g.Club != null && g.Club.Visibility == ClubVisibility.Public)
+                || db.CyclingClubs.Any(c => c.Id == g.ClubId && c.Visibility == ClubVisibility.Public)
                 || db.ClubMembers.Any(m =>
                     m.ClubId == g.ClubId
                     && m.UserId == viewerId
                     && m.MembershipStatus == ClubMembershipStatus.Active)
-                || g.Participants.Any(p => p.UserId == viewerId));
+                || db.RideParticipants.Any(p => p.RideId == g.Id && p.UserId == viewerId));
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -166,13 +183,15 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             query = query.Where(g =>
                 g.Name.Contains(term)
                 || (g.Route != null && g.Route.Title.Contains(term))
-                || (g.Club != null && g.Club.Name.Contains(term)));
+                || (g.ClubId != null
+                    && db.CyclingClubs.Any(c => c.Id == g.ClubId && c.Name.Contains(term))));
         }
 
+        // Avoid DateTime.Ticks — not translatable. Upcoming first (asc by date), then past (desc by date).
         query = query
             .OrderBy(g => g.ScheduledDate >= now ? 0 : 1)
-            .ThenBy(g => g.ScheduledDate >= now ? g.ScheduledDate.Ticks : long.MaxValue)
-            .ThenByDescending(g => g.ScheduledDate < now ? g.ScheduledDate.Ticks : long.MinValue);
+            .ThenBy(g => g.ScheduledDate >= now ? g.ScheduledDate : DateTime.MaxValue)
+            .ThenByDescending(g => g.ScheduledDate < now ? g.ScheduledDate : DateTime.MinValue);
 
         var page = Pagination.PageQueryable(query, skip, take);
         var groups = page.Items;

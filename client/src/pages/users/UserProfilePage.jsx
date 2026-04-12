@@ -83,7 +83,7 @@ export default function UserProfilePage() {
 
       <UserProfilePublicCard profile={profile} userId={userId} />
 
-      <UserProfileActivitySections userId={userId} profile={profile} />
+      <UserProfileActivitySections userId={userId} profile={profile} isOwn={isOwn} />
     </section>
   );
 }
