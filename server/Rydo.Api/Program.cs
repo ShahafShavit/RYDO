@@ -12,6 +12,9 @@ using Rydo.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<RydoOptions>(builder.Configuration.GetSection(RydoOptions.SectionName));
+builder.Services.Configure<DemoClubChatSimulatorOptions>(
+    builder.Configuration.GetSection(DemoClubChatSimulatorOptions.SectionName));
+builder.Services.AddScoped<ClubChatMessageDtoFactory>();
 
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost,1433;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False";
@@ -92,6 +95,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
+builder.Services.AddHostedService<ClubChatSimulatorBackgroundService>();
 
 var app = builder.Build();
 

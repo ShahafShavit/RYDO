@@ -13,7 +13,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/clubs/{clubId:int}/chat")]
 [Authorize]
-public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubContext) : ControllerBase
+public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubContext, ClubChatMessageDtoFactory messageDtoFactory) : ControllerBase
 {
     private const int MaxBodyLength = 8000;
     private const int DefaultTake = 40;
@@ -60,7 +60,7 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
                 .Take(n)
                 .ToListAsync(ct);
             foreach (var m in rows)
-                dtos.Add(await BuildMessageDtoAsync(m, ct));
+                dtos.Add(await messageDtoFactory.BuildAsync(m, ct));
             return Ok(dtos);
         }
 
@@ -72,7 +72,7 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
         var rowsDesc = await q.OrderByDescending(m => m.Id).Take(n).ToListAsync(ct);
         rowsDesc.Reverse();
         foreach (var m in rowsDesc)
-            dtos.Add(await BuildMessageDtoAsync(m, ct));
+            dtos.Add(await messageDtoFactory.BuildAsync(m, ct));
         return Ok(dtos);
     }
 
@@ -113,7 +113,7 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
         await UpsertLastReadAsync(clubId, uid.Value, msg.Id, ct);
 
         await db.Entry(msg).Reference(m => m.Author).LoadAsync(ct);
-        var dto = await BuildMessageDtoAsync(msg, ct);
+        var dto = await messageDtoFactory.BuildAsync(msg, ct);
         await hubContext.Clients.Group(ClubChatHub.ClubGroupName(clubId)).SendAsync("ReceiveMessage", dto, ct);
         return Ok(dto);
     }
@@ -270,55 +270,5 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
         }
 
         return null;
-    }
-
-    private async Task<object> BuildMessageDtoAsync(ClubChatMessage m, CancellationToken ct)
-    {
-        var authorName = DisplayName(m.Author);
-        var clubNameHint = await db.CyclingClubs.AsNoTracking()
-            .Where(c => c.Id == m.ClubId)
-            .Select(c => c.Name)
-            .FirstOrDefaultAsync(ct) ?? "";
-        List<object> mentionObjs = new();
-        if (!string.IsNullOrEmpty(m.MentionsJson))
-        {
-            try
-            {
-                var raw = JsonSerializer.Deserialize<List<MentionIn>>(m.MentionsJson, JsonOpts);
-                if (raw != null)
-                {
-                    foreach (var x in raw)
-                    {
-                        var kind = (x.Kind ?? "").ToLowerInvariant();
-                        var label = kind switch
-                        {
-                            "user" => await db.Users.AsNoTracking().Where(u => u.Id == x.Id).Select(u => DisplayName(u)).FirstOrDefaultAsync(ct) ?? $"User {x.Id}",
-                            "route" => await db.Routes.AsNoTracking().Where(r => r.Id == x.Id).Select(r => r.Title).FirstOrDefaultAsync(ct) ?? $"Route {x.Id}",
-                            "ride" => await db.Rides.AsNoTracking().Where(r => r.Id == x.Id)
-                                .Select(r => r.Name + " · " + r.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-dd")).FirstOrDefaultAsync(ct) ?? $"Ride {x.Id}",
-                            _ => $"#{x.Id}",
-                        };
-                        mentionObjs.Add(new { kind, id = x.Id, label });
-                    }
-                }
-            }
-            catch
-            {
-                /* ignore bad json */
-            }
-        }
-
-        return new
-        {
-            id = m.Id,
-            clubId = m.ClubId,
-            clubNameHint = clubNameHint,
-            authorUserId = m.AuthorUserId,
-            authorDisplayName = authorName,
-            authorAvatarUrl = UserPublicFields.RosterAvatarUrl(m.Author),
-            body = m.Body,
-            mentions = mentionObjs,
-            sentAt = m.SentAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-        };
     }
 }
