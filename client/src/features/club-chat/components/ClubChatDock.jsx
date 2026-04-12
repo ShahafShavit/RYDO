@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageCircle, X, ChevronLeft } from 'lucide-react';
@@ -33,6 +33,10 @@ export default function ClubChatDock() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [clubId, setClubId] = useState(null);
+  /** Snapshot when entering a thread: load from first unread forward; stays fixed until leaving the thread. */
+  const [messagesFetchAnchor, setMessagesFetchAnchor] = useState(null);
+  const messagesScrollRef = useRef(null);
+  const anchorClubIdRef = useRef(null);
 
   const summaryQuery = useQuery({
     queryKey: ['clubChat', 'summary'],
@@ -59,7 +63,10 @@ export default function ClubChatDock() {
         n.onclick = () => {
           window.focus();
           setOpen(true);
-          if (payload.clubId != null) setClubId(payload.clubId);
+          if (payload.clubId != null) {
+            anchorClubIdRef.current = null;
+            setClubId(payload.clubId);
+          }
           n.close();
         };
       } catch {
@@ -74,8 +81,14 @@ export default function ClubChatDock() {
   });
 
   const messagesQuery = useQuery({
-    queryKey: ['clubChat', 'messages', clubId],
-    queryFn: () => clubChatApi.getMessages(clubId, {}),
+    queryKey: ['clubChat', 'messages', clubId, messagesFetchAnchor],
+    queryFn: () =>
+      clubChatApi.getMessages(
+        clubId,
+        messagesFetchAnchor != null
+          ? { fromMessageId: messagesFetchAnchor, take: 100 }
+          : {}
+      ),
     enabled: !!clubId && open,
   });
 
@@ -88,6 +101,37 @@ export default function ClubChatDock() {
   });
 
   const messages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
+
+  const openClubThread = useCallback((row) => {
+    anchorClubIdRef.current = row.clubId;
+    setMessagesFetchAnchor(
+      row.unreadCount > 0 && row.firstUnreadMessageId != null ? row.firstUnreadMessageId : null
+    );
+    setClubId(row.clubId);
+  }, []);
+
+  useEffect(() => {
+    if (!clubId) {
+      setMessagesFetchAnchor(null);
+      anchorClubIdRef.current = null;
+      return;
+    }
+    if (anchorClubIdRef.current === clubId) return;
+    const row = summary.find((s) => s.clubId === clubId);
+    if (!row) return;
+    anchorClubIdRef.current = clubId;
+    setMessagesFetchAnchor(
+      row.unreadCount > 0 && row.firstUnreadMessageId != null ? row.firstUnreadMessageId : null
+    );
+  }, [clubId, summary]);
+
+  useEffect(() => {
+    if (!messagesScrollRef.current || !messagesQuery.isSuccess || messages.length === 0) return;
+    const el = messagesScrollRef.current;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [clubId, messagesQuery.isSuccess, messages.length]);
 
   useEffect(() => {
     if (!clubId || !open || !messagesQuery.isSuccess) return undefined;
@@ -154,7 +198,10 @@ export default function ClubChatDock() {
                     type="button"
                     aria-label="Back to clubs"
                     className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
-                    onClick={() => setClubId(null)}
+                    onClick={() => {
+                      anchorClubIdRef.current = null;
+                      setClubId(null);
+                    }}
                   >
                     <ChevronLeft className="h-5 w-5" aria-hidden />
                   </button>
@@ -203,7 +250,7 @@ export default function ClubChatDock() {
                       <button
                         type="button"
                         className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-surface transition-colors"
-                        onClick={() => setClubId(row.clubId)}
+                        onClick={() => openClubThread(row)}
                       >
                         <UserAvatar
                           avatarUrl={row.clubAvatarUrl}
@@ -241,7 +288,10 @@ export default function ClubChatDock() {
               </ul>
             ) : (
               <>
-                <div className="flex-1 space-y-3 overflow-y-auto p-3">
+                <div
+                  ref={messagesScrollRef}
+                  className="flex-1 space-y-3 overflow-y-auto p-3"
+                >
                   {messagesQuery.isLoading ? (
                     <p className="text-sm text-fg-muted">Loading messages…</p>
                   ) : (

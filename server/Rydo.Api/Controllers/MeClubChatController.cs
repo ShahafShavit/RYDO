@@ -29,8 +29,16 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
             .Select(m => m.ClubId)
             .ToListAsync(ct);
 
-        var result = new List<object>();
-        foreach (var clubId in clubIds.OrderBy(c => c))
+        var rows = new List<(
+            int clubId,
+            string clubName,
+            string? clubAvatarUrl,
+            int unread,
+            int? firstUnreadMessageId,
+            string? preview,
+            DateTime? lastActivity)>();
+
+        foreach (var clubId in clubIds)
         {
             var club = await db.CyclingClubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clubId, ct);
             if (club == null) continue;
@@ -39,8 +47,26 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
                 .FirstOrDefaultAsync(r => r.ClubId == clubId && r.UserId == uid.Value, ct);
             var lastReadId = read?.LastReadMessageId;
 
+            // Unread = messages from others after your last read (your own messages never count as unread).
             var unread = await db.ClubChatMessages.AsNoTracking()
-                .CountAsync(m => m.ClubId == clubId && (lastReadId == null || m.Id > lastReadId), ct);
+                .CountAsync(
+                    m => m.ClubId == clubId
+                        && m.AuthorUserId != uid.Value
+                        && (lastReadId == null || m.Id > lastReadId),
+                    ct);
+
+            int? firstUnreadMessageId = null;
+            if (unread > 0)
+            {
+                firstUnreadMessageId = await db.ClubChatMessages.AsNoTracking()
+                    .Where(
+                        m => m.ClubId == clubId
+                            && m.AuthorUserId != uid.Value
+                            && (lastReadId == null || m.Id > lastReadId))
+                    .OrderBy(m => m.Id)
+                    .Select(m => (int?)m.Id)
+                    .FirstOrDefaultAsync(ct);
+            }
 
             var lastMsg = await db.ClubChatMessages.AsNoTracking()
                 .Where(m => m.ClubId == clubId)
@@ -52,19 +78,32 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
                 ? (string?)null
                 : (lastMsg.Body.Length > 120 ? lastMsg.Body[..120] + "…" : lastMsg.Body);
 
-            result.Add(new
-            {
+            rows.Add((
                 clubId,
-                clubName = club.Name,
-                clubAvatarUrl = club.AvatarUrl,
-                unreadCount = unread,
-                lastMessagePreview = preview,
-                lastMessageAt = lastMsg == null
-                    ? (string?)null
-                    : lastMsg.SentAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            });
+                club.Name,
+                club.AvatarUrl,
+                unread,
+                firstUnreadMessageId,
+                preview,
+                lastMsg?.SentAt));
         }
 
-        return Ok(result);
+        var sorted = rows
+            .OrderByDescending(r => r.lastActivity ?? DateTime.MinValue)
+            .Select(r => new
+            {
+                r.clubId,
+                clubName = r.clubName,
+                clubAvatarUrl = r.clubAvatarUrl,
+                unreadCount = r.unread,
+                firstUnreadMessageId = r.firstUnreadMessageId,
+                lastMessagePreview = r.preview,
+                lastMessageAt = r.lastActivity == null
+                    ? (string?)null
+                    : r.lastActivity.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            })
+            .ToList();
+
+        return Ok(sorted);
     }
 }

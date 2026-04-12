@@ -1047,104 +1047,33 @@ public static class DbSeeder
             }
         }
 
-        // Sarah: club admin on Coastal Open Rollers; member on a couple of others.
-        if (clubCount > 0)
+        // Demo logins: exactly three active clubs each — separate chat threads + unread badges (see EnsureClubChatSeedAsync).
+        // admin@rydo.test: indices 0 (admin), 3, 5 (member). user@rydo.test: 2 (admin), 4, 7 (member). Disjoint sets.
+        void AddDemoMember(int clubIndex, int userId, ClubMemberRole role, int daysActivatedAgo)
         {
+            if (clubIndex < 0 || clubIndex >= clubCount) return;
+            var cid = clubs[clubIndex].Id;
+            if (db.ClubMembers.Any(m => m.ClubId == cid && m.UserId == userId)) return;
+            var activated = DateTime.UtcNow.AddDays(-daysActivatedAgo);
             db.ClubMembers.Add(new ClubMember
             {
-                ClubId = clubs[0].Id,
-                UserId = a,
-                Role = ClubMemberRole.Admin,
+                ClubId = cid,
+                UserId = userId,
+                Role = role,
                 MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-101),
-                ActivatedAt = DateTime.UtcNow.AddDays(-100),
-            });
-        }
-        foreach (var idx in new[] { 3, 5 })
-        {
-            if (idx >= clubCount) continue;
-            if (db.ClubMembers.Any(m => m.ClubId == clubs[idx].Id && m.UserId == a)) continue;
-            db.ClubMembers.Add(new ClubMember
-            {
-                ClubId = clubs[idx].Id,
-                UserId = a,
-                Role = ClubMemberRole.Member,
-                MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-40),
-                ActivatedAt = DateTime.UtcNow.AddDays(-39),
+                RequestedAt = activated.AddDays(-1),
+                ActivatedAt = activated,
             });
         }
 
-        // John: pending on Jerusalem Hills (demo); club admin on Negev Dawn Patrol; member on other clubs.
+        AddDemoMember(0, a, ClubMemberRole.Admin, 100);
+        AddDemoMember(3, a, ClubMemberRole.Member, 40);
+        AddDemoMember(5, a, ClubMemberRole.Member, 35);
+        AddDemoMember(2, r, ClubMemberRole.Admin, 50);
+        AddDemoMember(4, r, ClubMemberRole.Member, 28);
+        AddDemoMember(7, r, ClubMemberRole.Member, 22);
+
         var jerusalemId = clubs[1].Id;
-        db.ClubMembers.Add(new ClubMember
-        {
-            ClubId = jerusalemId,
-            UserId = r,
-            Role = ClubMemberRole.Member,
-            MembershipStatus = ClubMembershipStatus.Pending,
-            RequestedAt = DateTime.UtcNow.AddDays(-2),
-        });
-
-        if (clubCount > 2)
-        {
-            db.ClubMembers.Add(new ClubMember
-            {
-                ClubId = clubs[2].Id,
-                UserId = r,
-                Role = ClubMemberRole.Admin,
-                MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-52),
-                ActivatedAt = DateTime.UtcNow.AddDays(-50),
-            });
-        }
-
-        foreach (var idx in new[] { 4, 6, 7 })
-        {
-            if (idx >= clubCount) continue;
-            if (idx == 1) continue;
-            if (db.ClubMembers.Any(m => m.ClubId == clubs[idx].Id && m.UserId == r)) continue;
-            db.ClubMembers.Add(new ClubMember
-            {
-                ClubId = clubs[idx].Id,
-                UserId = r,
-                Role = ClubMemberRole.Member,
-                MembershipStatus = ClubMembershipStatus.Active,
-                RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(10, 55)),
-                ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(8, 50)),
-            });
-        }
-
-        // Sarah & John: active in every club so club chat + summaries include all groups (upgrade pending invites).
-        for (var i = 0; i < clubCount; i++)
-        {
-            var cid = clubs[i].Id;
-            foreach (var uid in new[] { a, r })
-            {
-                var row = db.ClubMembers.FirstOrDefault(m => m.ClubId == cid && m.UserId == uid);
-                if (row != null)
-                {
-                    if (row.MembershipStatus == ClubMembershipStatus.Pending)
-                    {
-                        row.MembershipStatus = ClubMembershipStatus.Active;
-                        row.ActivatedAt ??= DateTime.UtcNow.AddDays(-25);
-                    }
-
-                    continue;
-                }
-
-                db.ClubMembers.Add(new ClubMember
-                {
-                    ClubId = cid,
-                    UserId = uid,
-                    Role = ClubMemberRole.Member,
-                    MembershipStatus = ClubMembershipStatus.Active,
-                    RequestedAt = DateTime.UtcNow.AddDays(-80 + i * 2),
-                    ActivatedAt = DateTime.UtcNow.AddDays(-79 + i * 2),
-                });
-            }
-        }
-
         var jerusalemLead = others[2];
         db.ClubInvites.Add(new ClubInvite
         {

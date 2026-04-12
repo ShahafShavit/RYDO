@@ -36,22 +36,42 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
             ct);
 
     [HttpGet("messages")]
-    public async Task<IActionResult> GetMessages(int clubId, [FromQuery] int? beforeMessageId, [FromQuery] int? take, CancellationToken ct)
+    public async Task<IActionResult> GetMessages(
+        int clubId,
+        [FromQuery] int? beforeMessageId,
+        [FromQuery] int? fromMessageId,
+        [FromQuery] int? take,
+        CancellationToken ct)
     {
         var uid = CurrentUserId();
         if (uid == null) return Unauthorized();
         if (!await IsActiveMemberAsync(clubId, uid.Value, ct)) return Forbid();
 
         var n = Math.Clamp(take ?? DefaultTake, 1, MaxTake);
+        var dtos = new List<object>();
+
+        // Load chronologically from first unread (or any anchor) through newer messages — pairs with summary.firstUnreadMessageId.
+        if (fromMessageId is int fm)
+        {
+            var rows = await db.ClubChatMessages.AsNoTracking()
+                .Include(m => m.Author)
+                .Where(m => m.ClubId == clubId && m.Id >= fm)
+                .OrderBy(m => m.Id)
+                .Take(n)
+                .ToListAsync(ct);
+            foreach (var m in rows)
+                dtos.Add(await BuildMessageDtoAsync(m, ct));
+            return Ok(dtos);
+        }
+
         var q = db.ClubChatMessages.AsNoTracking()
             .Include(m => m.Author)
             .Where(m => m.ClubId == clubId);
         if (beforeMessageId is int b)
             q = q.Where(m => m.Id < b);
-        var rows = await q.OrderByDescending(m => m.Id).Take(n).ToListAsync(ct);
-        rows.Reverse();
-        var dtos = new List<object>();
-        foreach (var m in rows)
+        var rowsDesc = await q.OrderByDescending(m => m.Id).Take(n).ToListAsync(ct);
+        rowsDesc.Reverse();
+        foreach (var m in rowsDesc)
             dtos.Add(await BuildMessageDtoAsync(m, ct));
         return Ok(dtos);
     }
