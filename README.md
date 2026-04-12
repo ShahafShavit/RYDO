@@ -11,7 +11,7 @@ After the database is first created (e.g. Docker Compose with a fresh SQL volume
 | `admin@rydo.test` | `Admin123!` | admin |
 | `user@rydo.test` | `User123!` | user |
 
-Additional **demo riders** (`rider003@rydo.test` … `rider036@rydo.test`, same password as `user@rydo.test`) are seeded so lists and metrics look populated—see [`server/Rydo.Api/Data/DbSeeder.cs`](server/Rydo.Api/Data/DbSeeder.cs). To re-seed, wipe the DB volume (e.g. `docker compose down -v`) and start again.
+Additional **demo riders** (`rider003@rydo.test` … `rider036@rydo.test`, same password as `user@rydo.test`) are seeded so lists and metrics look populated—see [`server/Rydo.Api/Data/DbSeeder.cs`](server/Rydo.Api/Data/DbSeeder.cs). To re-seed, wipe the DB volume (e.g. `docker compose down -v`) and start again. After pulling changes that add or alter EF entities or columns (for example `UserPreference`), recreate the volume the same way so `EnsureCreated` applies the full schema.
 
 These are **development-only** credentials; change or remove them for any real deployment.
 
