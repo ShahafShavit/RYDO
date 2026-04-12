@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Link, generatePath } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageCircle, X, ChevronLeft } from 'lucide-react';
+import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreferences } from '@/features/account/hooks/useAccount';
 import { env } from '@/shared/config/env';
@@ -135,7 +137,12 @@ export default function ClubChatDock() {
     Notification.requestPermission();
   }, []);
 
+  const closeDock = useCallback(() => setOpen(false), []);
+
   if (!user?.id) return null;
+
+  const clubPagePath =
+    clubId != null ? generatePath(ROUTES.clubDetails, { clubId: String(clubId) }) : null;
 
   return (
     <>
@@ -175,16 +182,27 @@ export default function ClubChatDock() {
                   >
                     <ChevronLeft className="h-5 w-5" aria-hidden />
                   </button>
-                  <UserAvatar
-                    avatarUrl={activeClub?.clubAvatarUrl}
-                    displayName={activeClub?.clubName || 'Club'}
-                    sizeClass="h-9 w-9"
-                    textClass="text-xs"
-                    className="shrink-0"
-                  />
-                  <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-fg">
-                    {activeClub?.clubName || 'Chat'}
-                  </h2>
+                  <Link
+                    to={clubPagePath}
+                    onClick={closeDock}
+                    className="shrink-0 rounded-full outline-none ring-offset-2 ring-offset-[var(--rydo-bg-deep)] focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                    aria-label={`View ${activeClub?.clubName || 'club'} page`}
+                  >
+                    <UserAvatar
+                      avatarUrl={activeClub?.clubAvatarUrl}
+                      displayName={activeClub?.clubName || 'Club'}
+                      sizeClass="h-9 w-9"
+                      textClass="text-xs"
+                      className="shrink-0"
+                    />
+                  </Link>
+                  <Link
+                    to={clubPagePath}
+                    onClick={closeDock}
+                    className="min-w-0 flex-1 truncate text-sm font-semibold text-fg hover:underline outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--rydo-bg-deep)]"
+                  >
+                    <h2 className="truncate">{activeClub?.clubName || 'Chat'}</h2>
+                  </Link>
                 </>
               ) : (
                 <h2 className="flex-1 text-sm font-semibold text-fg pl-1">Club chat</h2>
@@ -267,6 +285,21 @@ export default function ClubChatDock() {
                   ) : (
                     messages.map((m) => {
                       const isMine = Number(m.authorUserId) === Number(user?.id);
+                      const authorId = m.authorUserId;
+                      const profileTo =
+                        authorId != null && authorId !== ''
+                          ? generatePath(ROUTES.userProfile, { userId: String(authorId) })
+                          : null;
+                      const avatarEl = (
+                        <UserAvatar
+                          avatarUrl={m.authorAvatarUrl}
+                          displayName={m.authorDisplayName || 'Member'}
+                          sizeClass="h-7 w-7"
+                          textClass="text-[9px]"
+                          className="shrink-0"
+                        />
+                      );
+                      const nameLabel = isMine ? 'You' : m.authorDisplayName;
                       return (
                         <div
                           key={m.id}
@@ -278,13 +311,18 @@ export default function ClubChatDock() {
                               isMine ? 'flex-row-reverse' : 'flex-row'
                             )}
                           >
-                            <UserAvatar
-                              avatarUrl={m.authorAvatarUrl}
-                              displayName={m.authorDisplayName || 'Member'}
-                              sizeClass="h-7 w-7"
-                              textClass="text-[9px]"
-                              className="shrink-0"
-                            />
+                            {profileTo ? (
+                              <Link
+                                to={profileTo}
+                                onClick={closeDock}
+                                className="shrink-0 rounded-full outline-none ring-offset-2 ring-offset-[var(--rydo-bg-deep)] focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                                aria-label={`View ${m.authorDisplayName || 'member'} profile`}
+                              >
+                                {avatarEl}
+                              </Link>
+                            ) : (
+                              avatarEl
+                            )}
                             <article
                               className={cn(
                                 'min-w-0 flex-1 rounded-2xl border px-3 py-2',
@@ -299,7 +337,20 @@ export default function ClubChatDock() {
                                   isMine ? 'text-rydo-purple/95' : 'text-fg-muted'
                                 )}
                               >
-                                {isMine ? 'You' : m.authorDisplayName}
+                                {profileTo ? (
+                                  <Link
+                                    to={profileTo}
+                                    onClick={closeDock}
+                                    className={cn(
+                                      'rounded-sm hover:underline outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--rydo-bg-deep)]',
+                                      isMine ? 'text-rydo-purple/95' : 'text-fg-muted'
+                                    )}
+                                  >
+                                    {nameLabel}
+                                  </Link>
+                                ) : (
+                                  nameLabel
+                                )}
                                 <span className="ml-2 text-[10px] opacity-70">
                                   {m.sentAt ? new Date(m.sentAt).toLocaleString() : ''}
                                 </span>
