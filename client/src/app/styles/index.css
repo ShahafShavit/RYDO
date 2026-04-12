@@ -1,150 +1,259 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 @import "tailwindcss";
 
-/* ─── Base tokens (midnight — default) ─── */
+/* ─── Base tokens (midnight — default) · warm asphalt + copper signal + teal trail ─── */
 :root {
-  --rydo-bg: #171717;
-  --rydo-bg-deep: #0f0f10;
-  --rydo-surface: rgba(255, 255, 255, 0.05);
-  --rydo-surface-strong: rgba(255, 255, 255, 0.08);
-  --rydo-border: rgba(255, 255, 255, 0.12);
-  --rydo-border-strong: rgba(255, 255, 255, 0.2);
-  --rydo-text: #ffffff;
-  --rydo-text-muted: rgba(255, 255, 255, 0.72);
-  --rydo-text-subtle: rgba(255, 255, 255, 0.45);
-  --rydo-purple: #7b5cff;
-  --rydo-green: #21f1a8;
-  --rydo-success: #34d399;
+  --rydo-bg: #151311;
+  --rydo-bg-deep: #0a0908;
+  --rydo-surface: rgba(255, 248, 240, 0.045);
+  --rydo-surface-strong: rgba(255, 245, 230, 0.075);
+  --rydo-border: rgba(245, 230, 210, 0.11);
+  --rydo-border-strong: rgba(250, 235, 215, 0.18);
+  --rydo-text: #faf7f2;
+  --rydo-text-muted: rgba(245, 235, 220, 0.72);
+  --rydo-text-subtle: rgba(220, 205, 185, 0.45);
+  --rydo-purple: #e58a2c;
+  --rydo-green: #3ecfb9;
+  --rydo-success: #2db89e;
   --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --rydo-transition-nav: 300ms var(--rydo-ease-out);
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 42%);
-  --rydo-glow-purple: radial-gradient(circle at 20% 0%, rgba(123, 92, 255, 0.18), transparent 32%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-  --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --rydo-glass-outer: 0 16px 64px rgba(0, 0, 0, 0.35);
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 80% at 50% 100%,
+    rgba(229, 138, 44, 0.12),
+    transparent 55%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 12% 0%,
+    rgba(229, 138, 44, 0.14),
+    rgba(62, 207, 185, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 248, 240, 0.1),
+    rgba(40, 35, 30, 0.06)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 235, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 0, 0, 0.42);
+  --rydo-noise-opacity: 0.038;
 }
 
-/* Dark themes */
+/* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */
+
+/* Evergreen: bioluminescent forest — cool pine black, chartreuse + spring (no warm metals) */
 [data-theme="evergreen"] {
-  --rydo-bg: #131a17;
-  --rydo-bg-deep: #0a100d;
-  --rydo-surface: rgba(180, 220, 200, 0.07);
-  --rydo-surface-strong: rgba(180, 220, 200, 0.11);
-  --rydo-border: rgba(160, 205, 185, 0.18);
-  --rydo-border-strong: rgba(160, 205, 185, 0.28);
-  --rydo-text: #f4fdf8;
-  --rydo-text-muted: rgba(220, 245, 230, 0.75);
-  --rydo-text-subtle: rgba(200, 230, 210, 0.48);
-  --rydo-purple: #5eead4;
+  --rydo-bg: #0c1411;
+  --rydo-bg-deep: #030806;
+  --rydo-surface: rgba(120, 220, 160, 0.06);
+  --rydo-surface-strong: rgba(100, 200, 145, 0.1);
+  --rydo-border: rgba(130, 210, 175, 0.14);
+  --rydo-border-strong: rgba(150, 230, 190, 0.22);
+  --rydo-text: #ecfdf5;
+  --rydo-text-muted: rgba(200, 245, 220, 0.72);
+  --rydo-text-subtle: rgba(160, 215, 185, 0.44);
+  --rydo-purple: #bef264;
   --rydo-green: #4ade80;
-  --rydo-success: #4ade80;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(94, 234, 212, 0.14), transparent 44%);
-  --rydo-glow-purple: radial-gradient(circle at 18% 0%, rgba(74, 222, 128, 0.16), transparent 34%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(180, 220, 200, 0.14), rgba(120, 160, 140, 0.05));
-  --rydo-glass-inset: inset 0 1px 0 rgba(200, 235, 215, 0.14);
-  --rydo-glass-outer: 0 16px 56px rgba(0, 0, 0, 0.42);
+  --rydo-success: #22c55e;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 130% 85% at 50% 100%,
+    rgba(74, 222, 128, 0.14),
+    rgba(34, 197, 94, 0.05),
+    transparent 58%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 72% at 8% 0%,
+    rgba(190, 242, 100, 0.12),
+    rgba(52, 211, 153, 0.08),
+    transparent 50%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    155deg,
+    rgba(150, 230, 190, 0.1),
+    rgba(20, 60, 45, 0.08)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(180, 250, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 24, 12, 0.55);
+  --rydo-noise-opacity: 0.032;
 }
 
+/* Abyss: phosphor ocean — indigo void, cyan + periwinkle (cold; no amber) */
 [data-theme="abyss"] {
-  --rydo-bg: #121820;
-  --rydo-bg-deep: #0a0e14;
-  --rydo-surface: rgba(120, 170, 220, 0.08);
-  --rydo-surface-strong: rgba(120, 170, 220, 0.12);
-  --rydo-border: rgba(130, 180, 230, 0.2);
-  --rydo-border-strong: rgba(150, 200, 255, 0.32);
-  --rydo-text: #f0f7ff;
-  --rydo-text-muted: rgba(200, 220, 245, 0.76);
-  --rydo-text-subtle: rgba(170, 200, 235, 0.5);
-  --rydo-purple: #7cb4ff;
-  --rydo-green: #22d3ee;
+  --rydo-bg: #0a0f18;
+  --rydo-bg-deep: #030711;
+  --rydo-surface: rgba(80, 130, 200, 0.08);
+  --rydo-surface-strong: rgba(90, 140, 210, 0.12);
+  --rydo-border: rgba(100, 150, 220, 0.18);
+  --rydo-border-strong: rgba(130, 175, 245, 0.3);
+  --rydo-text: #f0f9ff;
+  --rydo-text-muted: rgba(186, 220, 250, 0.76);
+  --rydo-text-subtle: rgba(140, 185, 230, 0.48);
+  --rydo-purple: #22d3ee;
+  --rydo-green: #a5b4fc;
   --rydo-success: #38bdf8;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.16), transparent 44%);
-  --rydo-glow-purple: radial-gradient(circle at 22% 0%, rgba(124, 180, 255, 0.2), transparent 36%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(130, 180, 230, 0.14), rgba(80, 120, 180, 0.05));
-  --rydo-glass-inset: inset 0 1px 0 rgba(180, 210, 245, 0.14);
-  --rydo-glass-outer: 0 16px 64px rgba(0, 10, 24, 0.5);
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 82% at 50% 100%,
+    rgba(34, 211, 238, 0.12),
+    rgba(56, 189, 248, 0.06),
+    transparent 56%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 92% 70% at 20% 0%,
+    rgba(165, 180, 252, 0.14),
+    rgba(34, 211, 238, 0.08),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    160deg,
+    rgba(100, 150, 220, 0.14),
+    rgba(25, 45, 85, 0.08)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(180, 210, 255, 0.14);
+  --rydo-glass-outer: 0 20px 64px rgba(0, 12, 32, 0.58);
+  --rydo-noise-opacity: 0.034;
 }
 
 /* Light themes */
+
+/* Daylight: cool Nordic / open sky — blue-gray paper, cobalt + emerald (not warm cream) */
 [data-theme="daylight"] {
-  --rydo-bg: #f3f2ef;
-  --rydo-bg-deep: #e8e6e1;
-  --rydo-surface: rgba(0, 0, 0, 0.04);
-  --rydo-surface-strong: rgba(0, 0, 0, 0.07);
-  --rydo-border: rgba(0, 0, 0, 0.12);
-  --rydo-border-strong: rgba(0, 0, 0, 0.2);
-  --rydo-text: #1a1a1a;
-  --rydo-text-muted: rgba(30, 30, 30, 0.68);
-  --rydo-text-subtle: rgba(40, 40, 40, 0.48);
-  --rydo-purple: #5b4cdb;
-  --rydo-green: #0d9f7a;
-  --rydo-success: #0d8668;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(91, 76, 219, 0.1), transparent 46%);
-  --rydo-glow-purple: radial-gradient(circle at 20% 0%, rgba(91, 76, 219, 0.12), transparent 36%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
+  --rydo-bg: #e8edf3;
+  --rydo-bg-deep: #d9e2ec;
+  --rydo-surface: rgba(15, 40, 70, 0.045);
+  --rydo-surface-strong: rgba(15, 40, 70, 0.08);
+  --rydo-border: rgba(30, 58, 95, 0.12);
+  --rydo-border-strong: rgba(25, 50, 85, 0.2);
+  --rydo-text: #0f172a;
+  --rydo-text-muted: rgba(30, 41, 59, 0.68);
+  --rydo-text-subtle: rgba(51, 65, 85, 0.46);
+  --rydo-purple: #2563eb;
+  --rydo-green: #059669;
+  --rydo-success: #047857;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 88% at 50% 100%,
+    rgba(37, 99, 235, 0.08),
+    rgba(5, 150, 105, 0.05),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 72% at 12% 0%,
+    rgba(37, 99, 235, 0.1),
+    rgba(96, 165, 250, 0.06),
+    transparent 46%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(236, 242, 252, 0.62)
+  );
   --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  --rydo-glass-outer: 0 12px 40px rgba(0, 0, 0, 0.08);
+  --rydo-glass-outer: 0 12px 40px rgba(15, 40, 70, 0.08);
+  --rydo-noise-opacity: 0.024;
 }
 
+/* Sage: celadon mist + plum accent (botanical, not rust-on-green) */
 [data-theme="sage"] {
-  --rydo-bg: #eef2ec;
-  --rydo-bg-deep: #e2e8df;
-  --rydo-surface: rgba(40, 70, 50, 0.06);
-  --rydo-surface-strong: rgba(40, 70, 50, 0.1);
-  --rydo-border: rgba(40, 70, 50, 0.14);
-  --rydo-border-strong: rgba(40, 70, 50, 0.24);
-  --rydo-text: #152018;
-  --rydo-text-muted: rgba(25, 40, 30, 0.7);
-  --rydo-text-subtle: rgba(35, 55, 42, 0.48);
-  --rydo-purple: #2f7d4a;
-  --rydo-green: #1d6b52;
-  --rydo-success: #1d6b52;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(47, 125, 74, 0.1), transparent 46%);
-  --rydo-glow-purple: radial-gradient(circle at 18% 0%, rgba(47, 125, 74, 0.12), transparent 36%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 250, 246, 0.58));
+  --rydo-bg: #dde8e0;
+  --rydo-bg-deep: #cfdccf;
+  --rydo-surface: rgba(45, 75, 55, 0.07);
+  --rydo-surface-strong: rgba(40, 70, 52, 0.11);
+  --rydo-border: rgba(55, 85, 65, 0.14);
+  --rydo-border-strong: rgba(45, 75, 58, 0.24);
+  --rydo-text: #0f1f14;
+  --rydo-text-muted: rgba(25, 45, 35, 0.7);
+  --rydo-text-subtle: rgba(40, 60, 48, 0.46);
+  --rydo-purple: #6d28d9;
+  --rydo-green: #14532d;
+  --rydo-success: #166534;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 88% at 50% 100%,
+    rgba(20, 83, 45, 0.1),
+    rgba(109, 40, 217, 0.05),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 16% 0%,
+    rgba(109, 40, 217, 0.09),
+    rgba(74, 124, 89, 0.07),
+    transparent 46%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(230, 240, 233, 0.6)
+  );
   --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --rydo-glass-outer: 0 12px 44px rgba(20, 40, 28, 0.1);
+  --rydo-glass-outer: 0 12px 44px rgba(25, 45, 35, 0.1);
+  --rydo-noise-opacity: 0.025;
 }
 
+/* Dune: arid sunset — sand, rust, olive (warm; no shared teal with midnight) */
 [data-theme="dune"] {
-  --rydo-bg: #f4efe8;
-  --rydo-bg-deep: #ebe3d9;
-  --rydo-surface: rgba(80, 50, 30, 0.06);
-  --rydo-surface-strong: rgba(80, 50, 30, 0.1);
-  --rydo-border: rgba(80, 55, 40, 0.14);
-  --rydo-border-strong: rgba(80, 55, 40, 0.24);
-  --rydo-text: #221c18;
-  --rydo-text-muted: rgba(45, 38, 32, 0.7);
-  --rydo-text-subtle: rgba(60, 50, 42, 0.48);
-  --rydo-purple: #b45309;
-  --rydo-green: #0f766e;
-  --rydo-success: #0f766e;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(180, 83, 9, 0.1), transparent 46%);
-  --rydo-glow-purple: radial-gradient(circle at 22% 0%, rgba(15, 118, 110, 0.12), transparent 36%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(252, 248, 242, 0.58));
-  --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.88);
-  --rydo-glass-outer: 0 12px 44px rgba(60, 40, 24, 0.1);
+  --rydo-bg: #f0e6d8;
+  --rydo-bg-deep: #e3d4c4;
+  --rydo-surface: rgba(110, 60, 30, 0.06);
+  --rydo-surface-strong: rgba(100, 55, 28, 0.1);
+  --rydo-border: rgba(120, 75, 45, 0.14);
+  --rydo-border-strong: rgba(100, 60, 35, 0.24);
+  --rydo-text: #292524;
+  --rydo-text-muted: rgba(55, 48, 42, 0.7);
+  --rydo-text-subtle: rgba(75, 65, 55, 0.46);
+  --rydo-purple: #c2410c;
+  --rydo-green: #65a30d;
+  --rydo-success: #84cc16;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 90% at 50% 100%,
+    rgba(194, 65, 12, 0.1),
+    rgba(101, 163, 13, 0.07),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 74% at 22% 0%,
+    rgba(234, 88, 12, 0.1),
+    rgba(161, 98, 7, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    168deg,
+    rgba(255, 250, 242, 0.9),
+    rgba(245, 230, 210, 0.58)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 252, 248, 0.88);
+  --rydo-glass-outer: 0 12px 44px rgba(90, 55, 30, 0.1);
+  --rydo-noise-opacity: 0.03;
 }
 
 [data-theme="midnight"] {
-  /* Explicit block matches :root for clarity when switching */
-  --rydo-bg: #171717;
-  --rydo-bg-deep: #0f0f10;
-  --rydo-surface: rgba(255, 255, 255, 0.05);
-  --rydo-surface-strong: rgba(255, 255, 255, 0.08);
-  --rydo-border: rgba(255, 255, 255, 0.12);
-  --rydo-border-strong: rgba(255, 255, 255, 0.2);
-  --rydo-text: #ffffff;
-  --rydo-text-muted: rgba(255, 255, 255, 0.72);
-  --rydo-text-subtle: rgba(255, 255, 255, 0.45);
-  --rydo-purple: #7b5cff;
-  --rydo-green: #21f1a8;
-  --rydo-success: #34d399;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 42%);
-  --rydo-glow-purple: radial-gradient(circle at 20% 0%, rgba(123, 92, 255, 0.18), transparent 32%);
-  --rydo-glass-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-  --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --rydo-glass-outer: 0 16px 64px rgba(0, 0, 0, 0.35);
+  --rydo-bg: #151311;
+  --rydo-bg-deep: #0a0908;
+  --rydo-surface: rgba(255, 248, 240, 0.045);
+  --rydo-surface-strong: rgba(255, 245, 230, 0.075);
+  --rydo-border: rgba(245, 230, 210, 0.11);
+  --rydo-border-strong: rgba(250, 235, 215, 0.18);
+  --rydo-text: #faf7f2;
+  --rydo-text-muted: rgba(245, 235, 220, 0.72);
+  --rydo-text-subtle: rgba(220, 205, 185, 0.45);
+  --rydo-purple: #e58a2c;
+  --rydo-green: #3ecfb9;
+  --rydo-success: #2db89e;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 80% at 50% 100%,
+    rgba(229, 138, 44, 0.12),
+    transparent 55%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 12% 0%,
+    rgba(229, 138, 44, 0.14),
+    rgba(62, 207, 185, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 248, 240, 0.1),
+    rgba(40, 35, 30, 0.06)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 235, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 0, 0, 0.42);
+  --rydo-noise-opacity: 0.038;
 }
 
 @theme {
@@ -185,16 +294,37 @@ html[data-theme="dune"] {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   color: var(--rydo-text);
   background:
     var(--rydo-glow-bottom),
     var(--rydo-glow-purple),
-    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 40%, var(--rydo-bg) 100%);
+    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
   background-attachment: fixed;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Subtle film grain — static, no motion */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--rydo-noise-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+#root {
+  position: relative;
+  z-index: 2;
 }
 
 * {
@@ -230,8 +360,9 @@ select option {
 }
 
 .rydo-brand {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: 0.08em;
+  font-family: 'Chivo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .rydo-glass {

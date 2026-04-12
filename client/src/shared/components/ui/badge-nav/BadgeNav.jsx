@@ -22,11 +22,11 @@ export default function BadgeNav({ options = [], value, onChange, multi = false,
                 const isActive = multi ? (Array.isArray(activeValues) && activeValues.includes(option.value)) : value === option.value;
 
                 let activeStyles =
-                    'border-rydo-purple/40 bg-rydo-purple/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_16%,transparent)]';
+                    'border-rydo-purple/35 bg-rydo-purple/10 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]';
 
                 if (variant === 'success') {
                     activeStyles =
-                        'border-rydo-green/35 bg-rydo-green/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_14%,transparent)]';
+                        'border-rydo-green/30 bg-rydo-green/10 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]';
                 }
 
                 return (
@@ -36,7 +36,7 @@ export default function BadgeNav({ options = [], value, onChange, multi = false,
                         type="button"
                         onClick={() => handleClick(option)}
                         className={cn(
-                            'inline-flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-xl transition-all duration-300',
+                            'inline-flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-300',
                             isActive
                                 ? activeStyles
                                 : 'border-border bg-surface text-fg-muted hover:bg-surface-strong hover:text-fg hover:border-border-strong'

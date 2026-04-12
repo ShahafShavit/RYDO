@@ -1,12 +1,12 @@
 import { cn } from '@/shared/lib/cn';
 
 const SCHEMES = [
-  { id: 'midnight', label: 'Midnight', hint: 'Dark · violet & teal' },
-  { id: 'evergreen', label: 'Evergreen', hint: 'Dark · forest mint' },
-  { id: 'abyss', label: 'Abyss', hint: 'Dark · ocean blue' },
-  { id: 'daylight', label: 'Daylight', hint: 'Light · warm paper' },
-  { id: 'sage', label: 'Sage', hint: 'Light · soft green' },
-  { id: 'dune', label: 'Dune', hint: 'Light · warm sand' },
+  { id: 'midnight', label: 'Midnight', hint: 'Dark · copper & teal' },
+  { id: 'evergreen', label: 'Evergreen', hint: 'Dark · chartreuse & spring' },
+  { id: 'abyss', label: 'Abyss', hint: 'Dark · cyan & periwinkle' },
+  { id: 'daylight', label: 'Daylight', hint: 'Light · cool sky & cobalt' },
+  { id: 'sage', label: 'Sage', hint: 'Light · celadon & plum' },
+  { id: 'dune', label: 'Dune', hint: 'Light · sand & rust' },
 ];
 
 export function ColorSchemePicker({ value, onChange, disabled }) {

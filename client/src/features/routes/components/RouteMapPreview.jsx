@@ -33,9 +33,9 @@ function applyRouteView(map, layer) {
 }
 
 export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true, scrubDistanceM = null }) {
-  const lineColor = useThemeCssVar('--rydo-purple', '#7B5CFF');
-  const markerStroke = useThemeCssVar('--rydo-green', '#21F1A8');
-  const markerFill = useThemeCssVar('--rydo-bg-deep', '#0f0f10');
+  const lineColor = useThemeCssVar('--rydo-purple', '#e58a2c');
+  const markerStroke = useThemeCssVar('--rydo-green', '#3ecfb9');
+  const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
 
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);

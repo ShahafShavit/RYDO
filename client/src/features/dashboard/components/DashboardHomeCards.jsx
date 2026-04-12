@@ -4,6 +4,7 @@ import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
+import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 
 const RouteMapWithElevation = lazy(() => import('@/features/routes/components/RouteMapWithElevation'));
 
@@ -179,7 +180,7 @@ export default function DashboardHomeCards() {
                 <h3 className="mt-3 text-2xl font-semibold">{home.lastRide.routeName}</h3>
               </div>
               <span className="rounded-full bg-surface px-4 py-2 text-sm text-fg-muted">
-                {home.lastRide.difficulty}
+                {formatTrailMetaLabel(home.lastRide.difficulty)}
               </span>
             </div>
 

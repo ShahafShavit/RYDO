@@ -228,8 +228,8 @@ export default function ClubDetailPage() {
                 <span
                   className={
                     club.visibility === 'private'
-                      ? 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/18 px-3 text-sm capitalize leading-none text-violet-100/95'
-                      : 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-emerald-400/28 bg-emerald-500/14 px-3 text-sm capitalize leading-none text-emerald-50/95'
+                      ? 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-rydo-purple/35 bg-rydo-purple/16 px-3 text-sm capitalize leading-none text-fg'
+                      : 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-rydo-green/30 bg-rydo-green/14 px-3 text-sm capitalize leading-none text-fg'
                   }
                 >
                   {club.visibility}
@@ -240,7 +240,7 @@ export default function ClubDetailPage() {
                   type="button"
                   size="sm"
                   aria-label="Club settings"
-                  className="cursor-pointer !h-8 !min-h-0 shrink-0 !px-3 !py-0 text-sm leading-none shadow-[0_0_16px_rgba(123,92,255,0.14)]"
+                  className="cursor-pointer !h-8 !min-h-0 shrink-0 !px-3 !py-0 text-sm leading-none shadow-[0_0_16px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)]"
                   onClick={() => setSettingsOpen(true)}
                 >
                   Settings
@@ -252,8 +252,8 @@ export default function ClubDetailPage() {
                   <span
                     className={
                       club.visibility === 'private'
-                        ? 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-violet-400/35 bg-violet-500/15 px-3.5 text-sm capitalize leading-none text-violet-200/90'
-                        : 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-500/12 px-3.5 text-sm capitalize leading-none text-emerald-100/90'
+                        ? 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-purple/35 bg-rydo-purple/14 px-3.5 text-sm capitalize leading-none text-fg'
+                        : 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-green/28 bg-rydo-green/12 px-3.5 text-sm capitalize leading-none text-fg'
                     }
                   >
                     {club.visibility}

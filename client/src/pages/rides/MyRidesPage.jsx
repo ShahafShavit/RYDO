@@ -12,6 +12,7 @@ import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
@@ -177,7 +178,7 @@ function HistoryRideCard({ entry }) {
       <CompactRouteMapPreview preview={entry.preview} />
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge variant="neon">Logged</Badge>
-        {entry.routeDifficulty ? <Badge>{String(entry.routeDifficulty).replace(/_/g, ' ')}</Badge> : null}
+        {entry.routeDifficulty ? <Badge>{formatTrailMetaLabel(entry.routeDifficulty)}</Badge> : null}
         {kind === 'club' ? (
           <Badge variant="success">Club: {entry.clubName || 'Club'}</Badge>
         ) : kind === 'personal' ? (

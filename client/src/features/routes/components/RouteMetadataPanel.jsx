@@ -3,6 +3,7 @@ import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -26,8 +27,8 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
         </span>
       </>,
     ],
-    ['Difficulty', route.difficulty || '—'],
-    ['Terrain', route.terrain || '—'],
+    ['Difficulty', formatTrailMetaLabel(route.difficulty)],
+    ['Terrain', formatTrailMetaLabel(route.terrain)],
     ['Region', route.region || '—'],
     ['Total elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],
     ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—'],
