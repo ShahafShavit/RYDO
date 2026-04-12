@@ -225,19 +225,22 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         else
             q = q.Where(m => m.MembershipStatus == ClubMembershipStatus.Active);
 
-        // Admins first, then active members, then pending; within each tier sort by name.
-        var list = await q
+        // Materialize first, then sort in memory. Ordering this query in SQL (Include + ThenBy on
+        // navigation properties) can produce incorrect joins and omit rows (e.g. pending members).
+        var list = await q.ToListAsync(ct);
+
+        var sorted = list
             .OrderBy(m =>
                 m.MembershipStatus == ClubMembershipStatus.Pending
                     ? 2
                     : m.Role == ClubMemberRole.Admin
                         ? 0
                         : 1)
-            .ThenBy(m => m.User!.LastName)
-            .ThenBy(m => m.User!.FirstName)
-            .ToListAsync(ct);
+            .ThenBy(m => m.User?.LastName ?? "", StringComparer.Ordinal)
+            .ThenBy(m => m.User?.FirstName ?? "", StringComparer.Ordinal)
+            .ToList();
 
-        return Ok(list.Select(MemberDto));
+        return Ok(sorted.Select(MemberDto));
     }
 
     [HttpPost("{id:int}/join")]
