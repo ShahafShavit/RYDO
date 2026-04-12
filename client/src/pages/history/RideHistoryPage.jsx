@@ -9,7 +9,7 @@ export default function RideHistoryPage() {
   return (
     <section className="space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/42">History</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">History</p>
         <h1 className="mt-2 text-3xl font-semibold">Ride history</h1>
       </div>
       <RideSummaryStats />

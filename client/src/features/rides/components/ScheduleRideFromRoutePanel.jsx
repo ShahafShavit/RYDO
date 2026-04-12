@@ -69,7 +69,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
     <>
       {!headless ? (
         <>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Plan</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Plan</p>
           <h2 className="mt-2 text-xl font-semibold">Schedule a ride</h2>
         </>
       ) : null}
@@ -79,8 +79,8 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
           type="button"
           className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
             mode === 'personal'
-              ? 'bg-[#7B5CFF]/22 text-white shadow-[0_0_20px_rgba(123,92,255,0.2)]'
-              : 'bg-white/5 text-white/72 hover:bg-white/10'
+              ? 'bg-rydo-purple/22 text-fg shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_20%,transparent)]'
+              : 'bg-surface text-fg-muted hover:bg-surface-strong'
           }`}
           onClick={() => {
             setMode('personal');
@@ -93,8 +93,8 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
           type="button"
           className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
             mode === 'club'
-              ? 'bg-[#7B5CFF]/22 text-white shadow-[0_0_20px_rgba(123,92,255,0.2)]'
-              : 'bg-white/5 text-white/72 hover:bg-white/10'
+              ? 'bg-rydo-purple/22 text-fg shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_20%,transparent)]'
+              : 'bg-surface text-fg-muted hover:bg-surface-strong'
           }`}
           onClick={() => {
             setMode('club');
@@ -112,7 +112,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
           onFocus={() => setScheduleBanner(null)}
         >
           {scheduleBanner && mode === 'personal' ? (
-            <p className="rounded-2xl border border-[#21F1A8]/35 bg-[#21F1A8]/10 px-4 py-3 text-sm text-[#b8ffe8]">
+            <p className="rounded-2xl border border-rydo-green/35 bg-rydo-green/10 px-4 py-3 text-sm text-rydo-green">
               {scheduleBanner}
             </p>
           ) : null}
@@ -148,22 +148,22 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
           </Button>
         </form>
       ) : memberClubs.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/72">
+        <div className="mt-6 rounded-2xl border border-border bg-surface p-4 text-sm text-fg-muted">
           <p>You need to join a club before scheduling a club ride.</p>
-          <Link to={ROUTES.clubs} className="mt-3 inline-block text-[#7B5CFF] hover:underline">
+          <Link to={ROUTES.clubs} className="mt-3 inline-block text-rydo-purple hover:underline">
             Browse clubs
           </Link>
         </div>
       ) : (
         <div className="mt-6 space-y-4" onFocus={() => setScheduleBanner(null)}>
           {scheduleBanner && mode === 'club' ? (
-            <p className="rounded-2xl border border-[#21F1A8]/35 bg-[#21F1A8]/10 px-4 py-3 text-sm text-[#b8ffe8]">
+            <p className="rounded-2xl border border-rydo-green/35 bg-rydo-green/10 px-4 py-3 text-sm text-rydo-green">
               {scheduleBanner}
             </p>
           ) : null}
           <FormField label="Club">
             <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-[#7B5CFF]/60 focus:outline-none"
+              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg focus:border-rydo-purple/60 focus:outline-none"
               value={clubId}
               onChange={(e) => setClubId(e.target.value)}
               required
@@ -189,7 +189,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
               }}
             />
           ) : (
-            <p className="text-sm text-white/56">Choose a club to continue.</p>
+            <p className="text-sm text-fg-muted">Choose a club to continue.</p>
           )}
         </div>
       )}

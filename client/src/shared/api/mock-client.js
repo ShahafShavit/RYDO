@@ -99,6 +99,7 @@ let preferences = {
   distanceUnit: 'km',
   notificationsEnabled: true,
   publicInRouteRiderLists: true,
+  colorScheme: 'midnight',
 };
 
 function sleep(ms) {

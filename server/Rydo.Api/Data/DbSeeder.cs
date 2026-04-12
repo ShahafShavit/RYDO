@@ -1249,6 +1249,7 @@ public static class DbSeeder
                 DistanceUnit = units[rnd.Next(2)],
                 NotificationsEnabled = rnd.Next(6) != 0,
                 PublicInRouteRiderLists = rnd.Next(9) != 0,
+                ColorScheme = "midnight",
             });
         }
     }

@@ -60,8 +60,8 @@ export default function CreateRideForm({
   const formInner = (
     <form className={embedded ? 'mt-5 space-y-4' : 'mt-5 space-y-4'} onSubmit={handleSubmit}>
       {!embedded && clubName ? (
-        <p className="text-sm text-white/56">
-          Club: <span className="text-white/88">{clubName}</span>
+        <p className="text-sm text-fg-muted">
+          Club: <span className="text-fg/90">{clubName}</span>
         </p>
       ) : null}
       <FormField label="Ride name">
@@ -74,7 +74,7 @@ export default function CreateRideForm({
         <FormField label="Route">
           <select
             name="routeId"
-            className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25 disabled:opacity-50"
+            className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25 disabled:opacity-50"
             value={form.routeId}
             onChange={handleChange}
             disabled={routesLoading}
@@ -88,7 +88,7 @@ export default function CreateRideForm({
           </select>
         </FormField>
       ) : (
-        <p className="text-sm text-white/56">
+        <p className="text-sm text-fg-muted">
           Route is fixed to this page — #{fixedRouteId}
         </p>
       )}
@@ -98,7 +98,7 @@ export default function CreateRideForm({
       <FormField label="Max participants">
         <Input name="maxParticipants" value={form.maxParticipants} onChange={handleChange} type="number" min={1} />
       </FormField>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-fg/80">
         <input
           type="checkbox"
           name="scheduleForWholeClub"
@@ -110,7 +110,7 @@ export default function CreateRideForm({
       <div
         className={
           embedded
-            ? 'mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-white/10 pt-5'
+            ? 'mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5'
             : 'mt-2 flex flex-wrap items-center justify-end gap-3'
         }
       >

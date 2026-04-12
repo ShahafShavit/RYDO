@@ -186,7 +186,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
             type="button"
             onClick={handleClose}
             disabled={loading}
-            className="text-white/60 transition hover:text-white"
+            className="text-fg-muted transition hover:text-fg"
           >
             ✕
           </button>
@@ -207,7 +207,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 accept=".gpx"
                 onChange={handleFileSelect}
                 disabled={loading}
-                className="block w-full text-white/60 file:mr-4 file:rounded-lg file:border-0 file:bg-[#7B5CFF]/30 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#7B5CFF] hover:file:bg-[#7B5CFF]/40"
+                className="block w-full text-fg-muted file:mr-4 file:rounded-lg file:border-0 file:bg-rydo-purple/30 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-rydo-purple hover:file:bg-rydo-purple/40"
               />
             </label>
           </div>
@@ -217,7 +217,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
           <div className="space-y-6">
             <Suspense
               fallback={
-                <div className="mb-4 flex h-64 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/40">
+                <div className="mb-4 flex h-64 items-center justify-center rounded-2xl border border-border bg-surface text-fg-subtle">
                   Loading Map...
                 </div>
               }
@@ -235,21 +235,21 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
             ) : null}
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-widest text-white/42">Distance</p>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className="text-xs uppercase tracking-widest text-fg-subtle">Distance</p>
                 <p className="mt-2 text-2xl font-semibold">{formatKm(stats.distanceKm, 2)}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-widest text-white/42">Elevation gain</p>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className="text-xs uppercase tracking-widest text-fg-subtle">Elevation gain</p>
                 <p className="mt-2 text-2xl font-semibold">{missingElevation ? '—' : `${stats.elevationGainM} m`}</p>
                 {!missingElevation ? (
-                  <p className="mt-1 text-[11px] text-white/40">Smoothed track, noise filtered</p>
+                  <p className="mt-1 text-[11px] text-fg-subtle">Smoothed track, noise filtered</p>
                 ) : null}
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-widest text-white/42">Duration</p>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className="text-xs uppercase tracking-widest text-fg-subtle">Duration</p>
                 <p className="mt-2 text-2xl font-semibold">{formData.estimatedDurationMinutes} min</p>
-                <p className="mt-1 text-[11px] leading-snug text-white/40">
+                <p className="mt-1 text-[11px] leading-snug text-fg-subtle">
                   {durationSuggestionSource === 'timestamps' &&
                     'Recorded — from GPX clock times (first to last point with times)'}
                   {durationSuggestionSource === 'pace' &&
@@ -268,7 +268,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="e.g., Oak Ridge Loop"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
                 />
               </div>
 
@@ -279,9 +279,9 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   min={1}
                   value={formData.estimatedDurationMinutes}
                   onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
                 />
-                <p className="mt-2 text-[12px] leading-snug text-white/45">
+                <p className="mt-2 text-[12px] leading-snug text-fg-subtle">
                   {durationSuggestionSource === 'timestamps' && (
                     <>
                       This matches the GPX recording clock (wall time). Change it only if you want to store a different
@@ -291,7 +291,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   {durationSuggestionSource === 'pace' && (
                     <>
                       Inferred from track length at{' '}
-                      <span className="text-white/70">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock
+                      <span className="text-fg-muted">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock
                       in the file. Adjust minutes to match how you ride.
                     </>
                   )}
@@ -308,7 +308,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 <select
                   value={formData.difficulty}
                   onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg focus:border-rydo-purple/50 focus:outline-none"
                 >
                   {DIFFICULTY_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -323,7 +323,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 <select
                   value={formData.terrain}
                   onChange={(e) => handleInputChange('terrain', e.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg focus:border-rydo-purple/50 focus:outline-none"
                 >
                   {TERRAIN_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -340,7 +340,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   value={formData.region}
                   onChange={(e) => handleInputChange('region', e.target.value)}
                   placeholder="e.g., Carmel Ridge"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
                 />
               </div>
 
@@ -351,7 +351,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Add notes about the route..."
                   rows="3"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:border-[#7B5CFF]/50 focus:outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
                 />
               </div>
             </div>

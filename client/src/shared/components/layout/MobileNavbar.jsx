@@ -49,16 +49,16 @@ export default function MobileNavbar({ isAdminLayout }) {
 
     return (
         <>
-            <div className="md:hidden sticky top-0 z-50 w-full border-b border-white/8 bg-black/40 backdrop-blur-xl">
+            <div className="md:hidden sticky top-0 z-50 w-full border-b border-border bg-black/40 backdrop-blur-xl">
                 <div className="flex items-center justify-between px-4 py-4">
                     <div className="flex items-center gap-3">
-                        <span className={`h-3 w-3 rounded-full ${isAdminLayout ? 'bg-[#7B5CFF] shadow-[0_0_18px_rgba(123,92,255,0.75)]' : 'bg-[#21F1A8] shadow-[0_0_18px_rgba(33,241,168,0.65)]'}`} />
+                        <span className={`h-3 w-3 rounded-full ${isAdminLayout ? 'bg-rydo-purple shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_75%,transparent)]' : 'bg-rydo-green shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_65%,transparent)]'}`} />
                         <AppLogo />
                     </div>
                     <button
                         type="button"
                         onClick={() => setIsOpen((o) => !o)}
-                        className="text-white p-2 rounded-lg transition-colors hover:bg-white/10"
+                        className="text-fg p-2 rounded-lg transition-colors hover:bg-surface-strong"
                         aria-expanded={isOpen}
                         aria-controls="mobile-nav-panel"
                         aria-label={isOpen ? 'Close menu' : 'Open menu'}
@@ -77,7 +77,7 @@ export default function MobileNavbar({ isAdminLayout }) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={tFast}
-                            className={`absolute top-full left-0 w-full border-b border-white/8 p-4 flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[#0f0f10]' : 'bg-[#171717]'}`}
+                            className={`absolute top-full left-0 w-full border-b border-border p-4 flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[var(--rydo-bg-deep)]' : 'bg-[var(--rydo-bg-deep)]'}`}
                         >
                             {navItems.map((item, index) => (
                                 <NavLink
@@ -87,8 +87,8 @@ export default function MobileNavbar({ isAdminLayout }) {
                                     onClick={() => setIsOpen(false)}
                                     className={({ isActive }) =>
                                         `rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
-                                            ? 'bg-[#7B5CFF]/18 text-white shadow-[0_0_24px_rgba(123,92,255,0.18)]'
-                                            : 'text-white/72 hover:bg-white/5 hover:text-white'
+                                            ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                                            : 'text-fg-muted hover:bg-surface hover:text-fg'
                                         }`
                                     }
                                 >
@@ -109,14 +109,14 @@ export default function MobileNavbar({ isAdminLayout }) {
                                     </Button>
                                 </NavLink>
                             )}
-                            <div className="mt-4 pt-4 border-t border-white/8">
+                            <div className="mt-4 pt-4 border-t border-border">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         logout();
                                         setIsOpen(false);
                                     }}
-                                    className="w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition-colors duration-200"
+                                    className="w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm text-red-400 hover:bg-surface transition-colors duration-200"
                                 >
                                     <LogOut size={18} />
                                     Logout

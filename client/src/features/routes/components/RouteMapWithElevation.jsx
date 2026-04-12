@@ -5,7 +5,7 @@ import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAna
 const RouteMapPreview = lazy(() => import('./RouteMapPreview'));
 
 const mapFallback = (
-  <div className="flex h-64 items-center justify-center rounded-3xl border border-white/10 bg-white/5 text-sm text-white/40">
+  <div className="flex h-64 items-center justify-center rounded-3xl border border-border bg-surface text-sm text-fg-subtle">
     Loading map…
   </div>
 );

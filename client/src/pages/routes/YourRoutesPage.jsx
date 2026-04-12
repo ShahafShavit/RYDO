@@ -57,7 +57,7 @@ export default function YourRoutesPage() {
     <section className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Library</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
           <h1 className="mt-2 text-3xl font-semibold">My Routes</h1>
         </div>
         <Button variant="neon" type="button" className="shrink-0 sm:mt-8" onClick={openUploadModal}>
@@ -68,13 +68,13 @@ export default function YourRoutesPage() {
       <BadgeNav options={tabs} value={activeTab} onChange={setActiveTab} className="max-w-100" />
 
       {isLoading ? (
-        <div className="text-white/56">Loading routes...</div>
+        <div className="text-fg-muted">Loading routes...</div>
       ) : isError ? (
         <div className="text-red-400">Failed to load routes. Please try again later.</div>
       ) : !currentRoutes || currentRoutes.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-          <h2 className="mb-2 text-xl text-white">No routes found</h2>
-          <p className="mb-6 text-white/56">
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+          <h2 className="mb-2 text-xl text-fg">No routes found</h2>
+          <p className="mb-6 text-fg-muted">
             {isActiveUploaded
               ? "You haven't uploaded any routes yet."
               : "You haven't saved any favorite routes yet."}

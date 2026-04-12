@@ -2,9 +2,9 @@ import { cn } from '@/shared/lib/cn';
 
 export default function Badge({ children, className, variant = 'default' }) {
   const styles = {
-    default: 'border-white/12 bg-white/6 text-white',
-    neon: 'border-[#7B5CFF]/40 bg-[#7B5CFF]/10 text-white shadow-[0_0_18px_rgba(123,92,255,0.16)]',
-    success: 'border-[#21F1A8]/35 bg-[#21F1A8]/10 text-white shadow-[0_0_18px_rgba(33,241,168,0.14)]',
+    default: 'border-border bg-surface text-fg',
+    neon: 'border-rydo-purple/40 bg-rydo-purple/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_16%,transparent)]',
+    success: 'border-rydo-green/35 bg-rydo-green/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_14%,transparent)]',
     warning:
       'border-amber-500/45 bg-amber-500/12 text-amber-50 shadow-[0_0_14px_rgba(245,158,11,0.12)]',
   };

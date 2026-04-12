@@ -59,7 +59,7 @@ export default function RoutesExplorePage() {
   return (
     <section className="space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/42">Repository</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Repository</p>
         <h1 className="mt-2 text-3xl font-semibold">Explore routes</h1>
       </div>
       <RouteFilters
@@ -77,14 +77,14 @@ export default function RoutesExplorePage() {
         </p>
       ) : null}
       {isLoading ? (
-        <p className="text-white/60">Loading routes…</p>
+        <p className="text-fg-muted">Loading routes…</p>
       ) : routes?.length === 0 ? (
-        <div className="py-12 text-center rounded-[28px] border border-white/5 bg-white/5">
-          <p className="text-white/60">No routes found matching your filters.</p>
+        <div className="py-12 text-center rounded-[28px] border border-border bg-surface">
+          <p className="text-fg-muted">No routes found matching your filters.</p>
           <button
             type="button"
             onClick={() => setFilters(defaultExploreFilters())}
-            className="mt-4 text-sm text-[#7B5CFF] hover:underline"
+            className="mt-4 text-sm text-rydo-purple hover:underline"
           >
             Clear filters
           </button>
@@ -98,7 +98,7 @@ export default function RoutesExplorePage() {
           </div>
           <div ref={sentinelRef} className="flex min-h-10 justify-center py-4" aria-hidden="true" />
           {isFetchingNextPage ? (
-            <p className="text-center text-sm text-white/48">Loading more…</p>
+            <p className="text-center text-sm text-fg-subtle">Loading more…</p>
           ) : null}
         </>
       )}

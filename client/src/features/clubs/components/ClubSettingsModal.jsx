@@ -52,19 +52,19 @@ export default function ClubSettingsModal({
           <h2 id="club-settings-title" className="text-xl font-semibold">
             Club settings
           </h2>
-          <button type="button" className="shrink-0 text-white/60 transition hover:text-white" onClick={onClose} aria-label="Close">
+          <button type="button" className="shrink-0 text-fg-muted transition hover:text-fg" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
 
         <form
-          className="mt-6 space-y-4 border-b border-white/10 pb-6"
+          className="mt-6 space-y-4 border-b border-border pb-6"
           onSubmit={(e) => {
             e.preventDefault();
             patchMut.mutate();
           }}
         >
-          <p className="text-sm font-semibold text-white/88">Details</p>
+          <p className="text-sm font-semibold text-fg/90">Details</p>
           <FormField label="Club name">
             <Input
               value={form.name}
@@ -89,7 +89,7 @@ export default function ClubSettingsModal({
           </FormField>
           <FormField label="Visibility">
             <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25"
+              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25"
               value={form.visibility}
               onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))}
             >
@@ -105,15 +105,15 @@ export default function ClubSettingsModal({
           </div>
         </form>
 
-        <div className="mt-6 border-b border-white/10 pb-6">
-          <p className="text-sm font-semibold text-white/88">Invites</p>
+        <div className="mt-6 border-b border-border pb-6">
+          <p className="text-sm font-semibold text-fg/90">Invites</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button variant="secondary" type="button" onClick={() => inviteMut.mutate()} disabled={inviteMut.isPending}>
               {inviteMut.isPending ? 'Creating…' : 'Create invite code'}
             </Button>
             {inviteMut.data?.inviteCode ? (
-              <p className="text-sm text-white/72">
-                Code: <span className="font-mono text-white">{inviteMut.data.inviteCode}</span>
+              <p className="text-sm text-fg-muted">
+                Code: <span className="font-mono text-fg">{inviteMut.data.inviteCode}</span>
               </p>
             ) : null}
           </div>

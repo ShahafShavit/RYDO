@@ -26,7 +26,7 @@ export default function ClubMemberChip({
 
   const adminAvatarClass =
     member.role === 'admin' && isActive
-      ? 'ring-2 ring-[#21F1A8]/75 ring-offset-[3px] ring-offset-zinc-950'
+      ? 'ring-2 ring-rydo-green/75 ring-offset-[3px] ring-offset-[var(--rydo-bg-deep)]'
       : undefined;
 
   const busy =
@@ -47,13 +47,13 @@ export default function ClubMemberChip({
     <li
       onMouseLeave={closeMenu}
       className={cn(
-        'flex min-w-0 max-w-full items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] py-1 pl-1 pr-1.5 text-sm text-white/80 sm:max-w-md',
+        'flex min-w-0 max-w-full items-center gap-1 rounded-full border border-border bg-surface py-1 pl-1 pr-1.5 text-sm text-fg/80 sm:max-w-md',
         showActions && 'relative z-0 has-[details[open]]:z-30',
       )}
     >
       <Link
         to={generatePath(ROUTES.userProfile, { userId: String(member.userId) })}
-        className="flex min-w-0 flex-1 items-center gap-2 hover:text-white"
+        className="flex min-w-0 flex-1 items-center gap-2 hover:text-fg"
       >
         <UserAvatar
           avatarUrl={member.avatarUrl}
@@ -70,10 +70,10 @@ export default function ClubMemberChip({
       {showActions ? (
         <details
           ref={detailsRef}
-          className="relative shrink-0 open:[&>summary]:bg-white/10 open:[&>summary]:text-white/90"
+          className="relative shrink-0 open:[&>summary]:bg-surface-strong open:[&>summary]:text-fg/90"
         >
           <summary
-            className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-full text-white/45 opacity-80 transition hover:bg-white/10 hover:text-white hover:opacity-100 [&::-webkit-details-marker]:hidden"
+            className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-full text-fg-subtle opacity-80 transition hover:bg-surface-strong hover:text-fg hover:opacity-100 [&::-webkit-details-marker]:hidden"
             aria-label="Member actions"
           >
             ⋮
@@ -83,7 +83,7 @@ export default function ClubMemberChip({
             role="presentation"
           >
             <div
-              className="rounded-xl border border-white/12 bg-zinc-950/98 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.65)] backdrop-blur-md"
+              className="rounded-xl border border-border bg-zinc-950/98 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.65)] backdrop-blur-md"
               role="menu"
             >
             {isPending ? (
@@ -92,7 +92,7 @@ export default function ClubMemberChip({
                   type="button"
                   role="menuitem"
                   disabled={busy}
-                  className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-white/88 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={(e) => {
                     approveMut.mutate(member.userId);
                     closeParentDetails(e.currentTarget);
@@ -104,7 +104,7 @@ export default function ClubMemberChip({
                   type="button"
                   role="menuitem"
                   disabled={busy}
-                  className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-amber-200/95 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-amber-200/95 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={(e) => {
                     rejectMut.mutate(member.userId);
                     closeParentDetails(e.currentTarget);
@@ -120,7 +120,7 @@ export default function ClubMemberChip({
                     type="button"
                     role="menuitem"
                     disabled={busy}
-                    className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-white/88 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={(e) => {
                       promoteMut.mutate(member.userId);
                       closeParentDetails(e.currentTarget);
@@ -133,7 +133,7 @@ export default function ClubMemberChip({
                     type="button"
                     role="menuitem"
                     disabled={busy}
-                    className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-white/88 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={(e) => {
                       demoteMut.mutate(member.userId);
                       closeParentDetails(e.currentTarget);

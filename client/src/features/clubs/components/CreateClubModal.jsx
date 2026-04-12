@@ -34,7 +34,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
       <Card className="w-full" role="dialog" aria-modal="true">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-xl font-semibold">Create a club</h2>
-          <button type="button" className="text-white/60 transition hover:text-white" onClick={onClose} aria-label="Close">
+          <button type="button" className="text-fg-muted transition hover:text-fg" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -69,7 +69,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
           </FormField>
           <FormField label="Visibility">
             <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition-colors focus:border-[#7B5CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#7B5CFF]/25"
+              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25"
               value={form.visibility}
               onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))}
             >

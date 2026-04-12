@@ -8,12 +8,12 @@ const MotionDiv = motion.div;
 function RouteTransitionFallback() {
   return (
     <div
-      className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-4 rounded-2xl bg-white/[0.06] px-6 py-12"
+      className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-4 rounded-2xl bg-surface px-6 py-12"
       aria-busy="true"
       aria-label="Loading page"
     >
-      <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
-      <p className="text-sm text-white/45">Loading…</p>
+      <div className="h-8 w-8 rounded-full border-2 border-border-strong border-t-rydo-purple animate-spin" />
+      <p className="text-sm text-fg-subtle">Loading…</p>
     </div>
   );
 }
@@ -41,7 +41,7 @@ export default function AnimatedOutlet() {
     <div className="relative min-h-0 min-w-0">
       {isLoadingRoute ? (
         <div
-          className="pointer-events-none absolute left-0 right-0 top-0 z-20 h-0.5 rounded-full bg-[#7B5CFF]/35 animate-pulse"
+          className="pointer-events-none absolute left-0 right-0 top-0 z-20 h-0.5 rounded-full bg-rydo-purple/35 animate-pulse"
           aria-hidden
         />
       ) : null}

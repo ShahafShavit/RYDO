@@ -22,11 +22,11 @@ export default function BadgeNav({ options = [], value, onChange, multi = false,
                 const isActive = multi ? (Array.isArray(activeValues) && activeValues.includes(option.value)) : value === option.value;
 
                 let activeStyles =
-                    'border-[#7B5CFF]/40 bg-[#7B5CFF]/10 text-white shadow-[0_0_18px_rgba(123,92,255,0.16)]';
+                    'border-rydo-purple/40 bg-rydo-purple/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_16%,transparent)]';
 
                 if (variant === 'success') {
                     activeStyles =
-                        'border-[#21F1A8]/35 bg-[#21F1A8]/10 text-white shadow-[0_0_18px_rgba(33,241,168,0.14)]';
+                        'border-rydo-green/35 bg-rydo-green/10 text-fg shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_14%,transparent)]';
                 }
 
                 return (
@@ -39,7 +39,7 @@ export default function BadgeNav({ options = [], value, onChange, multi = false,
                             'inline-flex items-center justify-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-xl transition-all duration-300',
                             isActive
                                 ? activeStyles
-                                : 'border-white/12 bg-white/6 text-white/70 hover:bg-white/10 hover:text-white hover:border-white/20'
+                                : 'border-border bg-surface text-fg-muted hover:bg-surface-strong hover:text-fg hover:border-border-strong'
                         )}
                     >
                         {option.label}

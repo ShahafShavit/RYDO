@@ -53,8 +53,8 @@ export default function LoginForm() {
 
         {error && <p className="text-red-400">{error}</p>}
 
-        <p className="text-sm text-white/56">
-          No account yet? <Link to={ROUTES.register} className="text-white underline">Register</Link>
+        <p className="text-sm text-fg-muted">
+          No account yet? <Link to={ROUTES.register} className="text-fg underline">Register</Link>
         </p>
       </form>
     </Card>

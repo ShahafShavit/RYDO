@@ -8,7 +8,7 @@ export default function PublicLayout() {
       <AppNavbar />
       <Suspense fallback={
         <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#7B5CFF] animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-border-strong border-t-rydo-purple animate-spin" />
         </div>
       }>
         <Outlet />

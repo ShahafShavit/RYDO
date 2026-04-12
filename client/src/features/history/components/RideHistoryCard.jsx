@@ -9,7 +9,7 @@ export default function RideHistoryCard({ ride }) {
   return (
     <Card>
       <h3 className="text-lg font-semibold">{ride.title}</h3>
-      <p className="mt-2 text-white/60">{formatDate(ride.date)} • {dist}</p>
+      <p className="mt-2 text-fg-muted">{formatDate(ride.date)} • {dist}</p>
     </Card>
   );
 }

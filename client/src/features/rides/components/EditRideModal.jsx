@@ -56,45 +56,45 @@ function EditRideForm({ ride, onClose }) {
     <>
       <h2 className="text-xl font-semibold">Edit ride</h2>
       {ride.clubName ? (
-        <p className="mt-2 text-sm text-white/64">
-          Club: <span className="text-white/88">{ride.clubName}</span>
+        <p className="mt-2 text-sm text-fg-muted">
+          Club: <span className="text-fg/90">{ride.clubName}</span>
         </p>
       ) : (
-        <p className="mt-2 text-sm text-white/64">Personal ride</p>
+        <p className="mt-2 text-sm text-fg-muted">Personal ride</p>
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="er-name">
+          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-name">
             Name
           </label>
           <input
             id="er-name"
-            className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={name}
             onChange={(ev) => setName(ev.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="er-desc">
+          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-desc">
             Description
           </label>
           <textarea
             id="er-desc"
-            className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             rows={2}
             value={description}
             onChange={(ev) => setDescription(ev.target.value)}
           />
         </div>
         <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="er-route">
+          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-route">
             Route
           </label>
           <select
             id="er-route"
-            className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171717] px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+            className="mt-2 w-full rounded-2xl border border-border bg-[var(--rydo-bg-deep)] px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={routeId}
             onChange={(ev) => setRouteId(ev.target.value)}
             disabled={routesLoading}
@@ -108,27 +108,27 @@ function EditRideForm({ ride, onClose }) {
           </select>
         </div>
         <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="er-when">
+          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-when">
             When
           </label>
           <input
             id="er-when"
             type="datetime-local"
-            className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={scheduledLocal}
             onChange={(ev) => setScheduledLocal(ev.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="er-max">
+          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-max">
             Max participants
           </label>
           <input
             id="er-max"
             type="number"
             min={1}
-            className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={maxParticipants}
             onChange={(ev) => setMaxParticipants(ev.target.value)}
           />

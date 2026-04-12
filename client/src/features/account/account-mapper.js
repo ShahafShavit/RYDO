@@ -90,9 +90,14 @@ export function projectProfileAsSeenByOthers(profile) {
 }
 
 export function normalizePreferences(payload = {}) {
+  const allowed = new Set(['midnight', 'evergreen', 'abyss', 'daylight', 'sage', 'dune']);
+  const raw = payload.colorScheme;
+  const colorScheme = typeof raw === 'string' && allowed.has(raw) ? raw : 'midnight';
   return {
     defaultBikeType: payload.defaultBikeType || 'road',
     distanceUnit: payload.distanceUnit === 'mi' ? 'mi' : 'km',
     notificationsEnabled: payload.notificationsEnabled ?? true,
+    publicInRouteRiderLists: payload.publicInRouteRiderLists ?? true,
+    colorScheme,
   };
 }

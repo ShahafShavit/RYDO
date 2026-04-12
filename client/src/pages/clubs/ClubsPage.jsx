@@ -26,7 +26,7 @@ function ClubCard({ club }) {
   const membershipStatus = getClubListMembershipStatus(club);
   return (
     <Link to={ROUTES.clubDetails.replace(':clubId', String(club.id))}>
-      <Card className="h-full transition hover:border-[#7B5CFF]/35">
+      <Card className="h-full transition hover:border-rydo-purple/35">
         <div className="flex items-start gap-3">
           <UserAvatar
             avatarUrl={club.avatarUrl}
@@ -37,15 +37,15 @@ function ClubCard({ club }) {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="min-w-0 text-lg font-semibold text-white">{club.name}</h3>
+              <h3 className="min-w-0 text-lg font-semibold text-fg">{club.name}</h3>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                <span className="rounded-full border border-white/12 px-2 py-0.5 text-xs capitalize text-white/56">
+                <span className="rounded-full border border-border px-2 py-0.5 text-xs capitalize text-fg-muted">
                   {club.visibility}
                 </span>
                 {membershipStatus ? <ClubListMembershipBadge status={membershipStatus} /> : null}
               </div>
             </div>
-            <p className="mt-2 line-clamp-2 text-sm text-white/64">{club.description}</p>
+            <p className="mt-2 line-clamp-2 text-sm text-fg-muted">{club.description}</p>
           </div>
         </div>
       </Card>
@@ -92,7 +92,7 @@ export default function ClubsPage() {
     <section className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Clubs</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Clubs</p>
           <h1 className="mt-2 text-3xl font-semibold">Cycling clubs</h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -108,15 +108,15 @@ export default function ClubsPage() {
       <CreateClubModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
       <RedeemClubInviteModal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} />
 
-      <Card className="border-white/10 bg-white/5 p-4 sm:p-5">
-        <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-          <Search className="h-5 w-5 shrink-0 text-white/45" aria-hidden />
+      <Card className="border-border bg-surface p-4 sm:p-5">
+        <label className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+          <Search className="h-5 w-5 shrink-0 text-fg-subtle" aria-hidden />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clubs by name, region, or description…"
-            className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-white/35 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-fg-subtle focus:outline-none"
             autoComplete="off"
             aria-label="Search clubs"
           />
@@ -124,19 +124,19 @@ export default function ClubsPage() {
       </Card>
 
       {isLoading ? (
-        <p className="text-sm text-white/56">Loading…</p>
+        <p className="text-sm text-fg-muted">Loading…</p>
       ) : clubs.length === 0 ? (
-        <p className="text-sm text-white/56">No clubs yet.</p>
+        <p className="text-sm text-fg-muted">No clubs yet.</p>
       ) : (
         <div className="space-y-10">
           {showEmptySearch ? (
-            <p className="text-sm text-white/56">No clubs match &ldquo;{search.trim()}&rdquo;.</p>
+            <p className="text-sm text-fg-muted">No clubs match &ldquo;{search.trim()}&rdquo;.</p>
           ) : (
             <>
               <div>
-                <h2 className="text-lg font-semibold text-white/88">Your clubs</h2>
+                <h2 className="text-lg font-semibold text-fg/90">Your clubs</h2>
                 {memberClubs.length === 0 ? (
-                  <p className="mt-4 text-sm text-white/48">
+                  <p className="mt-4 text-sm text-fg-subtle">
                     {q ? 'No matching clubs in this section.' : 'You are not an active member of any club yet.'}
                   </p>
                 ) : (
@@ -149,16 +149,16 @@ export default function ClubsPage() {
               </div>
 
               <div>
-                <h2 className="text-lg font-semibold text-white/88">Other clubs</h2>
+                <h2 className="text-lg font-semibold text-fg/90">Other clubs</h2>
                 {otherClubsCount === 0 ? (
-                  <p className="mt-4 text-sm text-white/48">
+                  <p className="mt-4 text-sm text-fg-subtle">
                     {q ? 'No matching clubs in this section.' : 'No other clubs to show.'}
                   </p>
                 ) : (
                   <div className="mt-6 space-y-8">
                     {otherPublicClubs.length > 0 ? (
                       <div>
-                        <h3 className="text-sm font-medium text-white/72">Public — open to join</h3>
+                        <h3 className="text-sm font-medium text-fg-muted">Public — open to join</h3>
                         <div className="mt-3 grid gap-4 md:grid-cols-2">
                           {otherPublicClubs.map((c) => (
                             <ClubCard key={c.id} club={c} />
@@ -168,7 +168,7 @@ export default function ClubsPage() {
                     ) : null}
                     {otherPrivateClubs.length > 0 ? (
                       <div>
-                        <h3 className="text-sm font-medium text-white/72">Private — invite or approval</h3>
+                        <h3 className="text-sm font-medium text-fg-muted">Private — invite or approval</h3>
                         <div className="mt-3 grid gap-4 md:grid-cols-2">
                           {otherPrivateClubs.map((c) => (
                             <ClubCard key={c.id} club={c} />

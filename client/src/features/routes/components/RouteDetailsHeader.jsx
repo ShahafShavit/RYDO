@@ -27,7 +27,7 @@ export default function RouteDetailsHeader({ route, children }) {
             {showUploader ? (
               <Link
                 to={ROUTES.userProfile.replace(':userId', String(cb.id))}
-                className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] py-1 pl-1 pr-3 text-sm text-white/88 transition hover:border-white/20 hover:bg-white/[0.09]"
+                className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-border bg-surface py-1 pl-1 pr-3 text-sm text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
               >
                 {cb.avatarUrl ? (
                   <img
@@ -38,15 +38,15 @@ export default function RouteDetailsHeader({ route, children }) {
                   />
                 ) : (
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white/80"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-fg/80"
                     aria-hidden
                   >
                     {initialsFromName(cb.fullName)}
                   </span>
                 )}
                 <span className="min-w-0 truncate">
-                  <span className="text-white/45">Uploaded by </span>
-                  <span className="font-medium text-white/92">{cb.fullName}</span>
+                  <span className="text-fg-subtle">Uploaded by </span>
+                  <span className="font-medium text-fg/92">{cb.fullName}</span>
                 </span>
               </Link>
             ) : null}

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
+import { useThemeCssVar } from '@/shared/hooks/useThemeCssVar';
 
 // Fix missing marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,6 +33,10 @@ function applyRouteView(map, layer) {
 }
 
 export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true, scrubDistanceM = null }) {
+  const lineColor = useThemeCssVar('--rydo-purple', '#7B5CFF');
+  const markerStroke = useThemeCssVar('--rydo-green', '#21F1A8');
+  const markerFill = useThemeCssVar('--rydo-bg-deep', '#0f0f10');
+
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
@@ -91,14 +96,14 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
 
     const geoJsonLayer = L.geoJSON(geoJson, {
       style: {
-        color: '#7B5CFF',
+        color: lineColor,
         weight: 3,
         opacity: 0.8,
       },
     }).addTo(map);
 
     geoJsonLayerRef.current = geoJsonLayer;
-  }, [geoJson, mapEpoch]);
+  }, [geoJson, mapEpoch, lineColor]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -153,9 +158,9 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
 
     const marker = L.circleMarker([ll.lat, ll.lng], {
       radius: 6,
-      color: '#21F1A8',
+      color: markerStroke,
       weight: 2,
-      fillColor: '#0f0f14',
+      fillColor: markerFill,
       fillOpacity: 1,
       interactive: false,
     }).addTo(map);
@@ -165,13 +170,13 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
       map.removeLayer(marker);
       if (scrubMarkerRef.current === marker) scrubMarkerRef.current = null;
     };
-  }, [geoJson, mapEpoch, scrubDistanceM]);
+  }, [geoJson, mapEpoch, scrubDistanceM, markerStroke, markerFill]);
 
   return (
     <div
       ref={mapContainerRef}
       className={
-        className ?? 'h-64 rounded-3xl border border-white/10 bg-white/5 overflow-hidden'
+        className ?? 'h-64 rounded-3xl border border-border bg-surface overflow-hidden'
       }
     />
   );

@@ -7,7 +7,7 @@ export default function ChallengeCard({ challenge }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">{challenge.title}</h3>
-          <p className="mt-2 text-white/60">Keep momentum through structured goals.</p>
+          <p className="mt-2 text-fg-muted">Keep momentum through structured goals.</p>
         </div>
         <Badge variant="success">{challenge.progress}</Badge>
       </div>

@@ -9,9 +9,9 @@ function privacyField(label, name, checked, onChange) {
   return (
     <div
       key={name}
-      className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+      className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface px-4 py-3"
     >
-      <span className="text-sm text-white/85">{label}</span>
+      <span className="text-sm text-fg/85">{label}</span>
       <input
         type="checkbox"
         name={name}
@@ -119,7 +119,7 @@ export function ProfileEditForm() {
   };
 
   if (isLoading || !profile) {
-    return <div className="text-white/60">Loading profile…</div>;
+    return <div className="text-fg-muted">Loading profile…</div>;
   }
 
   const privacy = p || formData.privacy;
@@ -133,7 +133,7 @@ export function ProfileEditForm() {
             value={formData.firstName ?? ''}
             onChange={handleChange}
             autoComplete="given-name"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
         <FormField label="Last name">
@@ -142,7 +142,7 @@ export function ProfileEditForm() {
             value={formData.lastName ?? ''}
             onChange={handleChange}
             autoComplete="family-name"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
         <FormField label="Email">
@@ -152,7 +152,7 @@ export function ProfileEditForm() {
             value={formData.email ?? ''}
             onChange={handleChange}
             autoComplete="email"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
         <FormField label="Bio">
@@ -161,7 +161,7 @@ export function ProfileEditForm() {
             value={formData.bio ?? ''}
             onChange={handleChange}
             rows={4}
-            className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full resize-y rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
         <FormField label="Location">
@@ -170,7 +170,7 @@ export function ProfileEditForm() {
             value={formData.location ?? ''}
             onChange={handleChange}
             autoComplete="off"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
         <FormField label="Avatar image URL">
@@ -180,14 +180,14 @@ export function ProfileEditForm() {
             onChange={handleChange}
             type="url"
             placeholder="https://…"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-white/45">Visible on public profile</p>
-        <p className="text-sm text-white/55 mb-3">
+        <p className="text-xs uppercase tracking-wide text-fg-subtle">Visible on public profile</p>
+        <p className="text-sm text-fg-muted mb-3">
           Other signed-in members only see fields you enable below.
         </p>
         <div className="space-y-2">
@@ -202,7 +202,7 @@ export function ProfileEditForm() {
         </div>
       </div>
 
-      {successMsg ? <p className="text-sm text-[#21F1A8]/90">{successMsg}</p> : null}
+      {successMsg ? <p className="text-sm text-rydo-green/90">{successMsg}</p> : null}
 
       <Button type="submit" variant="primary" className="w-full" disabled={isPending}>
         {isPending ? 'Saving…' : 'Save profile'}

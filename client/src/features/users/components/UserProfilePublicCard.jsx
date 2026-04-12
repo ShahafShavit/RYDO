@@ -82,7 +82,7 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
   const hasDetails = showLocation || showEmail || showCreated || showBike;
 
   return (
-    <Card className={`overflow-hidden border-white/10 bg-white/[0.04] p-0 sm:p-0 ${className ?? ''}`}>
+    <Card className={`overflow-hidden border-border bg-surface p-0 sm:p-0 ${className ?? ''}`}>
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-stretch">
         <div className="flex h-full min-h-0 min-w-0 flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-10 sm:p-8">
           <div className="flex shrink-0 flex-col items-center sm:w-[7.75rem]">
@@ -90,47 +90,47 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
               <img
                 src={avatar}
                 alt=""
-                className="h-28 w-28 rounded-full border-2 border-white/15 object-cover shadow-lg shadow-black/20 ring-2 ring-white/5 sm:h-[7.5rem] sm:w-[7.5rem]"
+                className="h-28 w-28 rounded-full border-2 border-border-strong object-cover shadow-lg shadow-black/20 ring-2 ring-fg/5 sm:h-[7.5rem] sm:w-[7.5rem]"
               />
             ) : (
               <div
-                className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-white/15 bg-gradient-to-br from-[#7B5CFF] to-[#5a3fd4] text-xl font-semibold tracking-tight text-white shadow-lg shadow-[#7B5CFF]/25 ring-2 ring-white/10 sm:h-[7.5rem] sm:w-[7.5rem] sm:text-2xl"
+                className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-border-strong bg-gradient-to-br from-rydo-purple to-[color-mix(in_srgb,var(--rydo-purple)_55%,black)] text-xl font-semibold tracking-tight text-fg shadow-lg shadow-rydo-purple/25 ring-2 ring-fg/10 sm:h-[7.5rem] sm:w-[7.5rem] sm:text-2xl"
                 aria-hidden
               >
                 {initials}
               </div>
             )}
-            <p className="mt-3 max-w-[11rem] text-center text-lg font-semibold leading-snug tracking-tight text-white sm:max-w-[min(100%,12rem)]">
+            <p className="mt-3 max-w-[11rem] text-center text-lg font-semibold leading-snug tracking-tight text-fg sm:max-w-[min(100%,12rem)]">
               {displayName}
             </p>
           </div>
           <div className="min-w-0 flex-1 space-y-0">
             {showBio || hasDetails ? (
-              <div className="rounded-2xl border border-white/[0.08] bg-black/25">
+              <div className="rounded-2xl border border-border bg-black/25">
                 {showBio ? (
                   <div
-                    className={`px-4 py-4 sm:px-5 sm:py-5 ${hasDetails ? 'border-b border-white/[0.06]' : ''}`}
+                    className={`px-4 py-4 sm:px-5 sm:py-5 ${hasDetails ? 'border-b border-border' : ''}`}
                   >
-                    <p className="text-[15px] leading-[1.65] text-white/[0.9] whitespace-pre-wrap">{profile.bio}</p>
+                    <p className="text-[15px] leading-[1.65] text-fg/[0.9] whitespace-pre-wrap">{profile.bio}</p>
                   </div>
                 ) : null}
                 {hasDetails ? (
                   <div className="px-4 py-1 sm:px-4">
                 {showLocation ? (
-                  <div className="flex items-start gap-3 border-b border-white/[0.06] py-3.5 text-sm leading-snug text-white/[0.92] last:border-b-0">
-                    <MapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#7B5CFF]/90" strokeWidth={2} aria-hidden />
+                  <div className="flex items-start gap-3 border-b border-border py-3.5 text-sm leading-snug text-fg/[0.92] last:border-b-0">
+                    <MapPin className="mt-0.5 h-[18px] w-[18px] shrink-0 text-rydo-purple/90" strokeWidth={2} aria-hidden />
                     <span>{profile.location}</span>
                   </div>
                 ) : null}
                 {showEmail ? (
-                  <div className="flex items-start gap-3 border-b border-white/[0.06] py-3.5 text-sm leading-snug text-white/[0.92] last:border-b-0">
-                    <Mail className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#7B5CFF]/90" strokeWidth={2} aria-hidden />
+                  <div className="flex items-start gap-3 border-b border-border py-3.5 text-sm leading-snug text-fg/[0.92] last:border-b-0">
+                    <Mail className="mt-0.5 h-[18px] w-[18px] shrink-0 text-rydo-purple/90" strokeWidth={2} aria-hidden />
                     <span className="min-w-0 break-words">{profile.email}</span>
                   </div>
                 ) : null}
                 {showCreated ? (
-                  <div className="flex items-start gap-3 border-b border-white/[0.06] py-3.5 text-sm leading-snug text-white/[0.92] last:border-b-0">
-                    <Calendar className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#7B5CFF]/90" strokeWidth={2} aria-hidden />
+                  <div className="flex items-start gap-3 border-b border-border py-3.5 text-sm leading-snug text-fg/[0.92] last:border-b-0">
+                    <Calendar className="mt-0.5 h-[18px] w-[18px] shrink-0 text-rydo-purple/90" strokeWidth={2} aria-hidden />
                     <span>
                       Member since{' '}
                       <time dateTime={String(profile.createdAt)}>{formatMemberSince(profile.createdAt)}</time>
@@ -139,8 +139,8 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
                 ) : null}
                 {showBike ? (
                   <div className="flex items-center gap-3 py-3.5">
-                    <Bike className="h-[18px] w-[18px] shrink-0 text-[#7B5CFF]/90" strokeWidth={2} aria-hidden />
-                    <span className="inline-flex max-w-full items-center rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-xs font-medium text-white/90">
+                    <Bike className="h-[18px] w-[18px] shrink-0 text-rydo-purple/90" strokeWidth={2} aria-hidden />
+                    <span className="inline-flex max-w-full items-center rounded-full border border-border bg-surface-strong px-3 py-1 text-xs font-medium text-fg/90">
                       {bikeLabel}
                     </span>
                   </div>
@@ -151,7 +151,7 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
             ) : null}
 
             {!showBio && !showLocation && !showEmail && !showCreated && !showBike ? (
-              <p className="text-sm text-white/50">
+              <p className="text-sm text-fg-muted">
                 {profile.isSelf
                   ? (ownerEmptyHint ??
                     'You have not shared any public profile details yet. Add a bio or visibility in settings.')
@@ -161,19 +161,19 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-col items-center justify-center border-t border-white/10 bg-gradient-to-b from-white/[0.05] to-transparent p-6 text-center sm:p-8 lg:border-l lg:border-t-0">
-          <h2 className="text-[15px] font-semibold tracking-tight text-white">Share profile</h2>
+        <div className="flex min-h-0 min-w-0 flex-col items-center justify-center border-t border-border bg-gradient-to-b from-surface to-transparent p-6 text-center sm:p-8 lg:border-l lg:border-t-0">
+          <h2 className="text-[15px] font-semibold tracking-tight text-fg">Share profile</h2>
           <div className="mt-5">
-            <div className="rounded-2xl bg-white p-3.5 shadow-md shadow-black/25">
+            <div className="rounded-2xl bg-[var(--rydo-bg)] p-3.5 shadow-md shadow-black/25">
               <QRCode value={shareUrl} size={144} level="M" />
             </div>
           </div>
           <button
             type="button"
             onClick={copyShareLink}
-            className="mt-5 inline-flex w-full max-w-[220px] items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.06] px-3 py-2.5 text-sm font-medium text-white/90 transition hover:border-white/20 hover:bg-white/[0.1]"
+            className="mt-5 inline-flex w-full max-w-[220px] items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
           >
-            {copied ? <Check className="h-4 w-4 text-emerald-400" aria-hidden /> : <Link2 className="h-4 w-4 text-white/70" aria-hidden />}
+            {copied ? <Check className="h-4 w-4 text-emerald-400" aria-hidden /> : <Link2 className="h-4 w-4 text-fg-muted" aria-hidden />}
             {copied ? 'Copied' : 'Copy link'}
           </button>
         </div>

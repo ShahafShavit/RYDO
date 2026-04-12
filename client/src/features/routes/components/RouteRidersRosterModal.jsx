@@ -18,19 +18,19 @@ export function RouteRiderRow({ userId, fullName, avatarUrl }) {
     <li>
       <Link
         to={ROUTES.userProfile.replace(':userId', String(userId))}
-        className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-white/[0.06]"
+        className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-surface"
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" loading="lazy" />
         ) : (
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white/80"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-strong text-xs font-semibold text-fg/80"
             aria-hidden
           >
             {initialsFromName(fullName)}
           </span>
         )}
-        <span className="min-w-0 flex-1 truncate font-medium text-white/90">{fullName}</span>
+        <span className="min-w-0 flex-1 truncate font-medium text-fg/90">{fullName}</span>
       </Link>
     </li>
   );
@@ -52,9 +52,9 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="max-h-[min(90vh,640px)] w-full overflow-hidden border border-white/12 bg-[#0f0f14]/95 shadow-2xl shadow-black/40"
+      className="max-h-[min(90vh,640px)] w-full overflow-hidden border border-border bg-[var(--rydo-bg-deep)]/95 shadow-2xl shadow-black/40"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
         <div>
           <h2 id={titleId} className="text-xl font-semibold">
             Who rode this route
@@ -62,7 +62,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
         </div>
         <button
           type="button"
-          className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-white/50 transition hover:bg-white/10 hover:text-white"
+          className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-fg-muted transition hover:bg-surface-strong hover:text-fg"
           onClick={onClose}
           aria-label="Close"
         >
@@ -81,7 +81,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
           placeholder="Search by name…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-[#7B5CFF]/50 focus:outline-none focus:ring-1 focus:ring-[#7B5CFF]/40"
+          className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-rydo-purple/50 focus:outline-none focus:ring-1 focus:ring-rydo-purple/40"
         />
 
         <ul className="mt-3 max-h-[min(50vh,22rem)] space-y-0.5 overflow-y-auto overscroll-contain pr-1">
@@ -95,12 +95,12 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
               />
             ))
           ) : (
-            <li className="py-8 text-center text-sm text-white/45">No names match your search.</li>
+            <li className="py-8 text-center text-sm text-fg-subtle">No names match your search.</li>
           )}
         </ul>
 
         {hiddenCount > 0 ? (
-          <p className="mt-3 border-t border-white/8 pt-3 text-sm leading-snug text-white/45">
+          <p className="mt-3 border-t border-border pt-3 text-sm leading-snug text-fg-subtle">
             +{hiddenCount}{' '}
             {hiddenCount === 1 ? 'rider has' : 'riders have'} hidden their name in Settings → Preferences.
           </p>
@@ -109,7 +109,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
         <button
           type="button"
           onClick={onClose}
-          className="mt-5 w-full rounded-xl border border-white/12 bg-white/5 py-2.5 text-sm font-medium text-white/88 transition hover:bg-white/10"
+          className="mt-5 w-full rounded-xl border border-border bg-surface py-2.5 text-sm font-medium text-fg/90 transition hover:bg-surface-strong"
         >
           Close
         </button>

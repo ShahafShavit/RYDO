@@ -167,12 +167,16 @@ Response:
 {
   "defaultBikeType": "road",
   "distanceUnit": "km",
-  "notificationsEnabled": true
+  "notificationsEnabled": true,
+  "publicInRouteRiderLists": true,
+  "colorScheme": "midnight"
 }
 ```
 
+`colorScheme` is one of: `midnight`, `evergreen`, `abyss`, `daylight`, `sage`, `dune`. Invalid values are treated as `midnight`.
+
 ### `PUT /account/preferences`
-Request and response use the same shape as `GET /account/preferences`.
+Request and response use the same shape as `GET /account/preferences`. Omit optional fields to leave them unchanged (server-dependent); the client typically sends the full preference object.
 
 ### `PUT /account/password`
 Request:

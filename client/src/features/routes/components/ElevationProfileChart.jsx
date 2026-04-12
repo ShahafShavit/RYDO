@@ -96,19 +96,19 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
 
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/[0.04] p-4 ${className}`}
+      className={`rounded-2xl border border-border bg-surface p-4 ${className}`}
       onPointerLeave={clearHover}
     >
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/42">Elevation profile</p>
-        <p className="text-xs text-white/48">
+        <p className="text-xs font-medium uppercase tracking-wider text-fg-subtle">Elevation profile</p>
+        <p className="text-xs text-fg-subtle">
           {minEl.toFixed(0)}–{maxEl.toFixed(0)} m · {maxDistLabel}
         </p>
       </div>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${w} ${h}`}
-        className="aspect-[400/112] w-full cursor-crosshair touch-none text-[#7B5CFF]"
+        className="aspect-[400/112] w-full cursor-crosshair touch-none text-rydo-purple"
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={handlePointer}
         onPointerDown={handlePointer}
@@ -119,8 +119,8 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
         <title>Elevation over distance. Hover to see elevation and change from start.</title>
         <defs>
           <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(123, 92, 255)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="rgb(123, 92, 255)" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         <path d={areaPath} fill={`url(#${fillGradientId})`} stroke="none" />
@@ -139,33 +139,40 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
               x2={hover.svgX}
               y1={padY}
               y2={padY + chartH}
-              stroke="rgba(255,255,255,0.35)"
+              stroke="var(--rydo-text-subtle)"
               strokeWidth="1"
               strokeDasharray="4 3"
             />
-            <circle cx={hover.svgX} cy={hover.svgY} r="5" fill="#0f0f14" stroke="#21F1A8" strokeWidth="2" />
+            <circle
+              cx={hover.svgX}
+              cy={hover.svgY}
+              r="5"
+              fill="var(--rydo-bg-deep)"
+              stroke="var(--rydo-green)"
+              strokeWidth="2"
+            />
           </g>
         ) : null}
-        <text x={padX} y={h - 2} fill="rgba(255,255,255,0.35)" fontSize="10">
+        <text x={padX} y={h - 2} fill="var(--rydo-text-subtle)" fontSize="10">
           {formatMeters(0, 1)}
         </text>
-        <text x={w - padX} y={h - 2} fill="rgba(255,255,255,0.35)" fontSize="10" textAnchor="end">
+        <text x={w - padX} y={h - 2} fill="var(--rydo-text-subtle)" fontSize="10" textAnchor="end">
           {maxDistLabel}
         </text>
       </svg>
       {hover ? (
-        <p className="mt-2 text-center text-sm text-white/88 tabular-nums">
-          <span className="text-white/50">{formatMeters(hover.distanceM, 2)}</span>
-          <span className="mx-2 text-white/30">·</span>
+        <p className="mt-2 text-center text-sm text-fg/90 tabular-nums">
+          <span className="text-fg-muted">{formatMeters(hover.distanceM, 2)}</span>
+          <span className="mx-2 text-fg-subtle">·</span>
           <span title="Height above sea level at this point">{hover.elevationM.toFixed(0)} m</span>
-          <span className="mx-2 text-white/30">·</span>
-          <span className="text-[#21F1A8]" title="Change from starting elevation">
+          <span className="mx-2 text-fg-subtle">·</span>
+          <span className="text-rydo-green" title="Change from starting elevation">
             Δ {hover.deltaM >= 0 ? '+' : ''}
             {hover.deltaM.toFixed(0)} m
           </span>
         </p>
       ) : (
-        <p className="mt-2 text-center text-[11px] text-white/36">Hover along the profile · Δ vs start</p>
+        <p className="mt-2 text-center text-[11px] text-fg-subtle">Hover along the profile · Δ vs start</p>
       )}
     </div>
   );

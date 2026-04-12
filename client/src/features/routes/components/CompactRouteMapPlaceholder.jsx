@@ -10,7 +10,7 @@ export default function CompactRouteMapPlaceholder({ className }) {
       role="img"
       aria-label="No route linked"
       className={cn(
-        'relative flex h-28 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-[#7B5CFF]/12',
+        'relative flex h-28 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-rydo-purple/12',
         className,
       )}
     >
@@ -22,8 +22,8 @@ export default function CompactRouteMapPlaceholder({ className }) {
         }}
         aria-hidden
       />
-      <MapPinned className="relative z-[1] h-8 w-8 text-white/38" strokeWidth={1.25} aria-hidden />
-      <span className="relative z-[1] mt-1 text-[11px] font-medium tracking-wide text-white/42">
+      <MapPinned className="relative z-[1] h-8 w-8 text-fg/38" strokeWidth={1.25} aria-hidden />
+      <span className="relative z-[1] mt-1 text-[11px] font-medium tracking-wide text-fg-subtle">
         No route linked
       </span>
     </div>

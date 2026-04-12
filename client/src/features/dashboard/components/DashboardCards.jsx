@@ -12,7 +12,7 @@ export function DashboardCards() {
     const stats = [
         { label: 'Saved Routes', value: savedRoutes.length, color: 'text-blue-400' },
         { label: 'User Type', value: user?.role === 'admin' ? 'Administrator' : 'Cyclist', color: 'text-purple-400' },
-        { label: 'Total Distance', value: formatKm(totalKm), color: 'text-green-400' },
+        { label: 'Total Distance', value: formatKm(totalKm), color: 'text-success' },
     ];
 
     return (

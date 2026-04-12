@@ -31,16 +31,16 @@ function ProfileTabPublicPreview() {
   );
 
   if (!user) {
-    return <p className="text-center text-white/60 sm:text-left">Sign in to manage your profile.</p>;
+    return <p className="text-center text-fg-muted sm:text-left">Sign in to manage your profile.</p>;
   }
   if (!userId) {
     return null;
   }
   if (isLoading) {
-    return <p className="text-center text-white/60 sm:text-left">Loading your public profile…</p>;
+    return <p className="text-center text-fg-muted sm:text-left">Loading your public profile…</p>;
   }
   if (isError || !profile || !cardProfile) {
-    return <p className="text-center text-white/60 sm:text-left">Could not load your public profile preview.</p>;
+    return <p className="text-center text-fg-muted sm:text-left">Could not load your public profile preview.</p>;
   }
 
   return (
@@ -86,7 +86,7 @@ const SettingsPage = () => {
   return (
     <section className="space-y-6">
       <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-white/42">Account</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Account</p>
         <h1 className="mt-2 text-3xl font-semibold">Account Settings</h1>
       </div>
 
@@ -121,13 +121,13 @@ const SettingsPage = () => {
             {activeTab === 'profile' ? (
               <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
                 <div>
-                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-white/55">
+                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-fg-muted">
                     How others see your profile
                   </p>
                   <ProfileTabPublicPreview />
                 </div>
                 <div>
-                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-white/55">Edit details</p>
+                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-fg-muted">Edit details</p>
                   <Card className="flex-1 sm:p-8">
                     <div className="flex flex-col items-center">
                       <ProfileEditForm />
@@ -135,7 +135,7 @@ const SettingsPage = () => {
                   </Card>
                 </div>
                 <div>
-                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-white/55">Preferences</p>
+                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-fg-muted">Preferences</p>
                   <Card className="flex-1 sm:p-8">
                     <div className="flex flex-col items-center">
                       <RidingPreferencesForm />

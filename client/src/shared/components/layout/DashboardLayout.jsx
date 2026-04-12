@@ -18,12 +18,12 @@ export default function DashboardLayout() {
   }, []);
 
   return (
-    <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[#171717]">
+    <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       <MobileNavbar />
 
-      <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-white/8 p-6 shrink-0">
-        <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-white/8 pb-6">
-          <span className="h-3 w-3 rounded-full bg-[#21F1A8] shadow-[0_0_18px_rgba(33,241,168,0.65)]" />
+      <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
+        <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
+          <span className="h-3 w-3 rounded-full bg-rydo-green shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_65%,transparent)]" />
           <AppLogo />
         </Link>
 
@@ -34,8 +34,8 @@ export default function DashboardLayout() {
               to={item.to}
               className={({ isActive }) =>
                 `rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
-                  ? 'bg-[#7B5CFF]/18 text-white shadow-[0_0_24px_rgba(123,92,255,0.18)]'
-                  : 'text-white/72 hover:bg-white/5 hover:text-white'
+                  ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                  : 'text-fg-muted hover:bg-surface hover:text-fg'
                 }`
               }
             >
@@ -44,7 +44,7 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
-        <div className="mt-6 pt-6 flex flex-col gap-3 border-t border-white/8">
+        <div className="mt-6 pt-6 flex flex-col gap-3 border-t border-border">
           <UserProfileDropdown />
           {isAdmin && (
             <NavLink to={ROUTES.admin} className="w-full block">

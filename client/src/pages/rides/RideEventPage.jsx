@@ -44,7 +44,7 @@ export default function RideEventPage() {
   if (isLoading) {
     return (
       <section className="space-y-6">
-        <div className="h-40 animate-pulse rounded-3xl bg-white/10" />
+        <div className="h-40 animate-pulse rounded-3xl bg-surface-strong" />
       </section>
     );
   }
@@ -76,13 +76,13 @@ export default function RideEventPage() {
           <div className="flex flex-wrap items-center justify-end gap-3">
             <Link
               to={ROUTES.routeDetails.replace(':routeId', String(ride.routeId))}
-              className="text-sm font-medium text-[#7B5CFF] hover:underline"
+              className="text-sm font-medium text-rydo-purple hover:underline"
             >
               Open full route profile
             </Link>
           </div>
           {routeLoading ? (
-            <div className="h-64 animate-pulse rounded-3xl bg-white/10" />
+            <div className="h-64 animate-pulse rounded-3xl bg-surface-strong" />
           ) : (
             <RouteMapWithElevation geoJson={geoJson} />
           )}
@@ -90,7 +90,7 @@ export default function RideEventPage() {
           <RouteMetadataPanel route={linkedRoute} />
         </div>
       ) : (
-        <p className="text-sm text-white/56">No route is linked to this event yet.</p>
+        <p className="text-sm text-fg-muted">No route is linked to this event yet.</p>
       )}
       {user ? (
         <div className="flex flex-wrap gap-3">
@@ -105,7 +105,7 @@ export default function RideEventPage() {
           )}
         </div>
       ) : (
-        <p className="text-sm text-white/56">Sign in to join this ride.</p>
+        <p className="text-sm text-fg-muted">Sign in to join this ride.</p>
       )}
       <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />
     </section>

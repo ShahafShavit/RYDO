@@ -15,12 +15,12 @@ export default function AdminLayout() {
   }, []);
 
   return (
-    <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[#0f0f10]">
+    <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       <MobileNavbar isAdminLayout />
 
-      <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-white/8 p-6 shrink-0 z-10">
+      <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0 z-10">
         <Link to={ROUTES.home} className="mb-8 inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <span className="h-3 w-3 rounded-full bg-[#7B5CFF] shadow-[0_0_18px_rgba(123,92,255,0.75)]" />
+          <span className="h-3 w-3 rounded-full bg-rydo-purple shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_75%,transparent)]" />
           <AppLogo />
         </Link>
 
@@ -31,8 +31,8 @@ export default function AdminLayout() {
               to={item.to}
               className={({ isActive }) =>
                 `rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive
-                  ? 'bg-[#7B5CFF]/18 text-white shadow-[0_0_24px_rgba(123,92,255,0.18)]'
-                  : 'text-white/72 hover:bg-white/5 hover:text-white'
+                  ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                  : 'text-fg-muted hover:bg-surface hover:text-fg'
                 }`
               }
             >
@@ -41,7 +41,7 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        <div className="mt-6 pt-6 flex flex-col gap-3 border-t border-white/8">
+        <div className="mt-6 pt-6 flex flex-col gap-3 border-t border-border">
           <UserProfileDropdown />
           <NavLink to={ROUTES.dashboard} className="w-full block">
             <Button variant="secondary" className="w-full justify-center">Exit Admin</Button>

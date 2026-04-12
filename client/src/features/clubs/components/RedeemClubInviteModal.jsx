@@ -33,20 +33,20 @@ export default function RedeemClubInviteModal({ isOpen, onClose }) {
       <Card className="w-full" role="dialog" aria-modal="true">
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-xl font-semibold">Join with invite code</h2>
-          <button type="button" className="text-white/60 transition hover:text-white" onClick={onClose} aria-label="Close">
+          <button type="button" className="text-fg-muted transition hover:text-fg" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
         {!user ? (
-          <p className="mt-4 text-sm text-white/64">
-            <Link to={ROUTES.login} className="text-[#7B5CFF] hover:underline">
+          <p className="mt-4 text-sm text-fg-muted">
+            <Link to={ROUTES.login} className="text-rydo-purple hover:underline">
               Sign in
             </Link>{' '}
             to redeem an invite code.
           </p>
         ) : (
           <>
-            <p className="mt-3 text-sm text-white/64">Paste the code from your club admin.</p>
+            <p className="mt-3 text-sm text-fg-muted">Paste the code from your club admin.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Invite code" className="flex-1 min-w-[12rem]" />
               <Button

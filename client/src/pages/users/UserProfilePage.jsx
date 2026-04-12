@@ -17,8 +17,8 @@ export default function UserProfilePage() {
   if (!Number.isFinite(id) || id <= 0) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-semibold text-white">Invalid profile</h1>
-        <p className="text-white/60">This user link is not valid.</p>
+        <h1 className="text-2xl font-semibold text-fg">Invalid profile</h1>
+        <p className="text-fg-muted">This user link is not valid.</p>
         <Link to={ROUTES.dashboard}>
           <Button variant="secondary">Back to dashboard</Button>
         </Link>
@@ -29,7 +29,7 @@ export default function UserProfilePage() {
   if (isLoading) {
     return (
       <section className="space-y-4">
-        <p className="text-white/60">Loading profile…</p>
+        <p className="text-fg-muted">Loading profile…</p>
       </section>
     );
   }
@@ -39,8 +39,8 @@ export default function UserProfilePage() {
     if (notFound) {
       return (
         <section className="space-y-4">
-          <h1 className="text-2xl font-semibold text-white">User not found</h1>
-          <p className="text-white/60">No account matches this profile.</p>
+          <h1 className="text-2xl font-semibold text-fg">User not found</h1>
+          <p className="text-fg-muted">No account matches this profile.</p>
           <Link to={ROUTES.dashboard}>
             <Button variant="secondary">Back to dashboard</Button>
           </Link>
@@ -49,8 +49,8 @@ export default function UserProfilePage() {
     }
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-semibold text-white">Could not load profile</h1>
-        <p className="text-white/60">{error?.message || 'Something went wrong.'}</p>
+        <h1 className="text-2xl font-semibold text-fg">Could not load profile</h1>
+        <p className="text-fg-muted">{error?.message || 'Something went wrong.'}</p>
         <Link to={ROUTES.dashboard}>
           <Button variant="secondary">Back to dashboard</Button>
         </Link>
@@ -61,7 +61,7 @@ export default function UserProfilePage() {
   if (!profile) {
     return (
       <section className="space-y-4">
-        <p className="text-white/60">Loading profile…</p>
+        <p className="text-fg-muted">Loading profile…</p>
       </section>
     );
   }
@@ -69,9 +69,9 @@ export default function UserProfilePage() {
   return (
     <section className="max-w-4xl space-y-6">
       <h1 className="sr-only">{profile.fullName || 'Rider'}</h1>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Member</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Member</p>
         </div>
         {isOwn ? (
           <Link to={`${ROUTES.settings}?tab=profile`} className="shrink-0">

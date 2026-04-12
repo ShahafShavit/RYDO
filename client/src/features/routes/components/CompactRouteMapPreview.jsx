@@ -9,7 +9,7 @@ import RouteMapPreview from './RouteMapPreview';
  */
 export default function CompactRouteMapPreview({
   preview,
-  className = 'h-28 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5',
+  className = 'h-28 w-full overflow-hidden rounded-2xl border border-border bg-surface',
   /** Card grids: wheel zoom steals page scroll; detail pages use `RouteMapWithElevation` with zoom enabled. */
   scrollWheelZoom = false,
 }) {

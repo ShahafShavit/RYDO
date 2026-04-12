@@ -13,6 +13,14 @@ namespace Rydo.Api.Controllers;
 [Authorize]
 public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
 {
+    private static readonly HashSet<string> AllowedColorSchemes =
+    [
+        "midnight", "evergreen", "abyss", "daylight", "sage", "dune",
+    ];
+
+    private static string NormalizeColorScheme(string? value) =>
+        value != null && AllowedColorSchemes.Contains(value) ? value : "midnight";
+
     [HttpGet("profile")]
     public async Task<IActionResult> Profile(CancellationToken ct)
     {
@@ -82,10 +90,16 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
+            colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }
 
-    public record PreferencesUpdate(string DefaultBikeType, string DistanceUnit, bool NotificationsEnabled, bool? PublicInRouteRiderLists);
+    public record PreferencesUpdate(
+        string DefaultBikeType,
+        string DistanceUnit,
+        bool NotificationsEnabled,
+        bool? PublicInRouteRiderLists,
+        string? ColorScheme);
 
     [HttpPut("preferences")]
     public async Task<IActionResult> UpdatePreferences([FromBody] PreferencesUpdate body, CancellationToken ct)
@@ -102,6 +116,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         p.NotificationsEnabled = body.NotificationsEnabled;
         if (body.PublicInRouteRiderLists.HasValue)
             p.PublicInRouteRiderLists = body.PublicInRouteRiderLists.Value;
+        if (body.ColorScheme != null)
+            p.ColorScheme = NormalizeColorScheme(body.ColorScheme);
         await db.SaveChangesAsync(ct);
         return Ok(new
         {
@@ -109,6 +125,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
+            colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }
 

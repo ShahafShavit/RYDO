@@ -11,7 +11,7 @@ export const ROUTE_DETAILS_DESCRIPTION_PREVIEW_MAX = 150;
 
 export const ROUTE_DESCRIPTION_SHOW_MORE = 'show more...';
 
-const linkClass = 'font-medium text-[#7B5CFF] hover:underline';
+const linkClass = 'font-medium text-rydo-purple hover:underline';
 
 function previewParts(text, maxLen = ROUTE_DESCRIPTION_PREVIEW_MAX) {
   const full = String(text || '').trim();
@@ -29,7 +29,7 @@ export function RouteCardDescription({ description, fallback, routeId }) {
   const to = ROUTES.routeDetails.replace(':routeId', String(routeId));
 
   return (
-    <p className="mt-2 text-sm text-white/60">
+    <p className="mt-2 text-sm text-fg-muted">
       {needsMore ? (
         <>
           {preview}
@@ -55,10 +55,10 @@ export function RouteDetailsDescription({ description }) {
   if (!full) return null;
 
   return (
-    <Card className="mt-4 border-white/10 bg-white/[0.07]">
-      <h3 className="text-lg font-semibold text-white/95">Description</h3>
+    <Card className="mt-4 border-border bg-surface-strong">
+      <h3 className="text-lg font-semibold text-fg/95">Description</h3>
       <p
-        className="mt-3 text-base leading-relaxed text-white/82 whitespace-pre-wrap"
+        className="mt-3 text-base leading-relaxed text-fg/82 whitespace-pre-wrap"
         dir="auto"
       >
         {needsMore && !expanded ? preview : full}

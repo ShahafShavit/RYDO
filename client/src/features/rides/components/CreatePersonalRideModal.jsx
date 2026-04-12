@@ -61,36 +61,36 @@ export default function CreatePersonalRideModal({ open, onClose }) {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="pr-name">
+            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-name">
               Name
             </label>
             <input
               id="pr-name"
-              className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={name}
               onChange={(ev) => setName(ev.target.value)}
               required
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="pr-desc">
+            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-desc">
               Description
             </label>
             <textarea
               id="pr-desc"
-              className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               rows={2}
               value={description}
               onChange={(ev) => setDescription(ev.target.value)}
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="pr-route">
+            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-route">
               Route
             </label>
             <select
               id="pr-route"
-              className="mt-2 w-full rounded-2xl border border-white/12 bg-[#171717] px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+              className="mt-2 w-full rounded-2xl border border-border bg-[var(--rydo-bg-deep)] px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={routeId}
               onChange={(ev) => setRouteId(ev.target.value)}
               disabled={routesLoading}
@@ -104,27 +104,27 @@ export default function CreatePersonalRideModal({ open, onClose }) {
             </select>
           </div>
           <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="pr-when">
+            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-when">
               When
             </label>
             <input
               id="pr-when"
               type="datetime-local"
-              className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={scheduledLocal}
               onChange={(ev) => setScheduledLocal(ev.target.value)}
               required
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-white/48" htmlFor="pr-max">
+            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-max">
               Max participants
             </label>
             <input
               id="pr-max"
               type="number"
               min={1}
-              className="mt-2 w-full rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-[#7B5CFF]"
+              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={maxParticipants}
               onChange={(ev) => setMaxParticipants(ev.target.value)}
             />

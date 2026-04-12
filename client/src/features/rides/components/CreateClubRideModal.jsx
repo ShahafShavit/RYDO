@@ -16,9 +16,9 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[min(90vh,720px)] w-full overflow-y-auto border border-white/12 bg-[#0f0f14]/95 shadow-2xl shadow-black/40"
+        className="max-h-[min(90vh,720px)] w-full overflow-y-auto border border-border bg-[var(--rydo-bg-deep)]/95 shadow-2xl shadow-black/40"
       >
-        <div className="border-b border-white/10 pb-4">
+        <div className="border-b border-border pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 id={titleId} className="text-xl font-semibold">
@@ -27,7 +27,7 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
             </div>
             <button
               type="button"
-              className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-white/50 transition hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-fg-muted transition hover:bg-surface-strong hover:text-fg"
               onClick={onClose}
               aria-label="Close"
             >

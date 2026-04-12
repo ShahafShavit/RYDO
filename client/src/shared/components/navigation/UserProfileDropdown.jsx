@@ -48,7 +48,7 @@ export default function UserProfileDropdown() {
             <AnimatePresence>
                 {isOpen && (
                     <MotionDiv
-                        className="absolute bottom-full left-0 mb-2 w-full rounded-2xl rydo-glass border border-white/8 p-1.5 shadow-xl z-50 origin-bottom"
+                        className="absolute bottom-full left-0 mb-2 w-full rounded-2xl rydo-glass border border-border p-1.5 shadow-xl z-50 origin-bottom"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -63,7 +63,7 @@ export default function UserProfileDropdown() {
                                 setIsOpen(false);
                                 if (user?.id) navigate(generatePath(ROUTES.userProfile, { userId: String(user.id) }));
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-white/72 transition-colors hover:bg-white/5 hover:text-white"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-surface hover:text-fg"
                         >
                             <User className="w-4 h-4" />
                             Profile
@@ -75,12 +75,12 @@ export default function UserProfileDropdown() {
                                 setIsOpen(false);
                                 navigate(ROUTES.settings);
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-white/72 transition-colors hover:bg-white/5 hover:text-white"
+                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-surface hover:text-fg"
                         >
                             <Settings className="w-4 h-4" />
                             Settings
                         </button>
-                        <div className="my-1 h-px w-full bg-white/8" />
+                        <div className="my-1 h-px w-full bg-surface-strong" />
                         <button
                             type="button"
                             role="menuitem"
@@ -100,8 +100,8 @@ export default function UserProfileDropdown() {
                 aria-expanded={isOpen}
                 aria-haspopup="menu"
                 className={cn(
-                    "flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/5 p-3 text-left transition-colors duration-300 hover:bg-white/10",
-                    isOpen && "bg-white/10 border-white/20"
+                    "flex w-full items-center justify-between rounded-2xl border border-border bg-surface p-3 text-left transition-colors duration-300 hover:bg-surface-strong",
+                    isOpen && "bg-surface-strong border-border-strong"
                 )}
             >
                 <div className="flex items-center min-w-0 gap-3">
@@ -112,8 +112,8 @@ export default function UserProfileDropdown() {
                         textClass="text-xs"
                     />
                     <div className="min-w-0 pr-1">
-                        <h3 className="truncate text-sm font-medium text-white">{user?.fullName || 'User'}</h3>
-                        <p className="truncate text-xs text-white/45">{user?.email || 'user@example.com'}</p>
+                        <h3 className="truncate text-sm font-medium text-fg">{user?.fullName || 'User'}</h3>
+                        <p className="truncate text-xs text-fg-subtle">{user?.email || 'user@example.com'}</p>
                     </div>
                 </div>
             </button>

@@ -21,7 +21,7 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
       'Estimated time',
       <>
         <span className="block">{formatDuration(route.estimatedDurationMinutes)}</span>
-        <span className="mt-1 block text-sm font-normal leading-snug text-white/45">
+        <span className="mt-1 block text-sm font-normal leading-snug text-fg-subtle">
           {durationSourceLabel(route.estimatedDurationSource)}
         </span>
       </>,
@@ -37,11 +37,11 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
     <Card>
       <h3 className="text-lg font-semibold">Route metadata</h3>
       {showUploadedBy && route.createdBy?.id != null && route.createdBy?.fullName ? (
-        <p className="mt-3 text-sm text-white/52">
+        <p className="mt-3 text-sm text-fg-muted">
           Uploaded by{' '}
           <Link
             to={ROUTES.userProfile.replace(':userId', String(route.createdBy.id))}
-            className="font-medium text-[#7B5CFF] hover:underline"
+            className="font-medium text-rydo-purple hover:underline"
           >
             {route.createdBy.fullName}
           </Link>
@@ -49,8 +49,8 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
       ) : null}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         {items.map(([label, value]) => (
-          <div key={label} className="rounded-2xl border border-white/8 bg-black/20 p-4">
-            <p className="text-sm text-white/44">{label}</p>
+          <div key={label} className="rounded-2xl border border-border bg-black/20 p-4">
+            <p className="text-sm text-fg-subtle">{label}</p>
             <div className="mt-2 text-lg font-medium">{value}</div>
           </div>
         ))}

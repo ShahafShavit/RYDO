@@ -9,7 +9,7 @@ export default function AppNavbar() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/8 bg-black/20 backdrop-blur-2xl ">
+    <header className="sticky top-0 z-50 border-b border-border bg-black/20 backdrop-blur-2xl ">
       <div className="rydo-container flex h-18 items-center justify-between gap-6">
         <Link to={ROUTES.home} className="inline-flex items-center">
           <AppLogo />
@@ -17,7 +17,7 @@ export default function AppNavbar() {
 
         <nav className="hidden items-center gap-6 lg:flex">
           {primaryNavigation.map((item) => (
-            <a key={item.href} href={item.href} className="text-2sm text-white transition hover:text-white/50">
+            <a key={item.href} href={item.href} className="text-2sm text-fg transition hover:text-fg-muted">
               {item.label}
             </a>
           ))}

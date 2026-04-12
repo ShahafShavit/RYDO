@@ -8,7 +8,7 @@ export default function AchievementList() {
       <h3 className="text-lg font-semibold">Achievements</h3>
       <div className="mt-4 flex flex-wrap gap-2">
         {achievements.map((item) => (
-          <span key={item} className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/72">{item}</span>
+          <span key={item} className="rounded-full border border-border px-3 py-1.5 text-sm text-fg-muted">{item}</span>
         ))}
       </div>
     </Card>

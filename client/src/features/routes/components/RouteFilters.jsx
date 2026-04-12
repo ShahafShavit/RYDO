@@ -65,7 +65,7 @@ export default function RouteFilters({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="relative min-w-0 flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center">
-            <Search className="h-4 w-4 text-white/40" />
+            <Search className="h-4 w-4 text-fg-subtle" />
           </div>
           <Input
             type="text"
@@ -105,12 +105,12 @@ export default function RouteFilters({
       ) : null}
 
       {nearActive ? (
-        <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <p className="text-sm text-white/56">
+        <div className="space-y-2 rounded-2xl border border-border bg-surface px-4 py-3">
+          <p className="text-sm text-fg-muted">
             Routes with a known start point, nearest first. Set an optional radius or leave unlimited.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-white/70">
+            <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-fg-muted">
               <span className="shrink-0">Within</span>
               <Input
                 type="number"
@@ -135,9 +135,9 @@ export default function RouteFilters({
                 className="max-w-[8rem] font-mono tabular-nums"
                 aria-describedby="near-max-hint"
               />
-              <span className="shrink-0 text-white/50">km</span>
+              <span className="shrink-0 text-fg-muted">km</span>
             </label>
-            <p id="near-max-hint" className="text-xs text-white/45 sm:max-w-md">
+            <p id="near-max-hint" className="text-xs text-fg-subtle sm:max-w-md">
               Empty means no distance cap (all matching routes, sorted by proximity). Enter any positive number to only
               show routes within that radius.
             </p>

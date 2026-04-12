@@ -60,8 +60,8 @@ export default function RegisterForm() {
         <Button type="submit" variant="neon" className="w-full" disabled={isLoading}>{isLoading ? 'Creating…' : 'Create account'}</Button>
 
         {error && <p className="text-red-400">{error}</p>}
-        <p className="text-sm text-white/56">
-          Already have an account? <Link to={ROUTES.login} className="text-white underline">Login</Link>
+        <p className="text-sm text-fg-muted">
+          Already have an account? <Link to={ROUTES.login} className="text-fg underline">Login</Link>
         </p>
       </form>
     </Card>

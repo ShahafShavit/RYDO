@@ -181,7 +181,7 @@ export default function ClubDetailPage() {
     return (
       <section>
         <p className="text-red-400">Could not load this club.</p>
-        <Link to={ROUTES.clubs} className="mt-4 inline-block text-[#7B5CFF]">
+        <Link to={ROUTES.clubs} className="mt-4 inline-block text-rydo-purple">
           Back to clubs
         </Link>
       </section>
@@ -191,7 +191,7 @@ export default function ClubDetailPage() {
   if (clubQuery.isLoading || !club) {
     return (
       <section>
-        <div className="h-10 w-48 animate-pulse rounded-lg bg-white/10" />
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-surface-strong" />
       </section>
     );
   }
@@ -199,7 +199,7 @@ export default function ClubDetailPage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link to={ROUTES.clubs} className="text-sm text-[#7B5CFF] hover:underline">
+        <Link to={ROUTES.clubs} className="text-sm text-rydo-purple hover:underline">
           ← Clubs
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
@@ -212,16 +212,16 @@ export default function ClubDetailPage() {
               className="shrink-0"
             />
             <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/42">Club</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Club</p>
             <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
-            {club.description ? <p className="mt-2 text-white/72">{club.description}</p> : null}
-            {club.region ? <p className="mt-2 text-sm text-white/56">{club.region}</p> : null}
+            {club.description ? <p className="mt-2 text-fg-muted">{club.description}</p> : null}
+            {club.region ? <p className="mt-2 text-sm text-fg-muted">{club.region}</p> : null}
             </div>
           </div>
           <div className="flex w-full min-w-0 shrink-0 flex-col items-stretch gap-2 sm:ml-auto sm:w-auto sm:max-w-[min(100%,28rem)] sm:items-end">
             {club.currentUserMembership === 'admin' ? (
               <div
-                className="inline-flex items-center gap-0 self-end rounded-full border border-white/12 bg-white/[0.04] p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                className="inline-flex items-center gap-0 self-end rounded-full border border-border bg-surface p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                 role="group"
                 aria-label="Club visibility and settings"
               >
@@ -234,7 +234,7 @@ export default function ClubDetailPage() {
                 >
                   {club.visibility}
                 </span>
-                <span className="mx-1 h-4 w-px shrink-0 bg-white/18" aria-hidden />
+                <span className="mx-1 h-4 w-px shrink-0 bg-border-strong" aria-hidden />
                 <Button
                   variant="neon"
                   type="button"
@@ -298,7 +298,7 @@ export default function ClubDetailPage() {
                 (club.currentUserMembership === 'none' ||
                   club.currentUserMembership == null ||
                   club.currentUserMembership === 'pending') ? (
-                  <div className="flex w-full flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:max-w-md">
+                  <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-surface p-3 sm:max-w-md">
                     <div className="flex flex-wrap items-stretch gap-2 sm:items-center">
                       <Input
                         value={inviteToken}
@@ -330,7 +330,7 @@ export default function ClubDetailPage() {
       </div>
 
       <Card>
-        <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold">Club rides</h2>
           </div>
@@ -347,32 +347,32 @@ export default function ClubDetailPage() {
         </div>
 
         {ridesQuery.isLoading ? (
-          <div className="mt-6 h-24 animate-pulse rounded-2xl bg-white/10" />
+          <div className="mt-6 h-24 animate-pulse rounded-2xl bg-surface-strong" />
         ) : rideSummary ? (
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
-              <p className="text-3xl font-semibold tabular-nums text-white">{rideSummary.upcomingCount}</p>
-              <p className="mt-1 text-sm text-white/52">Upcoming events</p>
+            <div className="rounded-2xl border border-border bg-surface px-5 py-4">
+              <p className="text-3xl font-semibold tabular-nums text-fg">{rideSummary.upcomingCount}</p>
+              <p className="mt-1 text-sm text-fg-muted">Upcoming events</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
-              <p className="text-3xl font-semibold tabular-nums text-white">{rideSummary.pastCount}</p>
-              <p className="mt-1 text-sm text-white/52">Past rides</p>
+            <div className="rounded-2xl border border-border bg-surface px-5 py-4">
+              <p className="text-3xl font-semibold tabular-nums text-fg">{rideSummary.pastCount}</p>
+              <p className="mt-1 text-sm text-fg-muted">Past rides</p>
             </div>
           </div>
         ) : (
           <>
-            <h3 className="mt-6 text-sm font-semibold text-white/88">Upcoming</h3>
+            <h3 className="mt-6 text-sm font-semibold text-fg/90">Upcoming</h3>
             {upcomingRides.length ? (
               <ul className="mt-3 space-y-3">
                 {upcomingRides.map((r) => (
                   <li
                     key={r.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-4 py-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white">{r.name}</p>
-                      <p className="text-xs text-white/56">{new Date(r.scheduledDate).toLocaleString()}</p>
-                      <p className="mt-1 text-xs text-white/48">{ridePeopleSummary(r)}</p>
+                      <p className="font-medium text-fg">{r.name}</p>
+                      <p className="text-xs text-fg-muted">{new Date(r.scheduledDate).toLocaleString()}</p>
+                      <p className="mt-1 text-xs text-fg-subtle">{ridePeopleSummary(r)}</p>
                     </div>
                     <Link to={ROUTES.rideEvent.replace(':rideId', String(r.id))}>
                       <Button variant="secondary" className="cursor-pointer !py-1.5 text-xs">
@@ -383,21 +383,21 @@ export default function ClubDetailPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-white/56">No upcoming rides.</p>
+              <p className="mt-2 text-sm text-fg-muted">No upcoming rides.</p>
             )}
 
-            <h3 className="mt-8 text-sm font-semibold text-white/88">Past</h3>
+            <h3 className="mt-8 text-sm font-semibold text-fg/90">Past</h3>
             {pastRides.length ? (
               <ul className="mt-3 space-y-3">
                 {pastRides.map((r) => (
                   <li
                     key={r.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-4 py-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white">{r.name}</p>
-                      <p className="text-xs text-white/56">{new Date(r.scheduledDate).toLocaleString()}</p>
-                      <p className="mt-1 text-xs text-white/48">{ridePeopleSummary(r)}</p>
+                      <p className="font-medium text-fg">{r.name}</p>
+                      <p className="text-xs text-fg-muted">{new Date(r.scheduledDate).toLocaleString()}</p>
+                      <p className="mt-1 text-xs text-fg-subtle">{ridePeopleSummary(r)}</p>
                     </div>
                     <Link to={ROUTES.rideEvent.replace(':rideId', String(r.id))}>
                       <Button variant="secondary" className="cursor-pointer !py-1.5 text-xs">
@@ -408,7 +408,7 @@ export default function ClubDetailPage() {
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-white/56">No past rides yet.</p>
+              <p className="mt-2 text-sm text-fg-muted">No past rides yet.</p>
             )}
           </>
         )}
@@ -436,7 +436,7 @@ export default function ClubDetailPage() {
       ) : null}
 
       {(club.currentUserMembership === 'member' || club.currentUserMembership === 'admin') && user ? (
-        <div className="relative z-0 border-t border-white/10 pt-6">
+        <div className="relative z-0 border-t border-border pt-6">
           <Button variant="secondary" onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}>
             Leave club
           </Button>

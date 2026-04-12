@@ -56,7 +56,7 @@ function ScheduledRideCard({ ride }) {
         )}
       </div>
       <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
-      <p className="mt-2 text-sm text-white/64">{formatWhen(ride.scheduledDate)}</p>
+      <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       <div className="mt-4 flex flex-wrap gap-3">
         {ride.routeId != null ? (
           <Link to={routeDetailsPath(ride.routeId)}>
@@ -86,7 +86,7 @@ function UpcomingRidesSection({ rides }) {
     <div>
       <h2 className="text-lg font-semibold">Upcoming</h2>
       {rides.length === 0 ? (
-        <p className="mt-3 text-sm text-white/56">No upcoming rides.</p>
+        <p className="mt-3 text-sm text-fg-muted">No upcoming rides.</p>
       ) : (
         <>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -137,8 +137,8 @@ function PastScheduledCard({ ride }) {
         )}
       </div>
       <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
-      <p className="mt-2 text-sm text-white/64">{formatWhen(ride.scheduledDate)}</p>
-      <p className="mt-2 text-sm text-white/48">No logged stats for this event yet.</p>
+      <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
+      <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
       <div className="mt-4 flex flex-wrap gap-3">
         {ride.routeId != null ? (
           <Link to={routeDetailsPath(ride.routeId)}>
@@ -185,22 +185,22 @@ function HistoryRideCard({ entry }) {
         ) : null}
       </div>
       <h3 className="mt-3 text-lg font-semibold">{entry.routeTitle || 'Ride'}</h3>
-      <p className="mt-2 text-sm text-white/64">{formatWhen(entry.completedAt)}</p>
+      <p className="mt-2 text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/42">Distance</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Distance</p>
           <p className="mt-1 font-semibold">{dist}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/42">Duration</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Duration</p>
           <p className="mt-1 font-semibold">{formatDurationMinutes(entry.durationMinutes)}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-white/42">Elevation</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Elevation</p>
           <p className="mt-1 font-semibold">{elev}</p>
         </div>
       </div>
-      {paceNote ? <p className="mt-3 text-sm text-white/56">{paceNote}</p> : null}
+      {paceNote ? <p className="mt-3 text-sm text-fg-muted">{paceNote}</p> : null}
       <div className="mt-4 flex flex-wrap gap-3">
         {entry.routeId != null ? (
           <Link to={routeDetailsPath(entry.routeId)}>
@@ -248,7 +248,7 @@ export default function MyRidesPage() {
     <section className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Rides</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
           <h1 className="mt-2 text-3xl font-semibold">My Rides</h1>
         </div>
         <Button variant="primary" type="button" onClick={() => setModalOpen(true)}>
@@ -266,7 +266,7 @@ export default function MyRidesPage() {
           placeholder="Search by name, route, or club…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/36 focus:border-[#7B5CFF]"
+          className="w-full max-w-md rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none placeholder:text-fg-subtle focus:border-rydo-purple"
         />
       </div>
 
@@ -278,8 +278,8 @@ export default function MyRidesPage() {
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="h-36 animate-pulse rounded-3xl bg-white/10" />
-          <div className="h-36 animate-pulse rounded-3xl bg-white/10" />
+          <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
+          <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
         </div>
       ) : null}
 
@@ -290,7 +290,7 @@ export default function MyRidesPage() {
           <div>
             <h2 className="text-lg font-semibold">Past &amp; logged</h2>
             {historyRows.length === 0 && pastScheduled.length === 0 ? (
-              <p className="mt-4 text-sm text-white/56">Nothing in the past yet.</p>
+              <p className="mt-4 text-sm text-fg-muted">Nothing in the past yet.</p>
             ) : (
               <>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -307,7 +307,7 @@ export default function MyRidesPage() {
                   aria-hidden="true"
                 />
                 {isFetchingNextPage ? (
-                  <p className="mt-2 text-center text-sm text-white/48">Loading more…</p>
+                  <p className="mt-2 text-center text-sm text-fg-subtle">Loading more…</p>
                 ) : null}
               </>
             )}

@@ -13,9 +13,9 @@ export function isActiveClubMember(club) {
 }
 
 const STYLES = {
-  pending: 'border-white/12 text-amber-200/90',
-  member: 'border-white/12 text-emerald-200/88',
-  admin: 'border-white/12 text-[#21F1A8]/95',
+  pending: 'border-border text-amber-200/90',
+  member: 'border-border text-emerald-200/88',
+  admin: 'border-border text-rydo-green/95',
 };
 
 const LABELS = {

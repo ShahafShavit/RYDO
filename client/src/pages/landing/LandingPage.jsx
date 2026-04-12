@@ -135,8 +135,8 @@ export default function LandingPage() {
         {/* <div ref={heroBgOverlayRef} className="absolute inset-0 bg-(--rydo-bg)/50 z-10 opacity-1" /> */}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-[-10%] h-95" />
-        <div className="pointer-events-none absolute right-[10%] top-[12%] h-72 w-72 rounded-full bg-[#7B5CFF]/14 blur-[120px]" />
-        <div className="pointer-events-none absolute left-[6%] top-[24%] h-56 w-56 rounded-full bg-[#21F1A8]/8 blur-[120px]" />
+        <div className="pointer-events-none absolute right-[10%] top-[12%] h-72 w-72 rounded-full bg-rydo-purple/14 blur-[120px]" />
+        <div className="pointer-events-none absolute left-[6%] top-[24%] h-56 w-56 rounded-full bg-rydo-green/8 blur-[120px]" />
 
         <div className="relative z-10 w-full">
           <div className="rydo-container grid min-h-[calc(100vh-72px)] items-center gap-20 py-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(400px,0.95fr)] lg:py-24">
@@ -145,9 +145,9 @@ export default function LandingPage() {
 
               <div className="space-y-5">
                 <h1 className="max-w-4xl text-5xl font-semibold leading-[0.95] md:text-6xl xl:text-7xl">
-                  RYDO without the <span className="text-[#7B5CFF]">chaos</span>.
+                  RYDO without the <span className="text-rydo-purple">chaos</span>.
                 </h1>
-                <p className="max-w-2xl text-lg leading-6 text-white/68 md:text-xl">
+                <p className="max-w-2xl text-lg leading-6 text-fg/68 md:text-xl">
                   Discover routes, navigate the trail, track live riders, and stay updated on real conditions - without jumping between apps.
                 </p>
               </div>
@@ -160,7 +160,7 @@ export default function LandingPage() {
               <div className="grid gap-4 sm:grid-cols-3">
                 {metrics.map((item) => (
                   <Card key={item.label} className="p-4">
-                    <p className="text-xs uppercase tracking-[0.14em] text-white/42">{item.label}</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">{item.label}</p>
                     <p className="mt-3 text-3xl font-semibold">{item.value}</p>
                   </Card>
                 ))}
@@ -192,11 +192,11 @@ export default function LandingPage() {
       <section id="overview" className="rydo-section">
         <div className="rydo-container grid gap-8 lg:grid-cols-[0.9fr_minmax(0,1.1fr)]">
           <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/42">Problem</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Problem</p>
             <h2 className="text-4xl font-semibold leading-tight">One ride. Too many tools.</h2>
           </div>
           <Card>
-            <p className="text-lg leading-8 text-white/68">
+            <p className="text-lg leading-8 text-fg/68">
               Riders still piece together routes, navigation, communication, and trail updates across disconnected platforms. RYDO brings those critical parts into one structured system — so the ride feels connected before it starts, while it happens, and after it ends.
             </p>
           </Card>
@@ -213,7 +213,7 @@ export default function LandingPage() {
           ].map(([title, body], index) => (
             <Card key={title} ref={(node) => { featureRefs.current[index] = node; }}>
               <h3 className="text-xl font-semibold">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-white/60">{body}</p>
+              <p className="mt-3 text-sm leading-7 text-fg-muted">{body}</p>
             </Card>
           ))}
         </div>
@@ -222,7 +222,7 @@ export default function LandingPage() {
       <section id="features" className="rydo-section">
         <div className="rydo-container space-y-8">
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/42">Features</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Features</p>
             <h2 className="text-4xl font-semibold">Everything riders actually need. In one place.</h2>
           </div>
 
@@ -232,12 +232,12 @@ export default function LandingPage() {
               return (
                 <Card key={feature.title} className="p-7">
                   <div className="flex items-start gap-4">
-                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#7B5CFF]/25 bg-[#7B5CFF]/12">
-                      <Icon size={22} className="text-[#7B5CFF]" />
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-rydo-purple/25 bg-rydo-purple/12">
+                      <Icon size={22} className="text-rydo-purple" />
                     </div>
                     <div>
                       <h3 className="text-2xl font-semibold">{feature.title}</h3>
-                      <p className="mt-3 max-w-xl text-white/62">{feature.body}</p>
+                      <p className="mt-3 max-w-xl text-fg/62">{feature.body}</p>
                     </div>
                   </div>
                 </Card>
@@ -250,15 +250,15 @@ export default function LandingPage() {
       <section id="product-flow" className="rydo-section">
         <div className="rydo-container grid gap-8 lg:grid-cols-[0.85fr_minmax(0,1.15fr)]">
           <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-white/42">Product Flow</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Product Flow</p>
             <h2 className="text-4xl font-semibold">From route discovery to ride completion.</h2>
-            <p className="max-w-xl text-white/64">A single flow for planning, navigating, staying aware, and carrying the ride forward.</p>
+            <p className="max-w-xl text-fg-muted">A single flow for planning, navigating, staying aware, and carrying the ride forward.</p>
           </div>
           <Card className="space-y-4">
             {productFlow.map((step, index) => (
-              <div key={step} className="flex items-center gap-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#7B5CFF]/25 bg-[#7B5CFF]/10 text-sm font-semibold text-white">{index + 1}</div>
-                <p className="text-white/76">{step}</p>
+              <div key={step} className="flex items-center gap-4 rounded-2xl border border-border bg-black/20 px-4 py-4">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-rydo-purple/25 bg-rydo-purple/10 text-sm font-semibold text-fg">{index + 1}</div>
+                <p className="text-fg/76">{step}</p>
               </div>
             ))}
           </Card>
@@ -269,15 +269,15 @@ export default function LandingPage() {
         <div className="rydo-container grid gap-6 lg:grid-cols-3">
           <Card>
             <h3 className="text-2xl font-semibold">GPS continuity</h3>
-            <p className="mt-3 text-white/62">Stable positioning and smoother location handling built to reduce jumps, noise, and uncertainty on the trail.</p>
+            <p className="mt-3 text-fg/62">Stable positioning and smoother location handling built to reduce jumps, noise, and uncertainty on the trail.</p>
           </Card>
           <Card>
             <h3 className="text-2xl font-semibold">Offline-ready navigation</h3>
-            <p className="mt-3 text-white/62">Download maps and routes in advance so navigation remains available even when coverage disappears.</p>
+            <p className="mt-3 text-fg/62">Download maps and routes in advance so navigation remains available even when coverage disappears.</p>
           </Card>
           <Card>
             <h3 className="text-2xl font-semibold">Live awareness</h3>
-            <p className="mt-3 text-white/62">Real-time rider updates designed for visibility, low latency, and practical battery usage during active rides.</p>
+            <p className="mt-3 text-fg/62">Real-time rider updates designed for visibility, low latency, and practical battery usage during active rides.</p>
           </Card>
         </div>
       </section>
@@ -286,9 +286,9 @@ export default function LandingPage() {
         <div className="rydo-container">
           <Card className="flex flex-col gap-8 p-8 md:p-10 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.16em] text-white/42">Next move</p>
+              <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Next move</p>
               <h2 className="mt-3 text-4xl font-semibold">Less switching. More riding.</h2>
-              <p className="mt-4 text-white/64">RYDO brings route discovery, navigation, rider awareness, and trail updates into one cycling platform built for real use.</p>
+              <p className="mt-4 text-fg-muted">RYDO brings route discovery, navigation, rider awareness, and trail updates into one cycling platform built for real use.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link to={ROUTES.register}><Button variant="neon" size="lg">Create account</Button></Link>

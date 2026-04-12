@@ -6,7 +6,7 @@ function InitialsFallback({ initials, sizeClass, textClass, className }) {
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full border border-white/12 bg-[#7B5CFF]/20 font-semibold text-white/90',
+        'flex shrink-0 items-center justify-center rounded-full border border-border bg-rydo-purple/20 font-semibold text-fg/90',
         sizeClass,
         textClass,
         className,
@@ -29,7 +29,7 @@ function AvatarImage({ src, initials, sizeClass, textClass, className }) {
       alt=""
       onError={() => setFailed(true)}
       className={cn(
-        'shrink-0 rounded-full border border-white/12 object-cover bg-white/10',
+        'shrink-0 rounded-full border border-border object-cover bg-surface-strong',
         sizeClass,
         className,
       )}
