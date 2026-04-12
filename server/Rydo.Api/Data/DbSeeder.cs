@@ -1269,7 +1269,8 @@ public static class DbSeeder
 
     private static void SeedUserPreferences(RydoDbContext db, IReadOnlyList<int> userIds)
     {
-        var bikes = new[] { "road", "gravel", "mtb", "urban", "ebike" };
+        // Keep in sync with client BIKE_TYPES (RidingPreferencesForm / bikeTypes.js)
+        var bikes = new[] { "road", "mountain", "gravel", "hybrid", "electric", "touring", "city" };
         var units = new[] { "km", "mi" };
         var rnd = new Random(99);
         foreach (var uid in userIds)

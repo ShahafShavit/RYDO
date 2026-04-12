@@ -3,6 +3,7 @@ import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
 import { usePreferences, useUpdatePreferences } from '../hooks/useAccount';
 import { ColorSchemePicker } from '@/features/account/components/ColorSchemePicker';
+import { BIKE_TYPES } from '@/features/account/constants/bikeTypes';
 import { useTheme } from '@/app/providers/theme-context';
 
 export const RidingPreferencesForm = () => {
@@ -67,10 +68,15 @@ export const RidingPreferencesForm = () => {
                         onChange={handleChange}
                         className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-fg focus:outline-none focus:border-rydo-purple focus:ring-1 focus:ring-rydo-purple transition-colors"
                     >
-                        <option value="road" className="bg-[var(--rydo-bg-deep)]">Road Bike</option>
-                        <option value="mountain" className="bg-[var(--rydo-bg-deep)]">Mountain Bike</option>
-                        <option value="gravel" className="bg-[var(--rydo-bg-deep)]">Gravel Bike</option>
-                        <option value="hybrid" className="bg-[var(--rydo-bg-deep)]">Hybrid</option>
+                        {BIKE_TYPES.map(({ value, optionLabel }) => (
+                            <option
+                                key={value}
+                                value={value}
+                                className="bg-[var(--rydo-bg-deep)]"
+                            >
+                                {optionLabel}
+                            </option>
+                        ))}
                     </select>
                 </FormField>
 

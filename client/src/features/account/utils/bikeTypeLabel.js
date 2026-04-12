@@ -1,9 +1,4 @@
-const LABELS = {
-  road: 'Road bike',
-  mountain: 'Mountain bike',
-  gravel: 'Gravel bike',
-  hybrid: 'Hybrid',
-};
+import { BIKE_TYPE_PROFILE_LABELS } from '@/features/account/constants/bikeTypes';
 
 /**
  * @param {string | null | undefined} key
@@ -11,6 +6,6 @@ const LABELS = {
 export function formatBikeTypeLabel(key) {
   if (key == null || String(key).trim() === '') return '';
   const k = String(key).toLowerCase();
-  if (LABELS[k]) return LABELS[k];
+  if (BIKE_TYPE_PROFILE_LABELS[k]) return BIKE_TYPE_PROFILE_LABELS[k];
   return k.charAt(0).toUpperCase() + k.slice(1);
 }
