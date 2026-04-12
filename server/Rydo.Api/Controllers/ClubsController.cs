@@ -518,6 +518,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             RouteId = body.RouteId,
             MaxParticipants = body.MaxParticipants > 0 ? body.MaxParticipants : 20,
             ClubId = id,
+            CreatedByUserId = uid,
         };
         db.RideGroups.Add(g);
         await db.SaveChangesAsync(ct);
@@ -597,6 +598,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
 
         var rides = await db.RideGroups.AsNoTracking()
             .Include(r => r.Participants).ThenInclude(p => p.User)
+            .Include(r => r.CreatedBy)
             .Include(r => r.Route)
             .Include(r => r.Club)
             .Where(r => r.ClubId == id)

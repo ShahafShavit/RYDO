@@ -34,6 +34,7 @@ export const useUpdatePreferences = () => {
         mutationFn: async (data) => normalizePreferences(await accountApi.updatePreferences(data)),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.preferences() });
+            queryClient.invalidateQueries({ queryKey: userProfileKeys.all });
         },
     });
 

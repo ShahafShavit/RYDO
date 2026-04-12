@@ -52,6 +52,7 @@ export function ProfileEditForm() {
             publicBio: true,
             publicLocation: true,
             publicAvatarUrl: true,
+            publicDefaultBikeType: true,
           },
         });
 
@@ -95,6 +96,7 @@ export function ProfileEditForm() {
         publicBio: cur.privacy.publicBio,
         publicLocation: cur.privacy.publicLocation,
         publicAvatarUrl: cur.privacy.publicAvatarUrl,
+        publicDefaultBikeType: cur.privacy.publicDefaultBikeType,
       };
       const raw = await updateProfile(payload);
       const normalized = normalizeAccountProfile(raw);
@@ -196,6 +198,7 @@ export function ProfileEditForm() {
           {privacyField('Bio', 'privacy.publicBio', privacy.publicBio, handleChange)}
           {privacyField('Location', 'privacy.publicLocation', privacy.publicLocation, handleChange)}
           {privacyField('Avatar', 'privacy.publicAvatarUrl', privacy.publicAvatarUrl, handleChange)}
+          {privacyField('Default bike type', 'privacy.publicDefaultBikeType', privacy.publicDefaultBikeType, handleChange)}
         </div>
       </div>
 

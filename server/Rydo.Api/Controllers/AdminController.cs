@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Rydo.Api;
 using Rydo.Api.Data;
 using Rydo.Api.Services;
 
@@ -11,7 +13,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "admin")]
-public class AdminController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
+public class AdminController(RydoDbContext db, UserManager<ApplicationUser> users, IOptions<RydoOptions> rydoOptions) : ControllerBase
 {
     [HttpGet("summary")]
     public async Task<IActionResult> Summary(CancellationToken ct)
@@ -60,6 +62,22 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
         if (userId == GetUserId()) return Problem(statusCode: 400, detail: "Cannot delete yourself.");
         var u = await users.FindByIdAsync(userId.ToString());
         if (u == null) return NotFound();
+
+        var email = rydoOptions.Value.SystemAdminEmail?.Trim();
+        if (string.IsNullOrEmpty(email))
+            email = DbSeeder.AdminEmail;
+
+        var systemAdmin = await users.FindByEmailAsync(email);
+        if (systemAdmin == null)
+            return Problem(statusCode: 503, detail: "System admin account is not configured or missing. Cannot reassign routes.");
+
+        if (userId == systemAdmin.Id)
+            return Problem(statusCode: 400, detail: "Cannot delete the system admin account.");
+
+        await db.Routes
+            .Where(r => r.CreatedByUserId == userId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.CreatedByUserId, systemAdmin.Id), ct);
+
         await users.DeleteAsync(u);
         return NoContent();
     }

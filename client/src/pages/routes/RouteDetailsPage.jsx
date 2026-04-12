@@ -21,18 +21,17 @@ export default function RouteDetailsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <RouteDetailsHeader route={route} />
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <SavedRouteButton routeId={route?.id} />
-          {route?.id ? (
-            <Button type="button" variant="neon" onClick={() => setScheduleOpen(true)}>
-              Schedule a ride
-            </Button>
-          ) : null}
-        </div>
+      <RouteDetailsHeader route={route}>
+        <SavedRouteButton routeId={route?.id} />
+        {route?.id ? (
+          <Button type="button" variant="neon" onClick={() => setScheduleOpen(true)}>
+            Schedule a ride
+          </Button>
+        ) : null}
+      </RouteDetailsHeader>
+      <div className="relative z-0">
+        <RouteMapWithElevation geoJson={geoJson} />
       </div>
-      <RouteMapWithElevation geoJson={geoJson} />
       {route?.id ? (
         <ScheduleRideFromRouteModal
           open={scheduleOpen}
@@ -41,7 +40,7 @@ export default function RouteDetailsPage() {
           routeTitle={route.title || ''}
         />
       ) : null}
-      <RouteMetadataPanel route={route} />
+      <RouteMetadataPanel route={route} showUploadedBy={false} />
     </section>
   );
 }

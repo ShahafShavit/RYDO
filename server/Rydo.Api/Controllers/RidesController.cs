@@ -22,6 +22,7 @@ public class RidesController(RydoDbContext db) : ControllerBase
     {
         var g = await db.RideGroups.AsNoTracking()
             .Include(x => x.Participants).ThenInclude(p => p.User)
+            .Include(x => x.CreatedBy)
             .Include(x => x.Route)
             .Include(x => x.Club)
             .FirstOrDefaultAsync(x => x.Id == rideId, ct);

@@ -11,9 +11,17 @@ export function mapRideDto(raw) {
     raw.participantCount != null ? Number(raw.participantCount) : details.length > 0 ? details.length : parts.length;
   const routePreview =
     raw.routePreview?.coordinates?.length > 1 ? { coordinates: raw.routePreview.coordinates } : null;
+  const createdBy = raw.createdBy
+    ? {
+        id: raw.createdBy.id != null ? Number(raw.createdBy.id) : null,
+        fullName: String(raw.createdBy.fullName || '').trim(),
+      }
+    : null;
+
   return {
     id: raw.id,
     name: raw.name,
+    createdBy,
     routeName:
       raw.routeTitle ||
       raw.routeName ||

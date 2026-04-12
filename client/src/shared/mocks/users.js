@@ -7,6 +7,7 @@ const defaultPrivacy = () => ({
     publicBio: true,
     publicLocation: true,
     publicAvatarUrl: true,
+    publicDefaultBikeType: true,
 });
 
 export const MOCK_USERS = [
@@ -22,6 +23,7 @@ export const MOCK_USERS = [
         bio: 'Weekend gravel and long coffee stops.',
         location: 'Tel Aviv',
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=johnmock',
+        defaultBikeType: 'gravel',
         privacy: { ...defaultPrivacy(), publicEmail: true, publicBio: false },
     },
     {
@@ -36,6 +38,7 @@ export const MOCK_USERS = [
         bio: 'Platform admin and route curator.',
         location: 'Haifa',
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarahmock',
+        defaultBikeType: 'road',
         privacy: defaultPrivacy(),
     },
     {
@@ -50,6 +53,7 @@ export const MOCK_USERS = [
         bio: 'Coach and club organizer.',
         location: 'Jerusalem',
         avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mikemock',
+        defaultBikeType: 'mountain',
         privacy: { ...defaultPrivacy(), publicEmail: true },
     },
 ];

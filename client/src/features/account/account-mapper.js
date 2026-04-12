@@ -8,6 +8,7 @@ const defaultPrivacy = () => ({
   publicBio: true,
   publicLocation: true,
   publicAvatarUrl: true,
+  publicDefaultBikeType: true,
 });
 
 export function normalizeAccountProfile(payload = {}) {
@@ -18,6 +19,7 @@ export function normalizeAccountProfile(payload = {}) {
     bio: payload.bio ?? '',
     location: payload.location ?? '',
     avatarUrl: payload.avatarUrl ?? '',
+    defaultBikeType: payload.defaultBikeType || 'road',
     privacy: {
       publicFirstName: priv.publicFirstName ?? defaultPrivacy().publicFirstName,
       publicLastName: priv.publicLastName ?? defaultPrivacy().publicLastName,
@@ -26,6 +28,7 @@ export function normalizeAccountProfile(payload = {}) {
       publicBio: priv.publicBio ?? defaultPrivacy().publicBio,
       publicLocation: priv.publicLocation ?? defaultPrivacy().publicLocation,
       publicAvatarUrl: priv.publicAvatarUrl ?? defaultPrivacy().publicAvatarUrl,
+      publicDefaultBikeType: priv.publicDefaultBikeType ?? defaultPrivacy().publicDefaultBikeType,
     },
   };
 }
@@ -43,6 +46,7 @@ export function normalizeUserPublicProfile(payload = {}) {
     bio: payload.bio == null ? null : payload.bio,
     location: payload.location == null ? null : payload.location,
     avatarUrl: payload.avatarUrl == null ? null : payload.avatarUrl,
+    defaultBikeType: payload.defaultBikeType == null || payload.defaultBikeType === '' ? null : payload.defaultBikeType,
     role: null,
     isActive: true,
     createdAt: payload.createdAt ?? null,

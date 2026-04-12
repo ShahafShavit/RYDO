@@ -6,6 +6,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -15,12 +16,13 @@ function formatDuration(minutes) {
 }
 
 export default function RouteCard({ route }) {
+  const { formatKm } = useFormatDistance();
   const title = route?.title || 'Untitled route';
   const description = route?.description || 'Structured route metadata for fast decision-making before you ride.';
   const difficulty = route?.difficulty || 'unknown';
   const terrain = route?.terrain || 'mixed';
   const duration = formatDuration(route?.estimatedDurationMinutes);
-  const distance = route?.distanceKm ? `${route.distanceKm} km` : null;
+  const distance = route?.distanceKm != null ? formatKm(route.distanceKm) : null;
 
   const routeId = route?.id ?? '';
   const mapPreview = useMemo(() => route?.preview ?? null, [route]);

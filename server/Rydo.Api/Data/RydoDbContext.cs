@@ -33,7 +33,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
 
         builder.Entity<RouteEntity>(e =>
         {
-            e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRoutes).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<HazardEntity>(e =>
@@ -45,6 +45,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Club).WithMany(c => c.RideGroups).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRideGroups).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<CyclingClub>(e =>

@@ -10,7 +10,7 @@ export const MOCK_ROUTES = [
         terrain: 'trail',
         durationMinutes: 270,
         estimatedDurationSource: 'gpx_timestamps',
-        createdBy: 'johncyclist',
+        createdBy: { id: 1, fullName: 'John Doe' },
         createdAt: '2023-03-01T08:00:00Z',
         coordinates: [
             [35.2137, 31.7683],
@@ -27,7 +27,7 @@ export const MOCK_ROUTES = [
         terrain: 'road',
         durationMinutes: 75,
         estimatedDurationSource: 'estimated_pace',
-        createdBy: 'sarahadmin',
+        createdBy: { id: 2, fullName: 'Sarah Admin' },
         createdAt: '2023-03-05T10:00:00Z',
         coordinates: [
             [34.7818, 32.0853],
@@ -44,7 +44,7 @@ export const MOCK_ROUTES = [
         terrain: 'mixed',
         durationMinutes: 150,
         estimatedDurationSource: 'estimated',
-        createdBy: 'miketrainer',
+        createdBy: { id: 3, fullName: 'Mike Trainer' },
         createdAt: '2023-03-10T12:00:00Z',
         coordinates: [
             [34.9896, 32.794],

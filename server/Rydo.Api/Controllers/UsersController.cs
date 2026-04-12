@@ -66,13 +66,15 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (subject == null)
             return NotFound();
 
+        var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
+
         if (viewerId == userId)
         {
             var roles = await users.GetRolesAsync(subject);
-            return Ok(UserProfileResponse.Full(subject, roles));
+            return Ok(UserProfileResponse.Full(subject, roles, pref));
         }
 
-        return Ok(UserProfileResponse.PublicView(subject));
+        return Ok(UserProfileResponse.PublicView(subject, pref));
     }
 
     public record CreatePersonalRideBody(
@@ -100,6 +102,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         var query = db.RideGroups.AsNoTracking()
             .Include(g => g.Participants).ThenInclude(p => p.User)
+            .Include(g => g.CreatedBy)
             .Include(g => g.Route)
             .Include(g => g.Club)
             .Where(g => g.Participants.Any(p => p.UserId == uid.Value));
@@ -186,6 +189,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             RouteId = body.RouteId,
             MaxParticipants = body.MaxParticipants > 0 ? body.MaxParticipants : 20,
             ClubId = null,
+            CreatedByUserId = uid.Value,
         };
         db.RideGroups.Add(g);
         await db.SaveChangesAsync(ct);
@@ -195,6 +199,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         var created = await db.RideGroups.AsNoTracking()
             .Include(x => x.Participants).ThenInclude(p => p.User)
+            .Include(x => x.CreatedBy)
             .Include(x => x.Route)
             .Include(x => x.Club)
             .FirstAsync(x => x.Id == g.Id, ct);

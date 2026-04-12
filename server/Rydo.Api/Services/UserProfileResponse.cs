@@ -7,7 +7,7 @@ public static class UserProfileResponse
     private static string IsoUtc(DateTime dt) =>
         dt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-    public static object Full(ApplicationUser u, IList<string> roles)
+    public static object Full(ApplicationUser u, IList<string> roles, UserPreference? pref)
     {
         var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
         return new
@@ -19,6 +19,7 @@ public static class UserProfileResponse
             bio = u.Bio,
             location = u.Location,
             avatarUrl = u.AvatarUrl,
+            defaultBikeType = pref?.DefaultBikeType ?? "road",
             role,
             isActive = true,
             createdAt = IsoUtc(u.CreatedAt),
@@ -31,12 +32,13 @@ public static class UserProfileResponse
                 publicBio = u.PublicBio,
                 publicLocation = u.PublicLocation,
                 publicAvatarUrl = u.PublicAvatarUrl,
+                publicDefaultBikeType = u.PublicDefaultBikeType,
             },
         };
     }
 
     /// <summary>Profile visible to another signed-in user (subject is not the viewer).</summary>
-    public static object PublicView(ApplicationUser u)
+    public static object PublicView(ApplicationUser u, UserPreference? pref)
     {
         return new
         {
@@ -49,6 +51,7 @@ public static class UserProfileResponse
             bio = u.PublicBio ? u.Bio : null,
             location = u.PublicLocation ? u.Location : null,
             avatarUrl = u.PublicAvatarUrl ? u.AvatarUrl : null,
+            defaultBikeType = u.PublicDefaultBikeType && pref != null ? pref.DefaultBikeType : null,
         };
     }
 }

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { usePreferences } from '@/features/account/hooks/useAccount';
 import { buildDashboardHome } from '@/features/dashboard/dashboard-mapper';
 import { dashboardApi } from '@/features/dashboard/api/dashboard-api';
 import { historyApi } from '@/features/history/api/history-api';
@@ -12,6 +13,8 @@ export function useDashboardData() {
   const { user } = useAuth();
   const userId = user?.id != null ? Number(user.id) : null;
   const scopedKey = userId ?? 'guest';
+  const { data: preferences } = usePreferences();
+  const distanceUnit = preferences?.distanceUnit === 'mi' ? 'mi' : 'km';
 
   const summaryQuery = useQuery({
     queryKey: ['dashboard', 'summary', scopedKey],
@@ -54,8 +57,9 @@ export function useDashboardData() {
         rideGroupsRaw: ridesQuery.data,
         clubsRaw: clubsQuery.data,
         challengesRaw: challengesQuery.data,
+        distanceUnit,
       }),
-    [userId, historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data],
+    [userId, historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data, distanceUnit],
   );
 
   const summary = summaryQuery.data || {};

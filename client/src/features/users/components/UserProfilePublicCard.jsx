@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { generatePath } from 'react-router-dom';
 import { QRCode } from 'react-qr-code';
-import { MapPin, Mail, Calendar, User } from 'lucide-react';
+import { MapPin, Mail, Calendar, User, Bike } from 'lucide-react';
+import { formatBikeTypeLabel } from '@/features/account/utils/bikeTypeLabel';
 import { ROUTES } from '@/app/router/route-paths';
 import Card from '@/shared/components/ui/card/Card';
 
@@ -35,6 +36,9 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
   const showBio = profile.bio != null && String(profile.bio).trim() !== '';
   const showLocation = profile.location != null && String(profile.location).trim() !== '';
   const showCreated = profile.createdAt != null && String(profile.createdAt).trim() !== '';
+  const showBike =
+    profile.defaultBikeType != null && String(profile.defaultBikeType).trim() !== '';
+  const bikeLabel = showBike ? formatBikeTypeLabel(profile.defaultBikeType) : '';
   const avatar = profile.avatarUrl?.trim() || null;
 
   return (
@@ -84,9 +88,15 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
                   </span>
                 </div>
               ) : null}
+              {showBike ? (
+                <div className="flex items-start gap-3.5 text-sm leading-relaxed text-white/[0.92]">
+                  <Bike className="mt-0.5 h-[18px] w-[18px] shrink-0 text-white/50" strokeWidth={2} aria-hidden />
+                  <span>{bikeLabel}</span>
+                </div>
+              ) : null}
             </div>
 
-            {!showBio && !showLocation && !showEmail && !showCreated ? (
+            {!showBio && !showLocation && !showEmail && !showCreated && !showBike ? (
               <p className="text-white/50 text-sm">
                 {profile.isSelf
                   ? (ownerEmptyHint ??

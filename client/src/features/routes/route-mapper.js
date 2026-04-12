@@ -78,12 +78,33 @@ export function normalizeRoute(rawRoute = {}) {
       coordinates,
     },
     createdBy: {
-      id: rawRoute.createdBy?.id ?? rawRoute.createdById ?? null,
+      id:
+        rawRoute.createdBy?.id != null
+          ? Number(rawRoute.createdBy.id)
+          : rawRoute.createdById != null
+            ? Number(rawRoute.createdById)
+            : null,
       fullName: creatorName,
+      avatarUrl: rawRoute.createdBy?.avatarUrl?.trim() || null,
     },
+    routeRiders: normalizeRouteRiders(rawRoute.routeRiders),
     createdAt: rawRoute.createdAt || null,
     isSaved: Boolean(rawRoute.isSaved),
     status: rawRoute.status || 'published',
+  };
+}
+
+function normalizeRouteRiders(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { totalCount: 0, visibleRiders: [] };
+  }
+  const visible = Array.isArray(raw.visibleRiders) ? raw.visibleRiders : [];
+  return {
+    totalCount: Number(raw.totalCount ?? visible.length ?? 0) || 0,
+    visibleRiders: visible.map((r) => ({
+      userId: Number(r.userId ?? r.id ?? 0),
+      fullName: String(r.fullName || r.displayName || '').trim() || 'Rider',
+    })),
   };
 }
 

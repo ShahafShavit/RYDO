@@ -16,6 +16,7 @@ export const MOCK_RIDE_GROUPS = [
     participantCount: 2,
     clubId: 1,
     clubName: 'Mock Open Club',
+    createdBy: { id: 2, fullName: 'Sarah Admin' },
   },
   {
     id: 2,
@@ -30,6 +31,7 @@ export const MOCK_RIDE_GROUPS = [
     participantCount: 1,
     clubId: 1,
     clubName: 'Mock Open Club',
+    createdBy: { id: 2, fullName: 'Sarah Admin' },
   },
   {
     id: 3,
@@ -44,12 +46,13 @@ export const MOCK_RIDE_GROUPS = [
     participantCount: 1,
     clubId: null,
     clubName: null,
+    createdBy: { id: 1, fullName: 'John Doe' },
   },
   {
     id: 4,
     name: 'Evening recovery',
     description: 'Easy solo miles.',
-    scheduledDate: '2026-12-01T18:00:00Z',
+    scheduledDate: '2026-02-01T18:00:00Z',
     routeId: 2,
     routeTitle: 'City Loop Road',
     participants: [1],
@@ -58,5 +61,6 @@ export const MOCK_RIDE_GROUPS = [
     participantCount: 1,
     clubId: null,
     clubName: null,
+    createdBy: { id: 1, fullName: 'John Doe' },
   },
 ];

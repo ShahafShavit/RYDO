@@ -5,6 +5,7 @@ import RideMembersList from '@/features/rides/components/RideMembersList';
 import RideStatusBanner from '@/features/rides/components/RideStatusBanner';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
+import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useRideAttendance } from '@/features/rides/hooks/useRideAttendance';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
@@ -76,6 +77,7 @@ export default function RideEventPage() {
           ) : (
             <RouteMapWithElevation geoJson={geoJson} />
           )}
+          <RouteRidersPanel routeRiders={linkedRoute?.routeRiders} />
           <RouteMetadataPanel route={linkedRoute} />
         </div>
       ) : (

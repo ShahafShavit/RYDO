@@ -21,4 +21,11 @@ public class ApplicationUser : IdentityUser<int>
     public bool PublicBio { get; set; } = true;
     public bool PublicLocation { get; set; } = true;
     public bool PublicAvatarUrl { get; set; } = true;
+
+    /// <summary>When true, default bike type from preferences may appear on the public profile.</summary>
+    public bool PublicDefaultBikeType { get; set; } = true;
+
+    public ICollection<RouteEntity> CreatedRoutes { get; set; } = new List<RouteEntity>();
+
+    public ICollection<RideGroup> CreatedRideGroups { get; set; } = new List<RideGroup>();
 }

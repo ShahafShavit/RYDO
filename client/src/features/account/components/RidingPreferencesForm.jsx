@@ -11,7 +11,8 @@ export const RidingPreferencesForm = () => {
     const formData = draft || preferences || {
         defaultBikeType: 'road',
         distanceUnit: 'km',
-        notificationsEnabled: true
+        notificationsEnabled: true,
+        publicInRouteRiderLists: true,
     };
 
     const handleChange = (e) => {
@@ -74,6 +75,22 @@ export const RidingPreferencesForm = () => {
                         onChange={handleChange}
                         className="w-5 h-5 accent-rydo-purple rounded cursor-pointer"
                     />
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-white/5 border border-white/10 rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-white text-sm font-medium">Show me on &quot;who rode this route&quot;</span>
+                        <input
+                            type="checkbox"
+                            name="publicInRouteRiderLists"
+                            checked={Boolean(formData.publicInRouteRiderLists)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-white/45 leading-snug">
+                        When off, you still count toward totals, but your name is hidden from the rider list on route pages.
+                    </p>
                 </div>
             </div>
 

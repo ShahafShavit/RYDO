@@ -12,6 +12,9 @@ public class RideGroup
     public int MaxParticipants { get; set; } = 20;
     public int? ClubId { get; set; }
     public CyclingClub? Club { get; set; }
+    /// <summary>User who scheduled this ride (club or personal).</summary>
+    public int CreatedByUserId { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
     public ICollection<RideParticipant> Participants { get; set; } = new List<RideParticipant>();
 }
 

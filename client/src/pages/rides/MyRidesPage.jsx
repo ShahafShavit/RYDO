@@ -10,6 +10,7 @@ import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
@@ -156,8 +157,9 @@ function PastScheduledCard({ ride }) {
 }
 
 function HistoryRideCard({ entry }) {
+  const { formatKm } = useFormatDistance();
   const kind = entry.rideKind || (entry.clubId != null ? 'club' : entry.rideGroupId ? 'personal' : null);
-  const dist = entry.distanceKm != null ? `${Number(entry.distanceKm).toFixed(1)} km` : '—';
+  const dist = entry.distanceKm != null ? formatKm(Number(entry.distanceKm)) : '—';
   const elev = entry.elevationGainM != null ? `${Math.round(Number(entry.elevationGainM))} m` : '—';
   const est = entry.estimatedDurationMinutes;
   const dur = entry.durationMinutes;

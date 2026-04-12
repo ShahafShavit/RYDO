@@ -15,7 +15,7 @@ export function useRideHistory() {
         id: ride.id,
         title: ride.routeTitle || ride.title || 'Untitled route',
         date: ride.completedAt || ride.date,
-        distance: ride.distanceKm ? `${ride.distanceKm} km` : ride.distance || '—',
+        distanceKm: ride.distanceKm != null ? Number(ride.distanceKm) : null,
         rideGroupId: ride.rideGroupId ?? null,
         rideKind: ride.rideKind ?? null,
         clubName: ride.clubName ?? null,

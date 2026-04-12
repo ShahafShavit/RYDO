@@ -34,6 +34,7 @@ function mockDefaultPrivacy() {
     publicBio: true,
     publicLocation: true,
     publicAvatarUrl: true,
+    publicDefaultBikeType: true,
   };
 }
 
@@ -51,6 +52,7 @@ function toFullProfile(p) {
     bio: p.bio ?? null,
     location: p.location ?? null,
     avatarUrl: p.avatarUrl ?? null,
+    defaultBikeType: preferences.defaultBikeType ?? 'road',
     role: (p.role || 'user').toLowerCase(),
     isActive: p.isActive ?? true,
     createdAt: p.createdAt,
@@ -70,6 +72,7 @@ function toPublicProfileView(u) {
     bio: privacy.publicBio ? u.bio : null,
     location: privacy.publicLocation ? u.location : null,
     avatarUrl: privacy.publicAvatarUrl ? u.avatarUrl : null,
+    defaultBikeType: privacy.publicDefaultBikeType ? (u.defaultBikeType ?? 'road') : null,
   };
 }
 
@@ -81,6 +84,7 @@ let preferences = {
   defaultBikeType: 'road',
   distanceUnit: 'km',
   notificationsEnabled: true,
+  publicInRouteRiderLists: true,
 };
 
 function sleep(ms) {
@@ -138,7 +142,11 @@ function createRouteFromUpload(data) {
     estimatedDurationSource: data.estimatedDurationSource || 'gpx_timestamps',
     region: data.region || null,
     warnings: Array.isArray(data.warnings) ? data.warnings : [],
-    createdBy: profile.fullName,
+    createdBy: {
+      id: profile.id,
+      fullName: profile.fullName,
+      avatarUrl: profile.avatarUrl?.trim() || null,
+    },
     createdAt: new Date().toISOString(),
     coordinates: [
       [35.2137, 31.7683],
@@ -153,7 +161,46 @@ function findRoute(routeId) {
   if (!route) {
     throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
   }
-  return route;
+  const rid = Number(routeId);
+  const now = Date.now();
+  const pastRidesOnRoute = rides.filter(
+    (rg) => rg.routeId === rid && new Date(rg.scheduledDate).getTime() < now,
+  );
+  const ids = new Set();
+  pastRidesOnRoute.forEach((rg) => {
+    (rg.participants || []).forEach((uid) => ids.add(Number(uid)));
+  });
+  const visibleRiders = Array.from(ids).map((uid) => {
+    const u = users.find((x) => x.id === uid);
+    return {
+      userId: uid,
+      fullName: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`,
+    };
+  });
+  const totalCount = visibleRiders.length;
+
+  let createdBy = route.createdBy;
+  if (typeof createdBy === 'string') {
+    const match = users.find((u) => u.username === createdBy);
+    createdBy = match
+      ? {
+          id: match.id,
+          fullName: [match.firstName, match.lastName].filter(Boolean).join(' '),
+          avatarUrl: mockRosterAvatarUrl(match),
+        }
+      : { id: null, fullName: createdBy, avatarUrl: null };
+  } else if (createdBy && typeof createdBy === 'object' && createdBy.id != null) {
+    const u = users.find((x) => x.id === Number(createdBy.id));
+    createdBy = { ...createdBy, avatarUrl: mockRosterAvatarUrl(u) };
+  }
+
+  return {
+    ...route,
+    preview: { coordinates: route.coordinates },
+    estimatedDurationMinutes: route.estimatedDurationMinutes ?? route.durationMinutes,
+    createdBy,
+    routeRiders: { totalCount, visibleRiders },
+  };
 }
 
 /** Same as API roster rules: show stored avatar URL whenever set (signed-in lists). */
@@ -300,7 +347,12 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/routes/my' && method === 'GET') {
-    const myRoutes = routes.filter((route) => route.createdBy === profile.fullName || route.createdBy?.fullName === profile.fullName);
+    const myRoutes = routes.filter(
+      (route) =>
+        route.createdBy?.id === profile.id ||
+        route.createdBy === profile.fullName ||
+        route.createdBy?.fullName === profile.fullName,
+    );
     return paginate(myRoutes, searchParams);
   }
 
@@ -426,6 +478,7 @@ export async function mockRequest(path, options = {}) {
       'publicBio',
       'publicLocation',
       'publicAvatarUrl',
+      'publicDefaultBikeType',
     ];
     const nextPrivacy = mergeMockPrivacy(profile.privacy);
     for (const k of privKeys) {

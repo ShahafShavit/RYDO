@@ -1,4 +1,5 @@
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
+import { formatDistanceFromKm } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
   if (raw == null || raw === '') return '—';
@@ -45,6 +46,7 @@ function userInGroup(group, userId) {
  *   rideGroupsRaw: unknown,
  *   clubsRaw: unknown,
  *   challengesRaw: unknown,
+ *   distanceUnit?: 'km' | 'mi',
  * }} input
  */
 function normalizeHistoryRaw(historyRaw) {
@@ -59,7 +61,15 @@ function normalizeHistoryRaw(historyRaw) {
   return { history, total };
 }
 
-export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, clubsRaw, challengesRaw }) {
+export function buildDashboardHome({
+  userId,
+  historyRaw,
+  rideGroupsRaw,
+  clubsRaw,
+  challengesRaw,
+  distanceUnit = 'km',
+}) {
+  const unit = distanceUnit === 'mi' ? 'mi' : 'km';
   const { history, total: historyTotal } = normalizeHistoryRaw(historyRaw);
   const last = history[0];
 
@@ -116,7 +126,7 @@ export function buildDashboardHome({ userId, historyRaw, rideGroupsRaw, clubsRaw
         title: 'Last RYDO',
         routeName: last.routeTitle || 'Route',
         distance:
-          last.distanceKm != null ? `${Number(last.distanceKm).toFixed(1)} km` : '—',
+          last.distanceKm != null ? formatDistanceFromKm(last.distanceKm, unit) : '—',
         duration: formatDurationMinutes(last.durationMinutes),
         difficulty: formatDifficulty(last.routeDifficulty),
         mapLabel: 'Trail summary',

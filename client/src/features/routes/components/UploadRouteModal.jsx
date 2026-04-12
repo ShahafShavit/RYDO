@@ -4,6 +4,7 @@ import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
 
 const RouteMapWithElevation = lazy(() => import('./RouteMapWithElevation'));
@@ -12,6 +13,7 @@ const DIFFICULTY_OPTIONS = ['casual', 'moderate', 'hard'];
 const TERRAIN_OPTIONS = ['road', 'gravel', 'trail', 'mixed'];
 
 export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
+  const { formatKm } = useFormatDistance();
   const titleId = useId();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
@@ -235,7 +237,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-widest text-white/42">Distance</p>
-                <p className="mt-2 text-2xl font-semibold">{stats.distanceKm} km</p>
+                <p className="mt-2 text-2xl font-semibold">{formatKm(stats.distanceKm, 2)}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-widest text-white/42">Elevation gain</p>

@@ -65,7 +65,8 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         if (r == null) return NotFound();
         var uid = GetUserId();
         var saved = uid.HasValue && await db.SavedRoutes.AnyAsync(s => s.UserId == uid && s.RouteId == routeId, ct);
-        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved));
+        var ridersInfo = await RouteJsonMapper.LoadRouteRidersInfoAsync(db, routeId, ct);
+        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo));
     }
 
     [HttpPost("upload")]
@@ -94,7 +95,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         var previewJson = parsedPreview;
         var parserDurationSource = derivedSrc;
 
-        var uid = GetUserId() ?? 0;
+        var uidOpt = GetUserId();
+        if (uidOpt is not { } uid)
+            return Unauthorized();
+
         var route = new RouteEntity
         {
             Title = Str("title").Trim(),
@@ -128,7 +132,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     [Authorize]
     public IActionResult Mine([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
-        var uid = GetUserId() ?? 0;
+        var uidOpt = GetUserId();
+        if (uidOpt is not { } uid)
+            return Unauthorized();
+
         var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).Where(r => r.CreatedByUserId == uid).OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
         var items = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
@@ -139,7 +146,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     [Authorize]
     public IActionResult Saved([FromQuery] int skip = 0, [FromQuery] int take = 20)
     {
-        var uid = GetUserId() ?? 0;
+        var uidOpt = GetUserId();
+        if (uidOpt is not { } uid)
+            return Unauthorized();
+
         var query = from s in db.SavedRoutes
             join r in db.Routes.Include(x => x.CreatedBy) on s.RouteId equals r.Id
             where s.UserId == uid
@@ -154,7 +164,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Save(int routeId, CancellationToken ct)
     {
-        var uid = GetUserId() ?? 0;
+        var uidOpt = GetUserId();
+        if (uidOpt is not { } uid)
+            return Unauthorized();
+
         if (!await db.Routes.AnyAsync(r => r.Id == routeId, ct))
             return NotFound();
         if (!await db.SavedRoutes.AnyAsync(s => s.UserId == uid && s.RouteId == routeId, ct))
@@ -167,7 +180,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Unsave(int routeId, CancellationToken ct)
     {
-        var uid = GetUserId() ?? 0;
+        var uidOpt = GetUserId();
+        if (uidOpt is not { } uid)
+            return Unauthorized();
+
         var row = await db.SavedRoutes.FirstOrDefaultAsync(s => s.UserId == uid && s.RouteId == routeId, ct);
         if (row != null)
         {

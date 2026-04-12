@@ -49,6 +49,7 @@ public static class DbSeeder
                 PublicBio = true,
                 PublicLocation = true,
                 PublicAvatarUrl = true,
+                PublicDefaultBikeType = true,
             };
             await userManager.CreateAsync(admin, AdminPassword);
             await userManager.AddToRoleAsync(admin, "admin");
@@ -73,6 +74,7 @@ public static class DbSeeder
                 PublicBio = false,
                 PublicLocation = true,
                 PublicLastName = true,
+                PublicDefaultBikeType = false,
             };
             await userManager.CreateAsync(rider, UserPassword);
             await userManager.AddToRoleAsync(rider, "user");
@@ -107,8 +109,8 @@ public static class DbSeeder
 
             SeedClubMembersAndInvites(db, clubs, admin, rider, allUsers, rnd);
 
-            var personalRideGroups = SeedPersonalRideGroups(routes, rnd);
-            var rideGroups = SeedRideGroups(routes, rnd, clubs).Concat(personalRideGroups).ToList();
+            var personalRideGroups = SeedPersonalRideGroups(routes, rnd, allUsers);
+            var rideGroups = SeedRideGroups(routes, rnd, clubs, allUsers).Concat(personalRideGroups).ToList();
             ApplyRideScheduleCaps(rideGroups, maxUpcomingTotal: 4, maxUpcomingPerClub: 2);
             db.RideGroups.AddRange(rideGroups);
             await db.SaveChangesAsync();
@@ -196,6 +198,7 @@ public static class DbSeeder
                 PublicLocation = i % 7 != 0,
                 PublicAvatarUrl = true,
                 PublicFirstName = i % 11 != 0,
+                PublicDefaultBikeType = i % 5 != 0,
             };
             var ok = await userManager.CreateAsync(u, DemoRiderPassword);
             if (ok.Succeeded)
@@ -634,7 +637,7 @@ public static class DbSeeder
         }
     }
 
-    private static List<RideGroup> SeedRideGroups(List<RouteEntity> routes, Random rnd, List<CyclingClub> clubs)
+    private static List<RideGroup> SeedRideGroups(List<RouteEntity> routes, Random rnd, List<CyclingClub> clubs, IReadOnlyList<ApplicationUser> users)
     {
         var names = new[]
         {
@@ -672,6 +675,7 @@ public static class DbSeeder
                 ScheduledDate = scheduled,
                 RouteId = route.Id,
                 MaxParticipants = 8 + rnd.Next(0, 25),
+                CreatedByUserId = users[rnd.Next(users.Count)].Id,
             };
             rg.ClubId = clubs[i % clubs.Count].Id;
             list.Add(rg);
@@ -680,10 +684,11 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<RideGroup> SeedPersonalRideGroups(List<RouteEntity> routes, Random rnd)
+    private static List<RideGroup> SeedPersonalRideGroups(List<RouteEntity> routes, Random rnd, IReadOnlyList<ApplicationUser> users)
     {
         var now = DateTime.UtcNow;
         var pick = () => routes[rnd.Next(routes.Count)];
+        var org = () => users[rnd.Next(users.Count)].Id;
         return new List<RideGroup>
         {
             new()
@@ -694,6 +699,7 @@ public static class DbSeeder
                 RouteId = pick().Id,
                 MaxParticipants = 8,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
             new()
             {
@@ -703,6 +709,7 @@ public static class DbSeeder
                 RouteId = pick().Id,
                 MaxParticipants = 6,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
             new()
             {
@@ -712,6 +719,7 @@ public static class DbSeeder
                 RouteId = pick().Id,
                 MaxParticipants = 10,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
             new()
             {
@@ -721,6 +729,7 @@ public static class DbSeeder
                 RouteId = pick().Id,
                 MaxParticipants = 6,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
             new()
             {
@@ -730,6 +739,7 @@ public static class DbSeeder
                 RouteId = null,
                 MaxParticipants = 4,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
             new()
             {
@@ -739,6 +749,7 @@ public static class DbSeeder
                 RouteId = pick().Id,
                 MaxParticipants = 8,
                 ClubId = null,
+                CreatedByUserId = org(),
             },
         };
     }
@@ -1036,6 +1047,7 @@ public static class DbSeeder
                 DefaultBikeType = bikes[rnd.Next(bikes.Length)],
                 DistanceUnit = units[rnd.Next(2)],
                 NotificationsEnabled = rnd.Next(6) != 0,
+                PublicInRouteRiderLists = rnd.Next(9) != 0,
             });
         }
     }

@@ -7,4 +7,7 @@ public class UserPreference
     public string DefaultBikeType { get; set; } = "road";
     public string DistanceUnit { get; set; } = "km";
     public bool NotificationsEnabled { get; set; } = true;
+
+    /// <summary>When true, the user may appear by name in &quot;who rode this route&quot; lists.</summary>
+    public bool PublicInRouteRiderLists { get; set; } = true;
 }

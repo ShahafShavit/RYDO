@@ -1,4 +1,5 @@
 import { useState, useRef, useId, useCallback } from 'react';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 /**
  * Linear interpolation of elevation at a given distance along the profile.
@@ -22,6 +23,7 @@ function elevationAtDistance(profile, distanceM) {
  * Hover to see distance, absolute elevation, and Δ from start.
  */
 export default function ElevationProfileChart({ profile, className = '', onScrubChange }) {
+  const { formatMeters } = useFormatDistance();
   const svgRef = useRef(null);
   const fillGradientId = `elevFill-${useId().replace(/:/g, '')}`;
   const [hover, setHover] = useState(null);
@@ -90,7 +92,7 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
   const topLine = profile.map((p) => `${toX(p.distanceM)},${toY(p.elevationM)}`).join(' L ');
   const areaPath = `M ${firstX} ${baseY} L ${topLine} L ${lastX} ${baseY} Z`;
 
-  const km = (maxD / 1000).toFixed(1);
+  const maxDistLabel = formatMeters(maxD, 1);
 
   return (
     <div
@@ -100,7 +102,7 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wider text-white/42">Elevation profile</p>
         <p className="text-xs text-white/48">
-          {minEl.toFixed(0)}–{maxEl.toFixed(0)} m · {km} km
+          {minEl.toFixed(0)}–{maxEl.toFixed(0)} m · {maxDistLabel}
         </p>
       </div>
       <svg
@@ -145,15 +147,15 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
           </g>
         ) : null}
         <text x={padX} y={h - 2} fill="rgba(255,255,255,0.35)" fontSize="10">
-          0 km
+          {formatMeters(0, 1)}
         </text>
         <text x={w - padX} y={h - 2} fill="rgba(255,255,255,0.35)" fontSize="10" textAnchor="end">
-          {km} km
+          {maxDistLabel}
         </text>
       </svg>
       {hover ? (
         <p className="mt-2 text-center text-sm text-white/88 tabular-nums">
-          <span className="text-white/50">{(hover.distanceM / 1000).toFixed(2)} km</span>
+          <span className="text-white/50">{formatMeters(hover.distanceM, 2)}</span>
           <span className="mx-2 text-white/30">·</span>
           <span title="Height above sea level at this point">{hover.elevationM.toFixed(0)} m</span>
           <span className="mx-2 text-white/30">·</span>

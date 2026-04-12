@@ -32,6 +32,12 @@ internal static class RideGroupResponseHelper
     {
         var count = totalParticipantCount ?? g.Participants.Count;
         var routePreview = RoutePreviewPayload(g.Route);
+        var createdBy = new
+        {
+            id = g.CreatedByUserId,
+            fullName = DisplayName(g.CreatedBy),
+        };
+
         if (!includeRoster)
         {
             return new
@@ -49,6 +55,7 @@ internal static class RideGroupResponseHelper
                 maxParticipants = g.MaxParticipants,
                 clubId = g.ClubId,
                 clubName = g.Club != null ? g.Club.Name : null,
+                createdBy,
             };
         }
 
@@ -75,6 +82,7 @@ internal static class RideGroupResponseHelper
             maxParticipants = g.MaxParticipants,
             clubId = g.ClubId,
             clubName = g.Club != null ? g.Club.Name : null,
+            createdBy,
         };
     }
 

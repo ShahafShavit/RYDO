@@ -19,7 +19,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var u = await GetUserAsync(ct);
         if (u == null) return Unauthorized();
         var roles = await users.GetRolesAsync(u);
-        return Ok(UserProfileResponse.Full(u, roles));
+        var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref));
     }
 
     public record ProfileUpdate(
@@ -35,7 +36,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         bool PublicCreatedAt,
         bool PublicBio,
         bool PublicLocation,
-        bool PublicAvatarUrl);
+        bool PublicAvatarUrl,
+        bool PublicDefaultBikeType);
 
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdate body, CancellationToken ct)
@@ -54,11 +56,13 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         u.PublicBio = body.PublicBio;
         u.PublicLocation = body.PublicLocation;
         u.PublicAvatarUrl = body.PublicAvatarUrl;
+        u.PublicDefaultBikeType = body.PublicDefaultBikeType;
         await users.SetEmailAsync(u, body.Email);
         await users.SetUserNameAsync(u, body.Email);
         await users.UpdateAsync(u);
         var roles = await users.GetRolesAsync(u);
-        return Ok(UserProfileResponse.Full(u, roles));
+        var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref));
     }
 
     [HttpGet("preferences")]
@@ -77,10 +81,11 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             defaultBikeType = p.DefaultBikeType,
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
+            publicInRouteRiderLists = p.PublicInRouteRiderLists,
         });
     }
 
-    public record PreferencesUpdate(string DefaultBikeType, string DistanceUnit, bool NotificationsEnabled);
+    public record PreferencesUpdate(string DefaultBikeType, string DistanceUnit, bool NotificationsEnabled, bool? PublicInRouteRiderLists);
 
     [HttpPut("preferences")]
     public async Task<IActionResult> UpdatePreferences([FromBody] PreferencesUpdate body, CancellationToken ct)
@@ -95,12 +100,15 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         p.DefaultBikeType = body.DefaultBikeType;
         p.DistanceUnit = body.DistanceUnit;
         p.NotificationsEnabled = body.NotificationsEnabled;
+        if (body.PublicInRouteRiderLists.HasValue)
+            p.PublicInRouteRiderLists = body.PublicInRouteRiderLists.Value;
         await db.SaveChangesAsync(ct);
         return Ok(new
         {
             defaultBikeType = p.DefaultBikeType,
             distanceUnit = p.DistanceUnit,
             notificationsEnabled = p.NotificationsEnabled,
+            publicInRouteRiderLists = p.PublicInRouteRiderLists,
         });
     }
 
