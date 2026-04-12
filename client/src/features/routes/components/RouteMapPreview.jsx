@@ -4,6 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
 import { useThemeCssVar } from '@/shared/hooks/useThemeCssVar';
 
+/** Polyline stroke on OSM tiles: fixed blue so the route stays visible regardless of app theme. */
+const ROUTE_LINE_COLOR = '#2563eb';
+
 // Fix missing marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -33,7 +36,6 @@ function applyRouteView(map, layer) {
 }
 
 export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true, scrubDistanceM = null }) {
-  const lineColor = useThemeCssVar('--rydo-purple', '#e58a2c');
   const markerStroke = useThemeCssVar('--rydo-green', '#3ecfb9');
   const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
 
@@ -96,14 +98,14 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
 
     const geoJsonLayer = L.geoJSON(geoJson, {
       style: {
-        color: lineColor,
+        color: ROUTE_LINE_COLOR,
         weight: 3,
-        opacity: 0.8,
+        opacity: 0.9,
       },
     }).addTo(map);
 
     geoJsonLayerRef.current = geoJsonLayer;
-  }, [geoJson, mapEpoch, lineColor]);
+  }, [geoJson, mapEpoch]);
 
   useEffect(() => {
     const map = mapRef.current;

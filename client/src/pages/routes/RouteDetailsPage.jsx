@@ -31,7 +31,7 @@ export default function RouteDetailsPage() {
         ) : null}
       </RouteDetailsHeader>
       <div className="relative z-0">
-        <RouteMapWithElevation geoJson={geoJson} />
+        <RouteMapWithElevation geoJson={geoJson} layout="split" />
         <RouteDetailsDescription description={route?.description} />
       </div>
       {route?.id ? (

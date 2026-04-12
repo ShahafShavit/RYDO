@@ -21,8 +21,9 @@ function elevationAtDistance(profile, distanceM) {
 /**
  * Compact elevation vs distance profile (SVG). Distance on horizontal axis.
  * Hover to see distance, absolute elevation, and Δ from start.
+ * @param {boolean} [fillHeight] — Stretch to parent height (e.g. side-by-side with map).
  */
-export default function ElevationProfileChart({ profile, className = '', onScrubChange }) {
+export default function ElevationProfileChart({ profile, className = '', onScrubChange, fillHeight = false }) {
   const { formatMeters } = useFormatDistance();
   const svgRef = useRef(null);
   const fillGradientId = `elevFill-${useId().replace(/:/g, '')}`;
@@ -96,10 +97,12 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
 
   return (
     <div
-      className={`rounded-2xl border border-border bg-surface p-4 ${className}`}
+      className={`rounded-2xl border border-border bg-surface p-4 ${
+        fillHeight ? 'flex h-full min-h-0 flex-col' : ''
+      } ${className}`}
       onPointerLeave={clearHover}
     >
-      <div className="mb-2 flex items-baseline justify-between gap-2">
+      <div className="mb-2 flex shrink-0 items-baseline justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wider text-fg-subtle">Elevation profile</p>
         <p className="text-xs text-fg-subtle">
           {minEl.toFixed(0)}–{maxEl.toFixed(0)} m · {maxDistLabel}
@@ -108,7 +111,11 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
       <svg
         ref={svgRef}
         viewBox={`0 0 ${w} ${h}`}
-        className="aspect-[400/112] w-full cursor-crosshair touch-none text-rydo-purple"
+        className={
+          fillHeight
+            ? 'min-h-0 w-full min-w-0 flex-1 cursor-crosshair touch-none text-rydo-purple'
+            : 'aspect-[400/112] w-full cursor-crosshair touch-none text-rydo-purple'
+        }
         preserveAspectRatio="xMidYMid meet"
         onPointerMove={handlePointer}
         onPointerDown={handlePointer}
@@ -160,20 +167,22 @@ export default function ElevationProfileChart({ profile, className = '', onScrub
           {maxDistLabel}
         </text>
       </svg>
-      {hover ? (
-        <p className="mt-2 text-center text-sm text-fg/90 tabular-nums">
-          <span className="text-fg-muted">{formatMeters(hover.distanceM, 2)}</span>
-          <span className="mx-2 text-fg-subtle">·</span>
-          <span title="Height above sea level at this point">{hover.elevationM.toFixed(0)} m</span>
-          <span className="mx-2 text-fg-subtle">·</span>
-          <span className="text-rydo-green" title="Change from starting elevation">
-            Δ {hover.deltaM >= 0 ? '+' : ''}
-            {hover.deltaM.toFixed(0)} m
-          </span>
-        </p>
-      ) : (
-        <p className="mt-2 text-center text-[11px] text-fg-subtle">Hover along the profile · Δ vs start</p>
-      )}
+      <div className="mt-2 flex min-h-[2.75rem] shrink-0 items-center justify-center text-center text-sm tabular-nums leading-snug">
+        {hover ? (
+          <p className="text-fg/90">
+            <span className="text-fg-muted">{formatMeters(hover.distanceM, 2)}</span>
+            <span className="mx-2 text-fg-subtle">·</span>
+            <span title="Height above sea level at this point">{hover.elevationM.toFixed(0)} m</span>
+            <span className="mx-2 text-fg-subtle">·</span>
+            <span className="text-rydo-green" title="Change from starting elevation">
+              Δ {hover.deltaM >= 0 ? '+' : ''}
+              {hover.deltaM.toFixed(0)} m
+            </span>
+          </p>
+        ) : (
+          <p className="text-fg-subtle">Hover along the profile · Δ vs start</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export default function RideEventPage() {
           {routeLoading ? (
             <div className="h-64 animate-pulse rounded-3xl bg-surface-strong" />
           ) : (
-            <RouteMapWithElevation geoJson={geoJson} />
+            <RouteMapWithElevation geoJson={geoJson} layout="split" />
           )}
           <RouteMetadataPanel route={linkedRoute} />
         </div>
