@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
@@ -18,10 +19,23 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var u = await GetUserAsync(ct);
         if (u == null) return Unauthorized();
         var roles = await users.GetRolesAsync(u);
-        return Ok(ProfileDto(u, roles));
+        return Ok(UserProfileResponse.Full(u, roles));
     }
 
-    public record ProfileUpdate(string FirstName, string LastName, string Email);
+    public record ProfileUpdate(
+        string FirstName,
+        string LastName,
+        string Email,
+        string? Bio,
+        string? Location,
+        string? AvatarUrl,
+        bool PublicFirstName,
+        bool PublicLastName,
+        bool PublicEmail,
+        bool PublicCreatedAt,
+        bool PublicBio,
+        bool PublicLocation,
+        bool PublicAvatarUrl);
 
     [HttpPut("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] ProfileUpdate body, CancellationToken ct)
@@ -30,11 +44,21 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         if (u == null) return Unauthorized();
         u.FirstName = body.FirstName;
         u.LastName = body.LastName;
+        u.Bio = string.IsNullOrWhiteSpace(body.Bio) ? null : body.Bio.Trim();
+        u.Location = string.IsNullOrWhiteSpace(body.Location) ? null : body.Location.Trim();
+        u.AvatarUrl = string.IsNullOrWhiteSpace(body.AvatarUrl) ? null : body.AvatarUrl.Trim();
+        u.PublicFirstName = body.PublicFirstName;
+        u.PublicLastName = body.PublicLastName;
+        u.PublicEmail = body.PublicEmail;
+        u.PublicCreatedAt = body.PublicCreatedAt;
+        u.PublicBio = body.PublicBio;
+        u.PublicLocation = body.PublicLocation;
+        u.PublicAvatarUrl = body.PublicAvatarUrl;
         await users.SetEmailAsync(u, body.Email);
         await users.SetUserNameAsync(u, body.Email);
         await users.UpdateAsync(u);
         var roles = await users.GetRolesAsync(u);
-        return Ok(ProfileDto(u, roles));
+        return Ok(UserProfileResponse.Full(u, roles));
     }
 
     [HttpGet("preferences")]
@@ -98,21 +122,6 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var uid = GetUserId();
         if (uid == null) return null;
         return await users.Users.FirstOrDefaultAsync(u => u.Id == uid, ct);
-    }
-
-    private static object ProfileDto(ApplicationUser u, IList<string> roles)
-    {
-        var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
-        return new
-        {
-            id = u.Id,
-            firstName = u.FirstName,
-            lastName = u.LastName,
-            email = u.Email,
-            role,
-            isActive = true,
-            createdAt = u.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-        };
     }
 
     private int? GetUserId()

@@ -22,6 +22,8 @@ export const API_ENDPOINTS = {
   },
   users: {
     myRides: `${P}/users/me/rides`,
+    profile: (userId) => `${P}/users/${userId}/profile`,
+    search: `${P}/users/search`,
   },
   rides: {
     details: (rideId) => `${P}/rides/${rideId}`,

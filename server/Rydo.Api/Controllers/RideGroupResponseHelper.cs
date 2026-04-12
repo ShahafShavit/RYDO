@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
@@ -64,7 +65,12 @@ internal static class RideGroupResponseHelper
             participantCount = count,
             participants = participantIds,
             participantDetails = g.Participants
-                .Select(p => new { userId = p.UserId, displayName = DisplayName(p.User) })
+                .Select(p => new
+                {
+                    userId = p.UserId,
+                    displayName = DisplayName(p.User),
+                    avatarUrl = UserPublicFields.RosterAvatarUrl(p.User),
+                })
                 .ToList(),
             maxParticipants = g.MaxParticipants,
             clubId = g.ClubId,

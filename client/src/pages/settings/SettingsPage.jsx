@@ -1,18 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import { ChangePasswordForm } from '@/features/account/components/ChangePasswordForm';
 import { RidingPreferencesForm } from '@/features/account/components/RidingPreferencesForm';
 import { UserDataDisplay } from '@/features/account/components/UserDataDisplay';
+import { ProfileEditForm } from '@/features/account/components/ProfileEditForm';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('password');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(() =>
+    tabFromUrl === 'profile' || tabFromUrl === 'preferences' || tabFromUrl === 'data' || tabFromUrl === 'password'
+      ? tabFromUrl
+      : 'password'
+  );
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'profile' || t === 'preferences' || t === 'data' || t === 'password') {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
 
   const tabs = [
+    { value: 'profile', label: 'Profile' },
     { value: 'password', label: 'Password' },
     { value: 'preferences', label: 'Preferences' },
-    { value: 'data', label: 'My Data' }
+    { value: 'data', label: 'My Data' },
   ];
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setSearchParams(value === 'password' ? {} : { tab: value }, { replace: true });
+  };
 
   return (
     // <div className="p-6 max-w-4xl mx-auto w-full h-full flex flex-col">
@@ -30,13 +51,19 @@ const SettingsPage = () => {
           <BadgeNav
             options={tabs}
             value={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
             className="max-w-100"
           />
         </div>
 
         <Card className="flex-1 sm:p-8 ">
           <div className="h-full flex flex-col items-center">
+            {activeTab === 'profile' && (
+              <div className="w-full flex justify-center rydo-fade-in">
+                <ProfileEditForm />
+              </div>
+            )}
+
             {activeTab === 'password' && (
               <div className="w-full flex justify-center rydo-fade-in">
                 <ChangePasswordForm />

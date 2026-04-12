@@ -42,6 +42,13 @@ public static class DbSeeder
                 FirstName = "Sarah",
                 LastName = "Admin",
                 CreatedAt = DateTime.UtcNow,
+                Bio = "Platform admin and route curator.",
+                Location = "Tel Aviv",
+                AvatarUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=sarahadmin",
+                PublicEmail = false,
+                PublicBio = true,
+                PublicLocation = true,
+                PublicAvatarUrl = true,
             };
             await userManager.CreateAsync(admin, AdminPassword);
             await userManager.AddToRoleAsync(admin, "admin");
@@ -58,6 +65,14 @@ public static class DbSeeder
                 FirstName = "John",
                 LastName = "Rider",
                 CreatedAt = DateTime.UtcNow,
+                Bio = "Weekend gravel and long coffee stops.",
+                Location = "Haifa",
+                AvatarUrl = "https://api.dicebear.com/7.x/avataaars/svg?seed=johnrider",
+                PublicAvatarUrl = true,
+                PublicEmail = true,
+                PublicBio = false,
+                PublicLocation = true,
+                PublicLastName = true,
             };
             await userManager.CreateAsync(rider, UserPassword);
             await userManager.AddToRoleAsync(rider, "user");
@@ -173,6 +188,14 @@ public static class DbSeeder
                 FirstName = first[i],
                 LastName = last[i % last.Length],
                 CreatedAt = DateTime.UtcNow.AddDays(-(90 + i * 2)),
+                Bio = $"Community rider — usually out on {(i % 2 == 0 ? "gravel" : "road")} at the weekend.",
+                Location = i % 4 == 0 ? "Jerusalem" : i % 4 == 1 ? "Beer Sheva" : i % 4 == 2 ? "Netanya" : "Herzliya",
+                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed=rider{i + 3}",
+                PublicEmail = i % 5 == 0,
+                PublicBio = i % 3 != 1,
+                PublicLocation = i % 7 != 0,
+                PublicAvatarUrl = true,
+                PublicFirstName = i % 11 != 0,
             };
             var ok = await userManager.CreateAsync(u, DemoRiderPassword);
             if (ok.Succeeded)

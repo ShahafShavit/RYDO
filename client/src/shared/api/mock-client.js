@@ -25,6 +25,54 @@ let clubs = [...MOCK_CLUBS];
 let challenges = [...MOCK_CHALLENGES];
 let historyEntries = [...MOCK_HISTORY];
 let chatMessages = structuredClone(MOCK_CHAT_MESSAGES);
+function mockDefaultPrivacy() {
+  return {
+    publicFirstName: true,
+    publicLastName: true,
+    publicEmail: false,
+    publicCreatedAt: true,
+    publicBio: true,
+    publicLocation: true,
+    publicAvatarUrl: true,
+  };
+}
+
+function mergeMockPrivacy(p) {
+  return { ...mockDefaultPrivacy(), ...p };
+}
+
+function toFullProfile(p) {
+  const privacy = mergeMockPrivacy(p.privacy);
+  return {
+    id: p.id,
+    firstName: p.firstName,
+    lastName: p.lastName,
+    email: p.email,
+    bio: p.bio ?? null,
+    location: p.location ?? null,
+    avatarUrl: p.avatarUrl ?? null,
+    role: (p.role || 'user').toLowerCase(),
+    isActive: p.isActive ?? true,
+    createdAt: p.createdAt,
+    privacy,
+  };
+}
+
+function toPublicProfileView(u) {
+  const privacy = mergeMockPrivacy(u.privacy);
+  return {
+    id: u.id,
+    isSelf: false,
+    firstName: privacy.publicFirstName ? u.firstName : null,
+    lastName: privacy.publicLastName ? u.lastName : null,
+    email: privacy.publicEmail ? u.email : null,
+    createdAt: privacy.publicCreatedAt ? u.createdAt : null,
+    bio: privacy.publicBio ? u.bio : null,
+    location: privacy.publicLocation ? u.location : null,
+    avatarUrl: privacy.publicAvatarUrl ? u.avatarUrl : null,
+  };
+}
+
 let profile = {
   ...users[0],
   fullName: `${users[0].firstName} ${users[0].lastName}`,
@@ -44,6 +92,7 @@ function toAuthUser(user) {
     id: user.id,
     fullName: user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || 'Unknown user',
     email: user.email,
+    avatarUrl: user.avatarUrl?.trim() || null,
     role: (user.role || 'user').toLowerCase(),
     isActive: user.isActive ?? true,
     createdAt: user.createdAt || null,
@@ -107,12 +156,18 @@ function findRoute(routeId) {
   return route;
 }
 
+/** Same as API roster rules: show stored avatar URL whenever set (signed-in lists). */
+function mockRosterAvatarUrl(u) {
+  if (!u?.avatarUrl || !String(u.avatarUrl).trim()) return undefined;
+  return String(u.avatarUrl).trim();
+}
+
 function participantDetailsFromIds(ids) {
   const list = Array.isArray(ids) ? ids : [];
   return list.map((uid) => {
     const u = users.find((x) => x.id === Number(uid));
     const displayName = u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`;
-    return { userId: Number(uid), displayName };
+    return { userId: Number(uid), displayName, avatarUrl: u ? mockRosterAvatarUrl(u) : undefined };
   });
 }
 
@@ -150,7 +205,7 @@ export async function mockRequest(path, options = {}) {
       throw new ApiError({ message: 'Invalid credentials', status: 401, code: 'invalid_credentials' });
     }
 
-    profile = { ...profile, ...toAuthUser(user) };
+    profile = { ...user, fullName: [user.firstName, user.lastName].filter(Boolean).join(' ') };
     savedRouteIds = [...(DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID[user.id] ?? [])];
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
@@ -175,10 +230,14 @@ export async function mockRequest(path, options = {}) {
       createdAt: new Date().toISOString(),
       isActive: true,
       fullName: [firstName, lastName].filter(Boolean).join(' '),
+      bio: null,
+      location: null,
+      avatarUrl: null,
+      privacy: mockDefaultPrivacy(),
     };
 
     users.push(user);
-    profile = toAuthUser(user);
+    profile = { ...user };
     savedRouteIds = [...(DEFAULT_SAVED_ROUTE_IDS_BY_USER_ID[user.id] ?? [])];
     return { token: `mock-token-${user.id}`, user: toAuthUser(user) };
   }
@@ -315,17 +374,79 @@ export async function mockRequest(path, options = {}) {
     return hazard;
   }
 
+  if (pathname === '/api/users/search' && method === 'GET') {
+    const rawQ = (searchParams.get('q') || '').trim();
+    const take = Math.min(50, Math.max(1, Number(searchParams.get('take') || 15)));
+    if (rawQ.length < 2) {
+      return { items: [] };
+    }
+    const qt = rawQ.toLowerCase();
+    const matches = users
+      .filter((u) => {
+        if (u.id === profile.id) return false;
+        const fn = (u.firstName || '').toLowerCase();
+        const ln = (u.lastName || '').toLowerCase();
+        const em = (u.email || '').toLowerCase();
+        return fn.includes(qt) || ln.includes(qt) || em.includes(qt);
+      })
+      .slice(0, take);
+    return {
+      items: matches.map((u) => ({
+        id: u.id,
+        fullName: [u.firstName, u.lastName].filter(Boolean).join(' ').trim(),
+        avatarUrl: mockRosterAvatarUrl(u) ?? null,
+      })),
+    };
+  }
+
+  const userProfileMatch = pathname.match(/^\/api\/users\/(\d+)\/profile$/);
+  if (userProfileMatch && method === 'GET') {
+    const uid = Number(userProfileMatch[1]);
+    if (uid === profile.id) {
+      return toFullProfile(profile);
+    }
+    const other = users.find((u) => u.id === uid);
+    if (!other) {
+      throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
+    }
+    return toPublicProfileView(other);
+  }
+
   if (pathname === '/api/account/profile' && method === 'GET') {
-    return toAuthUser(profile);
+    return toFullProfile(profile);
   }
 
   if (pathname === '/api/account/profile' && method === 'PUT') {
-    const updates = parseJsonBody(options.body);
+    const body = parseJsonBody(options.body);
+    const privKeys = [
+      'publicFirstName',
+      'publicLastName',
+      'publicEmail',
+      'publicCreatedAt',
+      'publicBio',
+      'publicLocation',
+      'publicAvatarUrl',
+    ];
+    const nextPrivacy = mergeMockPrivacy(profile.privacy);
+    for (const k of privKeys) {
+      if (body[k] !== undefined) nextPrivacy[k] = Boolean(body[k]);
+    }
     profile = {
       ...profile,
-      ...updates,
+      firstName: body.firstName ?? profile.firstName,
+      lastName: body.lastName ?? profile.lastName,
+      email: body.email ?? profile.email,
+      bio: 'bio' in body ? body.bio : profile.bio,
+      location: 'location' in body ? body.location : profile.location,
+      avatarUrl: 'avatarUrl' in body ? body.avatarUrl : profile.avatarUrl,
+      privacy: nextPrivacy,
     };
-    return toAuthUser(profile);
+    profile.fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+    const idx = users.findIndex((u) => u.id === profile.id);
+    if (idx >= 0) {
+      users[idx] = { ...users[idx], ...profile };
+    }
+    return toFullProfile(profile);
   }
 
   if (pathname === '/api/account/preferences' && method === 'GET') {
@@ -559,9 +680,23 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (/^\/api\/clubs\/\d+\/members$/.test(pathname) && method === 'GET') {
+    const uOther = users.find((x) => x.id === 3);
+    const name3 = uOther ? [uOther.firstName, uOther.lastName].filter(Boolean).join(' ') : 'Alex Cohen';
     return [
-      { userId: profile.id, displayName: profile.fullName, role: 'admin', membershipStatus: 'active' },
-      { userId: 3, displayName: 'Alex Cohen', role: 'member', membershipStatus: 'active' },
+      {
+        userId: profile.id,
+        displayName: profile.fullName,
+        avatarUrl: mockRosterAvatarUrl(profile),
+        role: 'admin',
+        membershipStatus: 'active',
+      },
+      {
+        userId: 3,
+        displayName: name3,
+        avatarUrl: uOther ? mockRosterAvatarUrl(uOther) : undefined,
+        role: 'member',
+        membershipStatus: 'active',
+      },
     ];
   }
 

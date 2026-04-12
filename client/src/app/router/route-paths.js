@@ -11,6 +11,8 @@ export const ROUTES = {
   myRoutes: '/my-routes',
   myRides: '/my-rides',
   settings: '/settings',
+  findPeople: '/find-people',
+  userProfile: '/users/:userId',
   rideEvent: '/ride/:rideId',
   clubs: '/clubs',
   clubDetails: '/clubs/:clubId',

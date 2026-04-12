@@ -18,6 +18,8 @@ const RoutesExplorePage = lazy(() => import('@/pages/routes/RoutesExplorePage'))
 const RouteDetailsPage = lazy(() => import('@/pages/routes/RouteDetailsPage'));
 const YourRoutesPage = lazy(() => import('@/pages/routes/YourRoutesPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const UserProfilePage = lazy(() => import('@/pages/users/UserProfilePage'));
+const FindPeoplePage = lazy(() => import('@/pages/users/FindPeoplePage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
@@ -57,6 +59,8 @@ export const router = createBrowserRouter([
           { path: '/rides/:rideId', element: <LegacyRideSpaRedirect /> },
 
           { path: ROUTES.settings, element: <SettingsPage /> },
+          { path: ROUTES.findPeople, element: <FindPeoplePage /> },
+          { path: ROUTES.userProfile, element: <UserProfilePage /> },
         ],
       },
     ],

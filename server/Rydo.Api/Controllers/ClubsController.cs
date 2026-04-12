@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
@@ -24,6 +25,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
     {
         userId = m.UserId,
         displayName = DisplayName(m.User),
+        avatarUrl = UserPublicFields.RosterAvatarUrl(m.User),
         email = m.User?.Email ?? "",
         role = m.Role == ClubMemberRole.Admin ? "admin" : "member",
         membershipStatus = m.MembershipStatus == ClubMembershipStatus.Active ? "active" : "pending",

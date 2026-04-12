@@ -4,7 +4,9 @@ import { User, Settings, LogOut } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/app/router/route-paths';
+import { generatePath } from 'react-router-dom';
 import { cn } from '@/shared/lib/cn';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 
 const MotionDiv = motion.div;
@@ -39,16 +41,6 @@ export default function UserProfileDropdown() {
         logout();
     };
 
-    const getInitials = (name) => {
-        if (!name) return 'U';
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .substring(0, 2)
-            .toUpperCase();
-    };
-
     const tFast = { duration: reducedMotion ? 0.09 : 0.14, ease: [0.32, 0.72, 0, 1] };
 
     return (
@@ -69,7 +61,7 @@ export default function UserProfileDropdown() {
                             role="menuitem"
                             onClick={() => {
                                 setIsOpen(false);
-                                navigate(ROUTES.settings);
+                                if (user?.id) navigate(generatePath(ROUTES.userProfile, { userId: String(user.id) }));
                             }}
                             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-white/72 transition-colors hover:bg-white/5 hover:text-white"
                         >
@@ -113,9 +105,12 @@ export default function UserProfileDropdown() {
                 )}
             >
                 <div className="flex items-center min-w-0 gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#7B5CFF]/20 text-xs font-semibold text-white border border-[#7B5CFF]/30">
-                        {getInitials(user?.fullName)}
-                    </div>
+                    <UserAvatar
+                        avatarUrl={user?.avatarUrl}
+                        displayName={user?.fullName}
+                        sizeClass="h-9 w-9"
+                        textClass="text-xs"
+                    />
                     <div className="min-w-0 pr-1">
                         <h3 className="truncate text-sm font-medium text-white">{user?.fullName || 'User'}</h3>
                         <p className="truncate text-xs text-white/45">{user?.email || 'user@example.com'}</p>

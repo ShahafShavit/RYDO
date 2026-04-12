@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, generatePath } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 
 function ridePeopleSummary(r) {
   const fromDetails = Array.isArray(r.participantDetails) ? r.participantDetails.length : 0;
@@ -245,7 +246,13 @@ export default function ClubDetailPage() {
               <ul className="mt-3 space-y-2">
                 {(requestsQuery.data || []).map((r) => (
                   <li key={r.userId} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <span>{r.displayName || `User #${r.userId}`}</span>
+                    <Link
+                      to={generatePath(ROUTES.userProfile, { userId: String(r.userId) })}
+                      className="flex min-w-0 items-center gap-2 text-white/88 hover:text-white"
+                    >
+                      <UserAvatar avatarUrl={r.avatarUrl} displayName={r.displayName || `User ${r.userId}`} />
+                      <span className="truncate">{r.displayName || `User #${r.userId}`}</span>
+                    </Link>
                     <div className="flex gap-2">
                       <Button variant="neon" className="!py-1.5 text-xs" onClick={() => approveMut.mutate(r.userId)}>
                         Approve
@@ -271,7 +278,18 @@ export default function ClubDetailPage() {
                 key={m.userId}
                 className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/80"
               >
-                {m.displayName || `User ${m.userId}`}
+                <Link
+                  to={generatePath(ROUTES.userProfile, { userId: String(m.userId) })}
+                  className="flex min-w-0 items-center gap-2 hover:text-white"
+                >
+                  <UserAvatar
+                    avatarUrl={m.avatarUrl}
+                    displayName={m.displayName || `User ${m.userId}`}
+                    sizeClass="h-7 w-7"
+                    textClass="text-[10px]"
+                  />
+                  <span className="truncate">{m.displayName || `User ${m.userId}`}</span>
+                </Link>
                 {m.role === 'admin' ? (
                   <span className="text-xs text-[#21F1A8]">Admin</span>
                 ) : null}

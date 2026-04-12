@@ -1,7 +1,10 @@
+import { Link, generatePath } from 'react-router-dom';
+import { ROUTES } from '@/app/router/route-paths';
 import Card from '@/shared/components/ui/card/Card';
 import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers';
 import { useDeleteUser } from '@/features/admin/hooks/useAdminUsers';
 import Button from '@/shared/components/ui/button/Button';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 
 export default function UsersTable() {
   const { users, isLoading, isError, error } = useAdminUsers({ skip: 0, take: 50 });
@@ -27,7 +30,15 @@ export default function UsersTable() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-t border-white/8">
-                <td className="px-4 py-3">{user.fullName}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    to={generatePath(ROUTES.userProfile, { userId: String(user.id) })}
+                    className="inline-flex items-center gap-2 text-white/88 hover:text-white hover:underline"
+                  >
+                    <UserAvatar displayName={user.fullName} sizeClass="h-8 w-8" />
+                    {user.fullName}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-white/64">{user.email}</td>
                 <td className="px-4 py-3 text-white/64">{user.role}</td>
                 <td className="px-4 py-3 text-white/64">{user.status}</td>

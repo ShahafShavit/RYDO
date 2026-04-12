@@ -14,6 +14,7 @@ export const dashboardNavigation = [
   { label: 'My routes', to: ROUTES.myRoutes },
   { label: 'My rides', to: ROUTES.myRides },
   { label: 'Clubs', to: ROUTES.clubs },
+  { label: 'Find people', to: ROUTES.findPeople },
   { label: 'Settings', to: ROUTES.settings },
 ];
 

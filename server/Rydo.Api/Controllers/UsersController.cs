@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
@@ -10,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class UsersController(RydoDbContext db) : ControllerBase
+public class UsersController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
 {
     private const int MaxUpcomingMyRides = 4;
     private const int MaxPastMyRidesTake = 100;
@@ -19,6 +20,59 @@ public class UsersController(RydoDbContext db) : ControllerBase
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(s, out var id) ? id : null;
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchUsers([FromQuery] string? q, [FromQuery] int take = 15, CancellationToken ct = default)
+    {
+        if (CurrentUserId() is not { } viewerId)
+            return Unauthorized();
+
+        var term = (q ?? "").Trim();
+        if (term.Length < 2)
+            return Ok(new { items = Array.Empty<object>() });
+
+        take = Math.Clamp(take, 1, 50);
+
+        var rows = await users.Users.AsNoTracking()
+            .Where(u => u.Id != viewerId)
+            .Where(u =>
+                (u.FirstName != null && u.FirstName.Contains(term))
+                || (u.LastName != null && u.LastName.Contains(term))
+                || (u.Email != null && u.Email.Contains(term)))
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ThenBy(u => u.Id)
+            .Take(take)
+            .ToListAsync(ct);
+
+        var items = rows.Select(u => new
+        {
+            id = u.Id,
+            fullName = $"{u.FirstName} {u.LastName}".Trim(),
+            avatarUrl = UserPublicFields.RosterAvatarUrl(u),
+        }).ToList();
+
+        return Ok(new { items });
+    }
+
+    [HttpGet("{userId:int}/profile")]
+    public async Task<IActionResult> GetUserProfile(int userId, CancellationToken ct)
+    {
+        if (CurrentUserId() is not { } viewerId)
+            return Unauthorized();
+
+        var subject = await users.FindByIdAsync(userId.ToString());
+        if (subject == null)
+            return NotFound();
+
+        if (viewerId == userId)
+        {
+            var roles = await users.GetRolesAsync(subject);
+            return Ok(UserProfileResponse.Full(subject, roles));
+        }
+
+        return Ok(UserProfileResponse.PublicView(subject));
     }
 
     public record CreatePersonalRideBody(

@@ -61,6 +61,7 @@ public class AuthController(UserManager<ApplicationUser> users, JwtTokenService 
                 firstName = user.FirstName,
                 lastName = user.LastName,
                 email = user.Email,
+                avatarUrl = string.IsNullOrWhiteSpace(user.AvatarUrl) ? null : user.AvatarUrl.Trim(),
                 role,
                 isActive = true,
                 createdAt = user.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
