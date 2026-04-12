@@ -175,6 +175,7 @@ function findRoute(routeId) {
     return {
       userId: uid,
       fullName: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`,
+      avatarUrl: mockRosterAvatarUrl(u),
     };
   });
   const totalCount = visibleRiders.length;

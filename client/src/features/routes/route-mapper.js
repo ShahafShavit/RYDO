@@ -104,6 +104,7 @@ function normalizeRouteRiders(raw) {
     visibleRiders: visible.map((r) => ({
       userId: Number(r.userId ?? r.id ?? 0),
       fullName: String(r.fullName || r.displayName || '').trim() || 'Rider',
+      avatarUrl: r.avatarUrl?.trim() || null,
     })),
   };
 }

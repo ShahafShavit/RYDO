@@ -4,7 +4,7 @@ using Rydo.Api.Data;
 
 namespace Rydo.Api.Services;
 
-public readonly record struct RouteRiderVisible(int UserId, string FullName);
+public readonly record struct RouteRiderVisible(int UserId, string FullName, string? AvatarUrl);
 
 public readonly record struct RouteRidersInfo(int TotalCount, IReadOnlyList<RouteRiderVisible> Visible);
 
@@ -43,7 +43,10 @@ public static class RouteJsonMapper
             .ToListAsync(ct);
 
         var visible = users
-            .Select(u => new RouteRiderVisible(u.Id, $"{u.FirstName} {u.LastName}".Trim()))
+            .Select(u => new RouteRiderVisible(
+                u.Id,
+                $"{u.FirstName} {u.LastName}".Trim(),
+                UserPublicFields.RosterAvatarUrl(u)))
             .ToList();
 
         return new RouteRidersInfo(total, visible);
@@ -93,7 +96,7 @@ public static class RouteJsonMapper
             routeRiders = new
             {
                 totalCount = rr.TotalCount,
-                visibleRiders = rr.Visible.Select(v => new { userId = v.UserId, fullName = v.FullName }).ToList(),
+                visibleRiders = rr.Visible.Select(v => new { userId = v.UserId, fullName = v.FullName, avatarUrl = v.AvatarUrl }).ToList(),
             },
         };
     }
