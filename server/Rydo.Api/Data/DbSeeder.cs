@@ -89,7 +89,7 @@ public static class DbSeeder
         // Changing SeedData/GpxSeed does not re-run this path on an existing DB; recreate the database (e.g. docker compose down -v) to apply updated seed assets.
         if (await db.HistoryEntries.AnyAsync())
         {
-            await EnsureClubChatSeedAsync(db, rider.Id);
+            await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
             return;
         }
 
@@ -124,7 +124,7 @@ public static class DbSeeder
             db.Rides.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
-            await EnsureClubChatSeedAsync(db, rider.Id);
+            await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
 
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
             return;
@@ -136,14 +136,14 @@ public static class DbSeeder
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
-        await EnsureClubChatSeedAsync(db, rider.Id);
+        await EnsureClubChatSeedAsync(db, rider.Id, admin.Id);
     }
 
     /// <summary>
     /// Inserts demo club chat for each club that has no messages yet and at least two active members.
     /// Idempotent per club. Seeds a multi-day thread with several members so the demo reads like a real chat.
     /// </summary>
-    private static async Task EnsureClubChatSeedAsync(RydoDbContext db, int riderUserId)
+    private static async Task EnsureClubChatSeedAsync(RydoDbContext db, int riderUserId, int adminUserId)
     {
         var clubs = await db.CyclingClubs.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
         if (clubs.Count == 0)
@@ -171,15 +171,28 @@ public static class DbSeeder
             if (memberIds.Count < 2)
                 continue;
 
-            await SeedClubChatConversationAsync(db, club.Id, memberIds, routes, rideGroups, riderUserId, jsonOpts);
+            await SeedClubChatConversationAsync(db, club.Id, memberIds, routes, rideGroups, riderUserId, adminUserId, jsonOpts);
         }
     }
 
     private static string SeedUserDisplayName(ApplicationUser? u) =>
         u == null ? "" : string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
 
+    /// <summary>Stable hash so each club gets a different “voice” and scenario (not tied to runtime string hashing).</summary>
+    private static int ClubChatMix(int clubId, ReadOnlySpan<char> clubName, int firstMemberId)
+    {
+        unchecked
+        {
+            var h = clubId * 7919 + firstMemberId * 65537;
+            for (var i = 0; i < clubName.Length; i++)
+                h = h * 31 + clubName[i];
+            return h;
+        }
+    }
+
     /// <summary>
     /// Builds a believable back-and-forth with several authors, staggered timestamps, and a few valid @mentions.
+    /// Threads vary by club (scenario + phrase picks) so demos don’t look copy-pasted.
     /// </summary>
     private static async Task SeedClubChatConversationAsync(
         RydoDbContext db,
@@ -188,6 +201,7 @@ public static class DbSeeder
         List<RouteEntity> routes,
         List<Ride> rideGroups,
         int riderUserId,
+        int adminUserId,
         JsonSerializerOptions jsonOpts)
     {
         var clubName = await db.CyclingClubs.AsNoTracking()
@@ -206,6 +220,9 @@ public static class DbSeeder
         var u2 = memberIds.Count > 2 ? memberIds[2] : u1;
         var u3 = memberIds.Count > 3 ? memberIds[3] : u0;
 
+        var mix = ClubChatMix(clubId, clubName, u0);
+        var scenario = Math.Abs(mix) % 4;
+
         var savedRouteId = await db.SavedRoutes.AsNoTracking()
             .Where(s => s.UserId == u0 || s.UserId == u1)
             .Select(s => s.RouteId)
@@ -220,12 +237,17 @@ public static class DbSeeder
         if (routeTitle.Length == 0)
             routeTitle = "this route";
 
-        var clubRide = rideGroups.FirstOrDefault(r => r.ClubId == clubId && r.Kind == RideKind.Scheduled);
+        var nowUtc = DateTime.UtcNow;
+        var clubRide = rideGroups
+            .Where(r => r.ClubId == clubId && r.Kind == RideKind.Scheduled && r.ScheduledDate >= nowUtc)
+            .OrderBy(r => r.ScheduledDate)
+            .FirstOrDefault();
         var rideLabel = clubRide != null
             ? $"{clubRide.Name.Trim()} · {clubRide.ScheduledDate.ToUniversalTime():yyyy-MM-dd}"
             : null;
 
-        var start = DateTime.UtcNow.AddDays(-8);
+        var dayBack = 5 + (Math.Abs(mix >> 3) % 5);
+        var start = DateTime.UtcNow.AddDays(-dayBack);
         var messages = new List<ClubChatMessage>();
         double t = 0;
         var salt = 0;
@@ -233,7 +255,11 @@ public static class DbSeeder
         void Add(int authorId, string body, string? mentionsJson)
         {
             if (messages.Count > 0)
-                t += 12 + (salt++ * 31 + clubId * 7) % 120;
+            {
+                var gap = 12 + (salt++ * 31 + clubId * 7 + (mix & 0xFF)) % 120;
+                t += gap;
+            }
+
             messages.Add(new ClubChatMessage
             {
                 ClubId = clubId,
@@ -244,41 +270,123 @@ public static class DbSeeder
             });
         }
 
-        Add(u0, $"Morning {clubName} — anyone thinking Saturday for a longer loop?", null);
-        Add(u1, "Saturday works. I'm free from 7 onward if we want an early roll-out.", null);
-        Add(u2, "Same here. Weather apps keep flip-flopping — worth a backup plan if it's windy.", null);
-        Add(u0, "Let's aim for wheels rolling 7:30 from the usual meet spot. Too keen?", null);
-        Add(u1, "7:30 is fine. I need to be back by 11 — family stuff.", null);
-        Add(u3, "I can join for the first hour then peel off toward town.", null);
-        Add(u0, $"I've got @{routeTitle} saved — nice mix of climb and flat if we want a reference.", JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts));
-        Add(u1, "That profile looks reasonable. Nothing that'll wreck legs for Sunday riders.", null);
-        Add(u0, $"@{Dn(u1)} if you're on tubeless, bring a plug kit — last time we hit glass on the descent.", JsonSerializer.Serialize(new[] { new { kind = "user", id = u1 } }, jsonOpts));
-        Add(u1, "Already in the saddle bag.", null);
-        Add(u3, "I'm out this weekend — work — but have a great ride and post photos.", null);
-        Add(u0, "Will do — we'll keep the pace social unless everyone's feeling spicy.", null);
-        Add(u2, "Coffee stop after, or straight home? I could use caffeine before noon.", null);
-        Add(u1, "Coffee sounds good if we're back by 10:30. Know a place that opens early?", null);
+        string P(int slot, params string[] options)
+        {
+            if (options.Length == 0) return "";
+            var i = Math.Abs(mix + slot * 9176) % options.Length;
+            return options[i];
+        }
 
-        if (clubRide != null && rideLabel != null)
-            Add(u0, $"Also reminder we've got @{rideLabel} on the calendar — shout if you want in.", JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts));
+        switch (scenario)
+        {
+            case 0:
+                Add(u0, P(1, $"Morning {clubName} — anyone thinking Saturday for a longer loop?", $"Hey {clubName} — quick ping: weekend ride still on the radar?", $"Anyone planning something Saturday? I could use a longer morning."), null);
+                Add(u1, P(2, "Saturday works. I'm free from 7 onward if we want an early roll-out.", "I can do Saturday. Morning beats afternoon for me.", "Saturday’s good — prefer an early start if we can."), null);
+                Add(u2, P(3, "Same here. Forecast keeps changing — worth a backup plan if it's windy.", "Weather widget says sun then rain. I'll trust the sky at dawn.", "I'll watch the wind — if it's nasty I'll bail early."), null);
+                Add(u0, P(4, "Let's aim for wheels rolling 7:30 from the usual meet spot. Too keen?", "How about 7:30 meet, same corner as last time?", "Roll at 7:30 unless someone needs 15 more minutes?"), null);
+                Add(u1, P(5, "7:30 is fine. I need to be back by 11 — family stuff.", "Works — I’ve got a hard stop at 11.", "7:30 ok. I need to peel off by 11."), null);
+                Add(u3, P(6, "I can join for the first hour then peel off toward town.", "First hour only for me — then I split off.", "I'll tag along for the warm-up leg, then head home."), null);
+                Add(u0, $"I've got @{routeTitle} saved — {P(7, "nice mix of climb and flat if we want a reference.", "good balance of effort and recovery.", "nothing brutal if we keep it social.")}", JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts));
+                Add(u1, P(8, "That profile looks reasonable. Nothing that'll wreck legs for Sunday riders.", "Looks fine — I won’t be destroyed for Sunday.", "Yeah, that won’t cook my legs for the next day."), null);
+                Add(u0, $"@{Dn(u1)} if you're on tubeless, bring a plug kit — {P(9, "last time we hit glass on the descent.", "we rolled through junk on that downhill once.", "there was debris last run.")}", JsonSerializer.Serialize(new[] { new { kind = "user", id = u1 } }, jsonOpts));
+                Add(u1, P(10, "Already in the saddle bag.", "Packed — spare + lever too.", "Yep, got plugs."), null);
+                Add(u3, P(11, "I'm out this weekend — work — but have a great ride and post photos.", "Can’t make it — travel — send pics though.", "Sitting this one out — enjoy!"), null);
+                Add(u0, P(12, "Will do — we'll keep the pace social unless everyone's feeling spicy.", "We’ll keep it chill unless the group wants to push.", "Social pace unless the bunch votes otherwise."), null);
+                Add(u2, P(13, "Coffee stop after, or straight home? I could use caffeine before noon.", "Cafe afterward or nah?", "Anyone need coffee on the way back?"), null);
+                Add(u1, P(14, "Coffee sounds good if we're back by 10:30. Know a place that opens early?", "If we’re back early enough I’m in for espresso.", "Coffee yes if someone knows a spot open early."), null);
+                if (clubRide != null && rideLabel != null)
+                    Add(u0, P(15, $"Also reminder we've got @{rideLabel} on the calendar — shout if you want in.", $"Calendar has @{rideLabel} — ping me if you’re joining.", $"Don’t forget @{rideLabel} is up — say if you’re in."), JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts));
+                Add(u2, P(16, "If it's pouring at 6am I'll post here and we can push a day — fair?", "If it’s ugly at dawn I’ll drop a note — reschedule ok?", "Rain check if it’s biblical — I’ll post early."), null);
+                Add(u1, P(17, "Sounds fair. I'll watch the thread before I leave the house.", "Yep — I’ll check here before I kit up.", "Fair — I’ll peek at chat before rolling out."), null);
+                Add(u0, P(18, "Perfect. See you Saturday unless the sky absolutely falls.", "See you then — unless the weather truly collapses.", "Catch you Saturday if the world doesn’t end."), null);
+                Add(u2, $"@{Dn(u0)} thanks for organizing — {P(19, "makes it easy to show up.", "saves us all the chaos.", "appreciate the coordination.")}", JsonSerializer.Serialize(new[] { new { kind = "user", id = u0 } }, jsonOpts));
+                Add(u0, P(20, "Any time — that's what the group's for.", "Happy to — that’s the point of the club.", "Of course — glad it helps."), null);
+                break;
 
-        Add(u2, "If it's pouring at 6am I'll post here and we can push a day — fair?", null);
-        Add(u1, "Sounds fair. I'll watch the thread before I leave the house.", null);
-        Add(u0, "Perfect. See you Saturday unless the sky absolutely falls.", null);
-        Add(u2, $"@{Dn(u0)} thanks for organizing — makes it easy to show up.", JsonSerializer.Serialize(new[] { new { kind = "user", id = u0 } }, jsonOpts));
-        Add(u0, "Any time — that's what the group's for.", null);
+            case 1:
+                Add(u1, $"Anyone fancy a lazy Sunday roll — {P(30, "late start", "10-ish", "brunch-adjacent timing")}?", null);
+                Add(u0, P(31, "Sunday works. I’m useless before 9 though.", "Sunday yes — don’t make me meet at dawn.", "I’m in — prefer not freezing in the dark."), null);
+                Add(u2, P(32, "Social pace? My legs are toast from midweek intervals.", "Keep it conversational — legs are tired.", "Easy spins only — I overdid it Tuesday."), null);
+                Add(u1, $"@{routeTitle} is a mellow loop if we want a reference.", JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts));
+                Add(u0, P(33, "That works — mostly flat with one cheeky ramp.", "Yeah — chill profile. One little climb.", "Fine by me — nothing scary."), null);
+                Add(u3, P(34, "I’ll swing by for the first half then duck out.", "I can join for a bit then bail.", "Short stint for me — family lunch."), null);
+                Add(u2, P(35, "Brunch after if anyone’s hungry? There’s that place near the river.", "Food after? I’m always hungry.", "Post-ride pancakes — who’s weak?"), null);
+                Add(u0, P(36, "I’m in for food if we’re back by 12:30.", "Brunch yes if timing works.", "Pancakes sound dangerous — count me in."), null);
+                if (clubRide != null && rideLabel != null)
+                    Add(u1, $"Side note — @{rideLabel} is still on the calendar too.", JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts));
+                Add(u2, $"@{Dn(u0)} can you bring a pump? Mine hisses.", JsonSerializer.Serialize(new[] { new { kind = "user", id = u0 } }, jsonOpts));
+                Add(u0, P(37, "Yeah — floor pump in the car.", "Will bring — floor pump.", "Got you — I’ll toss it in."), null);
+                Add(u1, P(38, "You’re a hero.", "Legend.", "Thanks — owe you a coffee."), null);
+                Add(u2, P(39, "If it rains I’m sleeping in. No guilt.", "Rain = cancel and sleep.", "Wet Sunday = couch."), null);
+                Add(u0, P(40, "Same. I’ll post if it looks grim.", "I’ll drop a note if it’s awful out.", "I’ll ping the thread if it’s trash weather."), null);
+                Add(u1, P(41, "Deal. See you Sunday if the sun cooperates.", "Sunday it is — weather permitting.", "Sunday crew — fingers crossed."), null);
+                break;
+
+            case 2:
+                Add(u0, P(50, "Thursday evening — quick loop before dark. Who’s in?", "Anyone for a weeknight spin Thursday?", "Thinking a short Thursday after work — join?"), null);
+                Add(u1, P(51, "I can do 18:00 meet if we’re efficient.", "18:00 works — need to be home for dinner.", "Thursday ok — tight on time."), null);
+                Add(u2, P(52, "Lights charged. Days are short.", "Got blinkers — sunset sneaks up.", "Running front+rear — it’s dim out there."), null);
+                Add(u0, $"Route idea: @{routeTitle} — trimmed to ~35km.", JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts));
+                Add(u3, P(53, "35 is perfect — I’m not chasing PRs on a weeknight.", "35 sounds humane.", "Short and sweet — good."), null);
+                Add(u1, P(54, "Meet at the usual or the north lot?", "Same meet spot as last week?", "North lot or classic corner?"), null);
+                Add(u0, P(55, "Usual is fine — fewer cars.", "Classic corner — easier to find.", "Let’s do the usual — predictable."), null);
+                Add(u2, P(56, "If I’m late, roll — don’t wait forever.", "Don’t wait if I’m stuck at work — go.", "Start without me if I’m 5 late — I’ll chase."), null);
+                Add(u1, P(57, "Fair — we regroup at the bridge.", "Regroup bridge — same as always.", "Bridge regroup — works."), null);
+                if (clubRide != null && rideLabel != null)
+                    Add(u0, $"Also @{rideLabel} is coming up — different vibe but FYI.", JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts));
+                Add(u2, P(58, "Tubeless check before we descend — last week someone burped.", "Quick tire check before the downhill?", "Someone burped a tire last time — quick glance before the drop?"), null);
+                Add(u0, $"@{Dn(u1)} you good leading the descent?", JsonSerializer.Serialize(new[] { new { kind = "user", id = u1 } }, jsonOpts));
+                Add(u1, P(59, "Yep — I’ll sweep if needed.", "I can lead — happy to sweep too.", "Sure — I’ll take point."), null);
+                Add(u2, P(60, "Rain cancels for me — fair?", "If it pours I’m out — ok?", "Wet roads = skip for me."), null);
+                Add(u0, P(61, "Totally — life’s too short for sketchy corners.", "Agreed — no heroics in the wet.", "Same — safety first."), null);
+                break;
+
+            default:
+                Add(u2, P(70, "Gravel-curious this weekend — anyone game if trails aren’t soup?", "Mixed surface Saturday? If it’s not a swamp.", "Thinking dirt-ish — who’s brave?"), null);
+                Add(u0, P(71, "If it’s dry-ish I’m in. Mud and I aren’t friends.", "Dry gravel yes — peanut butter mud no.", "Depends on tack — I hate cleaning the bike."), null);
+                Add(u1, P(72, "I’ll bring the wider rubber just in case.", "I'll run 38s — better safe.", "Throwing on bigger tires — peace of mind."), null);
+                Add(u0, $"@{routeTitle} has a dirt segment — not insane.", JsonSerializer.Serialize(new[] { new { kind = "route", id = savedRouteId } }, jsonOpts));
+                Add(u3, P(73, "I’m road-only this week — ankle tweak.", "Sitting out — ankle.", "Can’t — minor injury — next time."), null);
+                Add(u2, P(74, "Heal up — we’ll save the dust for you.", "Rest — we’ll send pics.", "Get well — gravel waits."), null);
+                Add(u1, P(75, "Pack layers — temp swings out there.", "Layers — it’s cold at 8, oven by 11.", "Wind jacket in the pocket — trust me."), null);
+                Add(u0, $"@{Dn(u2)} you bringing snacks or should I?", JsonSerializer.Serialize(new[] { new { kind = "user", id = u2 } }, jsonOpts));
+                Add(u2, P(76, "I’ve got bars — someone grab water?", "Bars in my pack — who has bottles?", "I’ll bring gels — grab water?"), null);
+                Add(u0, P(77, "I’ll carry extra bottle — no worries.", "I’ll bring water — sorted.", "Water on me."), null);
+                if (clubRide != null && rideLabel != null)
+                    Add(u1, $"Club ride @{rideLabel} is still on the radar too — different beast.", JsonSerializer.Serialize(new[] { new { kind = "ride", id = clubRide.Id } }, jsonOpts));
+                Add(u2, P(78, "If the forecast flips I’ll scream in this thread.", "Weather drama = I’ll post here first.", "I’ll update if it tanks."), null);
+                Add(u0, P(79, "Sounds good — see you if the trails behave.", "Catch you if the earth cooperates.", "On if it’s not a bog."), null);
+                break;
+        }
 
         db.ClubChatMessages.AddRange(messages);
         await db.SaveChangesAsync();
 
-        var lastId = messages.Max(m => m.Id);
-        var demoReader = memberIds.Contains(riderUserId) ? riderUserId : u1;
-        db.ClubChatReadStates.Add(new ClubChatReadState
+        var ordered = messages.OrderBy(m => m.Id).ToList();
+        var n = ordered.Count;
+        if (n > 0)
         {
-            ClubId = clubId,
-            UserId = demoReader,
-            LastReadMessageId = lastId,
-        });
+            // Organic partial read for demo accounts so the summary shows unread badges (not everyone caught up).
+            var rCut = Math.Clamp((n * (38 + Math.Abs(mix % 23))) / 100, 1, Math.Max(1, n - 4));
+            var aCut = Math.Clamp((n * (58 + Math.Abs((mix >> 5) % 23))) / 100, Math.Min(rCut + 1, n - 1), n - 2);
+            if (aCut <= rCut) aCut = Math.Min(n - 2, rCut + 2);
+
+            void AddRead(int uid, int idx)
+            {
+                if (!memberIds.Contains(uid)) return;
+                idx = Math.Clamp(idx, 0, n - 1);
+                db.ClubChatReadStates.Add(new ClubChatReadState
+                {
+                    ClubId = clubId,
+                    UserId = uid,
+                    LastReadMessageId = ordered[idx].Id,
+                });
+            }
+
+            AddRead(riderUserId, rCut);
+            AddRead(adminUserId, aCut);
+        }
+
         await db.SaveChangesAsync();
     }
 
@@ -1005,6 +1113,36 @@ public static class DbSeeder
                 RequestedAt = DateTime.UtcNow.AddDays(-rnd.Next(10, 55)),
                 ActivatedAt = DateTime.UtcNow.AddDays(-rnd.Next(8, 50)),
             });
+        }
+
+        // Sarah & John: active in every club so club chat + summaries include all groups (upgrade pending invites).
+        for (var i = 0; i < clubCount; i++)
+        {
+            var cid = clubs[i].Id;
+            foreach (var uid in new[] { a, r })
+            {
+                var row = db.ClubMembers.FirstOrDefault(m => m.ClubId == cid && m.UserId == uid);
+                if (row != null)
+                {
+                    if (row.MembershipStatus == ClubMembershipStatus.Pending)
+                    {
+                        row.MembershipStatus = ClubMembershipStatus.Active;
+                        row.ActivatedAt ??= DateTime.UtcNow.AddDays(-25);
+                    }
+
+                    continue;
+                }
+
+                db.ClubMembers.Add(new ClubMember
+                {
+                    ClubId = cid,
+                    UserId = uid,
+                    Role = ClubMemberRole.Member,
+                    MembershipStatus = ClubMembershipStatus.Active,
+                    RequestedAt = DateTime.UtcNow.AddDays(-80 + i * 2),
+                    ActivatedAt = DateTime.UtcNow.AddDays(-79 + i * 2),
+                });
+            }
         }
 
         var jerusalemLead = others[2];

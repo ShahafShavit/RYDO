@@ -148,7 +148,7 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
         <ul
           ref={listRef}
           id={listboxId}
-          className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-surface-strong shadow-xl z-10"
+          className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] shadow-xl z-10"
           role="listbox"
           aria-label="Mentions"
         >
@@ -158,8 +158,8 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
                 type="button"
                 role="option"
                 aria-selected={i === highlightIndex}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-surface ${
-                  i === highlightIndex ? 'bg-surface ring-1 ring-inset ring-rydo-purple/35' : ''
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-white/10 ${
+                  i === highlightIndex ? 'bg-white/12 ring-1 ring-inset ring-rydo-purple/40' : ''
                 }`}
                 onMouseEnter={() => setHighlightIndex(i)}
                 onMouseDown={(ev) => {

@@ -128,7 +128,7 @@ export default function ClubChatDock() {
         type="button"
         aria-label="Open club chat"
         onClick={() => setOpen((o) => !o)}
-        className="fixed z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 md:bottom-8 md:right-8 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
+        className="fixed z-[100] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 md:bottom-8 md:right-8 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
       >
         <MessageCircle className="h-7 w-7" aria-hidden />
         {totalUnread > 0 ? (
