@@ -15,6 +15,8 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 {
     private const int MaxUpcomingMyRides = 4;
     private const int MaxPastMyRidesTake = 100;
+    private const int MaxUserRoutesTake = 50;
+    private const int MaxUserParticipatedRidesTake = 50;
 
     private int? CurrentUserId()
     {
@@ -75,6 +77,128 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         }
 
         return Ok(UserProfileResponse.PublicView(subject, pref));
+    }
+
+    [HttpGet("{userId:int}/routes")]
+    public async Task<IActionResult> GetUserRoutes(
+        int userId,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? q = null,
+        CancellationToken ct = default)
+    {
+        if (CurrentUserId() is null)
+            return Unauthorized();
+
+        if (!await users.Users.AsNoTracking().AnyAsync(u => u.Id == userId, ct))
+            return NotFound();
+
+        take = Math.Clamp(take, 1, MaxUserRoutesTake);
+        if (skip < 0) skip = 0;
+
+        var query = db.Routes.AsNoTracking()
+            .Include(r => r.CreatedBy)
+            .Where(r => r.CreatedByUserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(r =>
+                r.Title.Contains(term)
+                || (r.CreatedBy != null && r.CreatedBy.UserName != null && r.CreatedBy.UserName.Contains(term))
+                || (r.CreatedBy != null && r.CreatedBy.FirstName != null && r.CreatedBy.FirstName.Contains(term))
+                || (r.CreatedBy != null && r.CreatedBy.LastName != null && r.CreatedBy.LastName.Contains(term)));
+        }
+
+        query = query.OrderByDescending(r => r.CreatedAt);
+        var page = Pagination.PageQueryable(query, skip, take);
+        var userRouteIds = page.Items.Select(r => r.Id).ToList();
+        var userRouteCountMap = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, userRouteIds, ct);
+        var items = page.Items
+            .Select(r =>
+            {
+                var tc = userRouteCountMap.GetValueOrDefault(r.Id, 0);
+                var rr = new RouteRidersInfo(tc, Array.Empty<RouteRiderVisible>());
+                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr);
+            })
+            .ToList();
+        return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
+    }
+
+    [HttpGet("{userId:int}/rides")]
+    public async Task<IActionResult> GetUserParticipatedRides(
+        int userId,
+        [FromQuery] string? q = null,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        CancellationToken ct = default)
+    {
+        if (CurrentUserId() is not { } viewerId)
+            return Unauthorized();
+
+        if (!await users.Users.AsNoTracking().AnyAsync(u => u.Id == userId, ct))
+            return NotFound();
+
+        take = Math.Clamp(take, 1, MaxUserParticipatedRidesTake);
+        if (skip < 0) skip = 0;
+
+        var now = DateTime.UtcNow;
+
+        var query = db.Rides.AsNoTracking()
+            .Include(g => g.Participants).ThenInclude(p => p.User)
+            .Include(g => g.CreatedBy)
+            .Include(g => g.Route)
+            .Include(g => g.Club)
+            .Where(g => g.Kind != RideKind.SoloLog)
+            .Where(g => g.Participants.Any(p => p.UserId == userId))
+            .Where(g =>
+                g.ClubId == null
+                || (g.Club != null && g.Club.Visibility == ClubVisibility.Public)
+                || db.ClubMembers.Any(m =>
+                    m.ClubId == g.ClubId
+                    && m.UserId == viewerId
+                    && m.MembershipStatus == ClubMembershipStatus.Active)
+                || g.Participants.Any(p => p.UserId == viewerId));
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim();
+            query = query.Where(g =>
+                g.Name.Contains(term)
+                || (g.Route != null && g.Route.Title.Contains(term))
+                || (g.Club != null && g.Club.Name.Contains(term)));
+        }
+
+        query = query
+            .OrderBy(g => g.ScheduledDate >= now ? 0 : 1)
+            .ThenBy(g => g.ScheduledDate >= now ? g.ScheduledDate.Ticks : long.MaxValue)
+            .ThenByDescending(g => g.ScheduledDate < now ? g.ScheduledDate.Ticks : long.MinValue);
+
+        var page = Pagination.PageQueryable(query, skip, take);
+        var groups = page.Items;
+
+        var groupIds = groups.Select(g => g.Id).ToList();
+        var countRows = await db.RideParticipants.AsNoTracking()
+            .Where(p => groupIds.Contains(p.RideId))
+            .GroupBy(p => p.RideId)
+            .Select(grp => new { grp.Key, Cnt = grp.Count() })
+            .ToListAsync(ct);
+        var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
+
+        var editMap = await RideResponseHelper.BuildViewerCanEditMapAsync(db, groups, viewerId, ct);
+
+        var items = new List<object>();
+        foreach (var g in groups)
+        {
+            var include = await RideResponseHelper.ViewerCanSeeRoster(db, g.ClubId, viewerId, ct);
+            items.Add(RideResponseHelper.ToResponse(
+                g,
+                include,
+                countByRide.GetValueOrDefault(g.Id, 0),
+                editMap.GetValueOrDefault(g.Id, false)));
+        }
+
+        return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
     }
 
     public record CreatePersonalRideBody(

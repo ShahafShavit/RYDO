@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   routes: {
     list: `${P}/routes`,
     details: (routeId) => `${P}/routes/${routeId}`,
+    riderRoster: (routeId) => `${P}/routes/${routeId}/rider-roster`,
     upload: `${P}/routes`,
     uploadGpx: `${P}/routes/upload`,
     saved: `${P}/routes/saved`,
@@ -23,6 +24,8 @@ export const API_ENDPOINTS = {
   users: {
     myRides: `${P}/users/me/rides`,
     profile: (userId) => `${P}/users/${userId}/profile`,
+    userRoutes: (userId) => `${P}/users/${userId}/routes`,
+    userRides: (userId) => `${P}/users/${userId}/rides`,
     search: `${P}/users/search`,
   },
   rides: {

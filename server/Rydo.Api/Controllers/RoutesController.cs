@@ -15,16 +15,18 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult List(
+    public async Task<IActionResult> List(
         [FromQuery] int skip = 0,
         [FromQuery] int take = 20,
         [FromQuery] string? q = null,
+        [FromQuery] int? createdByUserId = null,
         [FromQuery] string? terrain = null,
         [FromQuery] string? difficulty = null,
         [FromQuery] string? distance = null,
         [FromQuery] double? nearLat = null,
         [FromQuery] double? nearLng = null,
-        [FromQuery] double? maxKm = null)
+        [FromQuery] double? maxKm = null,
+        CancellationToken ct = default)
     {
         take = Math.Clamp(take, 1, MaxRouteListTake);
         if (skip < 0) skip = 0;
@@ -43,10 +45,17 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
         var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).AsQueryable();
 
+        if (createdByUserId is > 0)
+            query = query.Where(r => r.CreatedByUserId == createdByUserId.Value);
+
         if (!string.IsNullOrWhiteSpace(q))
         {
             var term = q.Trim();
-            query = query.Where(r => r.Title.Contains(term));
+            query = query.Where(r =>
+                r.Title.Contains(term)
+                || (r.CreatedBy != null && r.CreatedBy.UserName != null && r.CreatedBy.UserName.Contains(term))
+                || (r.CreatedBy != null && r.CreatedBy.FirstName != null && r.CreatedBy.FirstName.Contains(term))
+                || (r.CreatedBy != null && r.CreatedBy.LastName != null && r.CreatedBy.LastName.Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(terrain) && !string.Equals(terrain, "all", StringComparison.OrdinalIgnoreCase))
@@ -84,16 +93,53 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
             var total = withDist.Count;
             var pageSlice = withDist.Skip(skip).Take(take).ToList();
+            var nearRouteIds = pageSlice.Select(x => x.Route.Id).ToList();
+            var countMapNear = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, nearRouteIds, ct);
             var items = pageSlice
-                .Select(x => RouteJsonMapper.ToClientRoute(x.Route, x.Route.CreatedBy, false, null, Math.Round(x.Dist, 2)))
+                .Select(x =>
+                {
+                    var tc = countMapNear.GetValueOrDefault(x.Route.Id, 0);
+                    var rr = new RouteRidersInfo(tc, Array.Empty<RouteRiderVisible>());
+                    return RouteJsonMapper.ToClientRoute(
+                        x.Route,
+                        x.Route.CreatedBy,
+                        false,
+                        rr,
+                        Math.Round(x.Dist, 2));
+                })
                 .ToList();
             return Ok(new { items, total, skip, take });
         }
 
         query = query.OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
-        var itemsDefault = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
+        var listRouteIds = page.Items.Select(r => r.Id).ToList();
+        var countMap = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, listRouteIds, ct);
+        var itemsDefault = page.Items
+            .Select(r =>
+            {
+                var tc = countMap.GetValueOrDefault(r.Id, 0);
+                var rr = new RouteRidersInfo(tc, Array.Empty<RouteRiderVisible>());
+                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr);
+            })
+            .ToList();
         return Ok(new { items = itemsDefault, total = page.Total, skip = page.Skip, take = page.Take });
+    }
+
+    /// <summary>Full &quot;who rode this route&quot; roster (names respect preferences). List responses only include counts; call this once when the UI needs names.</summary>
+    [HttpGet("{routeId:int}/rider-roster")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetRiderRoster(int routeId, CancellationToken ct)
+    {
+        if (!await db.Routes.AsNoTracking().AnyAsync(r => r.Id == routeId, ct))
+            return NotFound();
+
+        var info = await RouteJsonMapper.LoadRouteRidersInfoAsync(db, routeId, ct);
+        return Ok(new
+        {
+            totalCount = info.TotalCount,
+            visibleRiders = info.Visible.Select(v => new { userId = v.UserId, fullName = v.FullName, avatarUrl = v.AvatarUrl }).ToList(),
+        });
     }
 
     [HttpGet("{routeId:int}")]

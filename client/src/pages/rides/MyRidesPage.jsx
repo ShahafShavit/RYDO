@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
@@ -8,7 +8,9 @@ import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMap
 import CompactRouteMapPlaceholder from '@/features/routes/components/CompactRouteMapPlaceholder';
 import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
-import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
+import { useMemberParticipatedRidesInfinite } from '@/features/rides/hooks/useMemberParticipatedRidesInfinite';
+import { isRideUpcoming, mapRideDto } from '@/features/rides/hooks/useRideEvent';
+import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
@@ -280,18 +282,59 @@ function HistoryRideCard({ entry }) {
 }
 
 export default function MyRidesPage() {
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const memberRaw = searchParams.get('member');
+  const memberUserId = useMemo(() => {
+    if (memberRaw == null || memberRaw === '') return null;
+    const n = Number(memberRaw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [memberRaw]);
+
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (memberUserId == null) return;
+    const q = searchParams.get('q') || '';
+    setSearch(q);
+  }, [memberUserId, searchParams]);
+
+  const { data: memberProfile } = useUserProfile(memberUserId != null ? String(memberUserId) : undefined);
+
+  const myPanel = useMyRidesPanel(memberUserId == null ? search : '', {
+    enabled: memberUserId == null,
+  });
+  const memberInfinite = useMemberParticipatedRidesInfinite(
+    memberUserId != null ? memberUserId : 0,
+    memberUserId != null ? search : '',
+  );
+
+  const useMember = memberUserId != null;
   const {
     upcoming: upcomingRaw,
     pastScheduled: pastRaw,
     historyRows,
-    isLoading,
-    isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useMyRidesPanel(search);
+    isLoading: myLoading,
+    isError: myError,
+    hasNextPage: myHasNext,
+    fetchNextPage: myFetchNext,
+    isFetchingNextPage: myFetchingNext,
+  } = myPanel;
+
+  const {
+    data: memberData,
+    fetchNextPage: memberFetchNext,
+    hasNextPage: memberHasNext,
+    isFetchingNextPage: memberFetchingNext,
+    isLoading: memberLoading,
+    isError: memberError,
+  } = memberInfinite;
+
+  const isLoading = useMember ? memberLoading : myLoading;
+  const isError = useMember ? memberError : myError;
+  const hasNextPage = useMember ? memberHasNext : myHasNext;
+  const fetchNextPage = useMember ? memberFetchNext : myFetchNext;
+  const isFetchingNextPage = useMember ? memberFetchingNext : myFetchingNext;
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
@@ -299,19 +342,40 @@ export default function MyRidesPage() {
 
   const pastLoggedSentinelRef = useIntersectionSentinel(loadMore, Boolean(hasNextPage && !isLoading));
 
-  const upcoming = useMemo(() => (Array.isArray(upcomingRaw) ? upcomingRaw.map(mapRideDto) : []), [upcomingRaw]);
-  const pastScheduled = useMemo(() => (Array.isArray(pastRaw) ? pastRaw.map(mapRideDto) : []), [pastRaw]);
+  const memberAllRides = useMemo(
+    () => memberData?.pages.flatMap((p) => p.items).filter(Boolean) ?? [],
+    [memberData],
+  );
+  const memberUpcoming = useMemo(() => memberAllRides.filter((r) => isRideUpcoming(r)), [memberAllRides]);
+  const memberPast = useMemo(() => memberAllRides.filter((r) => !isRideUpcoming(r)), [memberAllRides]);
+
+  const upcoming = useMemo(() => {
+    if (useMember) return memberUpcoming;
+    return Array.isArray(upcomingRaw) ? upcomingRaw.map(mapRideDto) : [];
+  }, [useMember, memberUpcoming, upcomingRaw]);
+  const pastScheduled = useMemo(() => {
+    if (useMember) return memberPast;
+    return Array.isArray(pastRaw) ? pastRaw.map(mapRideDto) : [];
+  }, [useMember, memberPast, pastRaw]);
+
+  const pageTitle = useMember
+    ? memberProfile?.fullName
+      ? `Rides with ${memberProfile.fullName}`
+      : 'Member rides'
+    : 'My Rides';
 
   return (
     <section className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
-          <h1 className="mt-2 text-3xl font-semibold">My Rides</h1>
+          <h1 className="mt-2 text-3xl font-semibold">{pageTitle}</h1>
         </div>
-        <Button variant="primary" type="button" onClick={() => setModalOpen(true)}>
-          Schedule personal ride
-        </Button>
+        {!useMember ? (
+          <Button variant="primary" type="button" onClick={() => setModalOpen(true)}>
+            Schedule personal ride
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -343,11 +407,31 @@ export default function MyRidesPage() {
 
       {!isLoading && (
         <>
-          <UpcomingRidesSection key={search} rides={upcoming} />
+          <UpcomingRidesSection key={`${useMember ? 'm' : 'my'}-${search}`} rides={upcoming} />
 
           <div>
-            <h2 className="text-lg font-semibold">Past &amp; logged</h2>
-            {historyRows.length === 0 && pastScheduled.length === 0 ? (
+            <h2 className="text-lg font-semibold">{useMember ? 'Past rides' : 'Past & logged'}</h2>
+            {useMember ? (
+              <>
+                {pastScheduled.length === 0 ? (
+                  <p className="mt-4 text-sm text-fg-muted">No past rides yet.</p>
+                ) : (
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {pastScheduled.map((ride) => (
+                      <PastScheduledCard key={`p-${ride.id}`} ride={ride} />
+                    ))}
+                  </div>
+                )}
+                <div
+                  ref={pastLoggedSentinelRef}
+                  className="mt-8 flex min-h-10 justify-center"
+                  aria-hidden="true"
+                />
+                {isFetchingNextPage ? (
+                  <p className="mt-2 text-center text-sm text-fg-subtle">Loading more…</p>
+                ) : null}
+              </>
+            ) : historyRows.length === 0 && pastScheduled.length === 0 ? (
               <p className="mt-4 text-sm text-fg-muted">Nothing in the past yet.</p>
             ) : (
               <>
@@ -361,7 +445,7 @@ export default function MyRidesPage() {
                 </div>
                 <div
                   ref={pastLoggedSentinelRef}
-                  className="mt-4 flex min-h-8 justify-center"
+                  className="mt-8 flex min-h-10 justify-center"
                   aria-hidden="true"
                 />
                 {isFetchingNextPage ? (
@@ -373,7 +457,7 @@ export default function MyRidesPage() {
         </>
       )}
 
-      <CreatePersonalRideModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      {!useMember ? <CreatePersonalRideModal open={modalOpen} onClose={() => setModalOpen(false)} /> : null}
     </section>
   );
 }

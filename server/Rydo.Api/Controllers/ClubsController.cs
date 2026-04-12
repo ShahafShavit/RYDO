@@ -315,6 +315,19 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                 return Problem(statusCode: 400, title: "Cannot leave", detail: "Assign another admin before leaving.");
         }
 
+        var now = DateTime.UtcNow;
+        var futureClubRideIds = await db.Rides.AsNoTracking()
+            .Where(r => r.ClubId == id && r.ScheduledDate >= now)
+            .Select(r => r.Id)
+            .ToListAsync(ct);
+        if (futureClubRideIds.Count > 0)
+        {
+            var rideRows = await db.RideParticipants
+                .Where(p => p.UserId == uid && futureClubRideIds.Contains(p.RideId))
+                .ToListAsync(ct);
+            db.RideParticipants.RemoveRange(rideRows);
+        }
+
         db.ClubMembers.Remove(m);
         await db.SaveChangesAsync(ct);
         return NoContent();

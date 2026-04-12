@@ -9,6 +9,7 @@ import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMap
 import { RouteCardDescription } from '@/features/routes/components/RouteDescriptionSnippet';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -65,6 +66,11 @@ export default function RouteCard({ route }) {
             routeId={routeId}
           />
         </div>
+        {route?.routeRiders?.totalCount > 0 ? (
+          <div className="mt-4 min-w-0">
+            <RouteRidersPanel variant="inline" routeId={routeId} routeRiders={route.routeRiders} />
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6">

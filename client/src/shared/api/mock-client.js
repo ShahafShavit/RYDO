@@ -194,11 +194,8 @@ function createRouteFromUpload(data) {
   };
 }
 
-function findRoute(routeId) {
-  const route = routes.find((item) => item.id === Number(routeId));
-  if (!route) {
-    throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
-  }
+/** Distinct participants on past rides for this route (mock; server uses preferences). */
+function buildMockRouteRiders(routeId) {
   const rid = Number(routeId);
   const now = Date.now();
   const pastRidesOnRoute = rides.filter(
@@ -217,6 +214,16 @@ function findRoute(routeId) {
     };
   });
   const totalCount = visibleRiders.length;
+  return { totalCount, visibleRiders };
+}
+
+function findRoute(routeId) {
+  const route = routes.find((item) => item.id === Number(routeId));
+  if (!route) {
+    throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
+  }
+  const rid = Number(routeId);
+  const { totalCount, visibleRiders } = buildMockRouteRiders(rid);
 
   let createdBy = route.createdBy;
   if (typeof createdBy === 'string') {
@@ -239,6 +246,15 @@ function findRoute(routeId) {
     estimatedDurationMinutes: route.estimatedDurationMinutes ?? route.durationMinutes,
     createdBy,
     routeRiders: { totalCount, visibleRiders },
+  };
+}
+
+function enrichListRouteRow(route) {
+  const rr = buildMockRouteRiders(route.id);
+  return {
+    ...route,
+    preview: { coordinates: route.coordinates },
+    routeRiders: { totalCount: rr.totalCount, visibleRiders: [] },
   };
 }
 
@@ -368,9 +384,25 @@ export async function mockRequest(path, options = {}) {
     const nearLatRaw = searchParams.get('nearLat');
     const nearLngRaw = searchParams.get('nearLng');
     const maxKmRaw = searchParams.get('maxKm');
+    const createdByRaw = searchParams.get('createdByUserId');
+    const createdByUserId =
+      createdByRaw != null && createdByRaw !== '' ? Number(createdByRaw) : NaN;
 
     let list = [...routes];
-    if (q) list = list.filter((r) => (r.title || '').toLowerCase().includes(q));
+    if (!Number.isNaN(createdByUserId) && createdByUserId > 0) {
+      list = list.filter((r) => Number(r.createdBy?.id) === createdByUserId);
+    }
+    if (q) {
+      list = list.filter((r) => {
+        const title = (r.title || '').toLowerCase();
+        const by = r.createdBy;
+        const uploader =
+          by && typeof by === 'object'
+            ? `${by.fullName || ''} ${by.firstName || ''} ${by.lastName || ''} ${by.userName || ''}`.toLowerCase()
+            : '';
+        return title.includes(q) || (uploader && uploader.includes(q));
+      });
+    }
     if (terrain && terrain !== 'all') list = list.filter((r) => (r.terrain || '') === terrain);
     if (difficulty && difficulty !== 'all') list = list.filter((r) => (r.difficulty || '') === difficulty);
     if (distance && distance !== 'all') {
@@ -414,7 +446,13 @@ export async function mockRequest(path, options = {}) {
       list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
 
-    return paginate(list, searchParams);
+    const paged = paginate(list, searchParams);
+    return {
+      items: paged.items.map((r) => enrichListRouteRow(r)),
+      total: paged.total,
+      skip: paged.skip,
+      take: paged.take,
+    };
   }
 
   if (pathname === '/api/routes/upload' && method === 'POST') {
@@ -459,6 +497,12 @@ export async function mockRequest(path, options = {}) {
     const routeId = Number(pathname.split('/')[3]);
     savedRouteIds = savedRouteIds.filter((id) => id !== routeId);
     return null;
+  }
+
+  if (/^\/api\/routes\/\d+\/rider-roster$/.test(pathname) && method === 'GET') {
+    const routeId = Number(pathname.split('/')[3]);
+    const rr = buildMockRouteRiders(routeId);
+    return { totalCount: rr.totalCount, visibleRiders: rr.visibleRiders };
   }
 
   if (/^\/api\/routes\/\d+$/.test(pathname) && method === 'GET') {
@@ -542,6 +586,69 @@ export async function mockRequest(path, options = {}) {
         avatarUrl: mockRosterAvatarUrl(u) ?? null,
       })),
     };
+  }
+
+  const userRoutesMatch = pathname.match(/^\/api\/users\/(\d+)\/routes$/);
+  if (userRoutesMatch && method === 'GET') {
+    const uid = Number(userRoutesMatch[1]);
+    if (!users.find((u) => u.id === uid)) {
+      throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
+    }
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    let list = routes.filter((r) => Number(r.createdBy?.id) === uid);
+    if (q) {
+      list = list.filter((r) => {
+        const title = (r.title || '').toLowerCase();
+        const by = r.createdBy;
+        const uploader =
+          by && typeof by === 'object'
+            ? `${by.fullName || ''} ${by.firstName || ''} ${by.lastName || ''}`.toLowerCase()
+            : '';
+        return title.includes(q) || (uploader && uploader.includes(q));
+      });
+    }
+    list = [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const pagedUserRoutes = paginate(list, searchParams);
+    return {
+      items: pagedUserRoutes.items.map((r) => enrichListRouteRow(r)),
+      total: pagedUserRoutes.total,
+      skip: pagedUserRoutes.skip,
+      take: pagedUserRoutes.take,
+    };
+  }
+
+  const userRidesMatch = pathname.match(/^\/api\/users\/(\d+)\/rides$/);
+  if (userRidesMatch && method === 'GET') {
+    const subjectUid = Number(userRidesMatch[1]);
+    if (!users.find((u) => u.id === subjectUid)) {
+      throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
+    }
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    const now = Date.now();
+    let list = rides.filter((r) => Array.isArray(r.participants) && r.participants.includes(subjectUid));
+    if (q) {
+      list = list.filter((r) => {
+        const name = (r.name || '').toLowerCase();
+        const rt = (r.routeTitle || '').toLowerCase();
+        const cn = (r.clubName || '').toLowerCase();
+        return name.includes(q) || rt.includes(q) || cn.includes(q);
+      });
+    }
+    list.sort((a, b) => {
+      const ta = new Date(a.scheduledDate).getTime();
+      const tb = new Date(b.scheduledDate).getTime();
+      const aUp = ta >= now;
+      const bUp = tb >= now;
+      if (aUp !== bUp) return aUp ? -1 : 1;
+      if (aUp) return ta - tb;
+      return tb - ta;
+    });
+    const paged = paginate(list, searchParams);
+    const items = paged.items.map((r) => ({
+      ...findRide(String(r.id)),
+      rideKind: 'scheduled',
+    }));
+    return { items, total: paged.total, skip: paged.skip, take: paged.take };
   }
 
   const userProfileMatch = pathname.match(/^\/api\/users\/(\d+)\/profile$/);

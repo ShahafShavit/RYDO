@@ -100,7 +100,8 @@ export function normalizeRoute(rawRoute = {}) {
   };
 }
 
-function normalizeRouteRiders(raw) {
+/** Normalizes `routeRiders` on a route or the body of `GET /routes/:id/rider-roster`. */
+export function normalizeRouteRiders(raw) {
   if (!raw || typeof raw !== 'object') {
     return { totalCount: 0, visibleRiders: [] };
   }

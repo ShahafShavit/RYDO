@@ -1,4 +1,5 @@
-import { useDeferredValue, useMemo, useCallback, useState } from 'react';
+import { useDeferredValue, useMemo, useCallback, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteFilters from '@/features/routes/components/RouteFilters';
 import { useRoutesExploreInfinite } from '@/features/routes/hooks/useRoutesExploreInfinite';
@@ -15,10 +16,30 @@ const defaultExploreFilters = () => ({
   nearLng: null,
   /** When set with near-me, API filters to routes within this radius (km). Null = no radius cap. */
   nearMaxKm: null,
+  /** Filter explore list to routes uploaded by this user (from URL `?createdBy=`). */
+  createdByUserId: null,
 });
 
+function parseCreatedByUserIdFromSearchParams(searchParams) {
+  const raw = searchParams.get('createdBy');
+  if (raw == null || raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export default function RoutesExplorePage() {
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultExploreFilters);
+
+  useEffect(() => {
+    const createdByUserId = parseCreatedByUserIdFromSearchParams(searchParams);
+    const q = searchParams.get('q') ?? '';
+    setFilters((f) => ({
+      ...f,
+      search: q,
+      createdByUserId,
+    }));
+  }, [searchParams]);
   const { loading: geoLoading, error: geoError, requestPosition, clearError } = useNearMeGeo();
 
   const deferredSearch = useDeferredValue(filters.search);

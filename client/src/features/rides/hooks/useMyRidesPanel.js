@@ -6,13 +6,15 @@ import { historyApi } from '@/features/history/api/history-api';
 
 const PAGE_SIZE = 8;
 
-export function useMyRidesPanel(search) {
+export function useMyRidesPanel(search, options = {}) {
+  const { enabled = true } = options;
   const q = useDeferredValue(search.trim());
   const queryArg = q || undefined;
 
   const upcoming = useQuery({
     queryKey: ['rides', 'me', 'upcoming', queryArg],
     queryFn: () => ridesApi.getMyRides({ when: 'upcoming', q: queryArg }),
+    enabled,
   });
 
   const historyInfinite = useInfiniteQuery({
@@ -25,6 +27,7 @@ export function useMyRidesPanel(search) {
       if (nextSkip >= lastPage.total || lastPage.items.length === 0) return undefined;
       return nextSkip;
     },
+    enabled,
   });
 
   const pastInfinite = useInfiniteQuery({
@@ -39,6 +42,7 @@ export function useMyRidesPanel(search) {
       if (nextSkip >= lastPage.total || lastPage.items.length === 0) return undefined;
       return nextSkip;
     },
+    enabled,
   });
 
   const historyRows = useMemo(
@@ -68,7 +72,8 @@ export function useMyRidesPanel(search) {
     upcoming: Array.isArray(upcoming.data) ? upcoming.data : [],
     pastScheduled,
     historyRows,
-    isLoading: upcoming.isPending || historyInfinite.isPending || pastInfinite.isPending,
+    isLoading:
+      enabled && (upcoming.isPending || historyInfinite.isPending || pastInfinite.isPending),
     isError: upcoming.isError || historyInfinite.isError || pastInfinite.isError,
     error: upcoming.error || historyInfinite.error || pastInfinite.error,
     hasNextPage,

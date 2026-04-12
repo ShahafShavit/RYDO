@@ -1,28 +1,111 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '@/app/router/route-paths';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import RouteRidersRosterModal, { RouteRiderRow } from '@/features/routes/components/RouteRidersRosterModal';
+import { routesApi, routeKeys } from '@/features/routes/api/routesApi';
+import { normalizeRouteRiders } from '@/features/routes/route-mapper';
 
 const PREVIEW_LIMIT = 5;
 
-export default function RouteRidersPanel({ routeRiders, variant = 'card' }) {
-  const [open, setOpen] = useState(false);
+/** Fisher–Yates shuffle then take up to `n` items (new array each call). */
+function shufflePick(arr, n) {
+  if (!arr?.length) return [];
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(n, copy.length));
+}
+
+/**
+ * @param {object} props
+ * @param {{ totalCount?: number, visibleRiders?: object[] } | null | undefined} props.routeRiders
+ * @param {number | string | undefined} props.routeId — required when list API returns counts only (no visible names).
+ * @param {boolean} [props.prefetchRoster] — if true, fetch full roster on mount when counts-only (e.g. eager explore). Default: fetch on first hover only.
+ */
+export default function RouteRidersPanel({
+  routeRiders,
+  routeId,
+  prefetchRoster = false,
+  variant = 'card',
+}) {
+  const [hoverOpen, setHoverOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const total = routeRiders?.totalCount ?? 0;
-  const visible = Array.isArray(routeRiders?.visibleRiders) ? routeRiders.visibleRiders : [];
-  const hiddenCount = Math.max(0, total - visible.length);
-  const preview = visible.slice(0, PREVIEW_LIMIT);
-  const hasMore = visible.length > PREVIEW_LIMIT;
+  const [hoverSample, setHoverSample] = useState(() => []);
+  const leaveTimerRef = useRef(null);
+  const [interactionPrimed, setInteractionPrimed] = useState(false);
+
+  const base = useMemo(() => normalizeRouteRiders(routeRiders), [routeRiders]);
+
+  const rid = routeId != null && routeId !== '' ? Number(routeId) : NaN;
+  const listOnlyCounts =
+    Number.isFinite(rid) &&
+    rid > 0 &&
+    base.totalCount > 0 &&
+    (!Array.isArray(base.visibleRiders) || base.visibleRiders.length === 0);
 
   useEffect(() => {
-    if (!open || variant !== 'inline') return;
-    const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open, variant]);
+    if (prefetchRoster && listOnlyCounts) setInteractionPrimed(true);
+  }, [prefetchRoster, listOnlyCounts]);
+
+  const shouldFetchRoster = listOnlyCounts && interactionPrimed;
+
+  const { data: fetchedRoster, isFetching } = useQuery({
+    queryKey: routeKeys.riderRoster(rid),
+    queryFn: async () => normalizeRouteRiders(await routesApi.getRiderRoster(rid)),
+    enabled: shouldFetchRoster,
+    staleTime: Infinity,
+  });
+
+  const merged = useMemo(() => {
+    if (!listOnlyCounts) return base;
+    if (fetchedRoster) return fetchedRoster;
+    return base;
+  }, [base, listOnlyCounts, fetchedRoster]);
+
+  const total = merged.totalCount ?? 0;
+  const visible = Array.isArray(merged.visibleRiders) ? merged.visibleRiders : [];
+  const hiddenCount = Math.max(0, total - visible.length);
+  const hasMore = visible.length > PREVIEW_LIMIT;
+
+  const visibleKey = useMemo(
+    () => visible.map((r) => r.userId).join(','),
+    [visible],
+  );
+
+  const clearLeaveTimer = () => {
+    if (leaveTimerRef.current != null) {
+      window.clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (hoverOpen && visible.length > 0) {
+      setHoverSample(shufflePick(visible, PREVIEW_LIMIT));
+    }
+  }, [hoverOpen, visibleKey, visible, fetchedRoster]);
+
+  const handleEnter = () => {
+    clearLeaveTimer();
+    if (listOnlyCounts) setInteractionPrimed(true);
+    setHoverOpen(true);
+  };
+
+  const handleLeave = () => {
+    clearLeaveTimer();
+    leaveTimerRef.current = window.setTimeout(() => {
+      setHoverOpen(false);
+      leaveTimerRef.current = null;
+    }, 120);
+  };
+
+  const openModal = () => {
+    clearLeaveTimer();
+    if (listOnlyCounts) setInteractionPrimed(true);
+    setHoverOpen(false);
+    setModalOpen(true);
+  };
 
   if (total <= 0) return null;
 
@@ -36,48 +119,49 @@ export default function RouteRidersPanel({ routeRiders, variant = 'card' }) {
     </p>
   );
 
-  const fullList = (
-    <ul className="space-y-0.5">
-      {visible.length > 0 ? (
-        visible.map((r) => (
-          <li key={r.userId}>
-            <Link
-              to={ROUTES.userProfile.replace(':userId', String(r.userId))}
-              className="text-rydo-purple hover:underline"
-            >
-              {r.fullName}
-            </Link>
-          </li>
-        ))
-      ) : (
-        <li className="text-sm text-fg-muted">No riders opted to show their name on this list.</li>
-      )}
-      {hiddenCount > 0 ? <li className="pt-1">{hiddenNote}</li> : null}
-    </ul>
-  );
-
   if (variant === 'inline') {
+    const rosterLoading = listOnlyCounts && isFetching && visible.length === 0;
+
     return (
       <>
-        <div className="relative" ref={wrapRef}>
+        <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openModal();
+            }}
             className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-left text-sm text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
-            aria-expanded={open}
             aria-haspopup="dialog"
+            aria-expanded={modalOpen}
           >
             <span className="truncate font-medium">{label}</span>
-            <span className="shrink-0 text-xs text-fg-subtle">{open ? '▴' : '▾'}</span>
           </button>
-          {open ? (
+          {hoverOpen ? (
             <div className="absolute left-0 top-[calc(100%+0.375rem)] z-[10060] w-[min(100vw-2rem,20rem)] rounded-xl border border-border bg-[var(--rydo-bg-deep)] p-3 shadow-xl">
-              {visible.length === 0 ? (
-                <p className="text-sm text-fg-muted">No riders opted to show their name on this list.</p>
+              {rosterLoading ? (
+                <p className="text-sm text-fg-muted">Loading riders…</p>
+              ) : visible.length === 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-fg-muted">
+                    No names to show — riders who allow it appear here (Settings → Preferences).
+                  </p>
+                  {hiddenCount > 0 ? <div className="text-xs">{hiddenNote}</div> : null}
+                  <button
+                    type="button"
+                    className="mt-1 w-full rounded-xl border border-rydo-purple/35 bg-rydo-purple/10 py-2 text-sm font-medium text-rydo-purple transition hover:bg-rydo-purple/20"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openModal();
+                    }}
+                  >
+                    Details
+                  </button>
+                </div>
               ) : (
                 <>
-                  <ul className="space-y-0.5 pr-0.5">
-                    {preview.map((r) => (
+                  <ul className="space-y-0.5 pr-0.5" key={visibleKey}>
+                    {hoverSample.map((r) => (
                       <RouteRiderRow
                         key={r.userId}
                         userId={r.userId}
@@ -87,16 +171,16 @@ export default function RouteRidersPanel({ routeRiders, variant = 'card' }) {
                     ))}
                   </ul>
                   {hiddenCount > 0 ? <div className="mt-2 border-t border-border pt-2 text-xs">{hiddenNote}</div> : null}
-                  {hasMore ? (
+                  {hasMore || hiddenCount > 0 ? (
                     <button
                       type="button"
                       className="mt-3 w-full rounded-xl border border-rydo-purple/35 bg-rydo-purple/10 py-2 text-sm font-medium text-rydo-purple transition hover:bg-rydo-purple/20"
-                      onClick={() => {
-                        setOpen(false);
-                        setModalOpen(true);
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openModal();
                       }}
                     >
-                      Show more
+                      View all
                     </button>
                   ) : null}
                 </>
@@ -118,14 +202,19 @@ export default function RouteRidersPanel({ routeRiders, variant = 'card' }) {
     <div className="rounded-2xl border border-border bg-black/20 p-4">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => openModal()}
         className="flex w-full items-center justify-between gap-3 text-left text-base font-medium text-fg/92"
-        aria-expanded={open}
+        aria-haspopup="dialog"
       >
         <span>{label}</span>
-        <span className="text-sm text-fg-subtle">{open ? 'Hide' : 'Who?'}</span>
+        <span className="text-sm text-fg-subtle">Who?</span>
       </button>
-      {open ? <div className="mt-4 border-t border-border pt-4">{fullList}</div> : null}
+      <RouteRidersRosterModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        riders={visible}
+        hiddenCount={hiddenCount}
+      />
     </div>
   );
 }

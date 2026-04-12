@@ -50,7 +50,7 @@ export default function RouteDetailsHeader({ route, children }) {
                 </span>
               </Link>
             ) : null}
-            <RouteRidersPanel variant="inline" routeRiders={route.routeRiders} />
+            <RouteRidersPanel variant="inline" routeId={route.id} routeRiders={route.routeRiders} />
           </div>
 
           {children ? (

@@ -52,6 +52,35 @@ public static class RouteJsonMapper
         return new RouteRidersInfo(total, visible);
     }
 
+    /// <summary>
+    /// Distinct rider counts per route (past rides only), for list responses — avoids N full roster queries.
+    /// </summary>
+    public static async Task<Dictionary<int, int>> LoadRouteRiderTotalCountsByRouteIdAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> routeIds,
+        CancellationToken ct)
+    {
+        if (routeIds.Count == 0)
+            return new Dictionary<int, int>();
+
+        var idSet = routeIds.Distinct().ToArray();
+        var now = DateTime.UtcNow;
+
+        var rows = await (
+            from p in db.RideParticipants.AsNoTracking()
+            join g in db.Rides.AsNoTracking() on p.RideId equals g.Id
+            where g.Kind != RideKind.SoloLog
+                  && g.RouteId != null
+                  && idSet.Contains(g.RouteId.Value)
+                  && g.ScheduledDate < now
+            select new { RouteId = g.RouteId!.Value, p.UserId }
+        ).ToListAsync(ct);
+
+        return rows
+            .GroupBy(x => x.RouteId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.UserId).Distinct().Count());
+    }
+
     public static object ToClientRoute(RouteEntity r, ApplicationUser? creator, bool isSaved = false, RouteRidersInfo? routeRiders = null, double? distanceFromUserKm = null)
     {
         var warnings = JsonSerializer.Deserialize<List<string>>(r.WarningsJson) ?? new List<string>();

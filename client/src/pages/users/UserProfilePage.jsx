@@ -5,6 +5,7 @@ import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import Button from '@/shared/components/ui/button/Button';
 import { ApiError } from '@/shared/api/api-errors';
 import { UserProfilePublicCard } from '@/features/users/components/UserProfilePublicCard';
+import { UserProfileActivitySections } from '@/features/users/components/UserProfileActivitySections';
 
 export default function UserProfilePage() {
   const { userId } = useParams();
@@ -81,6 +82,8 @@ export default function UserProfilePage() {
       </div>
 
       <UserProfilePublicCard profile={profile} userId={userId} />
+
+      <UserProfileActivitySections userId={userId} profile={profile} />
     </section>
   );
 }
