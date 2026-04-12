@@ -29,7 +29,9 @@ export default function AnimatedOutlet() {
   const navigation = useNavigation();
   const reducedMotion = useReducedMotion();
 
-  const routeKey = `${location.pathname}${location.search}`;
+  // Pathname only: same route with different query (e.g. `?tab=` on settings) must not remount
+  // the outlet wrapper — otherwise AnimatePresence runs exit→enter and opacity flashes to 0.
+  const routeKey = location.pathname;
   const isLoadingRoute = navigation.state === 'loading';
 
   const duration = reducedMotion ? 0.1 : 0.22;

@@ -38,7 +38,7 @@ export const RidingPreferencesForm = () => {
     if (isLoading) return <div className="text-white/60">Loading preferences...</div>;
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-md w-full">
+        <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-lg">
             <div className="space-y-4">
                 <FormField label="Default Bike Type">
                     <select

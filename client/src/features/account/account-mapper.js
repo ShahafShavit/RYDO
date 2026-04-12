@@ -63,6 +63,32 @@ export function normalizeUserProfileView(payload = {}) {
   return normalizeUserPublicProfile(payload);
 }
 
+/**
+ * Owner profile (with `privacy`) → fields and values visible on {@link UserProfilePublicCard} to other members.
+ * Use for the settings preview so the card matches public visibility, not the full account record.
+ */
+export function projectProfileAsSeenByOthers(profile) {
+  if (!profile?.privacy) {
+    return profile;
+  }
+  const p = profile.privacy;
+  const emptyToNull = (v) => {
+    if (v == null) return null;
+    const s = String(v).trim();
+    return s === '' ? null : v;
+  };
+  return {
+    ...profile,
+    bio: p.publicBio ? emptyToNull(profile.bio) : null,
+    location: p.publicLocation ? emptyToNull(profile.location) : null,
+    email: p.publicEmail ? emptyToNull(profile.email) : null,
+    createdAt: p.publicCreatedAt ? profile.createdAt : null,
+    avatarUrl: p.publicAvatarUrl ? (profile.avatarUrl?.trim() ? profile.avatarUrl.trim() : null) : null,
+    defaultBikeType: p.publicDefaultBikeType ? (profile.defaultBikeType || null) : null,
+    isSelf: profile.isSelf ?? true,
+  };
+}
+
 export function normalizePreferences(payload = {}) {
   return {
     defaultBikeType: payload.defaultBikeType || 'road',
