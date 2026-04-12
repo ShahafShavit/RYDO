@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubRideModal from '@/features/rides/components/CreateClubRideModal';
+import ClubSettingsModal from '@/features/clubs/components/ClubSettingsModal';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
@@ -37,6 +38,7 @@ export default function ClubDetailPage() {
   const queryClient = useQueryClient();
   const [inviteToken, setInviteToken] = useState('');
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const clubQuery = useQuery({
     queryKey: ['clubs', 'detail', id],
@@ -147,7 +149,7 @@ export default function ClubDetailPage() {
     if (!club) return '';
     switch (club.currentUserMembership) {
       case 'admin':
-        return 'You are an admin';
+        return '';
       case 'member':
         return 'You are a member';
       case 'pending':
@@ -189,11 +191,48 @@ export default function ClubDetailPage() {
             <p className="mt-2 text-white/72">{club.description}</p>
             {club.region ? <p className="mt-2 text-sm text-white/56">{club.region}</p> : null}
           </div>
-          <span className="rounded-full border border-white/15 px-3 py-1 text-sm capitalize text-white/72">
-            {club.visibility}
-          </span>
+          <div className="flex flex-wrap items-center justify-end">
+            {club.currentUserMembership === 'admin' ? (
+              <div
+                className="inline-flex items-center gap-0 rounded-full border border-white/12 bg-white/[0.04] p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                role="group"
+                aria-label="Club visibility and settings"
+              >
+                <span
+                  className={
+                    club.visibility === 'private'
+                      ? 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/18 px-3 text-sm capitalize leading-none text-violet-100/95'
+                      : 'inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-emerald-400/28 bg-emerald-500/14 px-3 text-sm capitalize leading-none text-emerald-50/95'
+                  }
+                >
+                  {club.visibility}
+                </span>
+                <span className="mx-1 h-4 w-px shrink-0 bg-white/18" aria-hidden />
+                <Button
+                  variant="neon"
+                  type="button"
+                  size="sm"
+                  aria-label="Club settings"
+                  className="cursor-pointer !h-8 !min-h-0 shrink-0 !px-3 !py-0 text-sm leading-none shadow-[0_0_16px_rgba(123,92,255,0.14)]"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  Settings
+                </Button>
+              </div>
+            ) : (
+              <span
+                className={
+                  club.visibility === 'private'
+                    ? 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-violet-400/35 bg-violet-500/15 px-3.5 text-sm capitalize leading-none text-violet-200/90'
+                    : 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-500/12 px-3.5 text-sm capitalize leading-none text-emerald-100/90'
+                }
+              >
+                {club.visibility}
+              </span>
+            )}
+          </div>
         </div>
-        <p className="mt-3 text-sm text-white/56">{membershipLabel}</p>
+        {membershipLabel ? <p className="mt-3 text-sm text-white/56">{membershipLabel}</p> : null}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -204,11 +243,6 @@ export default function ClubDetailPage() {
         ) : null}
         {club.currentUserMembership === 'pending' ? (
           <p className="text-sm text-amber-300/90">Waiting for an admin to approve your request.</p>
-        ) : null}
-        {(club.currentUserMembership === 'member' || club.currentUserMembership === 'admin') && user ? (
-          <Button variant="secondary" onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}>
-            Leave club
-          </Button>
         ) : null}
         {club.visibility === 'private' &&
         user &&
@@ -225,92 +259,6 @@ export default function ClubDetailPage() {
           </Card>
         ) : null}
       </div>
-
-      {club.currentUserMembership === 'admin' ? (
-        <Card>
-          <h2 className="text-lg font-semibold">Admin</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => inviteMut.mutate()} disabled={inviteMut.isPending}>
-              {inviteMut.isPending ? 'Creating…' : 'Create invite code'}
-            </Button>
-            {inviteMut.data?.inviteCode ? (
-              <p className="text-sm text-white/72">
-                Code: <span className="font-mono text-white">{inviteMut.data.inviteCode}</span>
-              </p>
-            ) : null}
-          </div>
-
-          {requestsQuery.data?.length ? (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-white/88">Pending requests</h3>
-              <ul className="mt-3 space-y-2">
-                {(requestsQuery.data || []).map((r) => (
-                  <li key={r.userId} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <Link
-                      to={generatePath(ROUTES.userProfile, { userId: String(r.userId) })}
-                      className="flex min-w-0 items-center gap-2 text-white/88 hover:text-white"
-                    >
-                      <UserAvatar avatarUrl={r.avatarUrl} displayName={r.displayName || `User ${r.userId}`} />
-                      <span className="truncate">{r.displayName || `User #${r.userId}`}</span>
-                    </Link>
-                    <div className="flex gap-2">
-                      <Button variant="neon" className="!py-1.5 text-xs" onClick={() => approveMut.mutate(r.userId)}>
-                        Approve
-                      </Button>
-                      <Button variant="secondary" className="!py-1.5 text-xs" onClick={() => rejectMut.mutate(r.userId)}>
-                        Reject
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </Card>
-      ) : null}
-
-      {canSeeMembers && membersQuery.data ? (
-        <Card>
-          <h2 className="text-lg font-semibold">Members</h2>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {(membersQuery.data || []).map((m) => (
-              <li
-                key={m.userId}
-                className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/80"
-              >
-                <Link
-                  to={generatePath(ROUTES.userProfile, { userId: String(m.userId) })}
-                  className="flex min-w-0 items-center gap-2 hover:text-white"
-                >
-                  <UserAvatar
-                    avatarUrl={m.avatarUrl}
-                    displayName={m.displayName || `User ${m.userId}`}
-                    sizeClass="h-7 w-7"
-                    textClass="text-[10px]"
-                  />
-                  <span className="truncate">{m.displayName || `User ${m.userId}`}</span>
-                </Link>
-                {m.role === 'admin' ? (
-                  <span className="text-xs text-[#21F1A8]">Admin</span>
-                ) : null}
-                {club.currentUserMembership === 'admin' && m.userId !== user?.id ? (
-                  <span className="ml-1 flex gap-1">
-                    {m.role === 'member' ? (
-                      <button type="button" className="text-xs text-[#7B5CFF]" onClick={() => promoteMut.mutate(m.userId)}>
-                        Promote
-                      </button>
-                    ) : (
-                      <button type="button" className="text-xs text-[#7B5CFF]" onClick={() => demoteMut.mutate(m.userId)}>
-                        Demote
-                      </button>
-                    )}
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
 
       <Card>
         <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -382,6 +330,70 @@ export default function ClubDetailPage() {
           <p className="mt-2 text-sm text-white/56">No past rides yet.</p>
         )}
       </Card>
+
+      {canSeeMembers && membersQuery.data ? (
+        <Card>
+          <h2 className="text-lg font-semibold">Members</h2>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {(membersQuery.data || []).map((m) => (
+              <li
+                key={m.userId}
+                className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-sm text-white/80"
+              >
+                <Link
+                  to={generatePath(ROUTES.userProfile, { userId: String(m.userId) })}
+                  className="flex min-w-0 items-center gap-2 hover:text-white"
+                >
+                  <UserAvatar
+                    avatarUrl={m.avatarUrl}
+                    displayName={m.displayName || `User ${m.userId}`}
+                    sizeClass="h-7 w-7"
+                    textClass="text-[10px]"
+                  />
+                  <span className="truncate">{m.displayName || `User ${m.userId}`}</span>
+                </Link>
+                {m.role === 'admin' ? (
+                  <span className="text-xs text-[#21F1A8]">Admin</span>
+                ) : null}
+                {club.currentUserMembership === 'admin' && m.userId !== user?.id ? (
+                  <span className="ml-1 flex gap-1">
+                    {m.role === 'member' ? (
+                      <button type="button" className="text-xs text-[#7B5CFF]" onClick={() => promoteMut.mutate(m.userId)}>
+                        Promote
+                      </button>
+                    ) : (
+                      <button type="button" className="text-xs text-[#7B5CFF]" onClick={() => demoteMut.mutate(m.userId)}>
+                        Demote
+                      </button>
+                    )}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      {(club.currentUserMembership === 'member' || club.currentUserMembership === 'admin') && user ? (
+        <div className="border-t border-white/10 pt-6">
+          <Button variant="secondary" onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}>
+            Leave club
+          </Button>
+        </div>
+      ) : null}
+
+      {club.currentUserMembership === 'admin' ? (
+        <ClubSettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          clubId={id}
+          club={club}
+          joinRequests={requestsQuery.data}
+          inviteMut={inviteMut}
+          approveMut={approveMut}
+          rejectMut={rejectMut}
+        />
+      ) : null}
 
       <CreateClubRideModal
         clubId={id}
