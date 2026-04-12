@@ -75,30 +75,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
+
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-
-const int dbMaxAttempts = 24;
-for (var attempt = 1; attempt <= dbMaxAttempts; attempt++)
-{
-    try
-    {
-        using (var scope = app.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
-            await db.Database.EnsureCreatedAsync();
-            await db.Database.ExecuteSqlRawAsync("SELECT 1");
-            await DbSeeder.SeedAsync(app.Services);
-        }
-
-        break;
-    }
-    catch (Exception) when (attempt < dbMaxAttempts)
-    {
-        await Task.Delay(TimeSpan.FromSeconds(5));
-    }
-}
 
 var webRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var indexHtml = Path.Combine(webRoot, "index.html");
