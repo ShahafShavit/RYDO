@@ -21,10 +21,25 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         [FromQuery] string? q = null,
         [FromQuery] string? terrain = null,
         [FromQuery] string? difficulty = null,
-        [FromQuery] string? distance = null)
+        [FromQuery] string? distance = null,
+        [FromQuery] double? nearLat = null,
+        [FromQuery] double? nearLng = null,
+        [FromQuery] double? maxKm = null)
     {
         take = Math.Clamp(take, 1, MaxRouteListTake);
         if (skip < 0) skip = 0;
+
+        double? userLat = null;
+        double? userLng = null;
+        if (nearLat is { } nla && nearLng is { } nlo
+            && !double.IsNaN(nla) && !double.IsNaN(nlo)
+            && nla is >= -90 and <= 90 && nlo is >= -180 and <= 180)
+        {
+            userLat = nla;
+            userLng = nlo;
+        }
+
+        var useNear = userLat.HasValue && userLng.HasValue;
 
         var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).AsQueryable();
 
@@ -51,10 +66,34 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             };
         }
 
+        // Near-me: EF Core cannot translate Haversine OrderBy/Where to SQL Server; filter in SQL, sort by distance in memory.
+        if (useNear)
+        {
+            query = query.Where(r => r.StartLatitude != null && r.StartLongitude != null);
+            var rows = query.ToList();
+            var uLat = userLat!.Value;
+            var uLng = userLng!.Value;
+
+            var withDist = rows
+                .Select(r => (
+                    Route: r,
+                    Dist: GeoDistance.HaversineKm(uLat, uLng, r.StartLatitude!.Value, r.StartLongitude!.Value)))
+                .Where(x => maxKm is not > 0 || x.Dist <= maxKm!.Value)
+                .OrderBy(x => x.Dist)
+                .ToList();
+
+            var total = withDist.Count;
+            var pageSlice = withDist.Skip(skip).Take(take).ToList();
+            var items = pageSlice
+                .Select(x => RouteJsonMapper.ToClientRoute(x.Route, x.Route.CreatedBy, false, null, Math.Round(x.Dist, 2)))
+                .ToList();
+            return Ok(new { items, total, skip, take });
+        }
+
         query = query.OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
-        var items = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
-        return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
+        var itemsDefault = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
+        return Ok(new { items = itemsDefault, total = page.Total, skip = page.Skip, take = page.Take });
     }
 
     [HttpGet("{routeId:int}")]
@@ -86,7 +125,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         string Str(string key) => form[key].ToString();
         int Int(string key, int d) => int.TryParse(form[key], out var v) ? v : d;
 
-        if (!GpxTrackParser.TryParse(bytes, out var parsedPreview, out var distanceKm, out var elevationGainM, out _, out var derivedSrc))
+        if (!GpxTrackParser.TryParse(bytes, out var parsedPreview, out var distanceKm, out var elevationGainM, out _, out var derivedSrc, out var startLat, out var startLng))
             return Problem(statusCode: 400, detail: "GPX must contain a readable track with at least two points.");
 
         if (!GpxTrackParser.IsTrackPlausible(bytes, out var rejectReason))
@@ -106,6 +145,8 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             Terrain = string.IsNullOrWhiteSpace(Str("terrain")) ? "mixed" : Str("terrain"),
             Difficulty = string.IsNullOrWhiteSpace(Str("difficulty")) ? "moderate" : Str("difficulty"),
             Region = string.IsNullOrWhiteSpace(Str("region")) ? null : Str("region"),
+            StartLatitude = startLat,
+            StartLongitude = startLng,
             DistanceKm = distanceKm,
             ElevationGainM = elevationGainM,
             EstimatedDurationMinutes = Int("estimatedDurationMinutes", Int("durationMinutes", 60)),

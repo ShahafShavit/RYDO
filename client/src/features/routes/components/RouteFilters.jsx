@@ -1,8 +1,17 @@
-import { Search } from 'lucide-react';
+import { MapPin, Search, X } from 'lucide-react';
 import Input from '@/shared/components/ui/input/Input';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
+import Button from '@/shared/components/ui/button/Button';
 
-export default function RouteFilters({ filters = {}, onFilterChange }) {
+export default function RouteFilters({
+  filters = {},
+  onFilterChange,
+  nearActive = false,
+  geoLoading = false,
+  geoError = null,
+  onUseNearMe,
+  onClearNearMe,
+}) {
   const handleSearchChange = (e) => {
     if (onFilterChange) onFilterChange({ ...filters, search: e.target.value });
   };
@@ -53,18 +62,88 @@ export default function RouteFilters({ filters = {}, onFilterChange }) {
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center">
-          <Search className="h-4 w-4 text-white/40" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+        <div className="relative min-w-0 flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center">
+            <Search className="h-4 w-4 text-white/40" />
+          </div>
+          <Input
+            type="text"
+            placeholder={
+              nearActive
+                ? 'Search routes by title (results sorted by distance)…'
+                : 'Search routes by title…'
+            }
+            value={filters.search || ''}
+            onChange={handleSearchChange}
+            className="pl-11"
+          />
         </div>
-        <Input
-          type="text"
-          placeholder="Search routes by title..."
-          value={filters.search || ''}
-          onChange={handleSearchChange}
-          className="pl-11"
-        />
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!nearActive ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2 whitespace-nowrap"
+              disabled={geoLoading}
+              onClick={() => onUseNearMe?.()}
+            >
+              <MapPin className="h-4 w-4" aria-hidden />
+              {geoLoading ? 'Getting location…' : 'Use my location'}
+            </Button>
+          ) : (
+            <Button type="button" variant="secondary" className="gap-2 whitespace-nowrap" onClick={() => onClearNearMe?.()}>
+              <X className="h-4 w-4" aria-hidden />
+              Clear location
+            </Button>
+          )}
+        </div>
       </div>
+
+      {geoError ? (
+        <p className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">{geoError}</p>
+      ) : null}
+
+      {nearActive ? (
+        <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <p className="text-sm text-white/56">
+            Routes with a known start point, nearest first. Set an optional radius or leave unlimited.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-white/70">
+              <span className="shrink-0">Within</span>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                placeholder="No limit"
+                value={filters.nearMaxKm != null && Number.isFinite(filters.nearMaxKm) ? String(filters.nearMaxKm) : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (raw === '') {
+                    onFilterChange?.({ ...filters, nearMaxKm: null });
+                    return;
+                  }
+                  const n = Number(raw);
+                  if (!Number.isFinite(n) || n <= 0) {
+                    onFilterChange?.({ ...filters, nearMaxKm: null });
+                    return;
+                  }
+                  onFilterChange?.({ ...filters, nearMaxKm: n });
+                }}
+                className="max-w-[8rem] font-mono tabular-nums"
+                aria-describedby="near-max-hint"
+              />
+              <span className="shrink-0 text-white/50">km</span>
+            </label>
+            <p id="near-max-hint" className="text-xs text-white/45 sm:max-w-md">
+              Empty means no distance cap (all matching routes, sorted by proximity). Enter any positive number to only
+              show routes within that radius.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex justify-center sm:justify-start">
         <BadgeNav

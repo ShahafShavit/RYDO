@@ -52,7 +52,7 @@ public static class RouteJsonMapper
         return new RouteRidersInfo(total, visible);
     }
 
-    public static object ToClientRoute(RouteEntity r, ApplicationUser? creator, bool isSaved = false, RouteRidersInfo? routeRiders = null)
+    public static object ToClientRoute(RouteEntity r, ApplicationUser? creator, bool isSaved = false, RouteRidersInfo? routeRiders = null, double? distanceFromUserKm = null)
     {
         var warnings = JsonSerializer.Deserialize<List<string>>(r.WarningsJson) ?? new List<string>();
         var coords = JsonSerializer.Deserialize<List<List<double>>>(r.PreviewCoordinatesJson) ?? new List<List<double>>();
@@ -67,6 +67,7 @@ public static class RouteJsonMapper
             terrain = r.Terrain,
             difficulty = r.Difficulty,
             region = r.Region,
+            distanceFromUserKm,
             distanceKm = r.DistanceKm,
             elevationGainM = r.ElevationGainM,
             estimatedDurationMinutes = r.EstimatedDurationMinutes,

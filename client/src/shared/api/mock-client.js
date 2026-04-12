@@ -114,6 +114,27 @@ function paginate(items, searchParams) {
   };
 }
 
+/** WGS84 great-circle distance (km), aligned with server GeoDistance.HaversineKm. */
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Start point for mock routes: explicit fields or first preview coordinate [lng, lat]. */
+function getRouteStartLatLng(route) {
+  if (route.startLatitude != null && route.startLongitude != null) {
+    return { lat: Number(route.startLatitude), lng: Number(route.startLongitude) };
+  }
+  const c = route.coordinates?.[0] || route.preview?.coordinates?.[0];
+  if (!c || c.length < 2) return null;
+  return { lng: Number(c[0]), lat: Number(c[1]) };
+}
+
 function parseJsonBody(body) {
   if (!body) return {};
   if (typeof body === 'string') {
@@ -152,6 +173,8 @@ function createRouteFromUpload(data) {
       [35.2137, 31.7683],
       [35.214, 31.769],
     ],
+    startLongitude: 35.2137,
+    startLatitude: 31.7683,
     status: 'published',
   };
 }
@@ -307,6 +330,9 @@ export async function mockRequest(path, options = {}) {
     const terrain = (searchParams.get('terrain') || '').toLowerCase();
     const difficulty = (searchParams.get('difficulty') || '').toLowerCase();
     const distance = (searchParams.get('distance') || '').toLowerCase();
+    const nearLatRaw = searchParams.get('nearLat');
+    const nearLngRaw = searchParams.get('nearLng');
+    const maxKmRaw = searchParams.get('maxKm');
 
     let list = [...routes];
     if (q) list = list.filter((r) => (r.title || '').toLowerCase().includes(q));
@@ -321,7 +347,38 @@ export async function mockRequest(path, options = {}) {
         return true;
       });
     }
-    list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    const nearLat = nearLatRaw != null && nearLatRaw !== '' ? Number(nearLatRaw) : NaN;
+    const nearLng = nearLngRaw != null && nearLngRaw !== '' ? Number(nearLngRaw) : NaN;
+    const useNear =
+      !Number.isNaN(nearLat) &&
+      !Number.isNaN(nearLng) &&
+      nearLat >= -90 &&
+      nearLat <= 90 &&
+      nearLng >= -180 &&
+      nearLng <= 180;
+
+    if (useNear) {
+      const maxKm = maxKmRaw != null && maxKmRaw !== '' ? Number(maxKmRaw) : NaN;
+      const withCap = !Number.isNaN(maxKm) && maxKm > 0;
+      const scored = list
+        .map((r) => {
+          const start = getRouteStartLatLng(r);
+          if (!start) return null;
+          const d = haversineKm(nearLat, nearLng, start.lat, start.lng);
+          return { r, d };
+        })
+        .filter(Boolean);
+      let nearList = withCap ? scored.filter((x) => x.d <= maxKm) : scored;
+      nearList.sort((a, b) => a.d - b.d);
+      list = nearList.map(({ r, d }) => ({
+        ...r,
+        distanceFromUserKm: Math.round(d * 100) / 100,
+      }));
+    } else {
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
     return paginate(list, searchParams);
   }
 

@@ -8,6 +8,13 @@ public class RouteEntity
     public string Terrain { get; set; } = "mixed";
     public string Difficulty { get; set; } = "moderate";
     public string? Region { get; set; }
+
+    /// <summary>First point of the track (WGS84). Used for &quot;near me&quot; search.</summary>
+    public double? StartLatitude { get; set; }
+
+    /// <summary>First point of the track (WGS84). Used for &quot;near me&quot; search.</summary>
+    public double? StartLongitude { get; set; }
+
     public double DistanceKm { get; set; }
     public double ElevationGainM { get; set; }
     public int EstimatedDurationMinutes { get; set; }

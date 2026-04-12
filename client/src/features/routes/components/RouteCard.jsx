@@ -23,6 +23,10 @@ export default function RouteCard({ route }) {
   const terrain = route?.terrain || 'mixed';
   const duration = formatDuration(route?.estimatedDurationMinutes);
   const distance = route?.distanceKm != null ? formatKm(route.distanceKm) : null;
+  const fromYou =
+    route?.distanceFromUserKm != null && Number.isFinite(Number(route.distanceFromUserKm))
+      ? formatKm(route.distanceFromUserKm)
+      : null;
 
   const routeId = route?.id ?? '';
   const mapPreview = useMemo(() => route?.preview ?? null, [route]);
@@ -41,6 +45,11 @@ export default function RouteCard({ route }) {
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Badge>{terrain}</Badge>
+          {fromYou && (
+            <Badge title="Straight-line distance from your location to the route start">
+              {fromYou} from you
+            </Badge>
+          )}
           {distance && <Badge>{distance}</Badge>}
           {duration && (
             <span title={durationSourceLabel(route?.estimatedDurationSource)}>

@@ -7,14 +7,23 @@ const PAGE_SIZE = 18;
 
 /**
  * Server-side filtered + paginated route list for Explore (/routes).
- * @param {{ search?: string, terrain?: string, difficulty?: string, distance?: string, sort?: string }} filters
+ * @param {{ search?: string, terrain?: string, difficulty?: string, distance?: string, sort?: string, nearLat?: number | null, nearLng?: number | null, nearMaxKm?: number | null }} filters
  */
 export function useRoutesExploreInfinite(filters) {
-  const { search, terrain, difficulty, distance, sort } = filters;
+  const { search, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm } = filters;
   const q = (search || '').trim() || undefined;
+  const useNear =
+    typeof nearLat === 'number' &&
+    typeof nearLng === 'number' &&
+    !Number.isNaN(nearLat) &&
+    !Number.isNaN(nearLng);
 
   return useInfiniteQuery({
-    queryKey: [...routeKeys.lists(), 'explore', { q, terrain, difficulty, distance, sort }],
+    queryKey: [
+      ...routeKeys.lists(),
+      'explore',
+      { q, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm },
+    ],
     queryFn: async ({ pageParam = 0 }) => {
       const raw = await routesApi.list({
         skip: pageParam,
@@ -23,6 +32,8 @@ export function useRoutesExploreInfinite(filters) {
         ...(terrain && terrain !== 'all' ? { terrain } : {}),
         ...(difficulty && difficulty !== 'all' ? { difficulty } : {}),
         ...(distance && distance !== 'all' ? { distance } : {}),
+        ...(useNear ? { nearLat, nearLng } : {}),
+        ...(useNear && typeof nearMaxKm === 'number' && nearMaxKm > 0 ? { maxKm: nearMaxKm } : {}),
       });
       return normalizePaginatedResult(raw, normalizeRoute);
     },

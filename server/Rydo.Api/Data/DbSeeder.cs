@@ -293,13 +293,15 @@ public static class DbSeeder
             string gpxRef = $"routes/seed-{i + 1}.gpx";
             byte[]? gpxBlob = null;
             var estimatedDurationSource = RouteDurationSource.Estimated;
+            var routeStartLat = lat;
+            var routeStartLng = lng;
 
             if (gpxPool.Count > 0)
             {
                 var pick = gpxPool[rnd.Next(gpxPool.Count)];
                 gpxBlob = pick.Bytes;
                 gpxRef = $"routes/{pick.FileName}";
-                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc))
+                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var seedStartLat, out var seedStartLng))
                 {
                     previewJson = parsedPreview;
                     dist = pathKm;
@@ -308,6 +310,8 @@ public static class DbSeeder
                     estimatedDurationSource = derivedSrc;
                     // Match client upload: timestamps → minutes, else distance ÷ SuggestedDurationSpeedKmh (see GpxTrackParser).
                     dur = suggestedDur ?? Math.Max(1, (int)Math.Round(pathKm / GpxTrackParser.SuggestedDurationSpeedKmh * 60.0));
+                    routeStartLat = seedStartLat;
+                    routeStartLng = seedStartLng;
                 }
             }
 
@@ -318,6 +322,8 @@ public static class DbSeeder
                 Terrain = terrains[i % terrains.Length],
                 Difficulty = difficulties[i % difficulties.Length],
                 Region = regions[i % regions.Length],
+                StartLatitude = routeStartLat,
+                StartLongitude = routeStartLng,
                 DistanceKm = dist,
                 ElevationGainM = elev,
                 EstimatedDurationMinutes = dur,

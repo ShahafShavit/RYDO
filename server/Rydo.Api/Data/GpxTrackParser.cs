@@ -17,13 +17,15 @@ public static partial class GpxTrackParser
     /// <paramref name="suggestedDurationMinutes"/> is derived from &lt;time&gt; span when possible, else from <paramref name="distanceKm"/> and <see cref="SuggestedDurationSpeedKmh"/>.
     /// <paramref name="derivedDurationSource"/> is <see cref="RouteDurationSource.GpxTimestamps"/> or <see cref="RouteDurationSource.EstimatedPace"/>, or <see cref="RouteDurationSource.Unknown"/> if no minutes could be derived.
     /// </summary>
-    public static bool TryParse(byte[] gpxBytes, out string previewCoordinatesJson, out double distanceKm, out double elevationGainM, out int? suggestedDurationMinutes, out string derivedDurationSource)
+    public static bool TryParse(byte[] gpxBytes, out string previewCoordinatesJson, out double distanceKm, out double elevationGainM, out int? suggestedDurationMinutes, out string derivedDurationSource, out double startLatitude, out double startLongitude)
     {
         previewCoordinatesJson = "[]";
         distanceKm = 0;
         elevationGainM = 0;
         suggestedDurationMinutes = null;
         derivedDurationSource = RouteDurationSource.Unknown;
+        startLatitude = 0;
+        startLongitude = 0;
 
         if (gpxBytes.Length == 0)
             return false;
@@ -42,6 +44,9 @@ public static partial class GpxTrackParser
         var points = CollectPoints(doc);
         if (points.Count < 2)
             return false;
+
+        startLatitude = points[0].Lat;
+        startLongitude = points[0].Lon;
 
         var sampled = DownsampleTrack(points, MaxPreviewPoints);
         var lonLatPairs = new List<List<double>>(sampled.Count);

@@ -2,16 +2,24 @@ import { useDeferredValue, useMemo, useCallback, useState } from 'react';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteFilters from '@/features/routes/components/RouteFilters';
 import { useRoutesExploreInfinite } from '@/features/routes/hooks/useRoutesExploreInfinite';
+import { useNearMeGeo } from '@/features/routes/hooks/useNearMeGeo';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 
+const defaultExploreFilters = () => ({
+  search: '',
+  terrain: 'all',
+  difficulty: 'all',
+  distance: 'all',
+  sort: 'newest',
+  nearLat: null,
+  nearLng: null,
+  /** When set with near-me, API filters to routes within this radius (km). Null = no radius cap. */
+  nearMaxKm: null,
+});
+
 export default function RoutesExplorePage() {
-  const [filters, setFilters] = useState({
-    search: '',
-    terrain: 'all',
-    difficulty: 'all',
-    distance: 'all',
-    sort: 'newest',
-  });
+  const [filters, setFilters] = useState(defaultExploreFilters);
+  const { loading: geoLoading, error: geoError, requestPosition, clearError } = useNearMeGeo();
 
   const deferredSearch = useDeferredValue(filters.search);
   const filtersForQuery = useMemo(
@@ -30,6 +38,24 @@ export default function RoutesExplorePage() {
 
   const sentinelRef = useIntersectionSentinel(loadMore, Boolean(hasNextPage && !isLoading));
 
+  const nearActive =
+    typeof filters.nearLat === 'number' &&
+    typeof filters.nearLng === 'number' &&
+    !Number.isNaN(filters.nearLat) &&
+    !Number.isNaN(filters.nearLng);
+
+  const handleUseNearMe = useCallback(() => {
+    clearError();
+    requestPosition(({ lat, lng }) => {
+      setFilters((f) => ({ ...f, nearLat: lat, nearLng: lng }));
+    });
+  }, [clearError, requestPosition]);
+
+  const handleClearNearMe = useCallback(() => {
+    clearError();
+    setFilters((f) => ({ ...f, nearLat: null, nearLng: null, nearMaxKm: null }));
+  }, [clearError]);
+
   return (
     <section className="space-y-6">
       <div>
@@ -39,7 +65,15 @@ export default function RoutesExplorePage() {
           The website version should feel broader, cleaner and more decision-friendly than the mobile screens.
         </p>
       </div>
-      <RouteFilters filters={filters} onFilterChange={setFilters} />
+      <RouteFilters
+        filters={filters}
+        onFilterChange={setFilters}
+        nearActive={nearActive}
+        geoLoading={geoLoading}
+        geoError={geoError}
+        onUseNearMe={handleUseNearMe}
+        onClearNearMe={handleClearNearMe}
+      />
       {isError ? (
         <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           Could not load routes. Try again later.
@@ -52,9 +86,7 @@ export default function RoutesExplorePage() {
           <p className="text-white/60">No routes found matching your filters.</p>
           <button
             type="button"
-            onClick={() =>
-              setFilters({ search: '', terrain: 'all', difficulty: 'all', distance: 'all', sort: 'newest' })
-            }
+            onClick={() => setFilters(defaultExploreFilters())}
             className="mt-4 text-sm text-[#7B5CFF] hover:underline"
           >
             Clear filters
