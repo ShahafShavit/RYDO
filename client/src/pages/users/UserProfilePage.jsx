@@ -67,14 +67,14 @@ export default function UserProfilePage() {
   }
 
   return (
-    <section className="space-y-6 max-w-4xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/50">Member</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">{profile.fullName || 'Rider'}</h1>
-        </div>
+    <section className="max-w-4xl space-y-6">
+      <h1 className="sr-only">{profile.fullName || 'Rider'}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
+        <span className="inline-flex rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
+          Member
+        </span>
         {isOwn ? (
-          <Link to={`${ROUTES.settings}?tab=profile`}>
+          <Link to={`${ROUTES.settings}?tab=profile`} className="shrink-0">
             <Button variant="secondary">Edit profile</Button>
           </Link>
         ) : null}
