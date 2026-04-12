@@ -151,6 +151,7 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
                 kind = "user",
                 id = m.UserId,
                 label = DisplayName(m.User),
+                avatarUrl = UserPublicFields.RosterAvatarUrl(m.User),
             })
             .Where(x => string.IsNullOrEmpty(needle) || x.label.ToLowerInvariant().Contains(needle))
             .OrderBy(x => x.label)
@@ -272,6 +273,7 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
             clubNameHint = clubNameHint,
             authorUserId = m.AuthorUserId,
             authorDisplayName = authorName,
+            authorAvatarUrl = UserPublicFields.RosterAvatarUrl(m.Author),
             body = m.Body,
             mentions = mentionObjs,
             sentAt = m.SentAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

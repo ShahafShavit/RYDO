@@ -1109,6 +1109,7 @@ export async function mockRequest(path, options = {}) {
           clubNameHint: 'Club',
           authorUserId: profile.id,
           authorDisplayName: profile.fullName,
+          authorAvatarUrl: profile.avatarUrl ?? null,
           body: payload.body ?? '',
           mentions: (payload.mentions || []).map((x) => ({
             kind: x.kind,

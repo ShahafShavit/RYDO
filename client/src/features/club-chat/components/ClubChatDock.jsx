@@ -10,6 +10,7 @@ import { useClubChatHub } from '@/features/club-chat/hooks/useClubChatHub';
 import ClubChatMessageBody from '@/features/club-chat/components/ClubChatMessageBody';
 import ClubChatComposer from '@/features/club-chat/components/ClubChatComposer';
 import UserAvatar from '@/shared/components/user/UserAvatar';
+import { cn } from '@/shared/lib/cn';
 
 function formatPreviewTime(iso) {
   if (!iso) return '';
@@ -240,24 +241,55 @@ export default function ClubChatDock() {
               </ul>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                <div className="flex-1 space-y-3 overflow-y-auto p-3">
                   {messagesQuery.isLoading ? (
                     <p className="text-sm text-fg-muted">Loading messages…</p>
                   ) : (
-                    messages.map((m) => (
-                      <article
-                        key={m.id}
-                        className="rounded-xl border border-border/60 bg-black/15 px-3 py-2"
-                      >
-                        <p className="text-xs font-medium text-fg-muted">
-                          {m.authorDisplayName}
-                          <span className="ml-2 text-[10px] opacity-70">
-                            {m.sentAt ? new Date(m.sentAt).toLocaleString() : ''}
-                          </span>
-                        </p>
-                        <ClubChatMessageBody body={m.body} mentions={m.mentions} />
-                      </article>
-                    ))
+                    messages.map((m) => {
+                      const isMine = Number(m.authorUserId) === Number(user?.id);
+                      return (
+                        <div
+                          key={m.id}
+                          className={cn('flex w-full', isMine ? 'justify-end' : 'justify-start')}
+                        >
+                          <div
+                            className={cn(
+                              'flex max-w-[min(92%,20rem)] items-end gap-2',
+                              isMine ? 'flex-row-reverse' : 'flex-row'
+                            )}
+                          >
+                            <UserAvatar
+                              avatarUrl={m.authorAvatarUrl}
+                              displayName={m.authorDisplayName || 'Member'}
+                              sizeClass="h-7 w-7"
+                              textClass="text-[9px]"
+                              className="shrink-0"
+                            />
+                            <article
+                              className={cn(
+                                'min-w-0 flex-1 rounded-2xl border px-3 py-2',
+                                isMine
+                                  ? 'border-rydo-purple/45 bg-rydo-purple/18 text-fg'
+                                  : 'border-border/70 bg-black/20 text-fg'
+                              )}
+                            >
+                              <p
+                                className={cn(
+                                  'text-xs font-medium',
+                                  isMine ? 'text-rydo-purple/95' : 'text-fg-muted'
+                                )}
+                              >
+                                {isMine ? 'You' : m.authorDisplayName}
+                                <span className="ml-2 text-[10px] opacity-70">
+                                  {m.sentAt ? new Date(m.sentAt).toLocaleString() : ''}
+                                </span>
+                              </p>
+                              <ClubChatMessageBody body={m.body} mentions={m.mentions} />
+                            </article>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
                 <ClubChatComposer
