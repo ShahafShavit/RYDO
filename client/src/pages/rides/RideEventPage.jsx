@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
-import RideStatusBanner from '@/features/rides/components/RideStatusBanner';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
@@ -67,7 +66,6 @@ export default function RideEventPage() {
 
   return (
     <section className="space-y-6">
-      <RideStatusBanner />
       <RideEventCard
         ride={ride}
         showEdit={showEdit}
