@@ -70,9 +70,9 @@ export default function UserProfilePage() {
     <section className="max-w-4xl space-y-6">
       <h1 className="sr-only">{profile.fullName || 'Rider'}</h1>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
-        <span className="inline-flex rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
-          Member
-        </span>
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/42">Member</p>
+        </div>
         {isOwn ? (
           <Link to={`${ROUTES.settings}?tab=profile`} className="shrink-0">
             <Button variant="secondary">Edit profile</Button>
