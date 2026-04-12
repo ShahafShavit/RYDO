@@ -640,6 +640,27 @@ public static class DbSeeder
                 CreatedByUserId = NextCreatorId(),
                 CreatedAt = DateTime.UtcNow.AddDays(-55),
             },
+            // Private clubs with **no** Sarah or John membership rows — discovery / “not my club” demos.
+            new()
+            {
+                Name = "Arava Invite-Only Collective",
+                Description = "Private club — community admins only in seed data.",
+                Region = "Arava Trail",
+                Visibility = ClubVisibility.Private,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=aravaInviteOnlyCollective",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-42),
+            },
+            new()
+            {
+                Name = "Dead Sea Dawn Private",
+                Description = "Private — early starts; seed roster is community-only.",
+                Region = "Dead Sea Loop",
+                Visibility = ClubVisibility.Private,
+                AvatarUrl = "https://api.dicebear.com/7.x/shapes/svg?seed=deadSeaDawnPrivate",
+                CreatedByUserId = NextCreatorId(),
+                CreatedAt = DateTime.UtcNow.AddDays(-38),
+            },
         };
     }
 
