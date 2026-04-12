@@ -31,7 +31,60 @@ public class RidesController(RydoDbContext db) : ControllerBase
         var uid = CurrentUserId();
         var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
         var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(g, include, participantTotal));
+        var canEdit = uid is { } viewerId && await RideGroupResponseHelper.ViewerCanEditRideAsync(db, g, viewerId, ct);
+        return Ok(RideGroupResponseHelper.ToResponse(g, include, participantTotal, canEdit));
+    }
+
+    public record UpdateRideBody(
+        string Name,
+        string Description,
+        DateTime ScheduledDate,
+        int? RouteId,
+        int MaxParticipants);
+
+    [HttpPatch("{rideId:int}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateRide(int rideId, [FromBody] UpdateRideBody body, CancellationToken ct)
+    {
+        var uid = CurrentUserId();
+        if (uid == null) return Unauthorized();
+
+        var g = await db.RideGroups
+            .FirstOrDefaultAsync(x => x.Id == rideId, ct);
+        if (g == null) return NotFound();
+
+        if (!await RideGroupResponseHelper.ViewerCanEditRideAsync(db, g, uid.Value, ct))
+            return Forbid();
+
+        if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct))
+            return NotFound();
+
+        var participantCount = await db.RideParticipants.CountAsync(p => p.RideGroupId == rideId, ct);
+        var max = body.MaxParticipants > 0 ? body.MaxParticipants : 20;
+        if (max < participantCount)
+            return Problem(
+                statusCode: 400,
+                title: "Invalid max participants",
+                detail: "Cannot set max below current roster size.");
+
+        g.Name = body.Name.Trim();
+        g.Description = body.Description?.Trim() ?? "";
+        g.ScheduledDate = body.ScheduledDate.ToUniversalTime();
+        g.RouteId = body.RouteId;
+        g.MaxParticipants = max;
+
+        await db.SaveChangesAsync(ct);
+
+        var updated = await db.RideGroups.AsNoTracking()
+            .Include(x => x.Participants).ThenInclude(p => p.User)
+            .Include(x => x.CreatedBy)
+            .Include(x => x.Route)
+            .Include(x => x.Club)
+            .FirstAsync(x => x.Id == rideId, ct);
+
+        var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == rideId, ct);
+        var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, updated.ClubId, uid, ct);
+        return Ok(RideGroupResponseHelper.ToResponse(updated, include, participantTotal, viewerCanEdit: true));
     }
 
     [HttpPost("{rideId:int}/join")]

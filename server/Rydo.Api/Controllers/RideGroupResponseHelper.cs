@@ -25,10 +25,75 @@ internal static class RideGroupResponseHelper
             ct);
     }
 
+    public static async Task<bool> ViewerCanEditRideAsync(
+        RydoDbContext db,
+        RideGroup g,
+        int viewerUserId,
+        CancellationToken ct)
+    {
+        if (g.ScheduledDate < DateTime.UtcNow) return false;
+        if (g.ClubId == null) return g.CreatedByUserId == viewerUserId;
+        if (g.CreatedByUserId == viewerUserId) return true;
+        return await db.ClubMembers.AnyAsync(
+            m => m.ClubId == g.ClubId && m.UserId == viewerUserId
+                 && m.Role == ClubMemberRole.Admin
+                 && m.MembershipStatus == ClubMembershipStatus.Active,
+            ct);
+    }
+
+    /// <summary>
+    /// Computes <see cref="ViewerCanEditRideAsync"/> for many rides with batched admin membership queries.
+    /// </summary>
+    public static async Task<Dictionary<int, bool>> BuildViewerCanEditMapAsync(
+        RydoDbContext db,
+        IReadOnlyList<RideGroup> groups,
+        int viewerUserId,
+        CancellationToken ct)
+    {
+        var map = new Dictionary<int, bool>();
+        if (groups.Count == 0) return map;
+
+        var now = DateTime.UtcNow;
+        var clubIdsNeedingAdminCheck = groups
+            .Where(g => g.ScheduledDate >= now && g.ClubId is int && g.CreatedByUserId != viewerUserId)
+            .Select(g => g.ClubId!.Value)
+            .Distinct()
+            .ToList();
+
+        HashSet<int> adminClubIds = new();
+        if (clubIdsNeedingAdminCheck.Count > 0)
+        {
+            var rows = await db.ClubMembers.AsNoTracking()
+                .Where(m => clubIdsNeedingAdminCheck.Contains(m.ClubId)
+                            && m.UserId == viewerUserId
+                            && m.Role == ClubMemberRole.Admin
+                            && m.MembershipStatus == ClubMembershipStatus.Active)
+                .Select(m => m.ClubId)
+                .ToListAsync(ct);
+            adminClubIds = rows.ToHashSet();
+        }
+
+        foreach (var g in groups)
+        {
+            bool can;
+            if (g.ScheduledDate < now)
+                can = false;
+            else if (g.ClubId == null)
+                can = g.CreatedByUserId == viewerUserId;
+            else if (g.CreatedByUserId == viewerUserId)
+                can = true;
+            else
+                can = adminClubIds.Contains(g.ClubId.Value);
+            map[g.Id] = can;
+        }
+
+        return map;
+    }
+
     /// <param name="totalParticipantCount">
     /// Optional authoritative count from <c>RideParticipants</c> (fixes EF cases where the in-memory collection is empty but rows exist).
     /// </param>
-    public static object ToResponse(RideGroup g, bool includeRoster, int? totalParticipantCount = null)
+    public static object ToResponse(RideGroup g, bool includeRoster, int? totalParticipantCount = null, bool viewerCanEdit = false)
     {
         var count = totalParticipantCount ?? g.Participants.Count;
         var routePreview = RoutePreviewPayload(g.Route);
@@ -56,6 +121,7 @@ internal static class RideGroupResponseHelper
                 clubId = g.ClubId,
                 clubName = g.Club != null ? g.Club.Name : null,
                 createdBy,
+                viewerCanEdit,
             };
         }
 
@@ -83,6 +149,7 @@ internal static class RideGroupResponseHelper
             clubId = g.ClubId,
             clubName = g.Club != null ? g.Club.Name : null,
             createdBy,
+            viewerCanEdit,
         };
     }
 

@@ -1,6 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { ridesApi } from '@/features/rides/api/rides-api';
 
+/** @param {{ scheduledDate?: string, time?: string } | null | undefined} ride */
+export function isRideUpcoming(ride) {
+  const iso = ride?.scheduledDate || ride?.time;
+  if (!iso) return true;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return true;
+  return d.getTime() >= Date.now();
+}
+
 /** Maps `GET /rides/:id` and ride list items from `GET /users/me/rides`. */
 export function mapRideDto(raw) {
   if (!raw) return null;
@@ -39,6 +48,7 @@ export function mapRideDto(raw) {
     maxParticipants: raw.maxParticipants ?? 20,
     clubId: raw.clubId ?? null,
     clubName: raw.clubName ?? null,
+    viewerCanEdit: Boolean(raw.viewerCanEdit),
   };
 }
 

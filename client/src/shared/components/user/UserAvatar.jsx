@@ -1,16 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/shared/lib/cn';
+import { getUserAvatarInitials } from '@/shared/components/user/user-avatar-initials';
 
-export function getInitials(displayName) {
-  if (!displayName || typeof displayName !== 'string') return '?';
-  const t = displayName.trim();
-  if (!t) return '?';
-  return t
-    .split(/\s+/)
-    .map((n) => n[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
+function InitialsFallback({ initials, sizeClass, textClass, className }) {
+  return (
+    <div
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full border border-white/12 bg-[#7B5CFF]/20 font-semibold text-white/90',
+        sizeClass,
+        textClass,
+        className,
+      )}
+      aria-hidden
+    >
+      {initials}
+    </div>
+  );
+}
+
+function AvatarImage({ src, initials, sizeClass, textClass, className }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <InitialsFallback initials={initials} sizeClass={sizeClass} textClass={textClass} className={className} />;
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setFailed(true)}
+      className={cn(
+        'shrink-0 rounded-full border border-white/12 object-cover bg-white/10',
+        sizeClass,
+        className,
+      )}
+    />
+  );
 }
 
 /**
@@ -23,37 +47,19 @@ export default function UserAvatar({
   sizeClass = 'h-8 w-8',
   textClass = 'text-[11px]',
 }) {
-  const initials = getInitials(displayName);
-  const [imgFailed, setImgFailed] = useState(false);
+  const initials = getUserAvatarInitials(displayName);
   const src = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
-  useEffect(() => {
-    setImgFailed(false);
-  }, [src]);
-  if (src && !imgFailed) {
-    return (
-      <img
-        src={src}
-        alt=""
-        onError={() => setImgFailed(true)}
-        className={cn(
-          'shrink-0 rounded-full border border-white/12 object-cover bg-white/10',
-          sizeClass,
-          className
-        )}
-      />
-    );
+  if (!src) {
+    return <InitialsFallback initials={initials} sizeClass={sizeClass} textClass={textClass} className={className} />;
   }
   return (
-    <div
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-full border border-white/12 bg-[#7B5CFF]/20 font-semibold text-white/90',
-        sizeClass,
-        textClass,
-        className
-      )}
-      aria-hidden
-    >
-      {initials}
-    </div>
+    <AvatarImage
+      key={src}
+      src={src}
+      initials={initials}
+      sizeClass={sizeClass}
+      textClass={textClass}
+      className={className}
+    />
   );
 }

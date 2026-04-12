@@ -242,6 +242,16 @@ function participantDetailsFromIds(ids) {
   });
 }
 
+function mockViewerCanEditRide(ride) {
+  const t = new Date(ride.scheduledDate).getTime();
+  if (Number.isNaN(t) || t < Date.now()) return false;
+  const createdId = ride.createdBy?.id != null ? Number(ride.createdBy.id) : null;
+  if (ride.clubId == null) return createdId === profile.id;
+  if (createdId === profile.id) return true;
+  const club = clubs.find((c) => c.id === ride.clubId);
+  return club?.myRole === 'admin';
+}
+
 function findRide(rideId) {
   const ride = rides.find((item) => item.id === Number(rideId));
   if (!ride) {
@@ -254,7 +264,17 @@ function findRide(rideId) {
     ride.participantDetails || participantDetailsFromIds(ride.participants);
   const participantCount =
     ride.participantCount ?? participantDetails.length ?? (ride.participants?.length ?? 0);
-  return { ...ride, routeTitle, participantDetails, participantCount, participants: ride.participants };
+  const routePreview =
+    route?.coordinates?.length > 1 ? { coordinates: route.coordinates } : ride.routePreview ?? null;
+  return {
+    ...ride,
+    routeTitle,
+    participantDetails,
+    participantCount,
+    participants: ride.participants,
+    routePreview,
+    viewerCanEdit: mockViewerCanEditRide(ride),
+  };
 }
 
 export async function mockRequest(path, options = {}) {
@@ -682,6 +702,7 @@ export async function mockRequest(path, options = {}) {
       maxParticipants: Number(payload.maxParticipants || 20),
       clubId: null,
       clubName: null,
+      createdBy: { id: profile.id, fullName: profile.fullName },
     };
     rides.unshift(ride);
     return findRide(String(ride.id));
@@ -710,6 +731,7 @@ export async function mockRequest(path, options = {}) {
       maxParticipants: Number(payload.maxParticipants || 10),
       clubId,
       clubName: clubs.find((c) => c.id === clubId)?.name ?? null,
+      createdBy: { id: profile.id, fullName: profile.fullName },
     };
     rides.unshift(ride);
     return {
@@ -834,6 +856,39 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/api/clubs/invites/redeem' && method === 'POST') {
     return { clubId: 1, status: 'active' };
+  }
+
+  if (/^\/api\/rides\/\d+$/.test(pathname) && method === 'PATCH') {
+    const rideId = Number(pathname.split('/')[3]);
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    if (!mockViewerCanEditRide(ride)) {
+      throw new ApiError({ message: 'Forbidden', status: 403, code: 'forbidden' });
+    }
+    const payload = parseJsonBody(options.body);
+    const routeId =
+      payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
+    if (routeId != null && Number.isNaN(routeId)) {
+      throw new ApiError({ message: 'Invalid route', status: 400, code: 'bad_request' });
+    }
+    const route = routeId != null ? routes.find((r) => r.id === routeId) : null;
+    if (routeId != null && !route) throw new ApiError({ message: 'Route not found', status: 404, code: 'route_not_found' });
+    const max = Number(payload.maxParticipants || 20);
+    const roster = Array.isArray(ride.participants) ? ride.participants.length : 0;
+    if (max < roster) {
+      throw new ApiError({
+        message: 'Cannot set max below current roster size.',
+        status: 400,
+        code: 'bad_request',
+      });
+    }
+    ride.name = (payload.name || ride.name || '').trim();
+    ride.description = (payload.description ?? ride.description ?? '').trim();
+    ride.scheduledDate = payload.scheduledDate || ride.scheduledDate;
+    ride.routeId = routeId;
+    ride.routeTitle = route?.title || '';
+    ride.maxParticipants = max > 0 ? max : 20;
+    return findRide(String(rideId));
   }
 
   if (/^\/api\/rides\/\d+$/.test(pathname) && method === 'GET') {

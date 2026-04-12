@@ -37,7 +37,7 @@ export const MOCK_RIDE_GROUPS = [
     id: 3,
     name: 'Solo sunrise spin',
     description: 'Personal ride — no club.',
-    scheduledDate: '2026-02-10T06:30:00Z',
+    scheduledDate: '2026-12-15T06:30:00Z',
     routeId: 1,
     routeTitle: 'Mountain Peak Trail',
     participants: [1],

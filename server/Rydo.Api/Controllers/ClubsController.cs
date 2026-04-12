@@ -613,8 +613,16 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             .ToListAsync(ct);
         var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
 
+        Dictionary<int, bool> editMap = new();
+        if (uid is { } viewerId)
+            editMap = await RideGroupResponseHelper.BuildViewerCanEditMapAsync(db, rides, viewerId, ct);
+
         var items = rides
-            .Select(r => RideGroupResponseHelper.ToResponse(r, canViewRoster, countByRide.GetValueOrDefault(r.Id, 0)))
+            .Select(r => RideGroupResponseHelper.ToResponse(
+                r,
+                canViewRoster,
+                countByRide.GetValueOrDefault(r.Id, 0),
+                uid != null && editMap.GetValueOrDefault(r.Id, false)))
             .ToList();
         return Ok(items);
     }

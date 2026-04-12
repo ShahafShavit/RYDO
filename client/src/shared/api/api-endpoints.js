@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   },
   rides: {
     details: (rideId) => `${P}/rides/${rideId}`,
+    update: (rideId) => `${P}/rides/${rideId}`,
     join: (rideId) => `${P}/rides/${rideId}/join`,
     leave: (rideId) => `${P}/rides/${rideId}/leave`,
   },

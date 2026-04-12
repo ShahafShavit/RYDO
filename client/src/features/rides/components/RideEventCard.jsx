@@ -2,14 +2,7 @@ import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
 import { ROUTES } from '@/app/router/route-paths';
-
-function isRideUpcoming(ride) {
-  const iso = ride?.scheduledDate || ride?.time;
-  if (!iso) return true;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return true;
-  return d.getTime() >= Date.now();
-}
+import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 
 export default function RideEventCard({ ride }) {
   const upcoming = isRideUpcoming(ride);

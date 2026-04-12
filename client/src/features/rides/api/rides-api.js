@@ -12,6 +12,7 @@ export const ridesApi = {
   },
   createPersonalRide: (payload) => apiClient.post(API_ENDPOINTS.users.myRides, payload),
   getRideDetails: (rideId) => apiClient.get(API_ENDPOINTS.rides.details(rideId)),
+  updateRide: (rideId, payload) => apiClient.patch(API_ENDPOINTS.rides.update(rideId), payload),
   createClubRide: (clubId, payload) => apiClient.post(API_ENDPOINTS.clubs.createRide(clubId), payload),
   joinRide: (rideId) => apiClient.post(API_ENDPOINTS.rides.join(rideId)),
   leaveRide: (rideId) => apiClient.post(API_ENDPOINTS.rides.leave(rideId)),

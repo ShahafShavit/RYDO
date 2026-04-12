@@ -161,11 +161,17 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             .ToListAsync(ct);
         var countByRide = countRows.ToDictionary(x => x.Key, x => x.Cnt);
 
+        var editMap = await RideGroupResponseHelper.BuildViewerCanEditMapAsync(db, groups, uid.Value, ct);
+
         var items = new List<object>();
         foreach (var g in groups)
         {
             var include = await RideGroupResponseHelper.ViewerCanSeeRoster(db, g.ClubId, uid, ct);
-            items.Add(RideGroupResponseHelper.ToResponse(g, include, countByRide.GetValueOrDefault(g.Id, 0)));
+            items.Add(RideGroupResponseHelper.ToResponse(
+                g,
+                include,
+                countByRide.GetValueOrDefault(g.Id, 0),
+                editMap.GetValueOrDefault(g.Id, false)));
         }
 
         if (scope == "past" && pagedTotal.HasValue && pagedSkip.HasValue && pagedTake.HasValue)
@@ -205,6 +211,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             .FirstAsync(x => x.Id == g.Id, ct);
 
         var participantTotal = await db.RideParticipants.AsNoTracking().CountAsync(p => p.RideGroupId == g.Id, ct);
-        return Ok(RideGroupResponseHelper.ToResponse(created, includeRoster: true, participantTotal));
+        var canEdit = await RideGroupResponseHelper.ViewerCanEditRideAsync(db, created, uid.Value, ct);
+        return Ok(RideGroupResponseHelper.ToResponse(created, includeRoster: true, participantTotal, canEdit));
     }
 }

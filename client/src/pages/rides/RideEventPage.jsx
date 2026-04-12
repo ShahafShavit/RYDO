@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import RideEventCard from '@/features/rides/components/RideEventCard';
+import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
 import RideStatusBanner from '@/features/rides/components/RideStatusBanner';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
-import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
+import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useRideAttendance } from '@/features/rides/hooks/useRideAttendance';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -17,6 +18,7 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 export default function RideEventPage() {
   const { rideId } = useParams();
   const { user } = useAuth();
+  const [editOpen, setEditOpen] = useState(false);
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
   const { joinRide, leaveRide, isJoining, isLeaving } = useRideAttendance(rideId);
   const rid = ride?.routeId != null ? String(ride.routeId) : '';
@@ -58,10 +60,22 @@ export default function RideEventPage() {
     );
   }
 
+  const showEdit = Boolean(ride.viewerCanEdit && isRideUpcoming(ride));
+
   return (
     <section className="space-y-6">
       <RideStatusBanner />
-      <RideEventCard ride={ride} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <RideEventCard ride={ride} />
+        </div>
+        {showEdit ? (
+          <Button variant="secondary" type="button" className="shrink-0" onClick={() => setEditOpen(true)}>
+            Edit ride
+          </Button>
+        ) : null}
+      </div>
+      <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} />
       {ride.routeId ? (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-end gap-3">

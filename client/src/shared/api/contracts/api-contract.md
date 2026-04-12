@@ -265,11 +265,17 @@ Returns one scheduled ride. **Roster privacy:** active members of the ride’s c
   ],
   "maxParticipants": 10,
   "clubId": 1,
-  "clubName": "Coastal Open Rollers"
+  "clubName": "Coastal Open Rollers",
+  "createdBy": { "id": 2, "fullName": "Jane Smith" },
+  "viewerCanEdit": false
 }
 ```
 
 `routePreview` is omitted or null when the ride has no route or no stored polyline; when present, `coordinates` are `[longitude, latitude]` pairs (same as history `preview`) for map thumbnails.
+
+`createdBy` identifies the user who scheduled the ride (`id` and display `fullName`).
+
+`viewerCanEdit` is `true` when the authenticated viewer may edit this ride: the scheduled time is still in the future, and the viewer is either the ride creator (personal or club ride), or an **active club admin** for a club-linked ride. Anonymous requests receive `viewerCanEdit: false`.
 
 When roster is hidden, `participantDetails` and `participants` are omitted or null; `participantCount` is always present.
 
@@ -285,7 +291,22 @@ Creates a scheduled ride for that club. The caller must be an **active** club me
   "scheduleForWholeClub": false
 }
 ```
-If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator).
+If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator). That bulk-invite behavior applies at **create** time only; updating a ride does not re-invite the whole club.
+
+### `PATCH /rides/:rideId` (authenticated)
+Updates an **upcoming** scheduled ride. The caller must be allowed to edit (`viewerCanEdit` would be `true` for them on `GET`). Past rides cannot be updated (`403 Forbidden`). Body (same fields as create, without `scheduleForWholeClub`):
+
+```json
+{
+  "name": "Morning roll (updated)",
+  "description": "",
+  "scheduledDate": "2026-07-01T07:00:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20
+}
+```
+
+`routeId` may be `null` to clear the linked route. `maxParticipants` must be **greater than or equal to** the current number of participants; otherwise `400` with problem details. Unknown `routeId` → `404`. Response is the **ride JSON shape** (including `viewerCanEdit: true` for the editor).
 
 ### `POST /rides/:rideId/join` / `POST /rides/:rideId/leave` (authenticated)
 Join or leave the ride roster. Join requires an **active** membership in the ride’s club when the ride is linked to a club (`leave` returns `204 No Content`).
@@ -342,6 +363,7 @@ These feature modules exist and use the shared client path:
 - `POST /users/me/rides`
 - `POST /clubs/:clubId/rides`
 - `GET /rides/:rideId`
+- `PATCH /rides/:rideId`
 - `POST /rides/:rideId/join`
 - `POST /rides/:rideId/leave`
 - `GET /clubs`, `POST /clubs`, club sub-resources as above
