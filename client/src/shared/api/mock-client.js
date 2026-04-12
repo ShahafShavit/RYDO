@@ -780,10 +780,7 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/clubs' && method === 'GET') {
-    return clubs.map((c) => ({
-      ...c,
-      membershipPending: false,
-    }));
+    return clubs.map((c) => ({ ...c }));
   }
 
   if (pathname === '/api/clubs' && method === 'POST') {
@@ -795,6 +792,7 @@ export async function mockRequest(path, options = {}) {
       description: body.description || '',
       region: body.region || null,
       visibility: body.visibility === 1 ? 'private' : 'public',
+      avatarUrl: null,
       membershipPending: false,
       myRole: 'admin',
       createdAt: new Date().toISOString(),
@@ -805,6 +803,7 @@ export async function mockRequest(path, options = {}) {
       name: row.name,
       description: row.description,
       region: row.region,
+      avatarUrl: row.avatarUrl,
       visibility: row.visibility,
       createdAt: row.createdAt,
     };
@@ -818,17 +817,20 @@ export async function mockRequest(path, options = {}) {
     const isActive = mockIsActiveClubMember(c);
     let description = c.description;
     let region = c.region;
+    let avatarUrl = c.avatarUrl ?? null;
     let memberCount = 4;
     if (c.visibility === 'private' && !isActive) {
       description = null;
       region = null;
       memberCount = null;
+      avatarUrl = null;
     }
     return {
       id: c.id,
       name: c.name,
       description,
       region,
+      avatarUrl,
       visibility: c.visibility,
       createdAt: c.createdAt,
       memberCount,

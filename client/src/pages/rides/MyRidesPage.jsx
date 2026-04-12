@@ -5,6 +5,7 @@ import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
+import CompactRouteMapPlaceholder from '@/features/routes/components/CompactRouteMapPlaceholder';
 import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useMyRidesPanel } from '@/features/rides/hooks/useMyRidesPanel';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
@@ -42,8 +43,8 @@ function ScheduledRideCard({ ride }) {
   const hasRoute = ride.routeId != null;
   return (
     <Card>
-      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : null}
-      <div className={`flex flex-wrap items-center gap-2 ${hasRoute ? 'mt-4' : ''}`}>
+      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : <CompactRouteMapPlaceholder />}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge variant="neon">Scheduled</Badge>
         <Badge variant={ride.routeId != null ? 'default' : 'warning'}>
           {ride.routeTitle || ride.routeName || 'No route yet'}
@@ -123,8 +124,8 @@ function PastScheduledCard({ ride }) {
   const hasRoute = ride.routeId != null;
   return (
     <Card>
-      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : null}
-      <div className={`flex flex-wrap items-center gap-2 ${hasRoute ? 'mt-4' : ''}`}>
+      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : <CompactRouteMapPlaceholder />}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <Badge>Past event</Badge>
         <Badge variant={ride.routeId != null ? 'default' : 'warning'}>
           {ride.routeTitle || ride.routeName || 'No route yet'}

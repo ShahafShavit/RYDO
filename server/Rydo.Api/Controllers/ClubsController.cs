@@ -51,6 +51,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                     c.Name,
                     c.Description,
                     c.Region,
+                    avatarUrl = c.AvatarUrl,
                     visibility = "public",
                     membershipPending = false,
                     myRole = (string?)null,
@@ -86,6 +87,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                 c.Name,
                 c.Description,
                 c.Region,
+                avatarUrl = c.AvatarUrl,
                 visibility = c.Visibility == ClubVisibility.Public ? "public" : "private",
                 c.CreatedAt,
             })
@@ -97,6 +99,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             c.Name,
             c.Description,
             c.Region,
+            c.avatarUrl,
             c.visibility,
             membershipPending = pendingSet.Contains(c.Id),
             myRole = MyRole(c.Id),
@@ -144,6 +147,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             name = club.Name,
             description = club.Description,
             region = club.Region,
+            avatarUrl = (string?)null,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             createdAt = club.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         });
@@ -183,11 +187,13 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         string? description = club.Description;
         string? region = club.Region;
         int? memberCountPublic = memberCount;
+        string? avatarUrl = string.IsNullOrWhiteSpace(club.AvatarUrl) ? null : club.AvatarUrl.Trim();
         if (club.Visibility == ClubVisibility.Private && !isActiveMember)
         {
             description = null;
             region = null;
             memberCountPublic = null;
+            avatarUrl = null;
         }
 
         return Ok(new
@@ -196,6 +202,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             name = club.Name,
             description,
             region,
+            avatarUrl,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             createdAt = club.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             memberCount = memberCountPublic,
@@ -432,7 +439,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         return Ok(new { clubId = inv.ClubId, status = "active" });
     }
 
-    public record PatchClubBody(string? Name, string? Description, string? Region, ClubVisibility? Visibility);
+    public record PatchClubBody(string? Name, string? Description, string? Region, string? AvatarUrl, ClubVisibility? Visibility);
 
     [HttpPatch("{id:int}")]
     [Authorize]
@@ -449,6 +456,8 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         if (body.Name != null) club.Name = body.Name.Trim();
         if (body.Description != null) club.Description = body.Description.Trim();
         if (body.Region != null) club.Region = string.IsNullOrWhiteSpace(body.Region) ? null : body.Region.Trim();
+        if (body.AvatarUrl != null)
+            club.AvatarUrl = string.IsNullOrWhiteSpace(body.AvatarUrl) ? null : body.AvatarUrl.Trim();
         if (body.Visibility.HasValue) club.Visibility = body.Visibility.Value;
 
         await db.SaveChangesAsync(ct);
@@ -458,6 +467,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
             name = club.Name,
             description = club.Description,
             region = club.Region,
+            avatarUrl = string.IsNullOrWhiteSpace(club.AvatarUrl) ? null : club.AvatarUrl.Trim(),
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
         });
     }

@@ -4,9 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubModal from '@/features/clubs/components/CreateClubModal';
+import ClubListMembershipBadge, {
+  getClubListMembershipStatus,
+} from '@/features/clubs/components/ClubListMembershipBadge';
 import RedeemClubInviteModal from '@/features/clubs/components/RedeemClubInviteModal';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 
 export default function ClubsPage() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -46,22 +50,38 @@ export default function ClubsPage() {
           {isLoading ? (
             <p className="text-sm text-white/56">Loading…</p>
           ) : (
-            clubs.map((c) => (
-              <Link key={c.id} to={ROUTES.clubDetails.replace(':clubId', String(c.id))}>
-                <Card className="h-full transition hover:border-[#7B5CFF]/35">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-lg font-semibold text-white">{c.name}</h3>
-                    <span className="shrink-0 rounded-full border border-white/12 px-2 py-0.5 text-xs capitalize text-white/56">
-                      {c.visibility}
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm text-white/64">{c.description}</p>
-                  {c.membershipPending ? (
-                    <p className="mt-3 text-xs text-amber-300/90">Membership pending approval</p>
-                  ) : null}
-                </Card>
-              </Link>
-            ))
+            clubs.map((c) => {
+              const membershipStatus = getClubListMembershipStatus(c);
+              return (
+                <Link key={c.id} to={ROUTES.clubDetails.replace(':clubId', String(c.id))}>
+                  <Card className="h-full transition hover:border-[#7B5CFF]/35">
+                    <div className="flex items-start gap-3">
+                      <UserAvatar
+                        avatarUrl={c.avatarUrl}
+                        displayName={c.name}
+                        sizeClass="h-10 w-10"
+                        textClass="text-sm"
+                        className="mt-0.5"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="min-w-0 text-lg font-semibold text-white">{c.name}</h3>
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                            <span className="rounded-full border border-white/12 px-2 py-0.5 text-xs capitalize text-white/56">
+                              {c.visibility}
+                            </span>
+                            {membershipStatus ? (
+                              <ClubListMembershipBadge status={membershipStatus} />
+                            ) : null}
+                          </div>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm text-white/64">{c.description}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

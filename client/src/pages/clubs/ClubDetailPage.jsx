@@ -8,6 +8,7 @@ import ClubSettingsModal from '@/features/clubs/components/ClubSettingsModal';
 import ClubMemberChip from '@/features/clubs/components/ClubMemberChip';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 function ridePeopleSummary(r) {
@@ -217,7 +218,15 @@ export default function ClubDetailPage() {
           ← Clubs
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
+            <UserAvatar
+              avatarUrl={club.avatarUrl}
+              displayName={club.name}
+              sizeClass="h-14 w-14"
+              textClass="text-lg"
+              className="shrink-0"
+            />
+            <div className="min-w-0 flex-1">
             <p className="text-xs uppercase tracking-[0.16em] text-white/42">Club</p>
             <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
             {club.description ? (
@@ -228,6 +237,7 @@ export default function ClubDetailPage() {
               </p>
             ) : null}
             {club.region ? <p className="mt-2 text-sm text-white/56">{club.region}</p> : null}
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-end">
             {club.currentUserMembership === 'admin' ? (

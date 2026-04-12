@@ -319,14 +319,15 @@ Visibility is `public` or `private` in JSON responses; create/patch use numeric 
 ### `GET /clubs`
 - Anonymous: public clubs only.
 - Authenticated: public clubs plus private clubs the user belongs to; each row may include `membershipPending` and `myRole` (`member` | `admin` | `pending` | null).
+- Each row includes optional `avatarUrl` (image URL string or null).
 
 ### `POST /clubs` (authenticated)
-Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member.
+Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member. Response includes `avatarUrl` (typically `null` for new clubs).
 
 ### `GET /clubs/:id`
 Returns `visibility`, `memberCount`, and `currentUserMembership`: `none` | `pending` | `member` | `admin`.
 
-For **private** clubs, if the viewer is **not** an active member (`pending` or `none`), `description`, `region`, and `memberCount` are omitted (null). The club **name** remains so people know which club they are requesting to join.
+For **private** clubs, if the viewer is **not** an active member (`pending` or `none`), `description`, `region`, `memberCount`, and `avatarUrl` are omitted (null). The club **name** remains so people know which club they are requesting to join.
 
 ### `GET /clubs/:id/members` (authenticated, active members only)
 Member roster with `userId`, `displayName`, `email`, `role`, `membershipStatus` (`active` | `pending`), and timestamps. **Regular members** receive **active** members only. **Club admins** also receive **pending** join requests in the same list (sorted with pending first), so the UI can show approve/deny alongside the roster.
@@ -346,7 +347,7 @@ Returns `{ "inviteCode": "<token>", "clubId": n }`.
 Body: `{ "token": "<code>" }` — grants **active** membership when valid.
 
 ### `PATCH /clubs/:id` (club admins)
-Update metadata including `visibility`.
+Update metadata including `visibility`. Optional `avatarUrl`: set to a non-empty string for an image URL, or clear the image by sending an empty string (stored as null). Omitted properties are left unchanged.
 
 ### `POST /clubs/:id/members/:userId/promote` | `.../demote` (club admins)
 Demote is rejected if it would remove the last admin.
