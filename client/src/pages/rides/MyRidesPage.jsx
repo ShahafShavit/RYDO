@@ -15,6 +15,7 @@ import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalR
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
@@ -405,7 +406,7 @@ export default function MyRidesPage() {
               variant="primary"
               type="button"
               size="sm"
-              className="h-8 min-w-25 shrink-0 px-6 text-sm border-rydo-green/55 bg-rydo-green font-semibold text-(--rydo-bg-deep) shadow-[0_4px_22px_color-mix(in_srgb,var(--rydo-green)_50%,transparent)] hover:border-rydo-green hover:brightness-110 hover:shadow-[0_6px_28px_color-mix(in_srgb,var(--rydo-green)_60%,transparent)]"
+              className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
               onClick={() => setModalOpen(true)}
             >
               Ride!

@@ -6,6 +6,7 @@ import RouteCard from '@/features/routes/components/RouteCard';
 import UploadRouteModal from '@/features/routes/components/UploadRouteModal';
 import Button from '@/shared/components/ui/button/Button';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
+import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
 
 export default function YourRoutesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,15 +55,21 @@ export default function YourRoutesPage() {
   ];
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
-          <h1 className="mt-2 text-3xl font-semibold">My Routes</h1>
+    <section className="space-y-8">
+      <div>
+        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">My Routes</h1>
+          <Button
+            variant="primary"
+            type="button"
+            size="sm"
+            className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
+            onClick={openUploadModal}
+          >
+            Upload route
+          </Button>
         </div>
-        <Button variant="neon" type="button" className="shrink-0 sm:mt-8" onClick={openUploadModal}>
-          Upload route
-        </Button>
       </div>
 
       <BadgeNav options={tabs} value={activeTab} onChange={setActiveTab} className="max-w-100" />
@@ -80,7 +87,7 @@ export default function YourRoutesPage() {
               : "You haven't saved any favorite routes yet."}
           </p>
           {isActiveUploaded && (
-            <Button variant="neon" type="button" onClick={openUploadModal}>
+            <Button variant="primary" type="button" size="sm" className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME} onClick={openUploadModal}>
               Upload a route
             </Button>
           )}
