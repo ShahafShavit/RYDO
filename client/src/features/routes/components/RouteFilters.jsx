@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { MapPin, Search, X } from 'lucide-react';
 import Input from '@/shared/components/ui/input/Input';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
 import Button from '@/shared/components/ui/button/Button';
+import { cn } from '@/shared/lib/cn';
 
 export default function RouteFilters({
   filters = {},
@@ -12,6 +14,8 @@ export default function RouteFilters({
   onUseNearMe,
   onClearNearMe,
 }) {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   const handleSearchChange = (e) => {
     if (onFilterChange) onFilterChange({ ...filters, search: e.target.value });
   };
@@ -79,24 +83,57 @@ export default function RouteFilters({
             className="relative z-0 pl-11"
           />
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-2 md:flex md:w-auto md:items-center">
           {!nearActive ? (
             <Button
               type="button"
               variant="secondary"
-              className="gap-2 whitespace-nowrap"
+              size="md"
+              className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5 md:w-auto"
               disabled={geoLoading}
+              aria-label={geoLoading ? 'Getting your location' : 'Use my location'}
               onClick={() => onUseNearMe?.()}
             >
-              <MapPin className="h-4 w-4" aria-hidden />
-              {geoLoading ? 'Getting location…' : 'Use my location'}
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate sm:hidden">{geoLoading ? 'Locating…' : 'Near me'}</span>
+              <span className="hidden sm:inline">
+                {geoLoading ? 'Getting location…' : 'Use my location'}
+              </span>
             </Button>
           ) : (
-            <Button type="button" variant="secondary" className="gap-2 whitespace-nowrap" onClick={() => onClearNearMe?.()}>
-              <X className="h-4 w-4" aria-hidden />
-              Clear location
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5 md:w-auto"
+              aria-label="Clear location filter"
+              onClick={() => onClearNearMe?.()}
+            >
+              <X className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate sm:hidden">Clear</span>
+              <span className="hidden sm:inline">Clear location</span>
             </Button>
           )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            className="h-11 min-w-0 whitespace-nowrap px-3 text-sm sm:px-5 md:hidden"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => setMobileFiltersOpen((o) => !o)}
+          >
+            {mobileFiltersOpen ? (
+              <>
+                <span className="sm:hidden">Hide</span>
+                <span className="hidden sm:inline">Hide filters</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">Filters</span>
+                <span className="hidden sm:inline">Show filters</span>
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -145,7 +182,12 @@ export default function RouteFilters({
         </div>
       ) : null}
 
-      <div className="flex justify-center sm:justify-start">
+      <div
+        className={cn(
+          'flex justify-center sm:justify-start',
+          mobileFiltersOpen ? 'flex' : 'hidden md:flex',
+        )}
+      >
         <BadgeNav
           options={options}
           multi

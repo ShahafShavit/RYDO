@@ -1,13 +1,147 @@
-import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, UsersRound } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
+import Badge from '@/shared/components/ui/badge/Badge';
 import UserAvatar from '@/shared/components/user/UserAvatar';
+import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
-const RouteMapWithElevation = lazy(() => import('@/features/routes/components/RouteMapWithElevation'));
+/** Matches My Rides history cards: badges column + half-width map. */
+const LAST_RYDO_BADGES_COL_CLASS = 'flex w-1/2 min-w-0 flex-col items-center gap-2';
+const LAST_RYDO_MAP_CLASS =
+  'h-24 w-full overflow-hidden rounded-2xl border border-border bg-surface sm:h-28';
+
+function routeDetailsPath(routeId) {
+  return ROUTES.routeDetails.replace(':routeId', String(routeId));
+}
+
+function clubDetailsPath(clubId) {
+  return ROUTES.clubDetails.replace(':clubId', String(clubId));
+}
+
+function truncateAtWords(text, maxWords) {
+  const words = String(text).trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  if (words.length <= maxWords) return words.join(' ');
+  return `${words.slice(0, maxWords).join(' ')}…`;
+}
+
+function DashboardClubBadge({ clubId, clubName }) {
+  const namePart = truncateAtWords((clubName || 'Club').trim(), 5);
+  const badge = (
+    <Badge variant="success" className="max-w-full min-w-0 truncate">
+      {namePart}
+    </Badge>
+  );
+  if (clubId == null) {
+    return badge;
+  }
+  return (
+    <Link
+      to={clubDetailsPath(clubId)}
+      className="inline-flex min-w-0 max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+    >
+      {badge}
+    </Link>
+  );
+}
+
+function lastRideKindFromEntry(rideKind) {
+  if (rideKind === 'club') return 'club';
+  if (rideKind === 'soloLog' || rideKind === 'personal') return 'personal';
+  return null;
+}
+
+function DashboardLastRideCard({ lastRide }) {
+  const hasRide = lastRide.rideId != null;
+  const ridePath = hasRide ? ROUTES.rideEvent.replace(':rideId', String(lastRide.rideId)) : null;
+  const rideLabel = lastRide.routeName || 'Ride';
+
+  if (!hasRide) {
+    return (
+      <Card className="p-4 sm:p-5">
+        <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{lastRide.title}</p>
+        <h3 className="mt-3 text-xl font-semibold">{lastRide.routeName}</h3>
+        <p className="mt-2 text-sm text-fg-muted">
+          Your trail preview will appear here after you complete a ride with a saved route.
+        </p>
+      </Card>
+    );
+  }
+
+  const kind = lastRideKindFromEntry(lastRide.rideKind);
+  const routeLabelRaw =
+    lastRide.routeName || (lastRide.routeId != null ? `Route #${lastRide.routeId}` : '');
+  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
+  const showDifficulty = lastRide.difficulty && lastRide.difficulty !== '—';
+
+  return (
+    <Card className="relative p-4 sm:p-5">
+      <Link
+        to={ridePath}
+        className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
+        aria-label={`View ride: ${rideLabel}`}
+      />
+      <p className="relative z-10 text-sm uppercase tracking-[0.16em] text-fg-subtle pointer-events-none">
+        {lastRide.title}
+      </p>
+      <div className="relative z-10 mt-3 flex gap-3 pointer-events-none">
+        <div className={`${LAST_RYDO_BADGES_COL_CLASS} pointer-events-auto`}>
+          {showDifficulty ? <Badge>{formatTrailMetaLabel(lastRide.difficulty)}</Badge> : null}
+          {lastRide.routeId != null ? (
+            <Link
+              to={routeDetailsPath(lastRide.routeId)}
+              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+            >
+              <Badge variant="route" className="max-w-full min-w-0 truncate">
+                {routeBadgeLabel}
+              </Badge>
+            </Link>
+          ) : null}
+          {kind === 'club' ? (
+            <div className="flex w-full min-w-0 justify-center">
+              <DashboardClubBadge clubId={lastRide.clubId} clubName={lastRide.clubName} />
+            </div>
+          ) : kind === 'personal' ? (
+            <Badge variant="personal">Personal</Badge>
+          ) : null}
+        </div>
+        <div className="pointer-events-none w-1/2 shrink-0">
+          <CompactRouteMapPreview preview={lastRide.preview} className={LAST_RYDO_MAP_CLASS} />
+        </div>
+      </div>
+      <div className="relative z-10 mt-3 text-center pointer-events-none">
+        <h3 className="text-lg font-semibold text-fg">{lastRide.routeName}</h3>
+        {lastRide.completedLabel ? (
+          <p className="mt-1.5 text-sm text-fg-muted">{lastRide.completedLabel}</p>
+        ) : null}
+      </div>
+      <div className="relative z-10 mt-3 flex min-w-0 gap-0 text-center pointer-events-none">
+        <div className="min-w-0 flex-1 pr-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Distance
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{lastRide.distance}</p>
+        </div>
+        <div className="min-w-0 flex-1 border-l border-border/50 px-2 sm:px-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Duration
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{lastRide.duration}</p>
+        </div>
+        <div className="min-w-0 flex-1 border-l border-border/50 pl-2 sm:pl-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Elevation
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{lastRide.elevation}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function ProgressBar({ value }) {
   return (
@@ -51,14 +185,7 @@ function DashboardGroupsCard({ groups }) {
                   className="mt-0.5"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-fg">{group.name}</p>
-                    {group.visibility === 'private' ? (
-                      <span className="shrink-0 rounded-full border border-border-strong px-2 py-0.5 text-xs text-fg-muted">
-                        Private
-                      </span>
-                    ) : null}
-                  </div>
+                  <p className="font-semibold text-fg">{group.name}</p>
                   <p className="mt-1 text-sm text-fg-muted">{group.detail}</p>
                 </div>
               </div>
@@ -164,15 +291,22 @@ function DashboardHomeSkeleton() {
         </Card>
       </div>
       <div className="xl:col-start-1 xl:row-start-2">
-        <Card>
-          <div className={`${bar} w-32`} />
-          <div className={`${bar} mt-4 h-10 w-3/4`} />
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
-            <div className={`${bar} h-16`} />
-            <div className={`${bar} h-16`} />
-            <div className={`${bar} h-16`} />
+        <Card className="p-4 sm:p-5">
+          <div className={`${bar} w-28`} />
+          <div className="mt-3 flex gap-3">
+            <div className="flex w-1/2 flex-col items-center gap-2">
+              <div className={`${bar} h-6 w-16 rounded-full`} />
+              <div className={`${bar} h-6 w-20 rounded-full`} />
+            </div>
+            <div className="h-24 w-1/2 shrink-0 rounded-2xl bg-surface-strong sm:h-28" />
           </div>
-          <div className="mt-6 h-40 rounded-3xl bg-surface" />
+          <div className={`${bar} mx-auto mt-3 h-5 w-2/3`} />
+          <div className={`${bar} mx-auto mt-2 h-4 w-1/2`} />
+          <div className="mt-3 flex gap-0">
+            <div className={`${bar} h-10 flex-1`} />
+            <div className={`${bar} h-10 flex-1`} />
+            <div className={`${bar} h-10 flex-1`} />
+          </div>
         </Card>
       </div>
       <div className="xl:col-start-2 xl:row-start-1">
@@ -243,56 +377,7 @@ export default function DashboardHomeCards() {
         </div>
 
         <div className="xl:col-start-1 xl:row-start-2">
-          <Card>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.lastRide.title}</p>
-                <h3 className="mt-3 text-2xl font-semibold">{home.lastRide.routeName}</h3>
-              </div>
-              <span className="rounded-full bg-surface px-4 py-2 text-sm text-fg-muted">
-                {formatTrailMetaLabel(home.lastRide.difficulty)}
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Distance</p>
-                <p className="mt-2 text-lg font-semibold">{home.lastRide.distance}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Duration</p>
-                <p className="mt-2 text-lg font-semibold">{home.lastRide.duration}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Trail</p>
-                <p className="mt-2 text-lg font-semibold">{home.lastRide.mapLabel}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-4xl border border-border bg-surface p-4 text-fg-muted">
-              {home.lastRide.mapGeoJson ? (
-                <Suspense
-                  fallback={
-                    <div className="h-40 rounded-3xl bg-surface animate-pulse" aria-hidden />
-                  }
-                >
-                  <RouteMapWithElevation
-                    geoJson={home.lastRide.mapGeoJson}
-                    mapClassName="h-40 rounded-3xl border border-border bg-surface overflow-hidden"
-                  />
-                </Suspense>
-              ) : (
-                <>
-                  <div className="h-40 rounded-3xl bg-surface" />
-                  <p className="mt-3 text-sm">
-                    {home.lastRide.routeName === 'No rides logged yet'
-                      ? 'Your trail preview will appear here after you complete a ride with a saved route.'
-                      : 'No trail preview available for this ride.'}
-                  </p>
-                </>
-              )}
-            </div>
-          </Card>
+          <DashboardLastRideCard lastRide={home.lastRide} />
         </div>
 
         <div className="xl:col-start-2 xl:row-start-1">

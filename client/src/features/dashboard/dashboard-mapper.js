@@ -1,4 +1,3 @@
-import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { formatDistanceFromKm } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
@@ -131,8 +130,17 @@ export function buildDashboardHome({
           last.distanceKm != null ? formatDistanceFromKm(last.distanceKm, unit) : '—',
         duration: formatDurationMinutes(last.durationMinutes),
         difficulty: formatDifficulty(last.routeDifficulty),
-        mapLabel: 'Trail summary',
-        mapGeoJson: buildRoutePreviewFeatureCollection(last.preview ?? null),
+        elevation:
+          last.elevationGainM != null && Number.isFinite(Number(last.elevationGainM))
+            ? `${Math.round(Number(last.elevationGainM))} m`
+            : '—',
+        completedLabel: formatLongDateTime(last.completedAt),
+        rideId: last.rideId ?? null,
+        routeId: last.routeId ?? null,
+        preview: last.preview ?? null,
+        clubId: last.clubId ?? null,
+        clubName: last.clubName ?? null,
+        rideKind: last.rideKind ?? null,
       }
     : {
         title: 'Last RYDO',
@@ -140,8 +148,14 @@ export function buildDashboardHome({
         distance: '—',
         duration: '—',
         difficulty: '—',
-        mapLabel: 'Your history will appear here',
-        mapGeoJson: null,
+        elevation: '—',
+        completedLabel: null,
+        rideId: null,
+        routeId: null,
+        preview: null,
+        clubId: null,
+        clubName: null,
+        rideKind: null,
       };
 
   const upcomingRides = upcomingPreview.map((g) => {

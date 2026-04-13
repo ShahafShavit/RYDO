@@ -7,6 +7,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { ROUTES } from '@/app/router/route-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
+import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
 const badgeLinkClass =
   'inline-flex min-w-0 max-w-full rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple';
@@ -18,7 +19,7 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
   const upcoming = isRideUpcoming(ride);
   const routeBadge = (
     <Badge variant="route" className="max-w-full min-w-0 truncate">
-      {ride.routeName}
+      {truncateTrailBadgeText(ride.routeName)}
     </Badge>
   );
   const clubBadge =

@@ -16,6 +16,7 @@ import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel'
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
+import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
@@ -88,7 +89,7 @@ function ScheduledRideCard({ ride }) {
   const hasRoute = ride.routeId != null;
   const routeLabelRaw =
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
-  const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
+  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
     <Card className="relative p-4 sm:p-6">
@@ -184,7 +185,7 @@ function PastScheduledCard({ ride }) {
   const hasRoute = ride.routeId != null;
   const routeLabelRaw =
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
-  const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
+  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
     <Card className="relative p-4 sm:p-6">
@@ -253,7 +254,7 @@ function HistoryRideCard({ entry }) {
 
   const routeLabelRaw =
     entry.routeTitle || entry.routeName || (entry.routeId != null ? `Route #${entry.routeId}` : '');
-  const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
+  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
 
   const ridePath =
     entry.rideId != null ? ROUTES.rideEvent.replace(':rideId', String(entry.rideId)) : null;
