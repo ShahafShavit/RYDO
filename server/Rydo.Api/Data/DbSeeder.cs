@@ -432,7 +432,7 @@ public static class DbSeeder
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
         await db.SaveChangesAsync();
 
-        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, partIndex);
+        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex);
         await db.SaveChangesAsync();
 
         await ValidateSeedDataCoherenceAsync(db);
@@ -1594,6 +1594,7 @@ public static class DbSeeder
         List<RouteEntity> routes,
         IReadOnlyList<int> userIds,
         IReadOnlyList<Ride> personalRideGroups,
+        IReadOnlyList<Ride> allRideGroups,
         ParticipantIndex partIndex)
     {
         if (routes.Count == 0 || userIds.Count == 0)
@@ -1649,6 +1650,37 @@ public static class DbSeeder
 
         var now = DateTime.UtcNow;
         foreach (var g in personalRideGroups.Where(x => x.ScheduledDate < now && x.RouteId.HasValue).OrderBy(x => x.Id))
+        {
+            var route = routes.First(r => r.Id == g.RouteId!.Value);
+            var participantIds = partIndex.GetUserIdsOnRideOrdered(g.Id);
+
+            for (var pi = 0; pi < participantIds.Count; pi++)
+            {
+                var uid = participantIds[pi];
+                var dur = Math.Max(25, route.EstimatedDurationMinutes + pi % 21 - 10);
+                var distFactor = 0.94 + pi % 11 * 0.01;
+                var elevFactor = 0.92 + pi % 9 * 0.01;
+                db.HistoryEntries.Add(new HistoryEntry
+                {
+                    UserId = uid,
+                    RouteId = route.Id,
+                    RouteTitle = route.Title,
+                    CompletedAt = g.ScheduledDate.AddHours(1) + TimeSpan.FromMinutes(pi * 3),
+                    DurationMinutes = dur,
+                    DistanceKm = Math.Round(route.DistanceKm * distFactor, 1),
+                    ElevationGainM = Math.Round(route.ElevationGainM * elevFactor, 1),
+                    RideId = g.Id,
+                });
+            }
+        }
+
+        // Past club rides: same stats semantics as personal group rides (one history row per participant).
+        foreach (var g in allRideGroups
+                     .Where(x => x.ClubId != null
+                         && x.Kind != RideKind.SoloLog
+                         && x.ScheduledDate < now
+                         && x.RouteId.HasValue)
+                     .OrderBy(x => x.Id))
         {
             var route = routes.First(r => r.Id == g.RouteId!.Value);
             var participantIds = partIndex.GetUserIdsOnRideOrdered(g.Id);
