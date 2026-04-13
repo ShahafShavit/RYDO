@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
   dashboard: {
     summary: `${P}/dashboard/summary`,
   },
+  leaderboards: {
+    list: `${P}/leaderboards`,
+  },
   routes: {
     list: `${P}/routes`,
     details: (routeId) => `${P}/routes/${routeId}`,

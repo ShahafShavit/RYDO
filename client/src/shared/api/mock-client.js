@@ -384,6 +384,52 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
+  if (pathname === '/api/leaderboards' && method === 'GET') {
+    const routeById = new Map(routes.map((r) => [r.id, r]));
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const dist = new Map();
+    const elev = new Map();
+    const rideCount = new Map();
+    for (const h of historyEntries) {
+      const rt = routeById.get(h.routeId);
+      const d = Number(h.distanceKm ?? rt?.distanceKm ?? 0);
+      const e = Number(h.elevationGainM ?? rt?.elevationGainM ?? 0);
+      const uid = h.userId;
+      dist.set(uid, (dist.get(uid) ?? 0) + d);
+      elev.set(uid, (elev.get(uid) ?? 0) + e);
+      rideCount.set(uid, (rideCount.get(uid) ?? 0) + 1);
+    }
+    const pubRoutes = new Map();
+    for (const r of routes) {
+      if ((r.status || 'published') !== 'published') continue;
+      const uid = r.createdBy?.id;
+      if (uid == null) continue;
+      pubRoutes.set(uid, (pubRoutes.get(uid) ?? 0) + 1);
+    }
+    const top5 = (map, unit) =>
+      [...map.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+        .slice(0, 5)
+        .map(([userId, value], i) => {
+          const u = userById.get(userId);
+          const displayName = u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : `User #${userId}`;
+          return {
+            rank: i + 1,
+            userId,
+            displayName: displayName || `User #${userId}`,
+            avatarUrl: u?.avatarUrl ?? null,
+            value,
+            unit,
+          };
+        });
+    return {
+      horizonChasers: top5(dist, 'km'),
+      saddleJunkies: top5(rideCount, 'rides'),
+      summitSeekers: top5(elev, 'm'),
+      trailblazers: top5(pubRoutes, 'routes'),
+    };
+  }
+
   if (pathname === '/api/routes' && method === 'GET') {
     const q = (searchParams.get('q') || '').trim().toLowerCase();
     const terrain = (searchParams.get('terrain') || '').toLowerCase();

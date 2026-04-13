@@ -5,6 +5,7 @@
 export function prefetchDashboardRoutes() {
   return Promise.all([
     import('@/pages/dashboard/DashboardPage'),
+    import('@/pages/leaderboards/LeaderboardsPage'),
     import('@/pages/routes/RoutesExplorePage'),
     import('@/pages/routes/RouteDetailsPage'),
     import('@/pages/routes/YourRoutesPage'),

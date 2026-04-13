@@ -29,6 +29,7 @@ const RideEventPage = lazy(() => import('@/pages/rides/RideEventPage'));
 const MyRidesPage = lazy(() => import('@/pages/rides/MyRidesPage'));
 const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
 const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
+const LeaderboardsPage = lazy(() => import('@/pages/leaderboards/LeaderboardsPage'));
 
 export const router = createBrowserRouter([
   {
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: ROUTES.dashboard, element: <DashboardPage /> },
+          { path: ROUTES.leaderboards, element: <LeaderboardsPage /> },
           { path: ROUTES.routes, element: <RoutesExplorePage /> },
           { path: ROUTES.routeDetails, element: <RouteDetailsPage /> },
           { path: ROUTES.myRoutes, element: <YourRoutesPage /> },

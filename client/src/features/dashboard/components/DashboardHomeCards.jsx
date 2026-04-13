@@ -163,7 +163,15 @@ export default function DashboardHomeCards() {
             </Card>
 
             <Card>
-              <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.level.title}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.level.title}</p>
+                <Link
+                  to={ROUTES.leaderboards}
+                  className="shrink-0 text-sm font-medium text-rydo-purple hover:underline"
+                >
+                  View leaderboards
+                </Link>
+              </div>
               <div className="mt-4 flex items-end gap-2">
                 <span className="text-5xl font-semibold">{home.level.currentLevel}</span>
                 <span className="text-sm text-fg-muted">level</span>

@@ -6,6 +6,7 @@ export const ROUTES = {
 
   // User routes
   dashboard: '/dashboard',
+  leaderboards: '/leaderboards',
   routes: '/routes',
   routeDetails: '/routes/:routeId',
   myRoutes: '/my-routes',
