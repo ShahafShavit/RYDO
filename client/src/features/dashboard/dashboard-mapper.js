@@ -80,7 +80,8 @@ export function buildDashboardHome({
     .filter((g) => userInGroup(g, userId) && new Date(g.scheduledDate).getTime() >= now)
     .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate));
 
-  const upcoming = futureMine[0];
+  const upcomingPreview = futureMine.slice(0, 2);
+  const upcomingMoreCount = Math.max(0, futureMine.length - 2);
 
   const clubs = Array.isArray(clubsRaw) ? clubsRaw : [];
   const myClubs = clubs
@@ -92,6 +93,7 @@ export function buildDashboardHome({
     name: c.name || 'Club',
     detail: c.region?.trim() || c.description?.trim()?.slice(0, 72) || '—',
     visibility: c.visibility === 'private' ? 'private' : 'public',
+    avatarUrl: typeof c.avatarUrl === 'string' && c.avatarUrl.trim() ? c.avatarUrl.trim() : null,
   }));
 
   const chList = Array.isArray(challengesRaw) ? challengesRaw : [];
@@ -142,21 +144,21 @@ export function buildDashboardHome({
         mapGeoJson: null,
       };
 
-  const upcomingRide = upcoming
-    ? {
-        id: upcoming.id,
-        title: 'Upcoming Group RYDO',
-        dateTime: formatLongDateTime(upcoming.scheduledDate),
-        routeName: upcoming.routeTitle || 'Route',
-        chatGroup: upcoming.name || 'Group ride',
-      }
-    : {
-        id: null,
-        title: 'Upcoming Group RYDO',
-        dateTime: '—',
-        routeName: 'No upcoming rides',
-        chatGroup: "You're not signed up for a future group ride",
-      };
+  const upcomingRides = upcomingPreview.map((g) => {
+    const clubId = g.clubId ?? null;
+    const clubName =
+      typeof g.clubName === 'string' && g.clubName.trim() ? g.clubName.trim() : null;
+    const clubAvatarUrlRaw =
+      typeof g.clubAvatarUrl === 'string' && g.clubAvatarUrl.trim() ? g.clubAvatarUrl.trim() : null;
+    return {
+      id: g.id,
+      routeName: g.routeTitle || 'Route',
+      dateTime: formatLongDateTime(g.scheduledDate),
+      clubName,
+      clubAvatarUrl: clubId != null ? clubAvatarUrlRaw : null,
+      isPersonal: clubId == null,
+    };
+  });
 
   return {
     awards,
@@ -171,7 +173,7 @@ export function buildDashboardHome({
     },
     lastRide,
     groups,
-    upcomingRide,
-    hasUpcomingRide: Boolean(upcoming),
+    upcomingRides,
+    upcomingMoreCount,
   };
 }

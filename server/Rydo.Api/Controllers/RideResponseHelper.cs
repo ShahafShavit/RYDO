@@ -105,6 +105,9 @@ internal static class RideResponseHelper
         };
 
         var rideKind = g.Kind == RideKind.SoloLog ? "soloLog" : "scheduled";
+        string? clubAvatarUrl = g.Club != null && !string.IsNullOrWhiteSpace(g.Club.AvatarUrl)
+            ? g.Club.AvatarUrl.Trim()
+            : null;
 
         if (!includeRoster)
         {
@@ -124,6 +127,7 @@ internal static class RideResponseHelper
                 maxParticipants = g.MaxParticipants,
                 clubId = g.ClubId,
                 clubName = g.Club != null ? g.Club.Name : null,
+                clubAvatarUrl,
                 createdBy,
                 viewerCanEdit,
             };
@@ -153,6 +157,7 @@ internal static class RideResponseHelper
             maxParticipants = g.MaxParticipants,
             clubId = g.ClubId,
             clubName = g.Club != null ? g.Club.Name : null,
+            clubAvatarUrl,
             createdBy,
             viewerCanEdit,
         };

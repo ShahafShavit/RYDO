@@ -134,7 +134,8 @@ function ScheduledRideCard({ ride }) {
 }
 
 function UpcomingRidesSection({ rides }) {
-  const [expanded, setExpanded] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [expanded, setExpanded] = useState(() => searchParams.get('upcoming') === 'all');
   const visible = useMemo(() => {
     if (expanded || rides.length <= UPCOMING_PREVIEW_COUNT) return rides;
     return rides.slice(0, UPCOMING_PREVIEW_COUNT);
@@ -459,7 +460,10 @@ export default function MyRidesPage() {
 
       {!isLoading && (
         <>
-          <UpcomingRidesSection key={`${useMember ? 'm' : 'my'}-${search}`} rides={upcoming} />
+          <UpcomingRidesSection
+            key={`${useMember ? 'm' : 'my'}-${search}-${searchParams.get('upcoming') ?? ''}`}
+            rides={upcoming}
+          />
 
           <div>
             <h2 className="text-lg font-semibold">{useMember ? 'Past rides' : 'Past & logged'}</h2>

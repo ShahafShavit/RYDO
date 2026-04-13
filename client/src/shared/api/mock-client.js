@@ -366,6 +366,10 @@ function findRide(rideId) {
     ride.participantCount ?? participantDetails.length ?? (ride.participants?.length ?? 0);
   const routePreview =
     route?.coordinates?.length > 1 ? { coordinates: route.coordinates } : ride.routePreview ?? null;
+  const club =
+    ride.clubId != null ? clubs.find((c) => c.id === Number(ride.clubId)) : null;
+  const clubAvatarUrl =
+    club?.avatarUrl && String(club.avatarUrl).trim() ? String(club.avatarUrl).trim() : null;
   return {
     ...ride,
     routeTitle,
@@ -373,6 +377,7 @@ function findRide(rideId) {
     participantCount,
     participants: ride.participants,
     routePreview,
+    clubAvatarUrl,
     viewerCanEdit: mockViewerCanEditRide(ride),
   };
 }

@@ -275,12 +275,15 @@ If the ride belongs to a **private** club and the viewer is **not** an active me
   "maxParticipants": 10,
   "clubId": 1,
   "clubName": "Coastal Open Rollers",
+  "clubAvatarUrl": "https://example.com/club-avatar.png",
   "createdBy": { "id": 2, "fullName": "Jane Smith" },
   "viewerCanEdit": false
 }
 ```
 
 `routePreview` is omitted or null when the ride has no route or no stored polyline; when present, `coordinates` are `[longitude, latitude]` pairs (same as history `preview`) for map thumbnails.
+
+`clubAvatarUrl` is the club’s profile image URL when the ride is linked to a club and the club has an avatar; otherwise null (same trimming rules as club list `avatarUrl`).
 
 `createdBy` identifies the user who scheduled the ride (`id` and display `fullName`).
 
