@@ -8,7 +8,7 @@ public sealed class RideLiveSessionCoordinator(
     public void EnsureStarted(int rideId, int triggeringUserId, string? triggeringEmail)
     {
         logger.LogInformation(
-            "Ride live: scheduling bot orchestration for ride {RideId}, triggering user {UserId}, email {TriggerEmail}.",
+            "Ride live: scheduling simulator orchestration for ride {RideId}, joiner user {UserId}, email {JoinerEmail}.",
             rideId,
             triggeringUserId,
             triggeringEmail ?? "(none)");
@@ -20,7 +20,7 @@ public sealed class RideLiveSessionCoordinator(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Ride live bot orchestration failed for ride {RideId}", rideId);
+                logger.LogError(ex, "Ride live simulator orchestration failed for ride {RideId}", rideId);
             }
         });
     }

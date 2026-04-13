@@ -15,42 +15,6 @@ public static class DbSeeder
     /// <summary>Password for bulk demo riders (rider003@ … rider036@rydo.test).</summary>
     public const string DemoRiderPassword = "User123!";
 
-    public const string LiveBot1Email = "livebot1@rydo.test";
-    public const string LiveBot2Email = "livebot2@rydo.test";
-    public const string LiveBot3Email = "livebot3@rydo.test";
-
-    /// <summary>
-    /// Seeded live-ride demo accounts (SignalR bots). Keep aligned with <see cref="Rydo.Api.DemoRideLiveBotsOptions"/> defaults and
-    /// <see cref="Rydo.Api.Services.RideLive.RideLiveBotOrchestrator"/> when creating users on the fly.
-    /// </summary>
-    public static readonly (string Email, string FirstName, string LastName)[] LiveRideDemoBotProfiles =
-    [
-        (LiveBot1Email, "Noam", "Barak"),
-        (LiveBot2Email, "Maya", "Levi"),
-        (LiveBot3Email, "Yoni", "Azulay"),
-    ];
-
-    /// <summary>Returns canonical first/last for configured live-ride demo emails; otherwise false.</summary>
-    public static bool TryGetLiveRideDemoBotProfile(string email, out string firstName, out string lastName)
-    {
-        firstName = "";
-        lastName = "";
-        if (string.IsNullOrWhiteSpace(email))
-            return false;
-        var e = email.Trim();
-        foreach (var (em, fn, ln) in LiveRideDemoBotProfiles)
-        {
-            if (string.Equals(em, e, StringComparison.OrdinalIgnoreCase))
-            {
-                firstName = fn;
-                lastName = ln;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public static async Task SeedAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
@@ -126,7 +90,6 @@ public static class DbSeeder
         if (await db.HistoryEntries.AnyAsync())
         {
             await EnsureClubChatSeedAsync(db, rider.Id);
-            await EnsureLiveBotAccountsAsync(userManager);
             return;
         }
 
@@ -162,7 +125,6 @@ public static class DbSeeder
             await db.SaveChangesAsync();
 
             await EnsureClubChatSeedAsync(db, rider.Id);
-            await EnsureLiveBotAccountsAsync(userManager);
 
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
             return;
@@ -175,48 +137,6 @@ public static class DbSeeder
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
         await EnsureClubChatSeedAsync(db, rider.Id);
-        await EnsureLiveBotAccountsAsync(userManager);
-    }
-
-    /// <summary>
-    /// Idempotent: creates live demo bot accounts only. They join a ride when <c>admin@rydo.test</c> / <c>user@rydo.test</c> opens live (see <see cref="Rydo.Api.DemoRideLiveBotsOptions"/>).
-    /// </summary>
-    private static async Task EnsureLiveBotAccountsAsync(UserManager<ApplicationUser> userManager)
-    {
-        var now = DateTime.UtcNow;
-
-        foreach (var (email, first, last) in LiveRideDemoBotProfiles)
-        {
-            var existing = await userManager.FindByEmailAsync(email);
-            if (existing != null)
-            {
-                if (!string.Equals(existing.FirstName, first, StringComparison.Ordinal) ||
-                    !string.Equals(existing.LastName, last, StringComparison.Ordinal))
-                {
-                    existing.FirstName = first;
-                    existing.LastName = last;
-                    await userManager.UpdateAsync(existing);
-                }
-
-                continue;
-            }
-
-            var u = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                EmailConfirmed = true,
-                FirstName = first,
-                LastName = last,
-                CreatedAt = now,
-                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed={Uri.EscapeDataString(email)}",
-                PublicAvatarUrl = true,
-            };
-            var created = await userManager.CreateAsync(u, DemoRiderPassword);
-            if (!created.Succeeded)
-                continue;
-            await userManager.AddToRoleAsync(u, "user");
-        }
     }
 
     /// <summary>

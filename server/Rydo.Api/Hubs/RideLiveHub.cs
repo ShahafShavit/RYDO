@@ -90,7 +90,7 @@ public class RideLiveHub(
         var snapshot = poseStore.GetSnapshot(rideId);
         var riders = snapshot.Select(WirePose).ToList();
         logger.LogInformation(
-            "Ride live hub: user {UserId} connection {ConnectionId} joined ride {RideId}, sending RidersState with {PeerCount} pose(s); bot trigger email: {Email}.",
+            "Ride live hub: user {UserId} connection {ConnectionId} joined ride {RideId}, sending RidersState with {PeerCount} pose(s); joiner email: {Email}.",
             userId.Value,
             Context.ConnectionId,
             rideId,
