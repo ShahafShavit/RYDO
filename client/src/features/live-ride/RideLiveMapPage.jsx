@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Map, { Layer, NavigationControl, Source } from 'react-map-gl/mapbox';
+import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { featureCollection, point } from '@turf/helpers';
-import length from '@turf/length';
+import { featureCollection } from '@turf/helpers';
+import { Crosshair } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -10,13 +10,9 @@ import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEven
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import { useDesktopSimulator } from '@/features/live-ride/hooks/useDesktopSimulator';
-import {
-  enableRideLiveDebugFromQuery,
-  isRideLiveLogEnabled,
-  rideLiveLog,
-  rideLiveWarn,
-} from '@/features/live-ride/utils/rideLiveLog';
+import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
+import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
@@ -32,52 +28,15 @@ const routeLineLayer = {
   },
 };
 
-const peerLayer = {
-  id: 'ride-live-peer-circles',
-  type: 'circle',
-  paint: {
-    'circle-radius': 10,
-    'circle-color': '#f59e0b',
-    'circle-stroke-width': 2,
-    'circle-stroke-color': '#ffffff',
-  },
-};
-
-function ensurePeersSourceAndLayer(map) {
-  if (map.getSource('ride-live-peers')) return;
-  map.addSource('ride-live-peers', {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-  });
-  map.addLayer({
-    id: peerLayer.id,
-    type: peerLayer.type,
-    source: 'ride-live-peers',
-    paint: peerLayer.paint,
-  });
+function formatSpeedKmh(speedMps) {
+  if (speedMps == null || !Number.isFinite(speedMps) || speedMps < 0) return '—';
+  return `${(speedMps * 3.6).toFixed(1)} km/h`;
 }
 
-function ensureSelfPuckSource(map) {
-  if (map.getSource('ride-live-self')) return;
-  map.addSource('ride-live-self', {
-    type: 'geojson',
-    data: {
-      type: 'Feature',
-      properties: {},
-      geometry: { type: 'Point', coordinates: [0, 0] },
-    },
-  });
-  map.addLayer({
-    id: 'ride-live-self-circle',
-    type: 'circle',
-    source: 'ride-live-self',
-    paint: {
-      'circle-radius': 11,
-      'circle-color': '#3ecfb9',
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#ffffff',
-    },
-  });
+function formatDistanceM(m) {
+  if (m == null || !Number.isFinite(m)) return '';
+  if (m < 1000) return `${Math.round(m)} m`;
+  return `${(m / 1000).toFixed(1)} km`;
 }
 
 export default function RideLiveMapPage() {
@@ -85,9 +44,9 @@ export default function RideLiveMapPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const mapRef = useRef(null);
-  const syncPeersStyleWaitLogRef = useRef(0);
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-  const posRef = useRef({ lat: null, lng: null, heading: null, accuracy: null });
+  const followCameraRef = useRef(true);
+  const programmaticMoveRef = useRef(false);
 
   const { ride, isLoading, isError, error } = useRideEvent(rideId);
   const myUserId = user?.id != null ? Number(user.id) : null;
@@ -115,58 +74,16 @@ export default function RideLiveMapPage() {
   const line = useMemo(() => normalizeTrackToLineString(trackGeoJson), [trackGeoJson]);
   const routeFc = useMemo(() => (line ? featureCollection([line]) : null), [line]);
 
-  const [simMode, setSimMode] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [resetEpoch, setResetEpoch] = useState(0);
-  const [speedMps, setSpeedMps] = useState(8);
   const [geoError, setGeoError] = useState(null);
+  const [showRecenter, setShowRecenter] = useState(false);
+  const [selfFix, setSelfFix] = useState(null);
+  const [clockTick, setClockTick] = useState(() => Date.now());
+  const [nearbyOpen, setNearbyOpen] = useState(false);
 
-  const peerFc = useMemo(() => {
-    const features = [...peersById.values()].map((p) => ({
-      type: 'Feature',
-      properties: { userId: p.userId },
-      geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-    }));
-    return featureCollection(features);
-  }, [peersById]);
-
-  const peerFcRef = useRef(peerFc);
+  const selfFixRef = useRef(null);
   useLayoutEffect(() => {
-    peerFcRef.current = peerFc;
-  }, [peerFc]);
-
-  const syncPeersToMap = useCallback((fc) => {
-    const map = mapRef.current?.getMap?.();
-    const featureCount = fc?.features?.length ?? 0;
-    if (!map) {
-      rideLiveWarn('syncPeersToMap: no map ref yet', { featureCount });
-      return;
-    }
-    if (!map.isStyleLoaded?.()) {
-      if (isRideLiveLogEnabled() && syncPeersStyleWaitLogRef.current < 8) {
-        syncPeersStyleWaitLogRef.current += 1;
-        rideLiveLog('syncPeersToMap: style not loaded yet (retry when map ready)', {
-          n: syncPeersStyleWaitLogRef.current,
-          featureCount,
-        });
-      }
-      return;
-    }
-    syncPeersStyleWaitLogRef.current = 0;
-    ensurePeersSourceAndLayer(map);
-    const src = map.getSource('ride-live-peers');
-    if (src && typeof src.setData === 'function') {
-      src.setData(fc);
-      rideLiveLog('syncPeersToMap: setData', {
-        featureCount,
-        featureIds: (fc?.features ?? []).map((f) => f?.properties?.userId),
-      });
-    } else {
-      rideLiveWarn('syncPeersToMap: missing ride-live-peers source or setData', {
-        hasSource: Boolean(src),
-      });
-    }
-  }, []);
+    selfFixRef.current = selfFix;
+  }, [selfFix]);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
@@ -175,8 +92,9 @@ export default function RideLiveMapPage() {
   }, []);
 
   useEffect(() => {
-    syncPeersToMap(peerFc);
-  }, [peerFc, syncPeersToMap]);
+    const id = window.setInterval(() => setClockTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const initialViewState = useMemo(() => {
     if (!line?.geometry?.coordinates?.[0]) {
@@ -186,59 +104,71 @@ export default function RideLiveMapPage() {
     return { longitude: lng, latitude: lat, zoom: MAP_ZOOM, pitch: MAP_PITCH, bearing: 0 };
   }, [line]);
 
-  const applySelfToMap = useCallback((lng, lat, bearing) => {
+  const recenterCamera = useCallback((lng, lat, bearingOpt, { instant } = { instant: false }) => {
     const map = mapRef.current?.getMap?.();
-    if (map?.isStyleLoaded?.()) {
-      map.jumpTo({
-        center: [lng, lat],
-        bearing: bearing ?? map.getBearing(),
-        pitch: MAP_PITCH,
-        zoom: MAP_ZOOM,
-      });
-      const src = map.getSource('ride-live-self');
-      if (src && typeof src.setData === 'function') {
-        src.setData(point([lng, lat]));
-      }
+    if (!map?.isStyleLoaded?.()) return;
+    programmaticMoveRef.current = true;
+    const next = {
+      center: [lng, lat],
+      bearing: bearingOpt ?? map.getBearing(),
+      pitch: MAP_PITCH,
+      zoom: MAP_ZOOM,
+    };
+    const release = () => {
+      programmaticMoveRef.current = false;
+      map.off('idle', release);
+    };
+    map.once('idle', release);
+    if (instant) {
+      map.jumpTo(next);
+    } else {
+      map.easeTo({ ...next, duration: 600 });
     }
-    posRef.current = { lat, lng, heading: bearing, accuracy: simMode ? 5 : posRef.current.accuracy };
-  }, [simMode]);
+  }, []);
 
-  const onSimFrame = useCallback(
-    ({ lng, lat, bearing }) => {
-      applySelfToMap(lng, lat, bearing);
-      sendPose(lat, lng, bearing, 5);
-    },
-    [applySelfToMap, sendPose],
-  );
+  const onUserAdjustedView = useCallback(() => {
+    if (programmaticMoveRef.current) return;
+    followCameraRef.current = false;
+    setShowRecenter(true);
+  }, []);
 
-  const { handleMapLoad: simHandleMapLoad } = useDesktopSimulator({
-    line,
-    speedMps,
-    playing: simMode && playing,
-    resetEpoch,
-    onFrame: onSimFrame,
-  });
+  const handleRecenterClick = useCallback(() => {
+    followCameraRef.current = true;
+    setShowRecenter(false);
+    const f = selfFixRef.current;
+    if (f?.lat != null && f?.lng != null) {
+      recenterCamera(f.lng, f.lat, f.heading ?? undefined, { instant: false });
+    }
+  }, [recenterCamera]);
 
   const onMapLoad = useCallback(
     (e) => {
       const map = e.target;
-      rideLiveLog('Map onLoad', {
-        styleLoaded: map.isStyleLoaded?.() ?? null,
-        peerFeatureCount: peerFcRef.current?.features?.length ?? 0,
-      });
-      syncPeersToMap(peerFcRef.current);
-      ensureSelfPuckSource(map);
+      rideLiveLog('Map onLoad', { styleLoaded: map.isStyleLoaded?.() ?? null });
       if (line?.geometry?.coordinates?.[0]) {
         const [lng, lat] = line.geometry.coordinates[0];
-        applySelfToMap(lng, lat, 0);
+        followCameraRef.current = true;
+        map.jumpTo({
+          center: [lng, lat],
+          zoom: MAP_ZOOM,
+          pitch: MAP_PITCH,
+          bearing: 0,
+        });
+        setSelfFix({
+          lat,
+          lng,
+          heading: null,
+          speed: null,
+          accuracy: null,
+          previousFix: null,
+        });
       }
-      simHandleMapLoad(e);
     },
-    [line, applySelfToMap, simHandleMapLoad, syncPeersToMap],
+    [line],
   );
 
   useEffect(() => {
-    if (simMode || !hubEnabled) return undefined;
+    if (!hubEnabled) return undefined;
     if (!navigator.geolocation) {
       const t = window.setTimeout(() => setGeoError('Geolocation is not available in this browser.'), 0);
       return () => clearTimeout(t);
@@ -250,10 +180,30 @@ export default function RideLiveMapPage() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
+        const rawSpeed = pos.coords.speed;
+        const speed = Number.isFinite(rawSpeed) && rawSpeed >= 0 ? rawSpeed : null;
         let heading = pos.coords.heading;
         if (heading != null && Number.isNaN(heading)) heading = null;
-        posRef.current = { lat, lng, heading, accuracy };
-        applySelfToMap(lng, lat, heading ?? undefined);
+
+        setSelfFix((old) => ({
+          lat,
+          lng,
+          heading,
+          speed,
+          accuracy,
+          previousFix: old && old.lat != null && old.lng != null ? { lat: old.lat, lng: old.lng } : null,
+        }));
+
+        const map = mapRef.current?.getMap?.();
+        if (map?.isStyleLoaded?.() && followCameraRef.current) {
+          map.jumpTo({
+            center: [lng, lat],
+            bearing: heading ?? map.getBearing(),
+            pitch: MAP_PITCH,
+            zoom: MAP_ZOOM,
+          });
+        }
+
         sendPose(lat, lng, heading ?? null, accuracy ?? null);
       },
       (err) => {
@@ -263,7 +213,7 @@ export default function RideLiveMapPage() {
     );
 
     return () => navigator.geolocation.clearWatch(id);
-  }, [simMode, hubEnabled, applySelfToMap, sendPose]);
+  }, [hubEnabled, sendPose]);
 
   useEffect(() => {
     if (!ride || isLoading) return;
@@ -279,6 +229,28 @@ export default function RideLiveMapPage() {
       navigate(ROUTES.rideEvent.replace(':rideId', String(rideId)), { replace: true });
     }
   }, [ride, isLoading, user, rideId, navigate, amParticipant, upcoming]);
+
+  const nearbyInfo = useMemo(() => {
+    return nearestPeersAheadBehind({
+      selfLat: selfFix?.lat,
+      selfLng: selfFix?.lng,
+      headingDeg: selfFix?.heading,
+      previousFix: selfFix?.previousFix,
+      peers: peersById.values(),
+    });
+  }, [selfFix, peersById]);
+
+  const timeLabel = useMemo(
+    () =>
+      new Date(clockTick).toLocaleTimeString(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    [clockTick],
+  );
+
+  const peersList = useMemo(() => [...peersById.values()], [peersById]);
 
   if (!token) {
     return (
@@ -326,8 +298,6 @@ export default function RideLiveMapPage() {
     );
   }
 
-  const totalLenM = length(line, { units: 'meters' });
-
   return (
     <div className="fixed inset-0 z-40 h-dvh w-full overflow-hidden bg-[#0a0908]">
       <Map
@@ -336,11 +306,30 @@ export default function RideLiveMapPage() {
         mapStyle="mapbox://styles/mapbox/streets-v12"
         initialViewState={initialViewState}
         onLoad={onMapLoad}
+        onDragStart={onUserAdjustedView}
+        onRotateStart={onUserAdjustedView}
+        onPitchStart={onUserAdjustedView}
+        onZoomStart={onUserAdjustedView}
         style={{ width: '100%', height: '100%' }}
       >
         <Source id="ride-live-route" type="geojson" data={routeFc}>
           <Layer {...routeLineLayer} />
         </Source>
+        {selfFix?.lat != null && selfFix?.lng != null ? (
+          <Marker longitude={selfFix.lng} latitude={selfFix.lat} anchor="center">
+            <LiveRideAvatarMarker
+              name={user?.fullName ?? 'You'}
+              avatarUrl={user?.avatarUrl}
+              isSelf
+              headingDeg={showRecenter ? selfFix.heading : null}
+            />
+          </Marker>
+        ) : null}
+        {peersList.map((p) => (
+          <Marker key={p.userId} longitude={p.lng} latitude={p.lat} anchor="center">
+            <LiveRideAvatarMarker name={p.displayName || 'Rider'} avatarUrl={p.avatarUrl} />
+          </Marker>
+        ))}
         <NavigationControl position="top-right" showCompass visualizePitch />
       </Map>
 
@@ -359,66 +348,88 @@ export default function RideLiveMapPage() {
         </div>
       </div>
 
+      {showRecenter ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-30 flex justify-center px-4">
+          <button
+            type="button"
+            onClick={handleRecenterClick}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
+          >
+            <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+            Center on me
+          </button>
+        </div>
+      ) : null}
+
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
-        <div className="pointer-events-auto flex max-w-lg flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-[0.14em] text-fg-subtle">Live</span>
-            <span className="text-xs text-fg-muted">{ride.name}</span>
+        <div className="pointer-events-auto flex w-full max-w-lg flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm tabular-nums text-fg">
+              <span title="Ground speed from GPS">{formatSpeedKmh(selfFix?.speed)}</span>
+              <span className="text-fg-muted">·</span>
+              <span className="text-fg-muted">{timeLabel}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNearbyOpen((o) => !o)}
+              className="rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium text-fg"
+            >
+              {nearbyOpen ? 'Hide nearby' : 'Nearby riders'}
+            </button>
           </div>
           <p className="text-xs text-fg-muted">
-            {(totalLenM / 1000).toFixed(1)} km route · {peersById.size} other rider
-            {peersById.size === 1 ? '' : 's'} with live position
+            {peersById.size} other rider{peersById.size === 1 ? '' : 's'} live
           </p>
-          {geoError && !simMode ? <p className="text-xs text-amber-200/90">{geoError}</p> : null}
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-muted">
-            <input
-              type="checkbox"
-              checked={simMode}
-              onChange={(e) => {
-                const on = e.target.checked;
-                setSimMode(on);
-                if (!on) setPlaying(false);
-                setResetEpoch((n) => n + 1);
-              }}
-            />
-            Desktop simulator (fake GPS along route)
-          </label>
-          {simMode ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (playing) {
-                    setPlaying(false);
-                    return;
-                  }
-                  setPlaying(true);
-                }}
-                className="rounded-2xl bg-rydo-purple px-4 py-2 text-sm font-medium text-white"
-              >
-                {playing ? 'Pause' : 'Play'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPlaying(false);
-                  setResetEpoch((n) => n + 1);
-                }}
-                className="rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-medium text-fg"
-              >
-                Reset
-              </button>
-              <label className="flex items-center gap-2 text-xs text-fg-muted">
-                <span>m/s</span>
-                <input
-                  type="range"
-                  min={1}
-                  max={20}
-                  value={speedMps}
-                  onChange={(ev) => setSpeedMps(Number(ev.target.value))}
-                />
-                <span className="tabular-nums">{speedMps}</span>
-              </label>
+          {geoError ? <p className="text-xs text-amber-200/90">{geoError}</p> : null}
+
+          {nearbyOpen ? (
+            <div className="border-t border-border pt-3 text-xs text-fg">
+              {nearbyInfo.mode === 'empty' ? (
+                <p className="text-fg-muted">No other riders to compare yet.</p>
+              ) : null}
+              {nearbyInfo.mode === 'unknown' ? (
+                <div className="space-y-1">
+                  <p className="text-fg-subtle">Direction unavailable — nearest by distance:</p>
+                  <ul className="space-y-1">
+                    {(nearbyInfo.nearest ?? []).map((p) => (
+                      <li key={p.userId} className="flex justify-between gap-2">
+                        <span className="truncate">{p.displayName || `Rider ${p.userId}`}</span>
+                        <span className="shrink-0 tabular-nums text-fg-muted">{formatDistanceM(p.distanceM)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {nearbyInfo.mode === 'aheadBehind' ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Ahead</p>
+                    {nearbyInfo.aheadNearest ? (
+                      <p className="text-fg">
+                        {nearbyInfo.aheadNearest.displayName || `Rider ${nearbyInfo.aheadNearest.userId}`}
+                        <span className="ml-2 tabular-nums text-fg-muted">
+                          {formatDistanceM(nearbyInfo.aheadNearest.distanceM)}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-fg-muted">No one detected ahead</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Behind</p>
+                    {nearbyInfo.behindNearest ? (
+                      <p className="text-fg">
+                        {nearbyInfo.behindNearest.displayName || `Rider ${nearbyInfo.behindNearest.userId}`}
+                        <span className="ml-2 tabular-nums text-fg-muted">
+                          {formatDistanceM(nearbyInfo.behindNearest.distanceM)}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-fg-muted">No one detected behind</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
