@@ -89,10 +89,16 @@ function ScheduledRideCard({ ride }) {
   const routeLabelRaw =
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
+  const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
-    <Card className="p-4 sm:p-6">
-      <div className="flex gap-3">
-        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+    <Card className="relative p-4 sm:p-6">
+      <Link
+        to={ridePath}
+        className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
+        aria-label={`View ride: ${ride.name}`}
+      />
+      <div className="relative z-10 flex gap-3 pointer-events-none">
+        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
           <Badge variant="neon">Scheduled</Badge>
           {ride.routeId != null ? (
             <Link
@@ -112,7 +118,7 @@ function ScheduledRideCard({ ride }) {
             <Badge variant="personal">Personal</Badge>
           )}
         </div>
-        <div className="w-1/2 shrink-0">
+        <div className="pointer-events-none w-1/2 shrink-0">
           {hasRoute ? (
             <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
           ) : (
@@ -120,14 +126,9 @@ function ScheduledRideCard({ ride }) {
           )}
         </div>
       </div>
-      <h3 className="mt-4 text-lg font-semibold">{ride.name}</h3>
-      <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
-      <div className="mt-4 flex justify-center">
-        <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
-          <Button variant="secondary" type="button" className="text-sm">
-            View Ride
-          </Button>
-        </Link>
+      <div className="relative z-10 mt-4 text-center pointer-events-none">
+        <h3 className="text-lg font-semibold">{ride.name}</h3>
+        <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       </div>
     </Card>
   );
@@ -184,10 +185,16 @@ function PastScheduledCard({ ride }) {
   const routeLabelRaw =
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
+  const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
-    <Card className="p-4 sm:p-6">
-      <div className="flex gap-3">
-        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+    <Card className="relative p-4 sm:p-6">
+      <Link
+        to={ridePath}
+        className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
+        aria-label={`View ride: ${ride.name}`}
+      />
+      <div className="relative z-10 flex gap-3 pointer-events-none">
+        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
           <Badge>Past event</Badge>
           {ride.routeId != null ? (
             <Link
@@ -207,7 +214,7 @@ function PastScheduledCard({ ride }) {
             <Badge variant="personal">Personal</Badge>
           )}
         </div>
-        <div className="w-1/2 shrink-0">
+        <div className="pointer-events-none w-1/2 shrink-0">
           {hasRoute ? (
             <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
           ) : (
@@ -215,15 +222,10 @@ function PastScheduledCard({ ride }) {
           )}
         </div>
       </div>
-      <h3 className="mt-4 text-lg font-semibold">{ride.name}</h3>
-      <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
-      <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
-      <div className="mt-4 flex justify-center">
-        <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
-          <Button variant="secondary" type="button" className="text-sm">
-            View Ride
-          </Button>
-        </Link>
+      <div className="relative z-10 mt-4 text-center pointer-events-none">
+        <h3 className="text-lg font-semibold">{ride.name}</h3>
+        <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
+        <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
       </div>
     </Card>
   );
@@ -253,10 +255,22 @@ function HistoryRideCard({ entry }) {
     entry.routeTitle || entry.routeName || (entry.routeId != null ? `Route #${entry.routeId}` : '');
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
 
+  const ridePath =
+    entry.rideId != null ? ROUTES.rideEvent.replace(':rideId', String(entry.rideId)) : null;
+  const rideLabel =
+    entry.routeTitle || entry.routeName || (entry.routeId != null ? `Route #${entry.routeId}` : 'Ride');
+
   return (
-    <Card className="p-4 sm:p-6">
-      <div className="flex gap-3">
-        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+    <Card className="relative p-4 sm:p-6">
+      {ridePath != null ? (
+        <Link
+          to={ridePath}
+          className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
+          aria-label={`View ride: ${rideLabel}`}
+        />
+      ) : null}
+      <div className="relative z-10 flex gap-3 pointer-events-none">
+        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
           {entry.routeDifficulty ? <Badge>{formatTrailMetaLabel(entry.routeDifficulty)}</Badge> : null}
           {entry.routeId != null ? (
             <Link
@@ -276,12 +290,14 @@ function HistoryRideCard({ entry }) {
             <Badge variant="personal">Personal</Badge>
           ) : null}
         </div>
-        <div className="w-1/2 shrink-0">
+        <div className="pointer-events-none w-1/2 shrink-0">
           <CompactRouteMapPreview preview={entry.preview} className={RIDE_CARD_MAP_CLASS} />
         </div>
       </div>
-      <p className="mt-3 text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
-      <div className="mt-2.5 flex min-w-0 gap-0">
+      <div className="relative z-10 mt-3 text-center pointer-events-none">
+        <p className="text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
+      </div>
+      <div className="relative z-10 mt-2.5 flex min-w-0 gap-0 pointer-events-none text-center">
         <div className="min-w-0 flex-1 pr-2">
           <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
             Distance
@@ -303,15 +319,8 @@ function HistoryRideCard({ entry }) {
           <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{elev}</p>
         </div>
       </div>
-      {paceNote ? <p className="mt-2 text-sm text-fg-muted">{paceNote}</p> : null}
-      {entry.rideId != null ? (
-        <div className="mt-3 flex justify-center">
-          <Link to={ROUTES.rideEvent.replace(':rideId', String(entry.rideId))}>
-            <Button variant="secondary" type="button" className="text-sm">
-              View Ride
-            </Button>
-          </Link>
-        </div>
+      {paceNote ? (
+        <p className="relative z-10 mt-2 text-center text-sm text-fg-muted pointer-events-none">{paceNote}</p>
       ) : null}
     </Card>
   );

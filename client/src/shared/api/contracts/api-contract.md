@@ -276,7 +276,7 @@ If the ride belongs to a **private** club and the viewer is **not** an active me
   "clubId": 1,
   "clubName": "Coastal Open Rollers",
   "clubAvatarUrl": "https://example.com/club-avatar.png",
-  "createdBy": { "id": 2, "fullName": "Jane Smith" },
+  "createdBy": { "id": 2, "fullName": "Jane Smith", "avatarUrl": "https://example.com/avatar.png" },
   "viewerCanEdit": false
 }
 ```
@@ -285,7 +285,7 @@ If the ride belongs to a **private** club and the viewer is **not** an active me
 
 `clubAvatarUrl` is the club’s profile image URL when the ride is linked to a club and the club has an avatar; otherwise null (same trimming rules as club list `avatarUrl`).
 
-`createdBy` identifies the user who scheduled the ride (`id` and display `fullName`).
+`createdBy` identifies the user who scheduled the ride (`id`, display `fullName`, and optional `avatarUrl` using the same roster rules as ride participant rows).
 
 `viewerCanEdit` is `true` when the authenticated viewer may edit this ride: the scheduled time is still in the future, and the viewer is either the ride creator (personal or club ride), or an **active club admin** for a club-linked ride. Anonymous requests receive `viewerCanEdit: false`.
 

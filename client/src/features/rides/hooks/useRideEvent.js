@@ -24,6 +24,10 @@ export function mapRideDto(raw) {
     ? {
         id: raw.createdBy.id != null ? Number(raw.createdBy.id) : null,
         fullName: String(raw.createdBy.fullName || '').trim(),
+        avatarUrl:
+          typeof raw.createdBy.avatarUrl === 'string' && raw.createdBy.avatarUrl.trim()
+            ? raw.createdBy.avatarUrl.trim()
+            : null,
       }
     : null;
 

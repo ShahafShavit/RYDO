@@ -199,29 +199,14 @@ export default function ClubDetailPage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link to={ROUTES.clubs} className="text-sm text-rydo-purple hover:underline">
-          ← Clubs
-        </Link>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
-            <UserAvatar
-              avatarUrl={club.avatarUrl}
-              displayName={club.name}
-              sizeClass="h-14 w-14"
-              textClass="text-lg"
-              className="shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Club</p>
-            <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
-            {club.description ? <p className="mt-2 text-fg-muted">{club.description}</p> : null}
-            {club.region ? <p className="mt-2 text-sm text-fg-muted">{club.region}</p> : null}
-            </div>
-          </div>
-          <div className="flex w-full min-w-0 shrink-0 flex-col items-stretch gap-2 sm:ml-auto sm:w-auto sm:max-w-[min(100%,28rem)] sm:items-end">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to={ROUTES.clubs} className="text-sm text-rydo-purple hover:underline">
+            ← Clubs
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
             {club.currentUserMembership === 'admin' ? (
               <div
-                className="inline-flex items-center gap-0 self-end rounded-full border border-border bg-surface p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                className="inline-flex items-center gap-0 rounded-full border border-border bg-surface p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                 role="group"
                 aria-label="Club visibility and settings"
               >
@@ -248,103 +233,116 @@ export default function ClubDetailPage() {
               </div>
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <span
-                    className={
-                      club.visibility === 'private'
-                        ? 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-purple/35 bg-rydo-purple/14 px-3.5 text-sm capitalize leading-none text-fg'
-                        : 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-green/28 bg-rydo-green/12 px-3.5 text-sm capitalize leading-none text-fg'
-                    }
+                <span
+                  className={
+                    club.visibility === 'private'
+                      ? 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-purple/35 bg-rydo-purple/14 px-3.5 text-sm capitalize leading-none text-fg'
+                      : 'inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rydo-green/28 bg-rydo-green/12 px-3.5 text-sm capitalize leading-none text-fg'
+                  }
+                >
+                  {club.visibility}
+                </span>
+                {user && (club.currentUserMembership === 'none' || club.currentUserMembership == null) ? (
+                  <Button
+                    variant="primary"
+                    type="button"
+                    size="sm"
+                    className="!h-9 shrink-0 cursor-pointer"
+                    onClick={() => joinMut.mutate()}
+                    disabled={joinMut.isPending}
                   >
-                    {club.visibility}
+                    {club.visibility === 'private' ? 'Request to join' : 'Join club'}
+                  </Button>
+                ) : null}
+                {club.currentUserMembership === 'pending' ? (
+                  <span className="inline-flex h-9 items-center rounded-full border border-amber-400/35 bg-amber-950/35 px-3 text-xs font-medium text-amber-100/95">
+                    Request pending
                   </span>
-                  {user && (club.currentUserMembership === 'none' || club.currentUserMembership == null) ? (
-                    <Button
-                      variant="primary"
-                      type="button"
-                      size="sm"
-                      className="!h-9 shrink-0 cursor-pointer"
-                      onClick={() => joinMut.mutate()}
-                      disabled={joinMut.isPending}
-                    >
-                      {club.visibility === 'private' ? 'Request to join' : 'Join club'}
-                    </Button>
-                  ) : null}
-                  {club.currentUserMembership === 'pending' ? (
-                    <span className="inline-flex h-9 items-center rounded-full border border-amber-400/35 bg-amber-950/35 px-3 text-xs font-medium text-amber-100/95">
-                      Request pending
-                    </span>
-                  ) : null}
-                  {club.visibility === 'private' &&
-                  user &&
-                  (club.currentUserMembership === 'none' ||
-                    club.currentUserMembership == null ||
-                    club.currentUserMembership === 'pending') ? (
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      size="sm"
-                      className="!h-9 shrink-0 cursor-pointer"
-                      aria-expanded={inviteRedeemOpen}
-                      onClick={() => setInviteRedeemOpen((o) => !o)}
-                    >
-                      {inviteRedeemOpen ? 'Close' : 'Invite code'}
-                    </Button>
-                  ) : null}
-                </div>
-                {inviteRedeemOpen &&
-                club.visibility === 'private' &&
+                ) : null}
+                {club.visibility === 'private' &&
                 user &&
                 (club.currentUserMembership === 'none' ||
                   club.currentUserMembership == null ||
                   club.currentUserMembership === 'pending') ? (
-                  <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-surface p-3 sm:max-w-md">
-                    <div className="flex flex-wrap items-stretch gap-2 sm:items-center">
-                      <Input
-                        value={inviteToken}
-                        onChange={(e) => setInviteToken(e.target.value)}
-                        placeholder="Invite token"
-                        className="min-w-[10rem] flex-1"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && inviteToken.trim()) redeemMut.mutate();
-                        }}
-                      />
-                      <Button
-                        variant="neon"
-                        type="button"
-                        size="sm"
-                        className="shrink-0 cursor-pointer"
-                        onClick={() => redeemMut.mutate()}
-                        disabled={!inviteToken.trim() || redeemMut.isPending}
-                      >
-                        Redeem
-                      </Button>
-                    </div>
-                    {redeemMut.isError ? <p className="text-xs text-red-400">Invalid or expired code.</p> : null}
-                  </div>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    size="sm"
+                    className="!h-9 shrink-0 cursor-pointer"
+                    aria-expanded={inviteRedeemOpen}
+                    onClick={() => setInviteRedeemOpen((o) => !o)}
+                  >
+                    {inviteRedeemOpen ? 'Close' : 'Invite code'}
+                  </Button>
                 ) : null}
               </>
             )}
           </div>
         </div>
+
+        {inviteRedeemOpen &&
+        club.currentUserMembership !== 'admin' &&
+        club.visibility === 'private' &&
+        user &&
+        (club.currentUserMembership === 'none' ||
+          club.currentUserMembership == null ||
+          club.currentUserMembership === 'pending') ? (
+          <div className="mt-3 flex w-full flex-col gap-2 rounded-2xl border border-border bg-surface p-3 sm:ml-auto sm:max-w-md">
+            <div className="flex flex-wrap items-stretch gap-2 sm:items-center">
+              <Input
+                value={inviteToken}
+                onChange={(e) => setInviteToken(e.target.value)}
+                placeholder="Invite token"
+                className="min-w-[10rem] flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && inviteToken.trim()) redeemMut.mutate();
+                }}
+              />
+              <Button
+                variant="neon"
+                type="button"
+                size="sm"
+                className="shrink-0 cursor-pointer"
+                onClick={() => redeemMut.mutate()}
+                disabled={!inviteToken.trim() || redeemMut.isPending}
+              >
+                Redeem
+              </Button>
+            </div>
+            {redeemMut.isError ? <p className="text-xs text-red-400">Invalid or expired code.</p> : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex min-w-0 flex-wrap items-center gap-4">
+          <UserAvatar
+            avatarUrl={club.avatarUrl}
+            displayName={club.name}
+            sizeClass="h-14 w-14"
+            textClass="text-lg"
+            className="shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Club</p>
+            <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
+            {club.description ? <p className="mt-2 text-fg-muted">{club.description}</p> : null}
+            {club.region ? <p className="mt-2 text-sm text-fg-muted">{club.region}</p> : null}
+          </div>
+        </div>
       </div>
 
       <Card>
-        <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold">Club rides</h2>
-          </div>
-          {canSeeMembers ? (
+        {canSeeMembers ? (
+          <div className="mb-5 border-b border-border pb-5">
             <Button
               variant="neon"
               type="button"
-              className="cursor-pointer shrink-0 !py-2.5 text-sm sm:self-start"
+              className="w-full cursor-pointer py-2.5! text-sm"
               onClick={() => setScheduleOpen(true)}
             >
               + Ride!
             </Button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {ridesQuery.isLoading ? (
           <div className="mt-6 h-24 animate-pulse rounded-2xl bg-surface-strong" />

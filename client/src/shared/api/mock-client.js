@@ -352,6 +352,20 @@ function mockViewerCanEditRide(ride) {
   return club?.myRole === 'admin';
 }
 
+function enrichRideCreatedBy(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const id = raw.id != null ? Number(raw.id) : null;
+  const u = id != null ? users.find((x) => x.id === id) : null;
+  const fullName =
+    String(raw.fullName || '').trim() ||
+    (u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() : '');
+  return {
+    id,
+    fullName,
+    avatarUrl: mockRosterAvatarUrl(u),
+  };
+}
+
 function findRide(rideId) {
   const ride = rides.find((item) => item.id === Number(rideId));
   if (!ride) {
@@ -378,6 +392,7 @@ function findRide(rideId) {
     participants: ride.participants,
     routePreview,
     clubAvatarUrl,
+    createdBy: enrichRideCreatedBy(ride.createdBy),
     viewerCanEdit: mockViewerCanEditRide(ride),
   };
 }

@@ -102,6 +102,7 @@ internal static class RideResponseHelper
         {
             id = g.CreatedByUserId,
             fullName = DisplayName(g.CreatedBy),
+            avatarUrl = UserPublicFields.RosterAvatarUrl(g.CreatedBy),
         };
 
         var rideKind = g.Kind == RideKind.SoloLog ? "soloLog" : "scheduled";
