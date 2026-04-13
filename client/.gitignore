@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# mkcert output (npm run setup:dev-https); do not commit
+.certs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

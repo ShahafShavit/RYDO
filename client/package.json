@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "kill-dev": "node scripts/kill-vite.mjs",
+    "setup:dev-https": "node scripts/setup-dev-https.mjs",
+    "dev:lan": "node scripts/run-dev-https.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

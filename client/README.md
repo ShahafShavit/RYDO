@@ -208,6 +208,16 @@ npm install
 npm run dev
 ```
 
+### HTTPS on the LAN (phone + Geolocation)
+
+For testing on a physical phone without a public tunnel, use **mkcert**-backed HTTPS and bind Vite to the LAN:
+
+1. Install **mkcert** on your PC and run `mkcert -install` once (see [docs/lan-https-phone.md](docs/lan-https-phone.md)).
+2. From `client/`: `npm run setup:dev-https` then `npm run dev:lan`.
+3. Install the printed **root CA** on the phone, then open `https://<your-lan-ip>:5173`.
+
+With **`VITE_API_MODE=real`** and **`VITE_API_BASE_URL` empty**, the Vite dev server **proxies** `/api`, `/hubs`, and `/health` to the local API (default `http://127.0.0.1:5032`; override with **`VITE_DEV_PROXY_TARGET`** e.g. for Docker on port 5000). See [docs/lan-https-phone.md](docs/lan-https-phone.md).
+
 ### Production build
 ```bash
 npm run build
@@ -232,3 +242,5 @@ VITE_API_MODE=real
 VITE_API_BASE_URL=https://your-api-host
 VITE_DEV_AUTH_ENABLED=false
 ```
+
+Local dev with **`dotnet run`** API and same-origin proxy (typical): set `VITE_API_BASE_URL` empty and optionally `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032` (default). For Docker API on port 5000: `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5000`.

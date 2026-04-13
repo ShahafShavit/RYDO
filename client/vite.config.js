@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -8,6 +9,41 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, __dirname, '');
+  /** Local ASP.NET URL for `dotnet run` (see server launchSettings). Override when API runs elsewhere (e.g. Docker :5000). */
+  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:5032').replace(/\/$/, '');
+
+  const devHttps = process.env.VITE_DEV_HTTPS === 'true' || process.env.VITE_DEV_HTTPS === '1';
+  let https;
+  if (devHttps) {
+    const certFile = path.join(__dirname, '.certs', 'dev.pem');
+    const keyFile = path.join(__dirname, '.certs', 'dev-key.pem');
+    if (!fs.existsSync(certFile) || !fs.existsSync(keyFile)) {
+      throw new Error(
+        'VITE_DEV_HTTPS is set but client/.certs/dev.pem or dev-key.pem is missing. Run: npm run setup:dev-https',
+      );
+    }
+    https = {
+      key: fs.readFileSync(keyFile),
+      cert: fs.readFileSync(certFile),
+    };
+  }
+
+  const devProxy =
+    command === 'serve'
+      ? {
+          '/api': { target: devProxyTarget, changeOrigin: true, secure: false },
+          '/hubs': { target: devProxyTarget, changeOrigin: true, ws: true, secure: false },
+          '/health': { target: devProxyTarget, changeOrigin: true, secure: false },
+        }
+      : undefined;
+
+  const server =
+    command === 'serve'
+      ? {
+          ...(devHttps && https ? { https, host: true } : {}),
+          ...(devProxy ? { proxy: devProxy } : {}),
+        }
+      : undefined;
 
   return {
   plugins: [
@@ -46,6 +82,7 @@ export default defineConfig(({ command, mode }) => {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server,
   build: {
     rollupOptions: {
       output: {
