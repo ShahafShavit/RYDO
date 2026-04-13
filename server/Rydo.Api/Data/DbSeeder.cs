@@ -19,6 +19,38 @@ public static class DbSeeder
     public const string LiveBot2Email = "livebot2@rydo.test";
     public const string LiveBot3Email = "livebot3@rydo.test";
 
+    /// <summary>
+    /// Seeded live-ride demo accounts (SignalR bots). Keep aligned with <see cref="Rydo.Api.DemoRideLiveBotsOptions"/> defaults and
+    /// <see cref="Rydo.Api.Services.RideLive.RideLiveBotOrchestrator"/> when creating users on the fly.
+    /// </summary>
+    public static readonly (string Email, string FirstName, string LastName)[] LiveRideDemoBotProfiles =
+    [
+        (LiveBot1Email, "Noam", "Barak"),
+        (LiveBot2Email, "Maya", "Levi"),
+        (LiveBot3Email, "Yoni", "Azulay"),
+    ];
+
+    /// <summary>Returns canonical first/last for configured live-ride demo emails; otherwise false.</summary>
+    public static bool TryGetLiveRideDemoBotProfile(string email, out string firstName, out string lastName)
+    {
+        firstName = "";
+        lastName = "";
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+        var e = email.Trim();
+        foreach (var (em, fn, ln) in LiveRideDemoBotProfiles)
+        {
+            if (string.Equals(em, e, StringComparison.OrdinalIgnoreCase))
+            {
+                firstName = fn;
+                lastName = ln;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
@@ -152,17 +184,22 @@ public static class DbSeeder
     private static async Task EnsureLiveBotAccountsAsync(UserManager<ApplicationUser> userManager)
     {
         var now = DateTime.UtcNow;
-        var botSpecs = new (string Email, string First, string Last)[]
-        {
-            (LiveBot1Email, "Live", "Bot One"),
-            (LiveBot2Email, "Live", "Bot Two"),
-            (LiveBot3Email, "Live", "Bot Three"),
-        };
 
-        foreach (var (email, first, last) in botSpecs)
+        foreach (var (email, first, last) in LiveRideDemoBotProfiles)
         {
-            if (await userManager.FindByEmailAsync(email) != null)
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing != null)
+            {
+                if (!string.Equals(existing.FirstName, first, StringComparison.Ordinal) ||
+                    !string.Equals(existing.LastName, last, StringComparison.Ordinal))
+                {
+                    existing.FirstName = first;
+                    existing.LastName = last;
+                    await userManager.UpdateAsync(existing);
+                }
+
                 continue;
+            }
 
             var u = new ApplicationUser
             {

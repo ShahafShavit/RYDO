@@ -181,7 +181,7 @@ export default function RideLiveMapPage() {
         const lng = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
         const rawSpeed = pos.coords.speed;
-        const speed = Number.isFinite(rawSpeed) && rawSpeed >= 0 ? rawSpeed : null;
+        const speed = Number.isFinite(rawSpeed) && rawSpeed >= 0 ? rawSpeed : 0;
         let heading = pos.coords.heading;
         if (heading != null && Number.isNaN(heading)) heading = null;
 

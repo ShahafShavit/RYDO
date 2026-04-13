@@ -361,21 +361,29 @@ public sealed class RideLiveBotOrchestrator(
             var u = await userManager.FindByEmailAsync(email).ConfigureAwait(false);
             if (u == null)
             {
-                var local = email.IndexOf('@') > 0 ? email[..email.IndexOf('@')] : "bot";
+                string firstName;
+                string lastName;
+                if (!DbSeeder.TryGetLiveRideDemoBotProfile(email, out firstName, out lastName))
+                {
+                    var local = email.IndexOf('@') > 0 ? email[..email.IndexOf('@')] : "bot";
+                    firstName = "Live";
+                    lastName = string.Join(" ", local.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        .Trim();
+                    if (string.IsNullOrWhiteSpace(lastName))
+                        lastName = "Bot";
+                }
+
                 u = new ApplicationUser
                 {
                     UserName = email,
                     Email = email,
                     EmailConfirmed = true,
-                    FirstName = "Live",
-                    LastName = string.Join(" ", local.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                        .Trim(),
+                    FirstName = firstName,
+                    LastName = lastName,
                     CreatedAt = now,
                     AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed={Uri.EscapeDataString(email)}",
                     PublicAvatarUrl = true,
                 };
-                if (string.IsNullOrWhiteSpace(u.LastName))
-                    u.LastName = "Bot";
                 var created = await userManager.CreateAsync(u, opt.BotPassword).ConfigureAwait(false);
                 if (!created.Succeeded)
                 {
