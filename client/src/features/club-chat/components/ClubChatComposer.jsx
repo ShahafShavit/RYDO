@@ -21,6 +21,12 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
   const listRef = useRef(null);
 
   const q = picker?.query ?? '';
+  const mentionResetKey = `${clubId}:${q}`;
+  const [storedMentionResetKey, setStoredMentionResetKey] = useState(mentionResetKey);
+  if (mentionResetKey !== storedMentionResetKey) {
+    setStoredMentionResetKey(mentionResetKey);
+    setHighlightIndex(0);
+  }
   const { data: rawMentionables } = useQuery({
     queryKey: ['clubChat', 'mentionables', clubId, q],
     queryFn: () => clubChatApi.getMentionables(clubId, q),
@@ -32,10 +38,6 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
 
   const mentionListOpen = !!(picker && choices.length > 0);
   const listboxId = 'club-chat-mention-listbox';
-
-  useEffect(() => {
-    setHighlightIndex(0);
-  }, [q, clubId]);
 
   useEffect(() => {
     if (!mentionListOpen || !listRef.current) return undefined;

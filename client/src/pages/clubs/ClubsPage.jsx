@@ -5,10 +5,11 @@ import { Search } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubModal from '@/features/clubs/components/CreateClubModal';
-import ClubListMembershipBadge, {
+import ClubListMembershipBadge from '@/features/clubs/components/ClubListMembershipBadge';
+import {
   getClubListMembershipStatus,
   isActiveClubMember,
-} from '@/features/clubs/components/ClubListMembershipBadge';
+} from '@/features/clubs/club-list-membership-utils';
 import RedeemClubInviteModal from '@/features/clubs/components/RedeemClubInviteModal';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';

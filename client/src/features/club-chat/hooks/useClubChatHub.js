@@ -14,9 +14,15 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
   const queryClient = useQueryClient();
   const connRef = useRef(null);
   const summaryRef = useRef(summaryRows);
-  summaryRef.current = summaryRows;
   const onExtraRef = useRef(onIncomingMessage);
-  onExtraRef.current = onIncomingMessage;
+
+  useEffect(() => {
+    summaryRef.current = summaryRows;
+  }, [summaryRows]);
+
+  useEffect(() => {
+    onExtraRef.current = onIncomingMessage;
+  }, [onIncomingMessage]);
 
   const onMessage = useCallback(
     (payload) => {

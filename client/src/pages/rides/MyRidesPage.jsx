@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
 import Badge from '@/shared/components/ui/badge/Badge';
@@ -282,7 +282,7 @@ function HistoryRideCard({ entry }) {
 }
 
 export default function MyRidesPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const memberRaw = searchParams.get('member');
   const memberUserId = useMemo(() => {
     if (memberRaw == null || memberRaw === '') return null;
@@ -290,14 +290,10 @@ export default function MyRidesPage() {
     return Number.isFinite(n) && n > 0 ? n : null;
   }, [memberRaw]);
 
-  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const qFromUrl = searchParams.get('q') || '';
+  const [localSearch, setLocalSearch] = useState(() => searchParams.get('q') || '');
+  const search = memberUserId != null ? qFromUrl : localSearch;
   const [modalOpen, setModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (memberUserId == null) return;
-    const q = searchParams.get('q') || '';
-    setSearch(q);
-  }, [memberUserId, searchParams]);
 
   const { data: memberProfile } = useUserProfile(memberUserId != null ? String(memberUserId) : undefined);
 
@@ -387,7 +383,22 @@ export default function MyRidesPage() {
           type="search"
           placeholder="Search by name, route, or club…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (memberUserId != null) {
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (v) next.set('q', v);
+                  else next.delete('q');
+                  return next;
+                },
+                { replace: true },
+              );
+            } else {
+              setLocalSearch(v);
+            }
+          }}
           className="w-full max-w-md rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none placeholder:text-fg-subtle focus:border-rydo-purple"
         />
       </div>

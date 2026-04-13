@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useCallback, useState, useEffect } from 'react';
+import { useDeferredValue, useMemo, useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteFilters from '@/features/routes/components/RouteFilters';
@@ -31,15 +31,16 @@ export default function RoutesExplorePage() {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultExploreFilters);
 
-  useEffect(() => {
-    const createdByUserId = parseCreatedByUserIdFromSearchParams(searchParams);
-    const q = searchParams.get('q') ?? '';
+  const urlSyncKey = `${searchParams.get('q') ?? ''}\x1f${searchParams.get('createdBy') ?? ''}`;
+  const [appliedUrlSyncKey, setAppliedUrlSyncKey] = useState('');
+  if (urlSyncKey !== appliedUrlSyncKey) {
+    setAppliedUrlSyncKey(urlSyncKey);
     setFilters((f) => ({
       ...f,
-      search: q,
-      createdByUserId,
+      search: searchParams.get('q') ?? '',
+      createdByUserId: parseCreatedByUserIdFromSearchParams(searchParams),
     }));
-  }, [searchParams]);
+  }
   const { loading: geoLoading, error: geoError, requestPosition, clearError } = useNearMeGeo();
 
   const deferredSearch = useDeferredValue(filters.search);

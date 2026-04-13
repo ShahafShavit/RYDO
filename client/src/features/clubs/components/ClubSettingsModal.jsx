@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Card from '@/shared/components/ui/card/Card';
@@ -26,10 +26,15 @@ export default function ClubSettingsModal({
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => formFromClub(club));
 
-  useEffect(() => {
-    if (!isOpen || !club) return;
-    setForm(formFromClub(club));
-  }, [isOpen, club]);
+  const formSnapshotKey =
+    isOpen && club
+      ? [club.id, club.name, club.description, club.region, club.visibility].join('\x1f')
+      : '';
+  const [appliedFormSnapshotKey, setAppliedFormSnapshotKey] = useState(formSnapshotKey);
+  if (formSnapshotKey !== appliedFormSnapshotKey) {
+    setAppliedFormSnapshotKey(formSnapshotKey);
+    if (isOpen && club) setForm(formFromClub(club));
+  }
 
   const patchMut = useMutation({
     mutationFn: () =>

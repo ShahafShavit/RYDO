@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, generatePath } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const MotionDiv = motion.div;
 import { MessageCircle, X, ChevronLeft } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -44,7 +46,7 @@ export default function ClubChatDock() {
     staleTime: 15_000,
   });
 
-  const summary = summaryQuery.data || [];
+  const summary = useMemo(() => summaryQuery.data || [], [summaryQuery.data]);
 
   const notifyHandler = useCallback(
     (payload) => {
@@ -162,7 +164,7 @@ export default function ClubChatDock() {
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
@@ -370,7 +372,7 @@ export default function ClubChatDock() {
                 />
               </>
             )}
-          </motion.div>
+          </MotionDiv>
         ) : null}
       </AnimatePresence>
     </>

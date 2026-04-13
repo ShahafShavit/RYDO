@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import RouteRidersRosterModal, { RouteRiderRow } from '@/features/routes/components/RouteRidersRosterModal';
 import { routesApi, routeKeys } from '@/features/routes/api/routesApi';
@@ -31,7 +31,6 @@ export default function RouteRidersPanel({
 }) {
   const [hoverOpen, setHoverOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [hoverSample, setHoverSample] = useState(() => []);
   const leaveTimerRef = useRef(null);
   const [interactionPrimed, setInteractionPrimed] = useState(false);
 
@@ -44,11 +43,7 @@ export default function RouteRidersPanel({
     base.totalCount > 0 &&
     (!Array.isArray(base.visibleRiders) || base.visibleRiders.length === 0);
 
-  useEffect(() => {
-    if (prefetchRoster && listOnlyCounts) setInteractionPrimed(true);
-  }, [prefetchRoster, listOnlyCounts]);
-
-  const shouldFetchRoster = listOnlyCounts && interactionPrimed;
+  const shouldFetchRoster = listOnlyCounts && (prefetchRoster || interactionPrimed);
 
   const { data: fetchedRoster, isFetching } = useQuery({
     queryKey: routeKeys.riderRoster(rid),
@@ -64,7 +59,10 @@ export default function RouteRidersPanel({
   }, [base, listOnlyCounts, fetchedRoster]);
 
   const total = merged.totalCount ?? 0;
-  const visible = Array.isArray(merged.visibleRiders) ? merged.visibleRiders : [];
+  const visible = useMemo(
+    () => (Array.isArray(merged.visibleRiders) ? merged.visibleRiders : []),
+    [merged.visibleRiders],
+  );
   const hiddenCount = Math.max(0, total - visible.length);
   const hasMore = visible.length > PREVIEW_LIMIT;
 
@@ -73,18 +71,17 @@ export default function RouteRidersPanel({
     [visible],
   );
 
+  const hoverSample = useMemo(() => {
+    if (!hoverOpen || visible.length === 0) return [];
+    return shufflePick(visible, PREVIEW_LIMIT);
+  }, [hoverOpen, visible]);
+
   const clearLeaveTimer = () => {
     if (leaveTimerRef.current != null) {
       window.clearTimeout(leaveTimerRef.current);
       leaveTimerRef.current = null;
     }
   };
-
-  useEffect(() => {
-    if (hoverOpen && visible.length > 0) {
-      setHoverSample(shufflePick(visible, PREVIEW_LIMIT));
-    }
-  }, [hoverOpen, visibleKey, visible, fetchedRoster]);
 
   const handleEnter = () => {
     clearLeaveTimer();
