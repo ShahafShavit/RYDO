@@ -58,7 +58,14 @@ export default defineConfig(({ command, mode }) => {
             return 'vendor-query';
           }
 
-          if (id.includes('leaflet') || id.includes('togeojson')) {
+          if (
+            id.includes('leaflet') ||
+            id.includes('togeojson') ||
+            id.includes('mapbox-gl') ||
+            id.includes('react-map-gl') ||
+            id.includes('@vis.gl/react-mapbox') ||
+            id.includes('@turf/')
+          ) {
             return 'vendor-maps';
           }
 

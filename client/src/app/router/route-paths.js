@@ -24,6 +24,9 @@ export const ROUTES = {
   adminRoutes: '/admin/routes',
   adminHazards: '/admin/hazards',
 
+  // Live Ride (Mapbox simulator; public for desktop QA)
+  live: '/live',
+
   // Fallback
   notFound: '/not-found',
 };

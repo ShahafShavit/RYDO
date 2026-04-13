@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ROUTES } from './route-paths';
 import { LegacyRideSpaRedirect, LegacyYourRoutesRedirect } from './legacy-redirects';
@@ -8,6 +8,7 @@ import { ProtectedRoute, AdminRoute } from './route-guards';
 import PublicLayout from '@/shared/components/layout/PublicLayout';
 import DashboardLayout from '@/shared/components/layout/DashboardLayout';
 import AdminLayout from '@/shared/components/layout/AdminLayout';
+import Loader from '@/shared/components/feedback/Loader';
 
 // Lazy-loaded pages
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
@@ -29,6 +30,7 @@ const MyRidesPage = lazy(() => import('@/pages/rides/MyRidesPage'));
 const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
 const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
 const LeaderboardsPage = lazy(() => import('@/pages/leaderboards/LeaderboardsPage'));
+const LiveRidePage = lazy(() => import('@/features/live-ride/LiveRidePage'));
 
 export const router = createBrowserRouter([
   {
@@ -79,6 +81,14 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: ROUTES.live,
+    element: (
+      <Suspense fallback={<Loader fullscreen />}>
+        <LiveRidePage />
+      </Suspense>
+    ),
   },
   {
     path: '*',
