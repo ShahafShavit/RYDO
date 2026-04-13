@@ -407,16 +407,16 @@ public static class DbSeeder
         var rideIds = rideGroups.Select(r => r.Id).Distinct().ToArray();
         var partIndex = await ParticipantIndex.LoadExistingAsync(db, rideIds);
 
-        SeedRideParticipants(db, rideGroups.Where(r => r.ClubId.HasValue).ToList(), membersByClub, partIndex);
+        SeedRideParticipants(db, rideGroups.Where(r => r.ClubId.HasValue).ToList(), membersByClub, partIndex, rnd);
         // Flush so LINQ against RideParticipants sees these rows (avoids duplicate composite keys in the change tracker).
         await db.SaveChangesAsync();
 
         EnsureAllUsersParticipantInSomeClubRide(db, rideGroups, userIds, clubsByUser, partIndex);
-        SeedPersonalRideParticipants(db, personalRideGroups, userIds, partIndex);
+        SeedPersonalRideParticipants(db, personalRideGroups, userIds, partIndex, rnd);
         await db.SaveChangesAsync();
 
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
-        EnsureMinimumRideParticipationsPerUser(db, rideGroups, userIds, 14, clubsByUser, partIndex);
+        EnsureVariedClubRideParticipations(db, rideGroups, userIds, clubsByUser, partIndex, rnd);
 
         if (!await db.Challenges.AnyAsync())
             db.Challenges.AddRange(SeedChallenges(rnd));
@@ -432,7 +432,7 @@ public static class DbSeeder
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
         await db.SaveChangesAsync();
 
-        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex);
+        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex, rnd);
         await db.SaveChangesAsync();
 
         await ValidateSeedDataCoherenceAsync(db);
@@ -1142,6 +1142,7 @@ public static class DbSeeder
             "Youth Academy Spin", "Masters Race Prep", "Charity Training Block",
             "Coastal Draft Line", "Hill Repeats Pod", "Recovery Coffee Roll", "Aero Tuesday",
             "Fondo Training Block", "Criterium Practice", "Family Fun Pedal",
+            "Dawn Patrol Express", "Saturday Social Roll", "TT Practice Squad", "Scenic Route Sundays",
         };
 
         int CreatorForClub(int clubId)
@@ -1198,6 +1199,7 @@ public static class DbSeeder
         var now = DateTime.UtcNow;
         var pick = () => routes[rnd.Next(routes.Count)];
         var org = () => users[rnd.Next(users.Count)].Id;
+        // Few personal scheduled rides so seeded data skews club-heavy (club list size trades off vs this list).
         return new List<Ride>
         {
             new()
@@ -1207,40 +1209,7 @@ public static class DbSeeder
                 Description = "Personal ride — no club.",
                 ScheduledDate = now.AddDays(-12).Date.AddHours(6.5),
                 RouteId = pick().Id,
-                MaxParticipants = 8,
-                ClubId = null,
-                CreatedByUserId = org(),
-            },
-            new()
-            {
-                Kind = RideKind.Scheduled,
-                Name = "Weekend explorer (solo)",
-                Description = "Self-paced loop.",
-                ScheduledDate = now.AddDays(-3).Date.AddHours(8),
-                RouteId = pick().Id,
-                MaxParticipants = 6,
-                ClubId = null,
-                CreatedByUserId = org(),
-            },
-            new()
-            {
-                Kind = RideKind.Scheduled,
-                Name = "Evening recovery roll",
-                Description = "Easy solo spin.",
-                ScheduledDate = now.AddDays(-20).Date.AddHours(18.75),
-                RouteId = pick().Id,
-                MaxParticipants = 10,
-                ClubId = null,
-                CreatedByUserId = org(),
-            },
-            new()
-            {
-                Kind = RideKind.Scheduled,
-                Name = "Gravel sampler — personal",
-                Description = "Testing mixed surfaces on your own.",
-                ScheduledDate = now.AddDays(-8).Date.AddHours(9.5),
-                RouteId = pick().Id,
-                MaxParticipants = 6,
+                MaxParticipants = 4,
                 ClubId = null,
                 CreatedByUserId = org(),
             },
@@ -1255,38 +1224,48 @@ public static class DbSeeder
                 ClubId = null,
                 CreatedByUserId = org(),
             },
-            new()
-            {
-                Kind = RideKind.Scheduled,
-                Name = "Midweek tempo (solo)",
-                Description = "Personal midweek effort.",
-                ScheduledDate = now.AddDays(9).Date.AddHours(17),
-                RouteId = pick().Id,
-                MaxParticipants = 8,
-                ClubId = null,
-                CreatedByUserId = org(),
-            },
         };
     }
 
-    /// <summary>Fills each personal ride with as many distinct users as fit (up to MaxParticipants).</summary>
+    /// <summary>
+    /// Adds a small participant set per personal ride (2–4 when enough users exist) so club rides carry most
+    /// participation variance. Always includes <see cref="Ride.CreatedByUserId"/> when that user is seeded.
+    /// </summary>
     private static void SeedPersonalRideParticipants(
         RydoDbContext db,
         List<Ride> personalGroups,
         IReadOnlyList<int> userIds,
-        ParticipantIndex partIndex)
+        ParticipantIndex partIndex,
+        Random rnd)
     {
         var ordered = userIds.OrderBy(id => id).ToList();
         if (ordered.Count == 0)
             return;
 
+        var idSet = ordered.ToHashSet();
+
         foreach (var g in personalGroups.OrderBy(g => g.Id))
         {
-            var take = Math.Min(g.MaxParticipants, ordered.Count);
-            var start = (g.Id * 7919) % ordered.Count;
-            for (var i = 0; i < take; i++)
+            var maxSmall = Math.Min(4, ordered.Count);
+            var minSmall = Math.Min(2, ordered.Count);
+            var target = minSmall > maxSmall ? minSmall : rnd.Next(minSmall, maxSmall + 1);
+
+            var chosen = new HashSet<int>();
+            if (idSet.Contains(g.CreatedByUserId))
+                chosen.Add(g.CreatedByUserId);
+            else
+                chosen.Add(ordered[rnd.Next(ordered.Count)]);
+
+            var pool = ordered.Where(u => !chosen.Contains(u)).ToList();
+            while (chosen.Count < target && pool.Count > 0)
             {
-                var uid = ordered[(start + i) % ordered.Count];
+                var idx = rnd.Next(pool.Count);
+                chosen.Add(pool[idx]);
+                pool.RemoveAt(idx);
+            }
+
+            foreach (var uid in chosen.OrderBy(u => u))
+            {
                 if (!partIndex.Has(g.Id, uid))
                     partIndex.Add(db, g.Id, uid);
             }
@@ -1442,44 +1421,86 @@ public static class DbSeeder
     }
 
     /// <summary>
-    /// Dashboard &quot;group rides joined&quot; counts all <see cref="RideParticipant"/> rows — ensure everyone has a healthy number.
+    /// Adds many <see cref="RideParticipant"/> rows on scheduled club rides only, with per-user targets and
+    /// shuffled ride order so totals spread naturally (better leaderboards than a fixed minimum for everyone).
     /// </summary>
-    private static void EnsureMinimumRideParticipationsPerUser(
+    private static void EnsureVariedClubRideParticipations(
         RydoDbContext db,
         List<Ride> allRides,
         IReadOnlyList<int> userIds,
-        int minimum,
         IReadOnlyDictionary<int, List<int>> clubsByUser,
-        ParticipantIndex partIndex)
+        ParticipantIndex partIndex,
+        Random rnd)
     {
-        var orderedRides = allRides.OrderBy(r => r.Id).ToList();
-        foreach (var uid in userIds.OrderBy(u => u))
+        static int CountClubScheduledParticipations(ParticipantIndex idx, int userId, List<Ride> rides)
         {
-            var need = minimum - partIndex.TotalForUser(uid);
-            if (need <= 0) continue;
-
-            foreach (var ride in orderedRides)
+            var n = 0;
+            foreach (var ride in rides)
             {
-                if (need <= 0) break;
-                if (!UserMayJoinClubRide(ride, uid, clubsByUser)) continue;
-                if (partIndex.Has(ride.Id, uid)) continue;
+                if (ride.ClubId is null || ride.Kind != RideKind.Scheduled)
+                    continue;
+                if (idx.Has(ride.Id, userId))
+                    n++;
+            }
+
+            return n;
+        }
+
+        static void Shuffle<T>(IList<T> list, Random r)
+        {
+            for (var i = list.Count - 1; i > 0; i--)
+            {
+                var j = r.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+        }
+
+        var usersShuffled = userIds.ToList();
+        Shuffle(usersShuffled, rnd);
+
+        foreach (var uid in usersShuffled)
+        {
+            if (!clubsByUser.TryGetValue(uid, out var myClubs) || myClubs.Count == 0)
+                continue;
+
+            // Wider spread + mild boost for multi-club members (demo riders) so club overlap isn't a flat histogram.
+            var target = rnd.Next(14, 30) + myClubs.Count * rnd.Next(0, 4) + (uid % 5);
+            target = Math.Min(target, 52);
+
+            var need = target - CountClubScheduledParticipations(partIndex, uid, allRides);
+            if (need <= 0)
+                continue;
+
+            var eligible = allRides
+                .Where(r => r.ClubId.HasValue
+                    && r.Kind == RideKind.Scheduled
+                    && UserMayJoinClubRide(r, uid, clubsByUser))
+                .ToList();
+            Shuffle(eligible, rnd);
+
+            foreach (var ride in eligible)
+            {
+                if (need <= 0)
+                    break;
+                if (partIndex.Has(ride.Id, uid))
+                    continue;
                 var cnt = partIndex.CountForRide(ride.Id);
-                if (cnt >= ride.MaxParticipants) continue;
+                if (cnt >= ride.MaxParticipants)
+                    continue;
                 partIndex.Add(db, ride.Id, uid);
                 need--;
             }
 
-            var offset = uid % Math.Max(1, orderedRides.Count);
             while (need > 0)
             {
                 var progressed = false;
-                for (var step = 0; step < orderedRides.Count && need > 0; step++)
+                Shuffle(eligible, rnd);
+                foreach (var ride in eligible)
                 {
-                    var ride = orderedRides[(offset + step) % orderedRides.Count];
+                    if (need <= 0)
+                        break;
                     if (!UserMayJoinClubRide(ride, uid, clubsByUser))
                         continue;
-                    // Already on this ride — does not reduce `need`; must not set progressed (would spin forever
-                    // when need > 0 but user is on every ride they may join, e.g. fewer than `minimum` joinable rides).
                     if (partIndex.Has(ride.Id, uid))
                         continue;
 
@@ -1499,7 +1520,8 @@ public static class DbSeeder
         RydoDbContext db,
         List<Ride> rides,
         IReadOnlyDictionary<int, List<int>> membersByClub,
-        ParticipantIndex partIndex)
+        ParticipantIndex partIndex,
+        Random rnd)
     {
         var ridesByClub = rides
             .Where(r => r.ClubId.HasValue)
@@ -1515,8 +1537,8 @@ public static class DbSeeder
             var idxInClub = ridesByClub[cid].FindIndex(r => r.Id == ride.Id);
             if (idxInClub < 0) idxInClub = 0;
 
-            var k = Math.Min(members.Count, 3 + (Math.Abs(ride.Id * 17 + idxInClub * 3) % 10));
-            var start = (ride.Id * 7919) % members.Count;
+            var k = Math.Min(members.Count, rnd.Next(2, 15) + (Math.Abs(ride.Id * 17 + idxInClub * 3) % 4));
+            var start = (ride.Id * 7919 + rnd.Next(0, members.Count)) % members.Count;
             for (var t = 0; t < k; t++)
             {
                 var uid = members[(start + t) % members.Count];
@@ -1595,34 +1617,39 @@ public static class DbSeeder
         IReadOnlyList<int> userIds,
         IReadOnlyList<Ride> personalRideGroups,
         IReadOnlyList<Ride> allRideGroups,
-        ParticipantIndex partIndex)
+        ParticipantIndex partIndex,
+        Random rnd)
     {
         if (routes.Count == 0 || userIds.Count == 0)
             return;
 
         var soloRides = new List<Ride>();
         var soloMeta = new List<(RouteEntity Route, int UserId, DateTime CompletedAt, bool Sparse, int Dur)>();
-        for (var n = 0; n < 175; n++)
+        var seq = 0;
+        foreach (var userId in userIds.OrderBy(u => u))
         {
-            var route = routes[n % routes.Count];
-            var userId = userIds[n % userIds.Count];
-            var daysAgo = 1 + n * 47 % 499;
-            var completedAt = DateTime.UtcNow.AddDays(-daysAgo);
-            var sparse = n % 11 == 0;
-            var durJitter = n % 41 - 20;
-            var dur = Math.Max(25, route.EstimatedDurationMinutes + durJitter);
-            soloMeta.Add((route, userId, completedAt, sparse, dur));
-            soloRides.Add(new Ride
+            var soloCount = rnd.Next(2, 7);
+            for (var k = 0; k < soloCount; k++, seq++)
             {
-                Kind = RideKind.SoloLog,
-                Name = $"{route.Title} — logged",
-                Description = "Solo ride log.",
-                ScheduledDate = completedAt,
-                RouteId = route.Id,
-                MaxParticipants = 1,
-                ClubId = null,
-                CreatedByUserId = userId,
-            });
+                var route = routes[(userId * 131 + seq * 17) % routes.Count];
+                var daysAgo = 1 + seq * 47 % 499;
+                var completedAt = DateTime.UtcNow.AddDays(-daysAgo);
+                var sparse = seq % 11 == 0;
+                var durJitter = seq % 41 - 20;
+                var dur = Math.Max(25, route.EstimatedDurationMinutes + durJitter);
+                soloMeta.Add((route, userId, completedAt, sparse, dur));
+                soloRides.Add(new Ride
+                {
+                    Kind = RideKind.SoloLog,
+                    Name = $"{route.Title} — logged",
+                    Description = "Solo ride log.",
+                    ScheduledDate = completedAt,
+                    RouteId = route.Id,
+                    MaxParticipants = 1,
+                    ClubId = null,
+                    CreatedByUserId = userId,
+                });
+            }
         }
 
         db.Rides.AddRange(soloRides);
