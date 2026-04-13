@@ -1,9 +1,14 @@
 import { useMemo, useState, useCallback } from 'react';
-import { generatePath } from 'react-router-dom';
+import { generatePath, Link } from 'react-router-dom';
 import { QRCode } from 'react-qr-code';
 import { MapPin, Mail, Calendar, Bike, Link2, Check } from 'lucide-react';
 import { formatBikeTypeLabel } from '@/features/account/utils/bikeTypeLabel';
 import { ROUTES } from '@/app/router/route-paths';
+import {
+  LEADERBOARD_BOARD_CONFIG,
+  leaderboardBadgeChipClass,
+} from '@/features/leaderboards/leaderboard-boards';
+import { cn } from '@/shared/lib/cn';
 import Card from '@/shared/components/ui/card/Card';
 
 function getDisplayName(profile) {
@@ -103,6 +108,31 @@ export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHi
             <p className="mt-3 max-w-[11rem] text-center text-lg font-semibold leading-snug tracking-tight text-fg sm:max-w-[min(100%,12rem)]">
               {displayName}
             </p>
+            {Array.isArray(profile.leaderboardBadges) && profile.leaderboardBadges.length > 0 ? (
+              <div className="mt-3 flex w-full max-w-[16rem] flex-wrap justify-center gap-2">
+                {profile.leaderboardBadges.map((b) => {
+                  const cfg = LEADERBOARD_BOARD_CONFIG[b.boardId];
+                  if (!cfg) return null;
+                  const Icon = cfg.Icon;
+                  const label =
+                    b.rank === 1 ? '1st' : b.rank === 2 ? '2nd' : b.rank === 3 ? '3rd' : `#${b.rank}`;
+                  return (
+                    <Link
+                      key={`${b.boardId}-${b.rank}`}
+                      to={`${ROUTES.leaderboards}?board=${encodeURIComponent(b.boardId)}`}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition hover:opacity-95',
+                        leaderboardBadgeChipClass(b.rank),
+                      )}
+                      aria-label={`${cfg.subtitle}: ${label} place`}
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                      <span className="tabular-nums">{label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
           <div className="min-w-0 flex-1 space-y-0">
             {showBio || hasDetails ? (

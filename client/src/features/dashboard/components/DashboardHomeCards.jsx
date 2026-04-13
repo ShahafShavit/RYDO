@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
@@ -167,9 +168,11 @@ export default function DashboardHomeCards() {
                 <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.level.title}</p>
                 <Link
                   to={ROUTES.leaderboards}
-                  className="shrink-0 text-sm font-medium text-rydo-purple hover:underline"
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-rydo-purple transition hover:bg-rydo-purple/10 hover:opacity-90"
+                  aria-label="View leaderboards"
+                  title="View leaderboards"
                 >
-                  View leaderboards
+                  <Trophy className="h-6 w-6" strokeWidth={2} aria-hidden />
                 </Link>
               </div>
               <div className="mt-4 flex items-end gap-2">

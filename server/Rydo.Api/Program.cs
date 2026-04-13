@@ -15,6 +15,7 @@ builder.Services.Configure<RydoOptions>(builder.Configuration.GetSection(RydoOpt
 builder.Services.Configure<DemoClubChatSimulatorOptions>(
     builder.Configuration.GetSection(DemoClubChatSimulatorOptions.SectionName));
 builder.Services.AddScoped<ClubChatMessageDtoFactory>();
+builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost,1433;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False";

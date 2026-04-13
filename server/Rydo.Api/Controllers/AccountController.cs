@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/account")]
 [Authorize]
-public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
+public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards) : ControllerBase
 {
     private static readonly HashSet<string> AllowedColorSchemes =
     [
@@ -28,7 +28,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         if (u == null) return Unauthorized();
         var roles = await users.GetRolesAsync(u);
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref));
+        var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges));
     }
 
     public record ProfileUpdate(
@@ -70,7 +71,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         await users.UpdateAsync(u);
         var roles = await users.GetRolesAsync(u);
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref));
+        var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges));
     }
 
     [HttpGet("preferences")]

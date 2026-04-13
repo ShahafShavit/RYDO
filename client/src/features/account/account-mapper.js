@@ -1,5 +1,15 @@
 import { normalizeUser } from '@/features/auth/auth-mapper';
 
+/** @param {unknown} payload */
+function normalizeLeaderboardBadges(payload) {
+  const raw = payload?.leaderboardBadges;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((b) => b && typeof b.boardId === 'string' && Number.isFinite(Number(b.rank)))
+    .map((b) => ({ boardId: String(b.boardId), rank: Math.trunc(Number(b.rank)) }))
+    .filter((b) => b.rank >= 1 && b.rank <= 3);
+}
+
 const defaultPrivacy = () => ({
   publicFirstName: true,
   publicLastName: true,
@@ -35,6 +45,7 @@ export function normalizeAccountProfile(payload = {}) {
       publicParticipatedRidesOnProfile:
         priv.publicParticipatedRidesOnProfile ?? defaultPrivacy().publicParticipatedRidesOnProfile,
     },
+    leaderboardBadges: normalizeLeaderboardBadges(payload),
   };
 }
 
@@ -59,6 +70,7 @@ export function normalizeUserPublicProfile(payload = {}) {
     privacy: null,
     publicUploadedRoutesOnProfile: payload.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: payload.publicParticipatedRidesOnProfile !== false,
+    leaderboardBadges: normalizeLeaderboardBadges(payload),
   };
 }
 

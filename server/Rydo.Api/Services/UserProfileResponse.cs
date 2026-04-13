@@ -1,4 +1,5 @@
 using Rydo.Api.Data;
+using Rydo.Api.Models;
 
 namespace Rydo.Api.Services;
 
@@ -7,7 +8,14 @@ public static class UserProfileResponse
     private static string IsoUtc(DateTime dt) =>
         dt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-    public static object Full(ApplicationUser u, IList<string> roles, UserPreference? pref)
+    private static object[] SerializeBadges(IReadOnlyList<LeaderboardBadgeDto> badges) =>
+        badges.Select(b => new { boardId = b.BoardId, rank = b.Rank }).ToArray();
+
+    public static object Full(
+        ApplicationUser u,
+        IList<string> roles,
+        UserPreference? pref,
+        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges)
     {
         var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
         return new
@@ -36,11 +44,15 @@ public static class UserProfileResponse
                 publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
                 publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
             },
+            leaderboardBadges = SerializeBadges(leaderboardBadges),
         };
     }
 
     /// <summary>Profile visible to another signed-in user (subject is not the viewer).</summary>
-    public static object PublicView(ApplicationUser u, UserPreference? pref)
+    public static object PublicView(
+        ApplicationUser u,
+        UserPreference? pref,
+        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges)
     {
         return new
         {
@@ -56,6 +68,7 @@ public static class UserProfileResponse
             defaultBikeType = u.PublicDefaultBikeType && pref != null ? pref.DefaultBikeType : null,
             publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
             publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
+            leaderboardBadges = SerializeBadges(leaderboardBadges),
         };
     }
 }
