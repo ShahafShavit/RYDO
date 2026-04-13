@@ -382,6 +382,17 @@ select option {
   letter-spacing: 0.04em;
 }
 
+/*
+  Logo-RYDO.png is light-on-transparent. Raster images cannot be “filled” like SVG.
+  On light UI themes, flatten opaque pixels to a dark mark so the mark stays visible.
+  (Preserves alpha; multi-color logos become a single dark silhouette.)
+*/
+html[data-theme='daylight'] .app-logo,
+html[data-theme='sage'] .app-logo,
+html[data-theme='dune'] .app-logo {
+  filter: brightness(0);
+}
+
 .rydo-glass {
   background: var(--rydo-glass-gradient);
   border: 1px solid var(--rydo-border);

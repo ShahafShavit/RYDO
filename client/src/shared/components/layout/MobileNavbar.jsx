@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { Menu, X, LogOut } from 'lucide-react';
+import { NavLink, generatePath } from 'react-router-dom';
+import { Menu, X, LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dashboardNavigation, adminNavigation } from '@/shared/config/navigation';
@@ -14,7 +14,7 @@ const MotionButton = motion.button;
 
 export default function MobileNavbar({ isAdminLayout }) {
     const [isOpen, setIsOpen] = useState(false);
-    const { logout, isAdmin } = useAuth();
+    const { user, logout, isAdmin } = useAuth();
     const navItems = isAdminLayout ? adminNavigation : dashboardNavigation;
     const reducedMotion = useReducedMotion();
     const firstLinkRef = useRef(null);
@@ -117,7 +117,37 @@ export default function MobileNavbar({ isAdminLayout }) {
                                     </Button>
                                 </NavLink>
                             )}
-                            <div className="mt-4 pt-4 border-t border-border">
+                            <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
+                                {user?.id ? (
+                                    <NavLink
+                                        to={generatePath(ROUTES.userProfile, { userId: String(user.id) })}
+                                        onClick={() => setIsOpen(false)}
+                                        className={({ isActive }) =>
+                                            `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive
+                                                ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                                                : 'text-fg-muted hover:bg-surface hover:text-fg'
+                                            }`
+                                        }
+                                    >
+                                        <User className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                                        <span className="min-w-0">Profile</span>
+                                    </NavLink>
+                                ) : null}
+                                <NavLink
+                                    to={ROUTES.settings}
+                                    onClick={() => setIsOpen(false)}
+                                    className={({ isActive }) =>
+                                        `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive
+                                            ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                                            : 'text-fg-muted hover:bg-surface hover:text-fg'
+                                        }`
+                                    }
+                                >
+                                    <Settings className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                                    <span className="min-w-0">Settings</span>
+                                </NavLink>
+                            </div>
+                            <div className="mt-2 pt-4 border-t border-border">
                                 <button
                                     type="button"
                                     onClick={() => {
