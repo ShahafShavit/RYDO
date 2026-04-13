@@ -341,7 +341,7 @@ export default function ClubDetailPage() {
               className="cursor-pointer shrink-0 !py-2.5 text-sm sm:self-start"
               onClick={() => setScheduleOpen(true)}
             >
-              + Schedule a ride
+              + Ride!
             </Button>
           ) : null}
         </div>

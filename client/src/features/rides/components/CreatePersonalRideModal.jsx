@@ -57,7 +57,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
   return (
     <AnimatedModal open={open} onClose={onClose}>
       <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
-        <h2 className="text-xl font-semibold">Schedule a personal ride</h2>
+        <h2 className="text-xl font-semibold">Ride!</h2>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -136,7 +136,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
 
           <div className="flex flex-wrap gap-3 pt-2">
             <Button type="submit" variant="primary" disabled={createPersonal.isPending}>
-              {createPersonal.isPending ? 'Saving…' : 'Create ride'}
+              {createPersonal.isPending ? 'Riding…' : 'Ride!'}
             </Button>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel

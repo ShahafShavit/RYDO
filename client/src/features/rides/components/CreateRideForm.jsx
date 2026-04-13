@@ -120,7 +120,7 @@ export default function CreateRideForm({
           </Button>
         ) : null}
         <Button variant="neon" type="submit" disabled={isPending}>
-          {isPending ? 'Creating…' : 'Create ride'}
+          {isPending ? 'Riding…' : 'Ride!'}
         </Button>
       </div>
     </form>
@@ -132,7 +132,7 @@ export default function CreateRideForm({
 
   return (
     <Card className="max-w-xl">
-      <h2 className="text-2xl font-semibold">Schedule a club ride</h2>
+      <h2 className="text-2xl font-semibold">Ride!</h2>
       {formInner}
     </Card>
   );

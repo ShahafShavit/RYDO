@@ -26,7 +26,7 @@ export default function RouteDetailsPage() {
         <SavedRouteButton routeId={route?.id} />
         {route?.id ? (
           <Button type="button" variant="neon" onClick={() => setScheduleOpen(true)}>
-            Schedule a ride
+            Ride!
           </Button>
         ) : null}
       </RouteDetailsHeader>

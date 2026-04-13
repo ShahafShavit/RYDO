@@ -18,7 +18,7 @@ export default function ScheduleRideFromRouteModal({ open, onClose, routeId, rou
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 id={titleId} className="text-xl font-semibold">
-                Schedule a ride
+                Ride!
               </h2>
             </div>
             <button

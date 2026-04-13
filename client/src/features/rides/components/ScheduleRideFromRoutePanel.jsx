@@ -70,7 +70,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
       {!headless ? (
         <>
           <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Plan</p>
-          <h2 className="mt-2 text-xl font-semibold">Schedule a ride</h2>
+          <h2 className="mt-2 text-xl font-semibold">Ride!</h2>
         </>
       ) : null}
 
@@ -144,7 +144,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
             <p className="text-sm text-red-400">{createPersonal.error?.message || 'Could not create ride.'}</p>
           ) : null}
           <Button type="submit" variant="neon" disabled={createPersonal.isPending || !rid}>
-            {createPersonal.isPending ? 'Scheduling…' : 'Schedule personal ride'}
+            {createPersonal.isPending ? 'Riding…' : 'Ride!'}
           </Button>
         </form>
       ) : memberClubs.length === 0 ? (

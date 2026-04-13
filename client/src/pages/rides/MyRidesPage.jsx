@@ -396,16 +396,22 @@ export default function MyRidesPage() {
 
   return (
     <section className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
-          <h1 className="mt-2 text-3xl font-semibold">{pageTitle}</h1>
+      <div>
+        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">{pageTitle}</h1>
+          {!useMember ? (
+            <Button
+              variant="primary"
+              type="button"
+              size="sm"
+              className="h-8 min-w-25 shrink-0 px-6 text-sm border-rydo-green/55 bg-rydo-green font-semibold text-(--rydo-bg-deep) shadow-[0_4px_22px_color-mix(in_srgb,var(--rydo-green)_50%,transparent)] hover:border-rydo-green hover:brightness-110 hover:shadow-[0_6px_28px_color-mix(in_srgb,var(--rydo-green)_60%,transparent)]"
+              onClick={() => setModalOpen(true)}
+            >
+              Ride!
+            </Button>
+          ) : null}
         </div>
-        {!useMember ? (
-          <Button variant="primary" type="button" onClick={() => setModalOpen(true)}>
-            Schedule personal ride
-          </Button>
-        ) : null}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
