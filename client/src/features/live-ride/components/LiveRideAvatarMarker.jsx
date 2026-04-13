@@ -29,6 +29,11 @@ export default function LiveRideAvatarMarker({ name, avatarUrl, isSelf = false, 
           <span className="tabular-nums tracking-tight">{initials}</span>
         )}
       </div>
+      {!isSelf && avatarUrl ? (
+        <span className="mt-0.5 rounded-md bg-black/55 px-1 py-px text-[10px] font-semibold tabular-nums tracking-tight text-white shadow-sm ring-1 ring-amber-400/40">
+          {initials}
+        </span>
+      ) : null}
     </div>
   );
 }

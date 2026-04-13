@@ -333,8 +333,11 @@ export default function RideLiveMapPage() {
         <NavigationControl position="top-right" showCompass visualizePitch />
       </Map>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-between gap-2 p-3">
-        <div className="pointer-events-auto">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 p-3 max-md:items-stretch max-md:pr-[4.5rem] md:flex-row md:justify-between md:gap-2"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
+        <div className="pointer-events-auto w-fit max-md:max-w-full">
           <Link
             to={ROUTES.rideEvent.replace(':rideId', String(rideId))}
             className="inline-flex rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-sm font-medium text-fg shadow backdrop-blur-md"
@@ -342,26 +345,18 @@ export default function RideLiveMapPage() {
             Back
           </Link>
         </div>
-        <div className="pointer-events-auto rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs text-fg-muted shadow backdrop-blur-md">
-          Hub: {hubStatus}
-          {hubError ? ` · ${hubError.message}` : ''}
+        <div className="pointer-events-auto max-w-full rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs text-fg-muted shadow backdrop-blur-md md:max-w-[min(100%,14rem)] md:shrink-0">
+          <span className="line-clamp-2 break-words md:line-clamp-1">
+            Hub: {hubStatus}
+            {hubError ? ` · ${hubError.message}` : ''}
+          </span>
         </div>
       </div>
 
-      {showRecenter ? (
-        <div className="pointer-events-none absolute inset-x-0 bottom-30 flex justify-center px-4">
-          <button
-            type="button"
-            onClick={handleRecenterClick}
-            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
-          >
-            <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-            Center on me
-          </button>
-        </div>
-      ) : null}
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4">
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
         <div className="pointer-events-auto flex w-full max-w-lg flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm tabular-nums text-fg">
@@ -369,13 +364,25 @@ export default function RideLiveMapPage() {
               <span className="text-fg-muted">·</span>
               <span className="text-fg-muted">{timeLabel}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => setNearbyOpen((o) => !o)}
-              className="rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium text-fg"
-            >
-              {nearbyOpen ? 'Hide nearby' : 'Nearby riders'}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {showRecenter ? (
+                <button
+                  type="button"
+                  onClick={handleRecenterClick}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-3 py-1.5 text-xs font-medium text-fg shadow backdrop-blur-md"
+                >
+                  <Crosshair className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+                  Center on me
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setNearbyOpen((o) => !o)}
+                className="rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium text-fg"
+              >
+                {nearbyOpen ? 'Hide nearby' : 'Nearby riders'}
+              </button>
+            </div>
           </div>
           <p className="text-xs text-fg-muted">
             {peersById.size} other rider{peersById.size === 1 ? '' : 's'} live
@@ -383,7 +390,7 @@ export default function RideLiveMapPage() {
           {geoError ? <p className="text-xs text-amber-200/90">{geoError}</p> : null}
 
           {nearbyOpen ? (
-            <div className="border-t border-border pt-3 text-xs text-fg">
+            <div className="max-h-[min(40vh,16rem)] overflow-y-auto border-t border-border pt-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
               {nearbyInfo.mode === 'empty' ? (
                 <p className="text-fg-muted">No other riders to compare yet.</p>
               ) : null}

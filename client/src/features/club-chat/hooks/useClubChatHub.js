@@ -6,10 +6,11 @@ import { getStoredToken } from '@/features/auth/utils/auth-storage';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 /**
- * SignalR hub for club chat. Joins all clubs from summary when connected.
+ * SignalR hub for club chat. Joins all clubs from summary when connected,
+ * or a single club when `options.scopedClubId` is set (e.g. live ride map).
  */
 export function useClubChatHub(summaryRows, enabled, options = {}) {
-  const { onIncomingMessage } = options;
+  const { onIncomingMessage, scopedClubId = null } = options;
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const connRef = useRef(null);
@@ -58,14 +59,22 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
       try {
         await conn.start();
         if (cancelled) return;
-        const rows = summaryRef.current || [];
-        for (const row of rows) {
-          const id = row.clubId;
-          if (id != null) {
-            try {
-              await conn.invoke('JoinClub', id);
-            } catch {
-              /* ignore */
+        if (scopedClubId != null) {
+          try {
+            await conn.invoke('JoinClub', scopedClubId);
+          } catch {
+            /* ignore */
+          }
+        } else {
+          const rows = summaryRef.current || [];
+          for (const row of rows) {
+            const id = row.clubId;
+            if (id != null) {
+              try {
+                await conn.invoke('JoinClub', id);
+              } catch {
+                /* ignore */
+              }
             }
           }
         }
@@ -82,9 +91,10 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
       conn.stop();
       connRef.current = null;
     };
-  }, [enabled, user?.id, onMessage]);
+  }, [enabled, user?.id, onMessage, scopedClubId]);
 
   useEffect(() => {
+    if (scopedClubId != null) return undefined;
     const conn = connRef.current;
     if (!conn || conn.state !== signalR.HubConnectionState.Connected) return undefined;
     const rows = summaryRows || [];
@@ -105,5 +115,5 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
     return () => {
       cancelled = true;
     };
-  }, [summaryRows]);
+  }, [summaryRows, scopedClubId]);
 }

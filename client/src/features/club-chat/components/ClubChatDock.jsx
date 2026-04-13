@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Link, generatePath } from 'react-router-dom';
+import { Link, generatePath, useMatch } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MotionDiv = motion.div;
 import { MessageCircle, X, ChevronLeft } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreferences } from '@/features/account/hooks/useAccount';
 import { env } from '@/shared/config/env';
@@ -39,6 +40,23 @@ export default function ClubChatDock() {
   const [clubId, setClubId] = useState(null);
   const messagesScrollRef = useRef(null);
 
+  const liveRideMatch = useMatch({ path: ROUTES.rideLive, end: true });
+  const liveRideId = liveRideMatch?.params?.rideId;
+  const { ride: liveRide } = useRideEvent(liveRideId);
+
+  const liveScopedClubId = useMemo(() => {
+    if (!liveRideMatch || liveRide?.clubId == null || liveRide.clubId === '') return null;
+    const n = Number(liveRide.clubId);
+    return Number.isFinite(n) ? n : null;
+  }, [liveRideMatch, liveRide?.clubId]);
+
+  const liveChatScoped = liveScopedClubId != null;
+
+  const threadClubId = useMemo(() => {
+    if (liveChatScoped && liveScopedClubId != null) return liveScopedClubId;
+    return clubId;
+  }, [liveChatScoped, liveScopedClubId, clubId]);
+
   const summaryQuery = useQuery({
     queryKey: ['clubChat', 'summary'],
     queryFn: () => clubChatApi.getSummary(),
@@ -51,6 +69,13 @@ export default function ClubChatDock() {
   const notifyHandler = useCallback(
     (payload) => {
       if (!payload || payload.authorUserId === user?.id) return;
+      if (
+        liveChatScoped &&
+        liveScopedClubId != null &&
+        Number(payload.clubId) !== Number(liveScopedClubId)
+      ) {
+        return;
+      }
       if (typeof Notification === 'undefined') return;
       if (Notification.permission !== 'granted') return;
       if (preferences?.notificationsEnabled === false) return;
@@ -73,17 +98,18 @@ export default function ClubChatDock() {
         /* ignore */
       }
     },
-    [user?.id, preferences?.notificationsEnabled]
+    [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId]
   );
 
   useClubChatHub(summary, !!user?.id && !env.isMockApi, {
     onIncomingMessage: notifyHandler,
+    scopedClubId: liveChatScoped ? liveScopedClubId : null,
   });
 
   const messagesQuery = useQuery({
-    queryKey: ['clubChat', 'messages', clubId],
-    queryFn: () => clubChatApi.getMessages(clubId, { take: 100 }),
-    enabled: !!clubId && open,
+    queryKey: ['clubChat', 'messages', threadClubId],
+    queryFn: () => clubChatApi.getMessages(threadClubId, { take: 100 }),
+    enabled: !!threadClubId && open,
   });
 
   const sendMutation = useMutation({
@@ -106,32 +132,50 @@ export default function ClubChatDock() {
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight;
     });
-  }, [clubId, messagesQuery.isSuccess, messages.length]);
+  }, [threadClubId, messagesQuery.isSuccess, messages.length]);
 
   useEffect(() => {
-    if (!clubId || !open || !messagesQuery.isSuccess) return undefined;
+    if (!threadClubId || !open || !messagesQuery.isSuccess) return undefined;
     const t = window.setTimeout(() => {
       clubChatApi
-        .postRead(clubId, { markLatest: true })
+        .postRead(threadClubId, { markLatest: true })
         .then(() => queryClient.invalidateQueries({ queryKey: ['clubChat', 'summary'] }))
         .catch(() => {});
     }, 400);
     return () => window.clearTimeout(t);
-  }, [clubId, open, messagesQuery.isSuccess, messages.length, queryClient]);
+  }, [threadClubId, open, messagesQuery.isSuccess, messages.length, queryClient]);
 
-  const totalUnread = useMemo(() => summary.reduce((a, r) => a + (r.unreadCount || 0), 0), [summary]);
+  const totalUnread = useMemo(() => {
+    if (liveChatScoped && liveScopedClubId != null) {
+      const row = summary.find((s) => s.clubId === liveScopedClubId);
+      return row?.unreadCount ?? 0;
+    }
+    return summary.reduce((a, r) => a + (r.unreadCount || 0), 0);
+  }, [summary, liveChatScoped, liveScopedClubId]);
 
-  const activeClub = useMemo(
-    () => (clubId ? summary.find((s) => s.clubId === clubId) : null),
-    [clubId, summary]
-  );
+  const activeClub = useMemo(() => {
+    if (!threadClubId) return null;
+    const fromSummary = summary.find((s) => s.clubId === threadClubId);
+    if (fromSummary) return fromSummary;
+    if (liveChatScoped && threadClubId === liveScopedClubId && liveRide?.clubName) {
+      return {
+        clubId: threadClubId,
+        clubName: liveRide.clubName,
+        clubAvatarUrl: null,
+        unreadCount: 0,
+        lastMessagePreview: null,
+        lastMessageAt: null,
+      };
+    }
+    return null;
+  }, [threadClubId, summary, liveChatScoped, liveScopedClubId, liveRide]);
 
   const handleSend = useCallback(
     async (payload) => {
-      if (!clubId) return;
-      await sendMutation.mutateAsync({ clubId, payload });
+      if (!threadClubId) return;
+      await sendMutation.mutateAsync({ clubId: threadClubId, payload });
     },
-    [clubId, sendMutation]
+    [threadClubId, sendMutation]
   );
 
   const requestDesktopAlerts = useCallback(() => {
@@ -144,7 +188,7 @@ export default function ClubChatDock() {
   if (!user?.id) return null;
 
   const clubPagePath =
-    clubId != null ? generatePath(ROUTES.clubDetails, { clubId: String(clubId) }) : null;
+    threadClubId != null ? generatePath(ROUTES.clubDetails, { clubId: String(threadClubId) }) : null;
 
   return (
     <>
@@ -152,7 +196,12 @@ export default function ClubChatDock() {
         type="button"
         aria-label="Open club chat"
         onClick={() => setOpen((o) => !o)}
-        className="fixed z-[100] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 md:bottom-8 md:right-8 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))]"
+        className={cn(
+          'fixed z-[100] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95',
+          liveRideMatch
+            ? 'max-md:bottom-[max(11.5rem,calc(10.5rem+env(safe-area-inset-bottom)))] max-md:left-[max(1rem,env(safe-area-inset-left))] max-md:right-auto md:bottom-8 md:right-8 md:left-auto'
+            : 'bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] md:bottom-8 md:right-8',
+        )}
       >
         <MessageCircle className="h-7 w-7" aria-hidden />
         {totalUnread > 0 ? (
@@ -172,18 +221,20 @@ export default function ClubChatDock() {
             className="fixed z-[101] flex flex-col border border-border bg-[var(--rydo-bg-deep)] shadow-2xl md:bottom-24 md:right-8 md:h-[min(560px,calc(100vh-8rem))] md:w-[400px] inset-x-0 bottom-0 h-[100dvh] w-full md:inset-auto rounded-t-2xl md:rounded-2xl"
           >
             <header className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-3 sm:px-4">
-              {clubId ? (
+              {threadClubId ? (
                 <>
-                  <button
-                    type="button"
-                    aria-label="Back to clubs"
-                    className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
-                    onClick={() => {
-                      setClubId(null);
-                    }}
-                  >
-                    <ChevronLeft className="h-5 w-5" aria-hidden />
-                  </button>
+                  {!liveChatScoped ? (
+                    <button
+                      type="button"
+                      aria-label="Back to clubs"
+                      className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
+                      onClick={() => {
+                        setClubId(null);
+                      }}
+                    >
+                      <ChevronLeft className="h-5 w-5" aria-hidden />
+                    </button>
+                  ) : null}
                   <Link
                     to={clubPagePath}
                     onClick={closeDock}
@@ -228,7 +279,7 @@ export default function ClubChatDock() {
               </button>
             </header>
 
-            {!clubId ? (
+            {!threadClubId ? (
               <ul className="flex-1 overflow-y-auto p-2">
                 {summaryQuery.isLoading ? (
                   <li className="px-3 py-4 text-sm text-fg-muted">Loading…</li>
@@ -366,7 +417,7 @@ export default function ClubChatDock() {
                   )}
                 </div>
                 <ClubChatComposer
-                  clubId={clubId}
+                  clubId={threadClubId}
                   disabled={sendMutation.isPending}
                   onSend={handleSend}
                 />

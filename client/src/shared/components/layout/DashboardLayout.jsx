@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useMatch } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
@@ -13,6 +13,7 @@ import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
+  const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
 
   useEffect(() => {
     prefetchDashboardRoutes();
@@ -20,7 +21,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
-      <MobileNavbar />
+      {!rideLiveMatch ? <MobileNavbar /> : null}
 
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
         <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
