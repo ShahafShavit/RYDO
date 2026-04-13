@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, NavigationControl, Source } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { featureCollection, point } from '@turf/helpers';
@@ -11,6 +11,12 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { useDesktopSimulator } from '@/features/live-ride/hooks/useDesktopSimulator';
+import {
+  enableRideLiveDebugFromQuery,
+  isRideLiveLogEnabled,
+  rideLiveLog,
+  rideLiveWarn,
+} from '@/features/live-ride/utils/rideLiveLog';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
@@ -36,6 +42,20 @@ const peerLayer = {
     'circle-stroke-color': '#ffffff',
   },
 };
+
+function ensurePeersSourceAndLayer(map) {
+  if (map.getSource('ride-live-peers')) return;
+  map.addSource('ride-live-peers', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: peerLayer.id,
+    type: peerLayer.type,
+    source: 'ride-live-peers',
+    paint: peerLayer.paint,
+  });
+}
 
 function ensureSelfPuckSource(map) {
   if (map.getSource('ride-live-self')) return;
@@ -65,6 +85,7 @@ export default function RideLiveMapPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const mapRef = useRef(null);
+  const syncPeersStyleWaitLogRef = useRef(0);
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const posRef = useRef({ lat: null, lng: null, heading: null, accuracy: null });
 
@@ -108,6 +129,54 @@ export default function RideLiveMapPage() {
     }));
     return featureCollection(features);
   }, [peersById]);
+
+  const peerFcRef = useRef(peerFc);
+  useLayoutEffect(() => {
+    peerFcRef.current = peerFc;
+  }, [peerFc]);
+
+  const syncPeersToMap = useCallback((fc) => {
+    const map = mapRef.current?.getMap?.();
+    const featureCount = fc?.features?.length ?? 0;
+    if (!map) {
+      rideLiveWarn('syncPeersToMap: no map ref yet', { featureCount });
+      return;
+    }
+    if (!map.isStyleLoaded?.()) {
+      if (isRideLiveLogEnabled() && syncPeersStyleWaitLogRef.current < 8) {
+        syncPeersStyleWaitLogRef.current += 1;
+        rideLiveLog('syncPeersToMap: style not loaded yet (retry when map ready)', {
+          n: syncPeersStyleWaitLogRef.current,
+          featureCount,
+        });
+      }
+      return;
+    }
+    syncPeersStyleWaitLogRef.current = 0;
+    ensurePeersSourceAndLayer(map);
+    const src = map.getSource('ride-live-peers');
+    if (src && typeof src.setData === 'function') {
+      src.setData(fc);
+      rideLiveLog('syncPeersToMap: setData', {
+        featureCount,
+        featureIds: (fc?.features ?? []).map((f) => f?.properties?.userId),
+      });
+    } else {
+      rideLiveWarn('syncPeersToMap: missing ride-live-peers source or setData', {
+        hasSource: Boolean(src),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (enableRideLiveDebugFromQuery()) {
+      rideLiveLog('debugRideLive query → map page saw flag');
+    }
+  }, []);
+
+  useEffect(() => {
+    syncPeersToMap(peerFc);
+  }, [peerFc, syncPeersToMap]);
 
   const initialViewState = useMemo(() => {
     if (!line?.geometry?.coordinates?.[0]) {
@@ -153,6 +222,11 @@ export default function RideLiveMapPage() {
   const onMapLoad = useCallback(
     (e) => {
       const map = e.target;
+      rideLiveLog('Map onLoad', {
+        styleLoaded: map.isStyleLoaded?.() ?? null,
+        peerFeatureCount: peerFcRef.current?.features?.length ?? 0,
+      });
+      syncPeersToMap(peerFcRef.current);
       ensureSelfPuckSource(map);
       if (line?.geometry?.coordinates?.[0]) {
         const [lng, lat] = line.geometry.coordinates[0];
@@ -160,7 +234,7 @@ export default function RideLiveMapPage() {
       }
       simHandleMapLoad(e);
     },
-    [line, applySelfToMap, simHandleMapLoad],
+    [line, applySelfToMap, simHandleMapLoad, syncPeersToMap],
   );
 
   useEffect(() => {
@@ -267,9 +341,6 @@ export default function RideLiveMapPage() {
         <Source id="ride-live-route" type="geojson" data={routeFc}>
           <Layer {...routeLineLayer} />
         </Source>
-        <Source id="ride-live-peers" type="geojson" data={peerFc}>
-          <Layer {...peerLayer} />
-        </Source>
         <NavigationControl position="top-right" showCompass visualizePitch />
       </Map>
 
@@ -295,7 +366,8 @@ export default function RideLiveMapPage() {
             <span className="text-xs text-fg-muted">{ride.name}</span>
           </div>
           <p className="text-xs text-fg-muted">
-            {(totalLenM / 1000).toFixed(1)} km route · {peersById.size} other rider{peersById.size === 1 ? '' : 's'} on map
+            {(totalLenM / 1000).toFixed(1)} km route · {peersById.size} other rider
+            {peersById.size === 1 ? '' : 's'} with live position
           </p>
           {geoError && !simMode ? <p className="text-xs text-amber-200/90">{geoError}</p> : null}
           <label className="flex cursor-pointer items-center gap-2 text-xs text-fg-muted">

@@ -6,7 +6,9 @@ RUN npm ci
 COPY client/ ./
 # Vite inlines VITE_* at build time — client/.env.local is NOT used in this stage.
 ARG VITE_MAPBOX_ACCESS_TOKEN=
+ARG VITE_LOG_RIDE_LIVE=
 ENV VITE_MAPBOX_ACCESS_TOKEN=$VITE_MAPBOX_ACCESS_TOKEN
+ENV VITE_LOG_RIDE_LIVE=$VITE_LOG_RIDE_LIVE
 ENV VITE_API_MODE=real
 ENV VITE_API_BASE_URL=
 RUN npm run build

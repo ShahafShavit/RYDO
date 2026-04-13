@@ -7,6 +7,11 @@ public sealed class RideLiveSessionCoordinator(
 {
     public void EnsureStarted(int rideId, int triggeringUserId, string? triggeringEmail)
     {
+        logger.LogInformation(
+            "Ride live: scheduling bot orchestration for ride {RideId}, triggering user {UserId}, email {TriggerEmail}.",
+            rideId,
+            triggeringUserId,
+            triggeringEmail ?? "(none)");
         _ = Task.Run(async () =>
         {
             try

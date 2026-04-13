@@ -27,6 +27,8 @@ services:
       args:
         # Loaded from a `.env` file next to this compose file (not client/.env.local).
         VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN:-}
+        # Browser console `[rydo:ride-live]` logs on :5000 (set to empty/false for quiet images).
+        VITE_LOG_RIDE_LIVE: ${VITE_LOG_RIDE_LIVE:-true}
     ports:
       - "5000:8080"
     environment:

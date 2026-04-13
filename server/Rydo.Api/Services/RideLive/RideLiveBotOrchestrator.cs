@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rydo.Api.Data;
 
@@ -25,10 +26,30 @@ public sealed class RideLiveBotOrchestrator(
     public async Task TryStartBotsForRideAsync(int rideId, int triggeringUserId, string? triggeringEmail)
     {
         if (!environment.IsDevelopment() || !options.Value.Enabled)
+        {
+            logger.LogInformation(
+                "Ride live bots: skip ride {RideId} — IsDevelopment={IsDev}, Rydo:DemoRideLiveBots:Enabled={Enabled}.",
+                rideId,
+                environment.IsDevelopment(),
+                options.Value.Enabled);
             return;
+        }
 
         if (!_startedRides.TryAdd(rideId, 0))
+        {
+            logger.LogInformation(
+                "Ride live bots: skip ride {RideId} — orchestration already registered (another JoinRide won TryAdd; bots may already be running).",
+                rideId);
             return;
+        }
+
+        var demoTrigger = IsDemoLobbyTrigger(triggeringEmail);
+        logger.LogInformation(
+            "Ride live bots: TryStart ride {RideId}, triggering user {UserId}, email {Email}, IsDemoLobbyTrigger={DemoTrigger}.",
+            rideId,
+            triggeringUserId,
+            triggeringEmail ?? "(none)",
+            demoTrigger);
 
         try
         {
@@ -41,18 +62,25 @@ public sealed class RideLiveBotOrchestrator(
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (emails.Count == 0)
             {
+                logger.LogWarning("Ride live bots: BotEmails empty in config; abort ride {RideId}.", rideId);
                 _startedRides.TryRemove(rideId, out _);
                 return;
             }
 
-            if (IsDemoLobbyTrigger(triggeringEmail))
+            if (demoTrigger)
             {
-                await EnsureBotsAreParticipantsOnRideAsync(scope.ServiceProvider, rideId, opt).ConfigureAwait(false);
+                await EnsureBotsAreParticipantsOnRideAsync(scope.ServiceProvider, rideId, opt, logger).ConfigureAwait(false);
                 logger.LogInformation(
-                    "Ride live bots: demo trigger {Email} (user {UserId}) attached bots to ride {RideId}.",
+                    "Ride live bots: demo trigger {Email} (user {UserId}) ran EnsureBots for ride {RideId}.",
                     triggeringEmail,
                     triggeringUserId,
                     rideId);
+            }
+            else
+            {
+                logger.LogInformation(
+                    "Ride live bots: email {Email} is not in TriggerEmails — bots are only auto-attached for trigger accounts; expecting bots to already be ride participants.",
+                    triggeringEmail ?? "(none)");
             }
 
             var ride = await db.Rides.AsNoTracking()
@@ -62,6 +90,12 @@ public sealed class RideLiveBotOrchestrator(
                 || string.IsNullOrWhiteSpace(ride.Route.PreviewCoordinatesJson)
                 || ride.Route.PreviewCoordinatesJson == "[]")
             {
+                logger.LogWarning(
+                    "Ride live bots: abort ride {RideId} — missing route or preview polyline (RouteId={RouteId}, previewLen={PreviewLen}, previewEmpty={PreviewEmpty}).",
+                    rideId,
+                    ride?.RouteId,
+                    ride?.Route?.PreviewCoordinatesJson?.Length ?? 0,
+                    string.IsNullOrWhiteSpace(ride?.Route?.PreviewCoordinatesJson));
                 _startedRides.TryRemove(rideId, out _);
                 return;
             }
@@ -69,6 +103,10 @@ public sealed class RideLiveBotOrchestrator(
             var pts = RideLiveRouteSampler.ParsePreviewCoordinates(ride.Route.PreviewCoordinatesJson);
             if (pts.Count < 2)
             {
+                logger.LogWarning(
+                    "Ride live bots: abort ride {RideId} — preview parsed to {PointCount} point(s); need ≥2.",
+                    rideId,
+                    pts.Count);
                 _startedRides.TryRemove(rideId, out _);
                 return;
             }
@@ -86,17 +124,31 @@ public sealed class RideLiveBotOrchestrator(
                 .Where(u => emails.Contains(u.Email))
                 .Select(u => new { u.Id, u.Email })
                 .ToList();
+            logger.LogInformation(
+                "Ride live bots: ride {RideId} — {ParticipantCount} participant(s) with email; {BotMatchCount} match BotEmails.",
+                rideId,
+                participantUsers.Count,
+                bots.Count);
             if (bots.Count == 0)
             {
-                if (IsDemoLobbyTrigger(triggeringEmail))
+                if (demoTrigger)
                     logger.LogWarning(
-                        "Ride live bots: no bot accounts on ride {RideId} after demo attach (check BotEmails vs AspNetUsers / participants).",
+                        "Ride live bots: no bot accounts on ride {RideId} after demo attach (check BotEmails vs AspNetUsers / RideParticipants).",
                         rideId);
                 else
-                    logger.LogInformation("Ride live bots: no configured bot participants on ride {RideId}.", rideId);
+                    logger.LogInformation(
+                        "Ride live bots: no configured bot participants on ride {RideId} — sign in as admin@rydo.test or user@rydo.test to auto-attach bots (TriggerEmails), or add bot users as participants.",
+                        rideId);
                 _startedRides.TryRemove(rideId, out _);
                 return;
             }
+
+            var selfBase = RideLiveSelfApiBaseUrl.Resolve(configuration, opt);
+            logger.LogInformation(
+                "Ride live bots: starting {BotCount} bot connection(s) for ride {RideId}; self API base (login/hub)={SelfBase}.",
+                bots.Count,
+                rideId,
+                selfBase);
 
             using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping);
             var ct = shutdown.Token;
@@ -186,6 +238,7 @@ public sealed class RideLiveBotOrchestrator(
 
         logger.LogInformation("Ride live bot {Email} running on ride {RideId}.", email, rideId);
 
+        var poseSeq = 0;
         while (!ct.IsCancellationRequested)
         {
             try
@@ -200,6 +253,17 @@ public sealed class RideLiveBotOrchestrator(
                     (double?)4,
                     at,
                     ct).ConfigureAwait(false);
+                poseSeq++;
+                if (poseSeq <= 3 || poseSeq % 20 == 0)
+                {
+                    logger.LogDebug(
+                        "Ride live bot {Email} ride {RideId} UpdatePose invoked OK (#{Seq}) lat {Lat:F5} lng {Lng:F5}",
+                        email,
+                        rideId,
+                        poseSeq,
+                        lat,
+                        lng);
+                }
             }
             catch (Exception ex) when (ex is OperationCanceledException)
             {
@@ -263,15 +327,31 @@ public sealed class RideLiveBotOrchestrator(
     private static async Task EnsureBotsAreParticipantsOnRideAsync(
         IServiceProvider sp,
         int rideId,
-        DemoRideLiveBotsOptions opt)
+        DemoRideLiveBotsOptions opt,
+        ILogger<RideLiveBotOrchestrator> log)
     {
         var db = sp.GetRequiredService<RydoDbContext>();
         var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var now = DateTime.UtcNow;
 
         var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == rideId).ConfigureAwait(false);
-        if (ride == null || ride.RouteId == null || ride.Kind == RideKind.SoloLog)
+        if (ride == null)
+        {
+            log.LogWarning("Ride live bots EnsureBots: ride {RideId} not found.", rideId);
             return;
+        }
+
+        if (ride.RouteId == null)
+        {
+            log.LogWarning("Ride live bots EnsureBots: ride {RideId} has no RouteId; skip attach.", rideId);
+            return;
+        }
+
+        if (ride.Kind == RideKind.SoloLog)
+        {
+            log.LogInformation("Ride live bots EnsureBots: ride {RideId} is SoloLog; skip bot participants.", rideId);
+            return;
+        }
 
         var botUsers = new List<ApplicationUser>();
         foreach (var raw in opt.BotEmails)
@@ -298,16 +378,27 @@ public sealed class RideLiveBotOrchestrator(
                     u.LastName = "Bot";
                 var created = await userManager.CreateAsync(u, opt.BotPassword).ConfigureAwait(false);
                 if (!created.Succeeded)
+                {
+                    log.LogWarning(
+                        "Ride live bots EnsureBots: CreateAsync failed for {Email}: {Errors}",
+                        email,
+                        string.Join("; ", created.Errors.Select(e => e.Description)));
                     continue;
+                }
+
                 await userManager.AddToRoleAsync(u, "user").ConfigureAwait(false);
                 u = (await userManager.FindByEmailAsync(email).ConfigureAwait(false))!;
+                log.LogInformation("Ride live bots EnsureBots: created bot user {Email} (id {UserId}).", email, u.Id);
             }
 
             botUsers.Add(u);
         }
 
         if (botUsers.Count == 0)
+        {
+            log.LogWarning("Ride live bots EnsureBots: no bot users resolved for ride {RideId}.", rideId);
             return;
+        }
 
         if (ride.ClubId is int cid)
         {
@@ -339,6 +430,11 @@ public sealed class RideLiveBotOrchestrator(
         await db.SaveChangesAsync().ConfigureAwait(false);
 
         var count = await db.RideParticipants.CountAsync(p => p.RideId == rideId).ConfigureAwait(false);
+        log.LogInformation(
+            "Ride live bots EnsureBots: saved ride {RideId} — {BotCount} bot user(s) ensured; total participants={TotalParticipants}.",
+            rideId,
+            botUsers.Count,
+            count);
         if (ride.MaxParticipants < count)
         {
             ride.MaxParticipants = count;
