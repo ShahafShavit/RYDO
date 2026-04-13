@@ -41,12 +41,16 @@ dotnet run
 
 ## Frontend (Vite) pointing at this API
 
-In `client/.env.local`:
+With the API on **`http://localhost:5000`** (Docker), use the Vite dev **proxy** so the browser only talks to port 5173 (works from a phone on the LAN). In `client/.env.local`:
 
 ```env
 VITE_API_MODE=real
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=
 ```
+
+(Optional: `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032` if you run **`dotnet run`** instead of Docker; the default proxy target is **5000**.)
+
+If you are not using the proxy, you can set `VITE_API_BASE_URL=http://localhost:5000` instead (desktop-only; see `client/docs/lan-https-phone.md`).
 
 **Club group chat** is implemented: REST under `/api/clubs/{clubId}/chat/*`, summary at `/api/users/me/club-chat/summary`, and SignalR at `/hubs/club-chat` (JWT). After pulling schema changes that add chat tables, recreate the Docker SQL volume (`docker compose down -v`) so `EnsureCreated` and `DbSeeder` run on a clean database.
 

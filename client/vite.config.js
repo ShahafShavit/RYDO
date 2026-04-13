@@ -9,8 +9,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, __dirname, '');
-  /** Local ASP.NET URL for `dotnet run` (see server launchSettings). Override when API runs elsewhere (e.g. Docker :5000). */
-  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:5032').replace(/\/$/, '');
+  /** Matches Docker Compose API publish (`localhost:5000`). For `dotnet run` only (port 5032), set VITE_DEV_PROXY_TARGET in .env.local. */
+  const devProxyTarget = (env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:5000').replace(/\/$/, '');
 
   const devHttps = process.env.VITE_DEV_HTTPS === 'true' || process.env.VITE_DEV_HTTPS === '1';
   let https;

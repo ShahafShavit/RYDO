@@ -58,7 +58,7 @@ Apple’s UI labels change slightly between iOS versions; if something fails, se
 
 The dev server proxies backend routes to your local API so the **browser only talks to port 5173** — no per-network LAN IP in env, and no mixed-content issues when the SPA is `https://` on the phone.
 
-1. Run the **.NET API** on the same machine as Vite (default `dotnet run` URL is `http://127.0.0.1:5032` — see `server/Rydo.Api/Properties/launchSettings.json`).
+1. Run the **.NET API** on the same machine as Vite. **`docker compose`** from the repo root exposes **`http://127.0.0.1:5000`**. If you use **`dotnet run`** instead, the HTTP URL is usually **`http://127.0.0.1:5032`** (see `server/Rydo.Api/Properties/launchSettings.json`).
 2. In **`client/.env.local`**, use **real** API mode and **leave the base URL empty** so requests go to `/api/...` on the Vite origin:
 
 ```env
@@ -66,13 +66,14 @@ VITE_API_MODE=real
 VITE_API_BASE_URL=
 ```
 
-3. If the API listens on another origin (e.g. **Docker** on `http://127.0.0.1:5000`), set the proxy target only:
+3. If the API listens on another origin, set the proxy target (defaults match **Docker :5000**):
 
 ```env
-VITE_DEV_PROXY_TARGET=http://127.0.0.1:5000
+# Only if not using the default (5000). Example: dotnet run on 5032
+VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032
 ```
 
-[`vite.config.js`](../vite.config.js) forwards `/api`, `/hubs` (including **WebSockets** for SignalR), and `/health` to `VITE_DEV_PROXY_TARGET` (default `http://127.0.0.1:5032`).
+[`vite.config.js`](../vite.config.js) forwards `/api`, `/hubs` (including **WebSockets** for SignalR), and `/health` to `VITE_DEV_PROXY_TARGET` (default **`http://127.0.0.1:5000`**).
 
 **Alternative:** you can still set `VITE_API_BASE_URL=https://<lan-ip>:<port>` and skip the proxy, but you must fix the IP whenever the network changes and handle HTTPS/mixed-content yourself.
 
@@ -100,3 +101,5 @@ To turn off the kinematic gate on the live map (unrelated, but useful when debug
 | Phone still warns on HTTPS | Confirm **root CA** is installed *and* trusted (especially iOS “Certificate Trust Settings”). |
 | Connection refused | Same Wi‑Fi, firewall allows Node, correct IP/port, `npm run dev:lan` is running. |
 | Regenerated certs after Wi‑Fi IP changed | Run `npm run setup:dev-https` again so the cert includes the new LAN IP (or add hostnames manually with mkcert). |
+| **Login works on PC but "Failed to fetch" on phone** | **`VITE_API_BASE_URL` must be empty** for LAN testing so `/api` goes through Vite on port 5173. Values like `http://localhost:5032` resolve to the **phone** on mobile, not your PC. Restart Vite after changing `.env.local`. In dev, the app warns in the console if it detects this. |
+| **Vite: `http proxy error` / `ECONNREFUSED 127.0.0.1:5000` (or :5032)** | The API is not reachable at the proxy target. Start **`docker compose`** (port **5000** on the host) or **`dotnet run`** and set `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032` if you use the default launch profile. |
