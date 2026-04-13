@@ -20,6 +20,16 @@ export function enableRideLiveDebugFromQuery() {
   return false;
 }
 
+/** Kinematic GPS gate is on by default; append `?liveRideNoGate=1` to disable (A/B or debugging). */
+export function isKinematicGateEnabled() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return new URLSearchParams(window.location.search).get('liveRideNoGate') !== '1';
+  } catch {
+    return true;
+  }
+}
+
 export function isRideLiveLogEnabled() {
   if (import.meta.env.DEV) return true;
   if (import.meta.env.VITE_LOG_RIDE_LIVE === 'true') return true;

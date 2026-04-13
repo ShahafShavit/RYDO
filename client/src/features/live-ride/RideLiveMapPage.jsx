@@ -5,8 +5,25 @@ import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import {
+  correctSyntheticTowardGps,
+  decaySpeedOnRejectedGps,
+  DR_MIN_SPEED_MPS,
+  evaluateKinematicGate,
+  inferSeedDtSeconds,
+  KIN_DT_MAX_S,
+  KIN_DT_MIN_S,
+  bearingDegrees,
+  offsetByHeadingMeters,
+  updateAcceptedKinematics,
+} from '@/features/live-ride/utils/liveRideDeadReckon';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
-import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
+import {
+  enableRideLiveDebugFromQuery,
+  isKinematicGateEnabled,
+  isRideLiveLogEnabled,
+  rideLiveLog,
+} from '@/features/live-ride/utils/rideLiveLog';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { env } from '@/shared/config/env';
@@ -31,6 +48,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
+/** Throttle imperative follow camera updates (~22 Hz). */
+const FOLLOW_CAMERA_MIN_MS = 45;
+/** Throttle React updates for puck position from rAF (~30 Hz). */
+const PUCK_DISPLAY_MIN_MS = 33;
 
 const routeLineLayer = {
   id: 'ride-live-route-line',
@@ -148,13 +169,42 @@ export default function RideLiveMapPage() {
   const [geoError, setGeoError] = useState(null);
   const [showRecenter, setShowRecenter] = useState(false);
   const [selfFix, setSelfFix] = useState(null);
+  /** Smoothed puck + bearing for display and follow camera (dead reckoning). */
+  const [puckDisplay, setPuckDisplay] = useState(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
   const [nearbyOpen, setNearbyOpen] = useState(false);
 
   const selfFixRef = useRef(null);
+  const puckDisplayRef = useRef(null);
+  /**
+   * Dead reckoning between GPS fixes; extrapolated position is synLat/synLng.
+   * Kinematic gate uses lastAccepted* + velEast/North; peers receive fused syn via sendPose.
+   */
+  const deadReckonRef = useRef({
+    initialized: false,
+    synLat: null,
+    synLng: null,
+    speedMps: 0,
+    extrapolateHeadingDeg: null,
+    lastRafMs: null,
+    lastCameraApplyMs: 0,
+    kinematicHistory: false,
+    lastAcceptedLat: null,
+    lastAcceptedLng: null,
+    lastAcceptedMs: null,
+    velEastMps: 0,
+    velNorthMps: 0,
+    lastAcceptedAccuracyM: null,
+    consecutiveRejects: 0,
+  });
+
   useLayoutEffect(() => {
     selfFixRef.current = selfFix;
   }, [selfFix]);
+
+  useLayoutEffect(() => {
+    puckDisplayRef.current = puckDisplay;
+  }, [puckDisplay]);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
@@ -197,6 +247,23 @@ export default function RideLiveMapPage() {
     }
   }, []);
 
+  /** Imperative follow updates (rAF); must not clear followCamera via rotatestart. */
+  const applyFollowCamera = useCallback((lng, lat, bearingOpt) => {
+    const map = mapRef.current?.getMap?.();
+    if (!map?.isStyleLoaded?.()) return;
+    programmaticMoveRef.current = true;
+    try {
+      map.jumpTo({
+        center: [lng, lat],
+        bearing: bearingOpt ?? map.getBearing(),
+        pitch: MAP_PITCH,
+        zoom: MAP_ZOOM,
+      });
+    } finally {
+      programmaticMoveRef.current = false;
+    }
+  }, []);
+
   const onUserAdjustedView = useCallback(() => {
     if (programmaticMoveRef.current) return;
     followCameraRef.current = false;
@@ -206,9 +273,9 @@ export default function RideLiveMapPage() {
   const handleRecenterClick = useCallback(() => {
     followCameraRef.current = true;
     setShowRecenter(false);
-    const f = selfFixRef.current;
-    if (f?.lat != null && f?.lng != null) {
-      recenterCamera(f.lng, f.lat, f.heading ?? undefined, { instant: false });
+    const p = puckDisplayRef.current;
+    if (p?.lat != null && p?.lng != null) {
+      recenterCamera(p.lng, p.lat, p.bearing ?? undefined, { instant: false });
     }
   }, [recenterCamera]);
 
@@ -217,22 +284,50 @@ export default function RideLiveMapPage() {
       const map = e.target;
       rideLiveLog('Map onLoad', { styleLoaded: map.isStyleLoaded?.() ?? null });
       if (line?.geometry?.coordinates?.[0]) {
-        const [lng, lat] = line.geometry.coordinates[0];
+        const [routeLng, routeLat] = line.geometry.coordinates[0];
+        const dr = deadReckonRef.current;
+        /** GPS can win the race before the map fires onLoad — do not clobber real fixes. */
+        const gpsAhead = dr.initialized && dr.synLat != null && dr.synLng != null;
+        const centerLng = gpsAhead ? dr.synLng : routeLng;
+        const centerLat = gpsAhead ? dr.synLat : routeLat;
         followCameraRef.current = true;
-        map.jumpTo({
-          center: [lng, lat],
-          zoom: MAP_ZOOM,
-          pitch: MAP_PITCH,
-          bearing: 0,
-        });
-        setSelfFix({
-          lat,
-          lng,
-          heading: null,
-          speed: null,
-          accuracy: null,
-          previousFix: null,
-        });
+        programmaticMoveRef.current = true;
+        try {
+          map.jumpTo({
+            center: [centerLng, centerLat],
+            zoom: MAP_ZOOM,
+            pitch: MAP_PITCH,
+            bearing: 0,
+          });
+        } finally {
+          programmaticMoveRef.current = false;
+        }
+        if (!gpsAhead) {
+          dr.initialized = true;
+          dr.synLat = routeLat;
+          dr.synLng = routeLng;
+          dr.speedMps = 0;
+          dr.extrapolateHeadingDeg = null;
+          dr.lastRafMs = null;
+          dr.lastCameraApplyMs = 0;
+          dr.kinematicHistory = false;
+          dr.lastAcceptedLat = routeLat;
+          dr.lastAcceptedLng = routeLng;
+          dr.lastAcceptedMs = null;
+          dr.velEastMps = 0;
+          dr.velNorthMps = 0;
+          dr.lastAcceptedAccuracyM = null;
+          dr.consecutiveRejects = 0;
+          setSelfFix({
+            lat: routeLat,
+            lng: routeLng,
+            heading: null,
+            speed: null,
+            accuracy: null,
+            previousFix: null,
+          });
+          setPuckDisplay({ lat: routeLat, lng: routeLng, bearing: null });
+        }
       }
     },
     [line],
@@ -256,6 +351,12 @@ export default function RideLiveMapPage() {
         let heading = pos.coords.heading;
         if (heading != null && Number.isNaN(heading)) heading = null;
 
+        const prev = selfFixRef.current;
+        const courseOverGround =
+          prev?.lat != null && prev?.lng != null ? bearingDegrees(prev.lat, prev.lng, lat, lng) : null;
+        const extrapolateHeadingDeg =
+          heading != null ? heading : courseOverGround ?? deadReckonRef.current.extrapolateHeadingDeg;
+
         setSelfFix((old) => ({
           lat,
           lng,
@@ -265,17 +366,87 @@ export default function RideLiveMapPage() {
           previousFix: old && old.lat != null && old.lng != null ? { lat: old.lat, lng: old.lng } : null,
         }));
 
-        const map = mapRef.current?.getMap?.();
-        if (map?.isStyleLoaded?.() && followCameraRef.current) {
-          map.jumpTo({
-            center: [lng, lat],
-            bearing: heading ?? map.getBearing(),
-            pitch: MAP_PITCH,
-            zoom: MAP_ZOOM,
-          });
+        const dr = deadReckonRef.current;
+        const ts =
+          pos.timestamp != null && Number.isFinite(pos.timestamp) && pos.timestamp > 0 ? pos.timestamp : Date.now();
+        const incoming = {
+          lat,
+          lng,
+          timestampMs: ts,
+          speedMpsHint: speed,
+          accuracyM: accuracy,
+        };
+
+        if (!dr.initialized) {
+          dr.synLat = lat;
+          dr.synLng = lng;
+          dr.initialized = true;
         }
 
-        sendPose(lat, lng, heading ?? null, accuracy ?? null);
+        const gateEnabled = isKinematicGateEnabled();
+        const prevState = {
+          kinematicHistory: dr.kinematicHistory,
+          lastAcceptedLat: dr.lastAcceptedLat,
+          lastAcceptedLng: dr.lastAcceptedLng,
+          lastAcceptedMs: dr.lastAcceptedMs,
+          velEastMps: dr.velEastMps,
+          velNorthMps: dr.velNorthMps,
+        };
+        const gate = gateEnabled ? evaluateKinematicGate(prevState, incoming) : { accept: true, reason: 'gate_off' };
+
+        if (!gate.accept) {
+          dr.consecutiveRejects = (dr.consecutiveRejects || 0) + 1;
+          if (isRideLiveLogEnabled()) {
+            const n = dr.consecutiveRejects;
+            if (n <= 4 || n % 14 === 0) {
+              rideLiveLog('kinematic reject', {
+                n,
+                reason: gate.reason,
+                dtS: gate.dtS,
+                dM: gate.dM,
+                dv: gate.dv,
+                maxDv: gate.maxDv,
+                maxDistM: gate.maxDistM,
+              });
+            }
+          }
+          setPuckDisplay({
+            lat: dr.synLat,
+            lng: dr.synLng,
+            bearing: dr.extrapolateHeadingDeg ?? heading ?? null,
+          });
+          sendPose(
+            dr.synLat,
+            dr.synLng,
+            dr.extrapolateHeadingDeg ?? heading ?? null,
+            dr.lastAcceptedAccuracyM ?? accuracy ?? null,
+          );
+          return;
+        }
+
+        const anchorLat = dr.lastAcceptedLat ?? dr.synLat;
+        const anchorLng = dr.lastAcceptedLng ?? dr.synLng;
+        const dtS =
+          dr.lastAcceptedMs != null && Number.isFinite(dr.lastAcceptedMs)
+            ? Math.max(KIN_DT_MIN_S, Math.min(KIN_DT_MAX_S, (ts - dr.lastAcceptedMs) / 1000))
+            : inferSeedDtSeconds(anchorLat, anchorLng, lat, lng);
+
+        correctSyntheticTowardGps(dr, lat, lng);
+        updateAcceptedKinematics(dr, anchorLat, anchorLng, incoming, dtS, {
+          hardReseed: gate.reason === 'gap_reseed',
+        });
+
+        if (extrapolateHeadingDeg != null && Number.isFinite(extrapolateHeadingDeg)) {
+          dr.extrapolateHeadingDeg = extrapolateHeadingDeg;
+        }
+
+        setPuckDisplay({
+          lat: dr.synLat,
+          lng: dr.synLng,
+          bearing: extrapolateHeadingDeg ?? heading ?? null,
+        });
+
+        sendPose(dr.synLat, dr.synLng, dr.extrapolateHeadingDeg ?? heading ?? null, dr.lastAcceptedAccuracyM ?? accuracy ?? null);
       },
       (err) => {
         setGeoError(err.message || 'Could not read GPS');
@@ -285,6 +456,56 @@ export default function RideLiveMapPage() {
 
     return () => navigator.geolocation.clearWatch(id);
   }, [hubEnabled, sendPose]);
+
+  useEffect(() => {
+    if (!hubEnabled) return undefined;
+    let rafId = 0;
+    const lastPuckThrottle = { t: 0 };
+
+    const tick = (now) => {
+      const dr = deadReckonRef.current;
+      if (dr.initialized && dr.synLat != null && dr.synLng != null) {
+        const last = dr.lastRafMs ?? now;
+        const dt = Math.min(0.12, Math.max(0, (now - last) / 1000));
+        dr.lastRafMs = now;
+
+        decaySpeedOnRejectedGps(dr, dt);
+
+        if (dr.speedMps >= DR_MIN_SPEED_MPS && dr.extrapolateHeadingDeg != null) {
+          const dist = dr.speedMps * dt;
+          if (dist > 0) {
+            const o = offsetByHeadingMeters(dr.synLat, dr.synLng, dr.extrapolateHeadingDeg, dist);
+            dr.synLat = o.lat;
+            dr.synLng = o.lng;
+          }
+        }
+
+        const raw = selfFixRef.current;
+        const displayBearing =
+          dr.extrapolateHeadingDeg ??
+          (raw?.heading != null && Number.isFinite(raw.heading) ? raw.heading : null);
+
+        if (now - lastPuckThrottle.t >= PUCK_DISPLAY_MIN_MS) {
+          lastPuckThrottle.t = now;
+          setPuckDisplay({
+            lat: dr.synLat,
+            lng: dr.synLng,
+            bearing: displayBearing,
+          });
+        }
+
+        if (followCameraRef.current && now - dr.lastCameraApplyMs >= FOLLOW_CAMERA_MIN_MS) {
+          dr.lastCameraApplyMs = now;
+          applyFollowCamera(dr.synLng, dr.synLat, displayBearing ?? undefined);
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [hubEnabled, applyFollowCamera]);
 
   useEffect(() => {
     if (!ride || isLoading) return;
@@ -386,16 +607,21 @@ export default function RideLiveMapPage() {
         <Source id="ride-live-route" type="geojson" data={routeFc}>
           <Layer {...routeLineLayer} />
         </Source>
-        {selfFix?.lat != null && selfFix?.lng != null ? (
-          <Marker longitude={selfFix.lng} latitude={selfFix.lat} anchor="center">
-            <LiveRideAvatarMarker
-              name={user?.fullName ?? 'You'}
-              avatarUrl={user?.avatarUrl}
-              isSelf
-              headingDeg={showRecenter ? selfFix.heading : null}
-            />
-          </Marker>
-        ) : null}
+        {(() => {
+          const puck =
+            puckDisplay?.lat != null && puckDisplay?.lng != null ? puckDisplay : selfFix;
+          if (puck?.lat == null || puck?.lng == null) return null;
+          return (
+            <Marker longitude={puck.lng} latitude={puck.lat} anchor="center">
+              <LiveRideAvatarMarker
+                name={user?.fullName ?? 'You'}
+                avatarUrl={user?.avatarUrl}
+                isSelf
+                headingDeg={showRecenter ? (puckDisplay?.bearing ?? selfFix?.heading) : null}
+              />
+            </Marker>
+          );
+        })()}
         {peersList.map((p) => (
           <Marker key={p.userId} longitude={p.lng} latitude={p.lat} anchor="center">
             <LiveRideAvatarMarker name={p.displayName || 'Rider'} avatarUrl={p.avatarUrl} />
@@ -425,6 +651,15 @@ export default function RideLiveMapPage() {
       >
         {showRecenter || (user && !env.isMockApi) ? (
           <div className="pointer-events-auto relative h-14 w-full shrink-0">
+            {!showRecenter && puckDisplay && hubEnabled ? (
+              <div
+                className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 z-[1] inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
+                aria-live="polite"
+              >
+                <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+                Following
+              </div>
+            ) : null}
             {showRecenter ? (
               <button
                 type="button"

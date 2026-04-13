@@ -185,6 +185,7 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [enabled, rideId, mergeRider, myId]);
 
+  /** lat/lng are typically fused synthetic pose from the live map (not raw GPS). */
   const sendPose = useCallback((lat, lng, headingDeg, accuracyM) => {
     const c = connRef.current;
     if (!c || c.state !== signalR.HubConnectionState.Connected) {
