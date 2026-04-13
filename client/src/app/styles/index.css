@@ -431,3 +431,23 @@ html[data-theme='dune'] .app-logo {
     opacity: 1;
   }
 }
+
+/* Card-sized Leaflet previews: keep required OSM credit but reduce visual weight */
+.rydo-leaflet-compact-attrib .leaflet-control-attribution {
+  font-size: 8px;
+  line-height: 1.2;
+  padding: 1px 4px;
+  margin: 0;
+  max-width: calc(100% - 4px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--rydo-bg-deep) 88%, transparent);
+  color: var(--rydo-text-muted);
+  border-radius: 2px 0 0 0;
+  border: 1px solid color-mix(in srgb, var(--rydo-border) 70%, transparent);
+}
+
+.rydo-leaflet-compact-attrib .leaflet-control-attribution a {
+  color: var(--rydo-green);
+}

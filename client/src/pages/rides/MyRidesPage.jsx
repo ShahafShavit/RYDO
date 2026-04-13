@@ -19,6 +19,14 @@ import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 2;
 
+/** Map / placeholder sizing for ride list cards: right column (~half card width). */
+const RIDE_CARD_MAP_CLASS =
+  'h-28 w-full overflow-hidden rounded-2xl border border-border bg-surface';
+
+/** Left column: badges stacked and centered in the half-width column. */
+const RIDE_CARD_BADGES_COL_CLASS =
+  'flex w-1/2 min-w-0 flex-col items-center gap-2';
+
 function routeDetailsPath(routeId) {
   return ROUTES.routeDetails.replace(':routeId', String(routeId));
 }
@@ -37,7 +45,7 @@ function truncateAtWords(text, maxWords) {
 
 function ClubBadge({ clubId, clubName }) {
   const namePart = truncateAtWords((clubName || 'Club').trim(), 5);
-  const label = `Club: ${namePart}`;
+  const label = namePart;
   const badge = (
     <Badge variant="success" className="max-w-full min-w-0 truncate">
       {label}
@@ -49,7 +57,7 @@ function ClubBadge({ clubId, clubName }) {
   return (
     <Link
       to={clubDetailsPath(clubId)}
-      className="inline-flex min-w-0 max-w-full rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+      className="inline-flex min-w-0 max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
     >
       {badge}
     </Link>
@@ -60,7 +68,7 @@ function formatWhen(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -81,31 +89,39 @@ function ScheduledRideCard({ ride }) {
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
   return (
-    <Card>
-      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : <CompactRouteMapPlaceholder />}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Badge variant="neon">Scheduled</Badge>
-        {ride.routeId != null ? (
-          <Link
-            to={routeDetailsPath(ride.routeId)}
-            className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-          >
-            <Badge variant="route" className="max-w-full min-w-0 truncate">
-              {routeBadgeLabel}
-            </Badge>
-          </Link>
-        ) : null}
-        <div className="ml-auto flex min-w-0 max-w-[min(100%,18rem)] justify-end">
+    <Card className="p-4 sm:p-6">
+      <div className="flex gap-3">
+        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+          <Badge variant="neon">Scheduled</Badge>
+          {ride.routeId != null ? (
+            <Link
+              to={routeDetailsPath(ride.routeId)}
+              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+            >
+              <Badge variant="route" className="max-w-full min-w-0 truncate">
+                {routeBadgeLabel}
+              </Badge>
+            </Link>
+          ) : null}
           {kind === 'club' ? (
-            <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            <div className="flex w-full min-w-0 justify-center">
+              <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            </div>
           ) : (
             <Badge variant="personal">Personal</Badge>
           )}
         </div>
+        <div className="w-1/2 shrink-0">
+          {hasRoute ? (
+            <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
+          ) : (
+            <CompactRouteMapPlaceholder className="min-w-0" />
+          )}
+        </div>
       </div>
-      <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
+      <h3 className="mt-4 text-lg font-semibold">{ride.name}</h3>
       <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex justify-center">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
             View Ride
@@ -167,32 +183,40 @@ function PastScheduledCard({ ride }) {
     ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
   return (
-    <Card>
-      {hasRoute ? <CompactRouteMapPreview preview={ride.preview} /> : <CompactRouteMapPlaceholder />}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Badge>Past event</Badge>
-        {ride.routeId != null ? (
-          <Link
-            to={routeDetailsPath(ride.routeId)}
-            className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-          >
-            <Badge variant="route" className="max-w-full min-w-0 truncate">
-              {routeBadgeLabel}
-            </Badge>
-          </Link>
-        ) : null}
-        <div className="ml-auto flex min-w-0 max-w-[min(100%,18rem)] justify-end">
+    <Card className="p-4 sm:p-6">
+      <div className="flex gap-3">
+        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+          <Badge>Past event</Badge>
+          {ride.routeId != null ? (
+            <Link
+              to={routeDetailsPath(ride.routeId)}
+              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+            >
+              <Badge variant="route" className="max-w-full min-w-0 truncate">
+                {routeBadgeLabel}
+              </Badge>
+            </Link>
+          ) : null}
           {kind === 'club' ? (
-            <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            <div className="flex w-full min-w-0 justify-center">
+              <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            </div>
           ) : (
             <Badge variant="personal">Personal</Badge>
           )}
         </div>
+        <div className="w-1/2 shrink-0">
+          {hasRoute ? (
+            <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
+          ) : (
+            <CompactRouteMapPlaceholder className="min-w-0" />
+          )}
+        </div>
       </div>
-      <h3 className="mt-3 text-lg font-semibold">{ride.name}</h3>
+      <h3 className="mt-4 text-lg font-semibold">{ride.name}</h3>
       <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex justify-center">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">
             View Ride
@@ -228,48 +252,58 @@ function HistoryRideCard({ entry }) {
   const routeBadgeLabel = truncateAtWords(routeLabelRaw, 5);
 
   return (
-    <Card>
-      <CompactRouteMapPreview preview={entry.preview} />
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {entry.routeDifficulty ? <Badge>{formatTrailMetaLabel(entry.routeDifficulty)}</Badge> : null}
-        {entry.routeId != null ? (
-          <Link
-            to={routeDetailsPath(entry.routeId)}
-            className="inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-          >
-            <Badge variant="route" className="max-w-full min-w-0 truncate">
-              {routeBadgeLabel}
-            </Badge>
-          </Link>
-        ) : null}
-        {kind === 'club' || kind === 'personal' ? (
-          <div className="ml-auto flex min-w-0 max-w-[min(100%,18rem)] justify-end">
-            {kind === 'club' ? (
+    <Card className="p-4 sm:p-6">
+      <div className="flex gap-3">
+        <div className={RIDE_CARD_BADGES_COL_CLASS}>
+          {entry.routeDifficulty ? <Badge>{formatTrailMetaLabel(entry.routeDifficulty)}</Badge> : null}
+          {entry.routeId != null ? (
+            <Link
+              to={routeDetailsPath(entry.routeId)}
+              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+            >
+              <Badge variant="route" className="max-w-full min-w-0 truncate">
+                {routeBadgeLabel}
+              </Badge>
+            </Link>
+          ) : null}
+          {kind === 'club' ? (
+            <div className="flex w-full min-w-0 justify-center">
               <ClubBadge clubId={entry.clubId} clubName={entry.clubName} />
-            ) : (
-              <Badge variant="personal">Personal</Badge>
-            )}
-          </div>
-        ) : null}
+            </div>
+          ) : kind === 'personal' ? (
+            <Badge variant="personal">Personal</Badge>
+          ) : null}
+        </div>
+        <div className="w-1/2 shrink-0">
+          <CompactRouteMapPreview preview={entry.preview} className={RIDE_CARD_MAP_CLASS} />
+        </div>
       </div>
       <p className="mt-3 text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Distance</p>
-          <p className="mt-1 font-semibold">{dist}</p>
+      <div className="mt-2.5 flex min-w-0 gap-0">
+        <div className="min-w-0 flex-1 pr-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Distance
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{dist}</p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Duration</p>
-          <p className="mt-1 font-semibold">{formatDurationMinutes(entry.durationMinutes)}</p>
+        <div className="min-w-0 flex-1 border-l border-border/50 px-2 sm:px-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Duration
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">
+            {formatDurationMinutes(entry.durationMinutes)}
+          </p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-fg-subtle">Elevation</p>
-          <p className="mt-1 font-semibold">{elev}</p>
+        <div className="min-w-0 flex-1 border-l border-border/50 pl-2 sm:pl-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Elevation
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{elev}</p>
         </div>
       </div>
-      {paceNote ? <p className="mt-3 text-sm text-fg-muted">{paceNote}</p> : null}
+      {paceNote ? <p className="mt-2 text-sm text-fg-muted">{paceNote}</p> : null}
       {entry.rideId != null ? (
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-3 flex justify-center">
           <Link to={ROUTES.rideEvent.replace(':rideId', String(entry.rideId))}>
             <Button variant="secondary" type="button" className="text-sm">
               View Ride

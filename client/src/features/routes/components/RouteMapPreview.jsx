@@ -3,6 +3,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
 import { useThemeCssVar } from '@/shared/hooks/useThemeCssVar';
+import { cn } from '@/shared/lib/cn';
+
+/** Linked credit required for OSM tiles; short label for tiny previews. */
+const OSM_ATTRIB_FULL =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" rel="noreferrer noopener" target="_blank">OpenStreetMap contributors</a>';
+const OSM_ATTRIB_COMPACT =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" rel="noreferrer noopener" target="_blank" title="OpenStreetMap">OSM</a>';
 
 /** Polyline stroke on OSM tiles: fixed blue so the route stays visible regardless of app theme. */
 const ROUTE_LINE_COLOR = '#2563eb';
@@ -35,7 +42,16 @@ function applyRouteView(map, layer) {
   map.setView(b.getCenter(), targetZoom, { animate: false });
 }
 
-export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = true, scrubDistanceM = null }) {
+export default function RouteMapPreview({
+  geoJson,
+  className,
+  scrollWheelZoom = true,
+  scrubDistanceM = null,
+  /** Leaflet +/- control; off for small card previews. */
+  zoomControl = true,
+  /** Smaller bar, no "Leaflet |" prefix, shorter OSM link (still required attribution). */
+  compactAttribution = false,
+}) {
   const markerStroke = useThemeCssVar('--rydo-green', '#3ecfb9');
   const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
 
@@ -52,10 +68,13 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
     const el = mapContainerRef.current;
     if (!el || mapRef.current) return;
 
-    const map = L.map(el, { scrollWheelZoom }).setView([45.5, 10], 6);
+    const map = L.map(el, { scrollWheelZoom, zoomControl }).setView([45.5, 10], 6);
     mapRef.current = map;
+    if (compactAttribution) {
+      map.attributionControl.setPrefix(false);
+    }
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: compactAttribution ? OSM_ATTRIB_COMPACT : OSM_ATTRIB_FULL,
       maxZoom: 19,
     }).addTo(map);
     tileLayerRef.current = tiles;
@@ -81,7 +100,7 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
       geoJsonLayerRef.current = null;
       resizeObserverRef.current = null;
     };
-  }, [scrollWheelZoom]);
+  }, [scrollWheelZoom, zoomControl, compactAttribution]);
 
   useLayoutEffect(() => {
     const map = mapRef.current;
@@ -174,12 +193,12 @@ export default function RouteMapPreview({ geoJson, className, scrollWheelZoom = 
     };
   }, [geoJson, mapEpoch, scrubDistanceM, markerStroke, markerFill]);
 
+  const defaultClass = 'h-64 rounded-3xl border border-border bg-surface overflow-hidden';
+
   return (
     <div
       ref={mapContainerRef}
-      className={
-        className ?? 'h-64 rounded-3xl border border-border bg-surface overflow-hidden'
-      }
+      className={cn(className ?? defaultClass, compactAttribution && 'rydo-leaflet-compact-attrib')}
     />
   );
 }

@@ -21,7 +21,7 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
   const clubBadge =
     ride.clubName != null && String(ride.clubName).trim() !== '' ? (
       <Badge variant="success" className="max-w-full min-w-0 truncate">
-        Club: {ride.clubName}
+        {ride.clubName}
       </Badge>
     ) : null;
 

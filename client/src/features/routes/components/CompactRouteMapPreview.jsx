@@ -12,10 +12,22 @@ export default function CompactRouteMapPreview({
   className = 'h-28 w-full overflow-hidden rounded-2xl border border-border bg-surface',
   /** Card grids: wheel zoom steals page scroll; detail pages use `RouteMapWithElevation` with zoom enabled. */
   scrollWheelZoom = false,
+  /** Hide Leaflet +/- on small previews. */
+  zoomControl = false,
+  /** Smaller OSM credit line (attribution cannot be removed). */
+  compactAttribution = true,
 }) {
   const geoJson = useMemo(() => buildRoutePreviewFeatureCollection(preview ?? null), [preview]);
   if (!geoJson?.features?.length) {
     return <div className={className} aria-hidden />;
   }
-  return <RouteMapPreview geoJson={geoJson} className={className} scrollWheelZoom={scrollWheelZoom} />;
+  return (
+    <RouteMapPreview
+      geoJson={geoJson}
+      className={className}
+      scrollWheelZoom={scrollWheelZoom}
+      zoomControl={zoomControl}
+      compactAttribution={compactAttribution}
+    />
+  );
 }
