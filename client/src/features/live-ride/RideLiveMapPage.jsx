@@ -10,11 +10,13 @@ import {
   decaySpeedOnRejectedGps,
   DR_MIN_SPEED_MPS,
   evaluateKinematicGate,
+  getSmoothedPoseLngLat,
   inferSeedDtSeconds,
   KIN_DT_MAX_S,
   KIN_DT_MIN_S,
   bearingDegrees,
   offsetByHeadingMeters,
+  stepDisplayEmaTowardSyn,
   updateAcceptedKinematics,
 } from '@/features/live-ride/utils/liveRideDeadReckon';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
@@ -177,13 +179,14 @@ export default function RideLiveMapPage() {
   const selfFixRef = useRef(null);
   const puckDisplayRef = useRef(null);
   /**
-   * Dead reckoning between GPS fixes; extrapolated position is synLat/synLng.
-   * Kinematic gate uses lastAccepted* + velEast/North; peers receive fused syn via sendPose.
+   * Dead reckoning: `syn*` is kinematic truth (gate, DR); `display*` EMA-smoothed for puck/camera/hub.
    */
   const deadReckonRef = useRef({
     initialized: false,
     synLat: null,
     synLng: null,
+    displayLat: null,
+    displayLng: null,
     speedMps: 0,
     extrapolateHeadingDeg: null,
     lastRafMs: null,
@@ -302,32 +305,11 @@ export default function RideLiveMapPage() {
         } finally {
           programmaticMoveRef.current = false;
         }
-        if (!gpsAhead) {
-          dr.initialized = true;
-          dr.synLat = routeLat;
-          dr.synLng = routeLng;
-          dr.speedMps = 0;
-          dr.extrapolateHeadingDeg = null;
-          dr.lastRafMs = null;
-          dr.lastCameraApplyMs = 0;
-          dr.kinematicHistory = false;
-          dr.lastAcceptedLat = routeLat;
-          dr.lastAcceptedLng = routeLng;
-          dr.lastAcceptedMs = null;
-          dr.velEastMps = 0;
-          dr.velNorthMps = 0;
-          dr.lastAcceptedAccuracyM = null;
-          dr.consecutiveRejects = 0;
-          setSelfFix({
-            lat: routeLat,
-            lng: routeLng,
-            heading: null,
-            speed: null,
-            accuracy: null,
-            previousFix: null,
-          });
-          setPuckDisplay({ lat: routeLat, lng: routeLng, bearing: null });
-        }
+        /**
+         * When `!gpsAhead`, we only center the map on the route start. Do not seed `deadReckonRef` or
+         * the puck there — riders may join away from the origin; that broke kinematic gating. First GPS
+         * in `watchPosition` initializes position and velocity.
+         */
       }
     },
     [line],
@@ -410,14 +392,16 @@ export default function RideLiveMapPage() {
               });
             }
           }
+          stepDisplayEmaTowardSyn(dr, 0.35);
+          const rej = getSmoothedPoseLngLat(dr);
           setPuckDisplay({
-            lat: dr.synLat,
-            lng: dr.synLng,
+            lat: rej.lat,
+            lng: rej.lng,
             bearing: dr.extrapolateHeadingDeg ?? heading ?? null,
           });
           sendPose(
-            dr.synLat,
-            dr.synLng,
+            rej.lat,
+            rej.lng,
             dr.extrapolateHeadingDeg ?? heading ?? null,
             dr.lastAcceptedAccuracyM ?? accuracy ?? null,
           );
@@ -431,7 +415,7 @@ export default function RideLiveMapPage() {
             ? Math.max(KIN_DT_MIN_S, Math.min(KIN_DT_MAX_S, (ts - dr.lastAcceptedMs) / 1000))
             : inferSeedDtSeconds(anchorLat, anchorLng, lat, lng);
 
-        correctSyntheticTowardGps(dr, lat, lng);
+        correctSyntheticTowardGps(dr, lat, lng, { accuracyM: accuracy });
         updateAcceptedKinematics(dr, anchorLat, anchorLng, incoming, dtS, {
           hardReseed: gate.reason === 'gap_reseed',
         });
@@ -440,13 +424,15 @@ export default function RideLiveMapPage() {
           dr.extrapolateHeadingDeg = extrapolateHeadingDeg;
         }
 
+        stepDisplayEmaTowardSyn(dr, 0.42);
+        const pose = getSmoothedPoseLngLat(dr);
         setPuckDisplay({
-          lat: dr.synLat,
-          lng: dr.synLng,
+          lat: pose.lat,
+          lng: pose.lng,
           bearing: extrapolateHeadingDeg ?? heading ?? null,
         });
 
-        sendPose(dr.synLat, dr.synLng, dr.extrapolateHeadingDeg ?? heading ?? null, dr.lastAcceptedAccuracyM ?? accuracy ?? null);
+        sendPose(pose.lat, pose.lng, dr.extrapolateHeadingDeg ?? heading ?? null, dr.lastAcceptedAccuracyM ?? accuracy ?? null);
       },
       (err) => {
         setGeoError(err.message || 'Could not read GPS');
@@ -480,23 +466,26 @@ export default function RideLiveMapPage() {
           }
         }
 
+        stepDisplayEmaTowardSyn(dr);
+
         const raw = selfFixRef.current;
         const displayBearing =
           dr.extrapolateHeadingDeg ??
           (raw?.heading != null && Number.isFinite(raw.heading) ? raw.heading : null);
 
+        const smooth = getSmoothedPoseLngLat(dr);
         if (now - lastPuckThrottle.t >= PUCK_DISPLAY_MIN_MS) {
           lastPuckThrottle.t = now;
           setPuckDisplay({
-            lat: dr.synLat,
-            lng: dr.synLng,
+            lat: smooth.lat,
+            lng: smooth.lng,
             bearing: displayBearing,
           });
         }
 
         if (followCameraRef.current && now - dr.lastCameraApplyMs >= FOLLOW_CAMERA_MIN_MS) {
           dr.lastCameraApplyMs = now;
-          applyFollowCamera(dr.synLng, dr.synLat, displayBearing ?? undefined);
+          applyFollowCamera(smooth.lng, smooth.lat, displayBearing ?? undefined);
         }
       }
 

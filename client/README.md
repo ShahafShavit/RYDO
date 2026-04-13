@@ -208,6 +208,8 @@ npm install
 npm run dev
 ```
 
+Live ride map position is **GPS-anchored**, not the first vertex of the route polyline — see [docs/live-ride-map-position.md](docs/live-ride-map-position.md).
+
 ### HTTPS on the LAN (phone + Geolocation)
 
 For testing on a physical phone without a public tunnel, use **mkcert**-backed HTTPS and bind Vite to the LAN:

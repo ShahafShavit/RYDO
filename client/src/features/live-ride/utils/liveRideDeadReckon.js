@@ -65,8 +65,14 @@ export function enuDeltaMeters(lat0, lng0, lat1, lng1) {
 }
 
 export const DR_MIN_SPEED_MPS = 0.35;
-export const DR_CORRECTION_BLEND = 0.62;
-export const DR_MAX_CORRECTION_STEP_M = 28;
+/** Base fraction of error closed toward GPS per accepted fix (scaled by accuracy in `correctSyntheticTowardGps`). */
+export const DR_CORRECTION_BLEND = 0.42;
+/** Base max meters moved toward GPS in one fix (scaled by accuracy). */
+export const DR_MAX_CORRECTION_STEP_M = 16;
+/**
+ * Per-frame EMA toward `syn*` for puck / camera / sendPose (rAF). Higher = snappier, lower = smoother.
+ */
+export const DR_DISPLAY_EMA_ALPHA = 0.2;
 
 /** ~2.5g lateral/longitudinal cap for plausible cyclist acceleration (m/s²). */
 export const KIN_A_MAX_MS2 = 24.5;
@@ -95,18 +101,56 @@ export function inferSeedDtSeconds(anchorLat, anchorLng, lat, lng) {
 }
 
 /**
+ * Scale 0.25–1: poor reported accuracy (large meters) → smaller corrections; good accuracy → full blend.
+ * @param {number|undefined|null} accuracyM `coords.accuracy` (meters), if known.
+ */
+export function correctionAccuracyScale(accuracyM) {
+  if (!Number.isFinite(accuracyM) || accuracyM <= 0) return 1;
+  return Math.min(1, Math.max(0.25, 12 / Math.max(accuracyM, 8)));
+}
+
+/**
  * Pull synthetic position toward a GPS fix (soft correction + cap per step).
  * Mutates `dr` fields `synLat` / `synLng`.
+ * @param {{ accuracyM?: number|null }} [opts] — `coords.accuracy` scales blend and max step when poor GPS.
  */
-export function correctSyntheticTowardGps(dr, gpsLat, gpsLng) {
+export function correctSyntheticTowardGps(dr, gpsLat, gpsLng, opts = {}) {
   if (dr.synLat == null || dr.synLng == null) return;
   const d = distanceMeters(dr.synLat, dr.synLng, gpsLat, gpsLng);
   if (d < 0.05) return;
-  const step = Math.min(d * DR_CORRECTION_BLEND, DR_MAX_CORRECTION_STEP_M);
+  const accScale = correctionAccuracyScale(opts.accuracyM);
+  const blend = DR_CORRECTION_BLEND * accScale;
+  const maxStep = DR_MAX_CORRECTION_STEP_M * accScale;
+  const step = Math.min(d * blend, maxStep);
   const b = bearingDegrees(dr.synLat, dr.synLng, gpsLat, gpsLng);
   const o = offsetByHeadingMeters(dr.synLat, dr.synLng, b, step);
   dr.synLat = o.lat;
   dr.synLng = o.lng;
+}
+
+/**
+ * Smoothed lat/lng for display and hub; follows `syn*` with EMA in `stepDisplayEmaTowardSyn`.
+ */
+export function getSmoothedPoseLngLat(dr) {
+  const lat = dr.displayLat ?? dr.synLat;
+  const lng = dr.displayLng ?? dr.synLng;
+  return { lat, lng };
+}
+
+/**
+ * Low-pass display position toward kinematic `syn*` (call from rAF).
+ * @param {number} [alpha] defaults to {@link DR_DISPLAY_EMA_ALPHA}
+ */
+export function stepDisplayEmaTowardSyn(dr, alpha = DR_DISPLAY_EMA_ALPHA) {
+  if (dr.synLat == null || dr.synLng == null) return;
+  if (dr.displayLat == null || dr.displayLng == null) {
+    dr.displayLat = dr.synLat;
+    dr.displayLng = dr.synLng;
+    return;
+  }
+  const a = Math.min(1, Math.max(0, alpha));
+  dr.displayLat += a * (dr.synLat - dr.displayLat);
+  dr.displayLng += a * (dr.synLng - dr.displayLng);
 }
 
 /**
