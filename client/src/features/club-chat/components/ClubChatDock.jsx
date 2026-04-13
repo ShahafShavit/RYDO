@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreferences } from '@/features/account/hooks/useAccount';
 import { env } from '@/shared/config/env';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
+import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import { useClubChatHub } from '@/features/club-chat/hooks/useClubChatHub';
 import ClubChatMessageBody from '@/features/club-chat/components/ClubChatMessageBody';
 import ClubChatComposer from '@/features/club-chat/components/ClubChatComposer';
@@ -36,7 +37,7 @@ export default function ClubChatDock() {
   const { user } = useAuth();
   const { data: preferences } = usePreferences();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const { chatOpen: open, setChatOpen, toggleChat } = useClubChatUi();
   const [clubId, setClubId] = useState(null);
   const messagesScrollRef = useRef(null);
 
@@ -88,7 +89,7 @@ export default function ClubChatDock() {
         const n = new Notification(title, { body, tag: `club-chat-${payload.clubId}` });
         n.onclick = () => {
           window.focus();
-          setOpen(true);
+          setChatOpen(true);
           if (payload.clubId != null) {
             setClubId(payload.clubId);
           }
@@ -98,7 +99,7 @@ export default function ClubChatDock() {
         /* ignore */
       }
     },
-    [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId]
+    [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId, setChatOpen]
   );
 
   useClubChatHub(summary, !!user?.id && !env.isMockApi, {
@@ -183,7 +184,7 @@ export default function ClubChatDock() {
     Notification.requestPermission();
   }, []);
 
-  const closeDock = useCallback(() => setOpen(false), []);
+  const closeDock = useCallback(() => setChatOpen(false), [setChatOpen]);
 
   if (!user?.id) return null;
 
@@ -192,24 +193,21 @@ export default function ClubChatDock() {
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Open club chat"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'fixed z-[100] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95',
-          liveRideMatch
-            ? 'max-md:bottom-[max(11.5rem,calc(10.5rem+env(safe-area-inset-bottom)))] max-md:left-[max(1rem,env(safe-area-inset-left))] max-md:right-auto md:bottom-8 md:right-8 md:left-auto'
-            : 'bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] md:bottom-8 md:right-8',
-        )}
-      >
-        <MessageCircle className="h-7 w-7" aria-hidden />
-        {totalUnread > 0 ? (
-          <span className="absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-            {totalUnread > 99 ? '99+' : totalUnread}
-          </span>
-        ) : null}
-      </button>
+      {!liveRideMatch ? (
+        <button
+          type="button"
+          aria-label="Open club chat"
+          onClick={() => toggleChat()}
+          className="fixed z-[100] flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] md:bottom-8 md:right-8"
+        >
+          <MessageCircle className="h-7 w-7" aria-hidden />
+          {totalUnread > 0 ? (
+            <span className="absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
 
       <AnimatePresence>
         {open ? (
@@ -273,7 +271,7 @@ export default function ClubChatDock() {
                 type="button"
                 aria-label="Close chat"
                 className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface"
-                onClick={() => setOpen(false)}
+                onClick={() => setChatOpen(false)}
               >
                 <X className="h-5 w-5" aria-hidden />
               </button>

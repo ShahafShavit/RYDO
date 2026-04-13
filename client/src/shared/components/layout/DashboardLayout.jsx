@@ -9,6 +9,7 @@ import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
+import { ClubChatUiProvider } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
 
 export default function DashboardLayout() {
@@ -20,6 +21,7 @@ export default function DashboardLayout() {
   }, []);
 
   return (
+    <ClubChatUiProvider>
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? <MobileNavbar /> : null}
 
@@ -69,5 +71,6 @@ export default function DashboardLayout() {
       </main>
       <ClubChatDock />
     </div>
+    </ClubChatUiProvider>
   );
 }

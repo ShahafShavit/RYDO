@@ -1,18 +1,22 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { featureCollection } from '@turf/helpers';
-import { Crosshair } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
+import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
+import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
+import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
+import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
+import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
-import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
-import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
-import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
-import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
+import { env } from '@/shared/config/env';
+import { useQuery } from '@tanstack/react-query';
+import { featureCollection } from '@turf/helpers';
+import { CheckCircle2, Crosshair, Loader2, MessageCircle, XCircle } from 'lucide-react';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
@@ -39,6 +43,42 @@ function formatDistanceM(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
+/** Clears Mapbox logo + attribution (~2.75rem) plus safe area. */
+const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
+
+function LiveHubStatusChip({ hubStatus, hubError }) {
+  const connecting = hubStatus === 'connecting';
+  const connected = hubStatus === 'connected' && !hubError;
+
+  if (connected) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md">
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
+        <span>Connected</span>
+      </div>
+    );
+  }
+
+  if (connecting) {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg-muted shadow backdrop-blur-md">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-fg-muted" aria-hidden />
+        <span>Connecting…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md md:max-w-[min(100%,14rem)]"
+      title={hubError?.message || undefined}
+    >
+      <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+      <span className="line-clamp-2 wrap-break-word md:line-clamp-1">No Connection</span>
+    </div>
+  );
+}
+
 export default function RideLiveMapPage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
@@ -49,6 +89,26 @@ export default function RideLiveMapPage() {
   const programmaticMoveRef = useRef(false);
 
   const { ride, isLoading, isError, error } = useRideEvent(rideId);
+  const { openChat } = useClubChatUi();
+
+  const summaryQuery = useQuery({
+    queryKey: ['clubChat', 'summary'],
+    queryFn: () => clubChatApi.getSummary(),
+    enabled: !!user?.id && !env.isMockApi,
+    staleTime: 15_000,
+  });
+
+  const chatUnread = useMemo(() => {
+    const rows = summaryQuery.data || [];
+    if (ride?.clubId != null && String(ride.clubId) !== '') {
+      const id = Number(ride.clubId);
+      if (Number.isFinite(id)) {
+        return rows.find((s) => s.clubId === id)?.unreadCount ?? 0;
+      }
+    }
+    return rows.reduce((a, r) => a + (r.unreadCount || 0), 0);
+  }, [summaryQuery.data, ride?.clubId]);
+
   const myUserId = user?.id != null ? Number(user.id) : null;
 
   const amParticipant = useMemo(() => {
@@ -334,30 +394,55 @@ export default function RideLiveMapPage() {
       </Map>
 
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 p-3 max-md:items-stretch max-md:pr-[4.5rem] md:flex-row md:justify-between md:gap-2"
+        className="pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
-        <div className="pointer-events-auto w-fit max-md:max-w-full">
+        <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
           <Link
             to={ROUTES.rideEvent.replace(':rideId', String(rideId))}
             className="inline-flex rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-sm font-medium text-fg shadow backdrop-blur-md"
           >
             Back
           </Link>
-        </div>
-        <div className="pointer-events-auto max-w-full rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs text-fg-muted shadow backdrop-blur-md md:max-w-[min(100%,14rem)] md:shrink-0">
-          <span className="line-clamp-2 break-words md:line-clamp-1">
-            Hub: {hubStatus}
-            {hubError ? ` · ${hubError.message}` : ''}
-          </span>
+          <LiveHubStatusChip hubStatus={hubStatus} hubError={hubError} />
         </div>
       </div>
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pt-2"
+        style={{ paddingBottom: LIVE_MAP_BOTTOM_INSET }}
       >
-        <div className="pointer-events-auto flex w-full max-w-lg flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
+        {showRecenter || (user && !env.isMockApi) ? (
+          <div className="pointer-events-auto relative h-14 w-full shrink-0">
+            {showRecenter ? (
+              <button
+                type="button"
+                onClick={handleRecenterClick}
+                className="absolute left-1/2 top-1/2 z-[1] inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
+              >
+                <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                Center on me
+              </button>
+            ) : null}
+            {user && !env.isMockApi ? (
+              <button
+                type="button"
+                aria-label="Open club chat"
+                onClick={() => openChat()}
+                className="absolute top-1/2 z-[2] flex h-14 w-14 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
+                style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
+              >
+                <MessageCircle className="h-7 w-7" aria-hidden />
+                {chatUnread > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                    {chatUnread > 99 ? '99+' : chatUnread}
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm tabular-nums text-fg">
               <span title="Ground speed from GPS">{formatSpeedKmh(selfFix?.speed)}</span>
@@ -365,16 +450,6 @@ export default function RideLiveMapPage() {
               <span className="text-fg-muted">{timeLabel}</span>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {showRecenter ? (
-                <button
-                  type="button"
-                  onClick={handleRecenterClick}
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-3 py-1.5 text-xs font-medium text-fg shadow backdrop-blur-md"
-                >
-                  <Crosshair className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                  Center on me
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={() => setNearbyOpen((o) => !o)}
