@@ -1,3 +1,14 @@
+import {
+  Bike,
+  Compass,
+  Home,
+  LayoutDashboard,
+  Map,
+  Route as RoutePathIcon,
+  UserSearch,
+  Users,
+  UsersRound,
+} from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 
 export const primaryNavigation = [
@@ -9,16 +20,16 @@ export const primaryNavigation = [
 ];
 
 export const dashboardNavigation = [
-  { label: 'Home', to: ROUTES.dashboard },
-  { label: 'Explore Routes', to: ROUTES.routes },
-  { label: 'My Routes', to: ROUTES.myRoutes },
-  { label: 'My Rides', to: ROUTES.myRides },
-  { label: 'Clubs', to: ROUTES.clubs },
-  { label: 'Find People', to: ROUTES.findPeople },
+  { label: 'Home', to: ROUTES.dashboard, Icon: Home },
+  { label: 'Explore Routes', to: ROUTES.routes, Icon: Compass },
+  { label: 'My Routes', to: ROUTES.myRoutes, Icon: RoutePathIcon },
+  { label: 'My Rides', to: ROUTES.myRides, Icon: Bike },
+  { label: 'Clubs', to: ROUTES.clubs, Icon: UsersRound },
+  { label: 'Find People', to: ROUTES.findPeople, Icon: UserSearch },
 ];
 
 export const adminNavigation = [
-  { label: 'Admin', to: ROUTES.admin },
-  { label: 'Users', to: ROUTES.adminUsers },
-  { label: 'Routes', to: ROUTES.adminRoutes },
+  { label: 'Admin', to: ROUTES.admin, Icon: LayoutDashboard },
+  { label: 'Users', to: ROUTES.adminUsers, Icon: Users },
+  { label: 'Routes', to: ROUTES.adminRoutes, Icon: Map },
 ];

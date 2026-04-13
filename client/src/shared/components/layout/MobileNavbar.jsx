@@ -79,22 +79,28 @@ export default function MobileNavbar({ isAdminLayout }) {
                             transition={tFast}
                             className={`absolute top-full left-0 w-full border-b border-border p-4 flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[var(--rydo-bg-deep)]' : 'bg-[var(--rydo-bg-deep)]'}`}
                         >
-                            {navItems.map((item, index) => (
-                                <NavLink
-                                    key={item.label}
-                                    ref={index === 0 ? firstLinkRef : undefined}
-                                    to={item.to}
-                                    onClick={() => setIsOpen(false)}
-                                    className={({ isActive }) =>
-                                        `rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
-                                            ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
-                                            : 'text-fg-muted hover:bg-surface hover:text-fg'
-                                        }`
-                                    }
-                                >
-                                    {item.label}
-                                </NavLink>
-                            ))}
+                            {navItems.map((item, index) => {
+                                const ItemIcon = item.Icon;
+                                return (
+                                    <NavLink
+                                        key={item.label}
+                                        ref={index === 0 ? firstLinkRef : undefined}
+                                        to={item.to}
+                                        onClick={() => setIsOpen(false)}
+                                        className={({ isActive }) =>
+                                            `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
+                                                ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                                                : 'text-fg-muted hover:bg-surface hover:text-fg'
+                                            }`
+                                        }
+                                    >
+                                        {ItemIcon ? (
+                                            <ItemIcon className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                                        ) : null}
+                                        <span className="min-w-0">{item.label}</span>
+                                    </NavLink>
+                                );
+                            })}
                             {!isAdminLayout && isAdmin && (
                                 <NavLink to={ROUTES.admin} onClick={() => setIsOpen(false)} className="w-full block">
                                     <Button variant="secondary" className="w-full justify-center">
