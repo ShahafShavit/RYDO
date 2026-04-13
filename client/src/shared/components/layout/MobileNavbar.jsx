@@ -49,7 +49,9 @@ export default function MobileNavbar({ isAdminLayout }) {
 
     return (
         <>
-            <div className="md:hidden sticky top-0 z-50 w-full border-b border-border bg-black/40 backdrop-blur-xl">
+            <div
+                className={`md:hidden sticky top-0 w-full border-b border-border bg-black/40 backdrop-blur-xl ${isOpen ? 'z-(--rydo-z-mobile-menu)' : 'z-(--rydo-z-sticky)'}`}
+            >
                 <div className="flex items-center justify-between px-4 py-4">
                     <div className="flex items-center gap-3">
                         <span className={`h-3 w-3 rounded-full ${isAdminLayout ? 'bg-rydo-purple shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_75%,transparent)]' : 'bg-rydo-green shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_65%,transparent)]'}`} />
@@ -139,7 +141,7 @@ export default function MobileNavbar({ isAdminLayout }) {
                         type="button"
                         aria-hidden
                         tabIndex={-1}
-                        className="fixed inset-0 z-40 md:hidden bg-black/45 cursor-default border-0 p-0"
+                        className="fixed inset-0 z-(--rydo-z-mobile-menu-backdrop) md:hidden bg-black/45 cursor-default border-0 p-0"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}

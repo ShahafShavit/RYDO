@@ -36,6 +36,23 @@
   --rydo-glass-inset: inset 0 1px 0 rgba(255, 235, 210, 0.1);
   --rydo-glass-outer: 0 18px 56px rgba(0, 0, 0, 0.42);
   --rydo-noise-opacity: 0.038;
+
+  /*
+   * Stacking (#root vs portaled modals): see body { isolation: isolate } and #root { z-index: 2 } below.
+   * Use z-(--rydo-z-*) in markup — @theme --z-* keys do not emit z-* utilities reliably here.
+   */
+  --rydo-z-live-map: 40;
+  --rydo-z-sticky: 50;
+  --rydo-z-anchor-popover: 55;
+  --rydo-z-route-header: 10;
+  --rydo-z-route-popover: 20;
+  --rydo-z-chat-fab: 100;
+  --rydo-z-chat-panel: 101;
+  --rydo-z-mobile-menu-backdrop: 115;
+  --rydo-z-mobile-menu: 120;
+  --rydo-z-live-blocking: 200;
+  --rydo-z-modal: 1000;
+  --rydo-z-modal-nested: 1010;
 }
 
 /* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */

@@ -11,7 +11,7 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
   const titleId = useId();
 
   return (
-    <AnimatedModal open={isOpen} onClose={onClose} zIndexClass="z-[100]">
+    <AnimatedModal open={isOpen} onClose={onClose}>
       <Card
         role="dialog"
         aria-modal="true"

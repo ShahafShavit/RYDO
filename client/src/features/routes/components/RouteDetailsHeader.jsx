@@ -18,7 +18,7 @@ export default function RouteDetailsHeader({ route, children }) {
   const showUploader = cb?.id != null && cb?.fullName;
 
   return (
-    <div className="relative z-[10050] space-y-4">
+    <div className="relative z-(--rydo-z-route-header) space-y-4">
       <div>
         <h1 className="text-3xl font-semibold">{route.title || 'Untitled'}</h1>
 

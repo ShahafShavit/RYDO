@@ -9,7 +9,7 @@ export default function AppNavbar() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-black/20 backdrop-blur-2xl ">
+    <header className="sticky top-0 z-(--rydo-z-sticky) border-b border-border bg-black/20 backdrop-blur-2xl ">
       <div className="rydo-container flex h-18 items-center justify-between gap-6">
         <Link to={ROUTES.home} className="inline-flex items-center">
           <AppLogo />

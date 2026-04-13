@@ -15,7 +15,7 @@ export default function AnimatedModal({
   open,
   onClose,
   children,
-  zIndexClass = 'z-50',
+  zIndexClass = 'z-(--rydo-z-modal)',
   contentClassName = '',
   panelClassName = '',
   maxWidthClassName = 'max-w-xl',

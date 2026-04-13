@@ -206,7 +206,7 @@ export default function LiveRidePage() {
 
   if (!token) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
         <h1 className="text-xl font-semibold tracking-tight">Live Ride simulator</h1>
         <p className="max-w-md text-sm text-fg-muted">
           Add <code className="rounded bg-surface px-1.5 py-0.5 text-fg">VITE_MAPBOX_ACCESS_TOKEN</code> to{' '}
@@ -226,7 +226,7 @@ export default function LiveRidePage() {
 
   if (!catalogReady && !uploadedGeoJson) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-3 bg-[#0a0908] px-6 text-center text-fg">
         <div className="h-8 w-8 shrink-0 rounded-full border-2 border-border-strong border-t-rydo-purple animate-spin" />
         <p className="text-sm text-fg-muted">Loading routes from the API…</p>
         <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
@@ -238,7 +238,7 @@ export default function LiveRidePage() {
 
   if (!line || !routeFc) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-3 bg-[#0a0908] px-6 text-center text-fg">
         <p className="text-sm text-fg-muted">No valid track line in the current data.</p>
         <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
           Back to home
@@ -250,7 +250,7 @@ export default function LiveRidePage() {
   const progressPct = totalLenM > 0 ? Math.min(100, (hud.distanceM / totalLenM) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-40 h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div className="fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
       <Map
         ref={mapRef}
         mapboxAccessToken={token}

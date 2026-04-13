@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import RouteRidersRosterModal, { RouteRiderRow } from '@/features/routes/components/RouteRidersRosterModal';
 import { routesApi, routeKeys } from '@/features/routes/api/routesApi';
@@ -32,7 +32,37 @@ export default function RouteRidersPanel({
   const [hoverOpen, setHoverOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const leaveTimerRef = useRef(null);
+  const anchorRef = useRef(null);
+  const [popoverStyle, setPopoverStyle] = useState(null);
   const [interactionPrimed, setInteractionPrimed] = useState(false);
+
+  const updatePopoverPosition = useCallback(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const margin = 16;
+    const maxW = Math.min(320, window.innerWidth - margin * 2);
+    let left = r.left;
+    if (left + maxW > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - margin - maxW);
+    }
+    setPopoverStyle({
+      top: r.bottom + 6,
+      left,
+      width: maxW,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!hoverOpen) return undefined;
+    updatePopoverPosition();
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    window.addEventListener('resize', updatePopoverPosition);
+    return () => {
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+      window.removeEventListener('resize', updatePopoverPosition);
+    };
+  }, [hoverOpen, updatePopoverPosition]);
 
   const base = useMemo(() => normalizeRouteRiders(routeRiders), [routeRiders]);
 
@@ -121,7 +151,7 @@ export default function RouteRidersPanel({
 
     return (
       <>
-        <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+        <div ref={anchorRef} className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
           <button
             type="button"
             onClick={(e) => {
@@ -134,8 +164,13 @@ export default function RouteRidersPanel({
           >
             <span className="truncate font-medium">{label}</span>
           </button>
-          {hoverOpen ? (
-            <div className="absolute left-0 top-[calc(100%+0.375rem)] z-[10060] w-[min(100vw-2rem,20rem)] rounded-xl border border-border bg-[var(--rydo-bg-deep)] p-3 shadow-xl">
+          {hoverOpen && popoverStyle ? (
+            <div
+              className="fixed z-(--rydo-z-anchor-popover) max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] p-3 shadow-xl"
+              style={{ top: popoverStyle.top, left: popoverStyle.left, width: popoverStyle.width }}
+              onMouseEnter={handleEnter}
+              onMouseLeave={handleLeave}
+            >
               {rosterLoading ? (
                 <p className="text-sm text-fg-muted">Loading riders…</p>
               ) : visible.length === 0 ? (

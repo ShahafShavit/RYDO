@@ -325,7 +325,7 @@ export default function RideLiveMapPage() {
 
   if (!token) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
         <h1 className="text-xl font-semibold tracking-tight">Live ride</h1>
         <p className="max-w-md text-sm text-fg-muted">
           Add <code className="rounded bg-surface px-1.5 py-0.5 text-fg">VITE_MAPBOX_ACCESS_TOKEN</code> to{' '}
@@ -340,7 +340,7 @@ export default function RideLiveMapPage() {
 
   if (isLoading || !ride) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#0a0908] text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-3 bg-[#0a0908] text-fg">
         <div className="h-8 w-8 shrink-0 rounded-full border-2 border-border-strong border-t-rydo-purple animate-spin" />
         <p className="text-sm text-fg-muted">Loading ride…</p>
       </div>
@@ -349,7 +349,7 @@ export default function RideLiveMapPage() {
 
   if (isError) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
         <p className="text-sm text-red-400">{error?.message || 'Could not load ride.'}</p>
         <Link to={ROUTES.myRides} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
           My rides
@@ -360,7 +360,7 @@ export default function RideLiveMapPage() {
 
   if (!line || !routeFc) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
         <p className="text-sm text-fg-muted">This ride has no usable route line for live view.</p>
         <Link to={ROUTES.rideEvent.replace(':rideId', String(rideId))} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
           Back to ride
@@ -370,7 +370,7 @@ export default function RideLiveMapPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-40 h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div className="fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
       <Map
         ref={mapRef}
         mapboxAccessToken={token}

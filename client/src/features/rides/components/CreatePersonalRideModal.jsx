@@ -55,7 +55,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
   };
 
   return (
-    <AnimatedModal open={open} onClose={onClose} zIndexClass="z-50">
+    <AnimatedModal open={open} onClose={onClose}>
       <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
         <h2 className="text-xl font-semibold">Schedule a personal ride</h2>
 

@@ -164,11 +164,7 @@ function EditRideForm({ ride, onClose }) {
 /** @param {{ open: boolean, onClose: () => void, ride: object | null }} props */
 export default function EditRideModal({ open, onClose, ride }) {
   return (
-    <AnimatedModal
-      open={open}
-      onClose={onClose}
-      zIndexClass="z-[10050]"
-    >
+    <AnimatedModal open={open} onClose={onClose}>
       <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
         {open && ride ? <EditRideForm ride={ride} onClose={onClose} /> : null}
       </Card>

@@ -120,7 +120,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
 
 export default function RouteRidersRosterModal({ open, onClose, riders, hiddenCount }) {
   return (
-    <AnimatedModal open={open} onClose={onClose} zIndexClass="z-[20000]" maxWidthClassName="max-w-md">
+    <AnimatedModal open={open} onClose={onClose} zIndexClass="z-(--rydo-z-modal-nested)" maxWidthClassName="max-w-md">
       {open ? (
         <RouteRidersRosterModalContent onClose={onClose} riders={riders} hiddenCount={hiddenCount} />
       ) : null}

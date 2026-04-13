@@ -73,7 +73,7 @@ export function RouteDetailsDescription({ description }) {
   if (!full) return null;
 
   return (
-    <Card className="mt-4 border-border bg-surface-strong">
+    <Card className="relative z-(--rydo-z-route-popover) mt-4 border-border bg-surface-strong">
       <h3 className="text-lg font-semibold text-fg/95">Description</h3>
       <div className="mt-3 space-y-1 text-base leading-relaxed text-fg/82" dir="auto">
         <p className="m-0 whitespace-pre-wrap">{needsMore && !expanded ? preview : full}</p>

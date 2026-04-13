@@ -7,7 +7,7 @@ export default function ScheduleRideFromRouteModal({ open, onClose, routeId, rou
   const titleId = useId();
 
   return (
-    <AnimatedModal open={open} onClose={onClose} zIndexClass="z-[10050]">
+    <AnimatedModal open={open} onClose={onClose}>
       <Card
         role="dialog"
         aria-modal="true"
