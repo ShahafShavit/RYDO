@@ -15,6 +15,7 @@ export const ROUTES = {
   findPeople: '/find-people',
   userProfile: '/users/:userId',
   rideEvent: '/ride/:rideId',
+  rideLive: '/ride/:rideId/live',
   clubs: '/clubs',
   clubDetails: '/clubs/:clubId',
 

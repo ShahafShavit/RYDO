@@ -4,6 +4,9 @@ WORKDIR /app/client
 COPY client/package.json client/package-lock.json ./
 RUN npm ci
 COPY client/ ./
+# Vite inlines VITE_* at build time — client/.env.local is NOT used in this stage.
+ARG VITE_MAPBOX_ACCESS_TOKEN=
+ENV VITE_MAPBOX_ACCESS_TOKEN=$VITE_MAPBOX_ACCESS_TOKEN
 ENV VITE_API_MODE=real
 ENV VITE_API_BASE_URL=
 RUN npm run build

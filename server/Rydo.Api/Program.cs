@@ -8,20 +8,35 @@ using Rydo.Api;
 using Rydo.Api.Data;
 using Rydo.Api.Hubs;
 using Rydo.Api.Services;
+using Rydo.Api.Services.RideLive;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<RydoOptions>(builder.Configuration.GetSection(RydoOptions.SectionName));
 builder.Services.Configure<DemoClubChatSimulatorOptions>(
     builder.Configuration.GetSection(DemoClubChatSimulatorOptions.SectionName));
+builder.Services.Configure<DemoRideLiveBotsOptions>(
+    builder.Configuration.GetSection(DemoRideLiveBotsOptions.SectionName));
 builder.Services.AddScoped<ClubChatMessageDtoFactory>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
+builder.Services.AddSingleton<RideLivePoseStore>();
+builder.Services.AddSingleton<RideLiveRateLimiter>();
+builder.Services.AddSingleton<RideLiveBotOrchestrator>();
+builder.Services.AddSingleton<IRideLiveSessionCoordinator, RideLiveSessionCoordinator>();
 
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost,1433;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False";
 
 builder.Services.AddDbContext<RydoDbContext>(options =>
     options.UseSqlServer(conn));
+
+builder.Services.AddHttpClient("RideLiveBots", (sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DemoRideLiveBotsOptions>>().Value;
+    var baseUrl = RideLiveSelfApiBaseUrl.Resolve(cfg, opt);
+    client.BaseAddress = new Uri(baseUrl + "/");
+});
 
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
@@ -148,6 +163,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ClubChatHub>("/hubs/club-chat");
+app.MapHub<RideLiveHub>("/hubs/ride-live");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 if (serveSpa is not null)

@@ -81,10 +81,15 @@ export class RydoStack extends cdk.Stack {
       }),
       environment: {
         ASPNETCORE_ENVIRONMENT: 'Production',
+        // Must match Dockerfile (Kestrel listen). Used when resolving in-container loopback URLs (dev-only bots).
+        ASPNETCORE_URLS: 'http://+:8080',
         ConnectionStrings__DefaultConnection: connectionString,
         Jwt__Key: 'rydo-prod-jwt-signing-key-min-32-chars-long!!',
         Jwt__Issuer: 'rydo',
         Jwt__Audience: 'rydo-client',
+        // Dev-only features; explicit off for AWS even if appsettings merge changes.
+        Rydo__DemoClubChatSimulator__Enabled: 'false',
+        Rydo__DemoRideLiveBots__Enabled: 'false',
       },
     });
     appContainer.addPortMappings({

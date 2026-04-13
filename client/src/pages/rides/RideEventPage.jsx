@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { ROUTES } from '@/app/router/route-paths';
+import { cn } from '@/shared/lib/cn';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
@@ -86,6 +88,16 @@ export default function RideEventPage() {
       )}
       {user && ride.rideKind !== 'soloLog' && upcoming ? (
         <div className="flex flex-wrap gap-3">
+          {amParticipant && ride.routeId ? (
+            <Link
+              to={ROUTES.rideLive.replace(':rideId', String(ride.id))}
+              className={cn(
+                'inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border-strong bg-surface-strong px-5 text-sm text-fg shadow-[inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_18%,transparent),0_8px_30px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)] backdrop-blur-xl transition duration-300 hover:border-rydo-purple/50 hover:shadow-[0_0_30px_color-mix(in_srgb,var(--rydo-purple)_30%,transparent)]',
+              )}
+            >
+              Live map
+            </Link>
+          ) : null}
           {amParticipant ? (
             <Button variant="secondary" type="button" onClick={() => leaveRide()} disabled={isLeaving}>
               {isLeaving ? 'Leaving…' : 'Leave ride'}

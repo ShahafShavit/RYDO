@@ -24,6 +24,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Loaded from a `.env` file next to this compose file (not client/.env.local).
+        VITE_MAPBOX_ACCESS_TOKEN: ${VITE_MAPBOX_ACCESS_TOKEN:-}
     ports:
       - "5000:8080"
     environment:

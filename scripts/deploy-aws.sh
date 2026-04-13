@@ -67,7 +67,9 @@ fi
 
 cd "$ROOT"
 echo "Building Docker image…"
-docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" -f Dockerfile .
+docker build \
+  --build-arg "VITE_MAPBOX_ACCESS_TOKEN=${VITE_MAPBOX_ACCESS_TOKEN:-}" \
+  -t "${IMAGE_NAME}:${IMAGE_TAG}" -f Dockerfile .
 
 echo "Logging in to ECR $REGISTRY …"
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
