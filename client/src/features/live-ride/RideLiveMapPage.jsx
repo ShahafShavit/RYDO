@@ -12,7 +12,18 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 import { env } from '@/shared/config/env';
 import { useQuery } from '@tanstack/react-query';
 import { featureCollection } from '@turf/helpers';
-import { CheckCircle2, Crosshair, Loader2, MessageCircle, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Crosshair,
+  Gauge,
+  Loader2,
+  MessageCircle,
+  Users,
+  XCircle,
+} from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
@@ -442,30 +453,72 @@ export default function RideLiveMapPage() {
             ) : null}
           </div>
         ) : null}
-        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-4 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm tabular-nums text-fg">
-              <span title="Ground speed from GPS">{formatSpeedKmh(selfFix?.speed)}</span>
-              <span className="text-fg-muted">·</span>
-              <span className="text-fg-muted">{timeLabel}</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setNearbyOpen((o) => !o)}
-                className="rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium text-fg"
-              >
-                {nearbyOpen ? 'Hide nearby' : 'Nearby riders'}
-              </button>
+        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-4 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+          <div className="flex w-full items-center gap-0 rounded-2xl border border-white/10 bg-black/28 px-3 py-2.5 sm:px-4 sm:py-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-2">
+                <Gauge
+                  className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple/85"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Speed</p>
+                  <p
+                    className="mt-0.5 truncate text-base font-bold tabular-nums leading-tight text-fg sm:text-lg"
+                    title="Ground speed from GPS"
+                  >
+                    {formatSpeedKmh(selfFix?.speed)}
+                  </p>
+                </div>
+              </div>
+              <div className="hidden h-10 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
+              <div className="flex min-w-0 flex-1 items-start gap-2">
+                <Clock
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[#3ecfb9]/90"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Time</p>
+                  <p className="mt-0.5 truncate text-sm font-semibold tabular-nums leading-tight text-fg sm:text-base">
+                    {timeLabel}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <p className="text-xs text-fg-muted">
-            {peersById.size} other rider{peersById.size === 1 ? '' : 's'} live
-          </p>
-          {geoError ? <p className="text-xs text-amber-200/90">{geoError}</p> : null}
+
+          <button
+            type="button"
+            onClick={() => setNearbyOpen((o) => !o)}
+            aria-expanded={nearbyOpen}
+            aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-black/22 px-3 py-2.5 text-left transition hover:border-white/15 hover:bg-black/30 active:scale-[0.99]"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rydo-purple/20 text-rydo-purple">
+              <Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+            </span>
+            <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
+              <span className="font-semibold tabular-nums text-fg">{peersById.size}</span>
+              {' · '}
+              other rider{peersById.size === 1 ? '' : 's'} on the map
+            </p>
+            {nearbyOpen ? (
+              <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+            )}
+          </button>
+
+          {geoError ? (
+            <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/95">
+              {geoError}
+            </p>
+          ) : null}
 
           {nearbyOpen ? (
-            <div className="max-h-[min(40vh,16rem)] overflow-y-auto border-t border-border pt-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
+            <div className="max-h-[min(40vh,16rem)] overflow-y-auto rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
               {nearbyInfo.mode === 'empty' ? (
                 <p className="text-fg-muted">No other riders to compare yet.</p>
               ) : null}
