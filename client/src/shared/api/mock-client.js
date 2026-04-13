@@ -642,14 +642,21 @@ export async function mockRequest(path, options = {}) {
     if (rawQ.length < 2) {
       return { items: [] };
     }
-    const qt = rawQ.toLowerCase();
+    const tokens = rawQ.toLowerCase().split(/\s+/).filter(Boolean);
     const matches = users
       .filter((u) => {
         if (u.id === profile.id) return false;
         const fn = (u.firstName || '').toLowerCase();
         const ln = (u.lastName || '').toLowerCase();
         const em = (u.email || '').toLowerCase();
-        return fn.includes(qt) || ln.includes(qt) || em.includes(qt);
+        return tokens.every((tok) => fn.includes(tok) || ln.includes(tok) || em.includes(tok));
+      })
+      .sort((a, b) => {
+        const c = (a.lastName || '').localeCompare(b.lastName || '');
+        if (c !== 0) return c;
+        const c2 = (a.firstName || '').localeCompare(b.firstName || '');
+        if (c2 !== 0) return c2;
+        return a.id - b.id;
       })
       .slice(0, take);
     return {

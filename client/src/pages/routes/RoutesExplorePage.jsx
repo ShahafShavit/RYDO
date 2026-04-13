@@ -1,10 +1,13 @@
 import { useDeferredValue, useMemo, useCallback, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, generatePath, useSearchParams } from 'react-router-dom';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteFilters from '@/features/routes/components/RouteFilters';
 import { useRoutesExploreInfinite } from '@/features/routes/hooks/useRoutesExploreInfinite';
 import { useNearMeGeo } from '@/features/routes/hooks/useNearMeGeo';
+import { useUserSearch } from '@/features/users/hooks/useUserSearch';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
+import { ROUTES } from '@/app/router/route-paths';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 
 const defaultExploreFilters = () => ({
   search: '',
@@ -44,6 +47,15 @@ export default function RoutesExplorePage() {
   const { loading: geoLoading, error: geoError, requestPosition, clearError } = useNearMeGeo();
 
   const deferredSearch = useDeferredValue(filters.search);
+  const peopleSearchQ = deferredSearch.trim();
+  const showPeopleSearch = peopleSearchQ.length >= 2;
+  const {
+    data: peopleItems = [],
+    isFetching: peopleFetching,
+    isError: peopleError,
+    error: peopleSearchError,
+  } = useUserSearch(peopleSearchQ, 24);
+
   const filtersForQuery = useMemo(
     () => ({ ...filters, search: deferredSearch }),
     [filters, deferredSearch],
@@ -82,7 +94,10 @@ export default function RoutesExplorePage() {
     <section className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Repository</p>
-        <h1 className="mt-2 text-3xl font-semibold">Explore routes</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-fg">Explore</h1>
+        <p className="mt-2 max-w-xl text-sm text-fg-muted">
+          Search routes by title or members by name. People matches appear once you type at least two characters.
+        </p>
       </div>
       <RouteFilters
         filters={filters}
@@ -93,6 +108,34 @@ export default function RoutesExplorePage() {
         onUseNearMe={handleUseNearMe}
         onClearNearMe={handleClearNearMe}
       />
+      {showPeopleSearch ? (
+        <section className="space-y-3 rounded-[28px] border border-border bg-surface px-4 py-4 sm:px-6" aria-label="People search results">
+          <h2 className="text-sm font-medium text-fg/90">People</h2>
+          {peopleFetching ? <p className="text-sm text-fg-muted">Searching…</p> : null}
+          {peopleError ? (
+            <p className="text-sm text-red-400/90">{peopleSearchError?.message || 'People search failed.'}</p>
+          ) : null}
+          {!peopleFetching && !peopleError ? (
+            <ul className="space-y-2">
+              {peopleItems.length === 0 ? (
+                <li className="text-sm text-fg-subtle">No members match that search.</li>
+              ) : (
+                peopleItems.map((row) => (
+                  <li key={row.id}>
+                    <Link
+                      to={generatePath(ROUTES.userProfile, { userId: String(row.id) })}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-surface-strong px-4 py-3 transition hover:border-border-strong"
+                    >
+                      <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
+                      <span className="font-medium text-fg/90">{row.fullName || `User ${row.id}`}</span>
+                    </Link>
+                  </li>
+                ))
+              )}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
       {isError ? (
         <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           Could not load routes. Try again later.

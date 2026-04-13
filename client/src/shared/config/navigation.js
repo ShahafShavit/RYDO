@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Map,
   Route as RoutePathIcon,
-  UserSearch,
   Users,
   UsersRound,
 } from 'lucide-react';
@@ -21,11 +20,10 @@ export const primaryNavigation = [
 
 export const dashboardNavigation = [
   { label: 'Home', to: ROUTES.dashboard, Icon: Home },
-  { label: 'Explore Routes', to: ROUTES.routes, Icon: Compass },
+  { label: 'Explore', to: ROUTES.routes, Icon: Compass },
   { label: 'My Routes', to: ROUTES.myRoutes, Icon: RoutePathIcon },
   { label: 'My Rides', to: ROUTES.myRides, Icon: Bike },
   { label: 'Clubs', to: ROUTES.clubs, Icon: UsersRound },
-  { label: 'Find People', to: ROUTES.findPeople, Icon: UserSearch },
 ];
 
 export const adminNavigation = [

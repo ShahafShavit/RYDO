@@ -64,19 +64,19 @@ export default function RouteFilters({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
         <div className="relative min-w-0 flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-0 pl-4 flex items-center">
-            <Search className="h-4 w-4 text-fg-subtle" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-4">
+            <Search className="h-4 w-4 shrink-0 text-fg-subtle" aria-hidden />
           </div>
           <Input
             type="text"
             placeholder={
               nearActive
                 ? 'Search routes by title (results sorted by distance)…'
-                : 'Search routes by title…'
+                : 'Search routes or people (name or title)…'
             }
             value={filters.search || ''}
             onChange={handleSearchChange}
-            className="pl-11"
+            className="relative z-0 pl-11"
           />
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">

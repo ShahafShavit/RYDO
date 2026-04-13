@@ -14,6 +14,5 @@ export function prefetchDashboardRoutes() {
     import('@/pages/clubs/ClubDetailPage'),
     import('@/pages/rides/RideEventPage'),
     import('@/pages/settings/SettingsPage'),
-    import('@/pages/users/FindPeoplePage'),
   ]).catch(() => {});
 }

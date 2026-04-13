@@ -36,12 +36,25 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         take = Math.Clamp(take, 1, 50);
 
-        var rows = await users.Users.AsNoTracking()
-            .Where(u => u.Id != viewerId)
-            .Where(u =>
-                (u.FirstName != null && u.FirstName.Contains(term))
-                || (u.LastName != null && u.LastName.Contains(term))
-                || (u.Email != null && u.Email.Contains(term)))
+        var tokens = term.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(t => t.Length > 0)
+            .ToList();
+        if (tokens.Count == 0)
+            return Ok(new { items = Array.Empty<object>() });
+
+        IQueryable<ApplicationUser> queryable = users.Users.AsNoTracking()
+            .Where(u => u.Id != viewerId);
+
+        foreach (var token in tokens)
+        {
+            var t = token;
+            queryable = queryable.Where(u =>
+                (u.FirstName != null && u.FirstName.Contains(t))
+                || (u.LastName != null && u.LastName.Contains(t))
+                || (u.Email != null && u.Email.Contains(t)));
+        }
+
+        var rows = await queryable
             .OrderBy(u => u.LastName)
             .ThenBy(u => u.FirstName)
             .ThenBy(u => u.Id)
