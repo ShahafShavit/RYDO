@@ -46,10 +46,22 @@ export function relativeBearingDeg(forwardDeg, targetBearingDeg) {
  * @param {number | null | undefined} params.selfLat
  * @param {number | null | undefined} params.selfLng
  * @param {number | null | undefined} params.headingDeg device heading, degrees
+ * @param {number | null | undefined} [params.speedKmh]
+ * @param {number} [params.coneMinSpeedKmh]
+ * @param {boolean} [params.forceDisableCone]
  * @param {{ lat: number, lng: number } | null | undefined} params.previousFix
  * @param {Iterable<{ userId: number, lat: number, lng: number, displayName?: string, avatarUrl?: string | null }>} params.peers
  */
-export function nearestPeersAheadBehind({ selfLat, selfLng, headingDeg, previousFix, peers }) {
+export function nearestPeersAheadBehind({
+  selfLat,
+  selfLng,
+  headingDeg,
+  speedKmh,
+  coneMinSpeedKmh = 7,
+  forceDisableCone = false,
+  previousFix,
+  peers,
+}) {
   const list = [...peers];
   if (
     selfLat == null ||
@@ -67,6 +79,18 @@ export function nearestPeersAheadBehind({ selfLat, selfLng, headingDeg, previous
   }));
 
   let forwardDeg = null;
+  const coneEnabled =
+    !forceDisableCone &&
+    Number.isFinite(speedKmh) &&
+    speedKmh >= coneMinSpeedKmh;
+  if (!coneEnabled) {
+    withDist.sort((a, b) => a.distanceM - b.distanceM);
+    return {
+      mode: 'unknown',
+      nearest: withDist.slice(0, 5).map((x) => ({ ...x.peer, distanceM: x.distanceM })),
+    };
+  }
+
   if (headingDeg != null && Number.isFinite(headingDeg)) {
     forwardDeg = headingDeg;
   } else if (

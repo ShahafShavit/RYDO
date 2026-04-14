@@ -31,6 +31,14 @@ Mobile browsers usually require a **secure context** (`https://` or `http://loca
 
    The script prints a **`https://<your-lan-ip>:5173`** URL. Ensure the phone is on the **same Wi‑Fi** as the PC. If Windows Firewall prompts, allow **Node** / **private networks** for that port.
 
+5. If multiple "Network" URLs are printed and you are unsure which IP to use, on Windows PowerShell print likely LAN URLs (excluding loopback/APIPA):
+
+   ```powershell
+   Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.)' } | ForEach-Object { "https://$($_.IPAddress):5173" }
+   ```
+
+   Pick the IP that matches your phone's subnet (for example, phone `10.0.0.x` -> use PC `10.0.0.y`).
+
 ---
 
 ## One-time per phone: trust the mkcert root CA
@@ -100,6 +108,8 @@ To turn off the kinematic gate on the live map (unrelated, but useful when debug
 | `mkcert` not found | Add mkcert to PATH or reinstall from the official releases. |
 | Phone still warns on HTTPS | Confirm **root CA** is installed *and* trusted (especially iOS “Certificate Trust Settings”). |
 | Connection refused | Same Wi‑Fi, firewall allows Node, correct IP/port, `npm run dev:lan` is running. |
+| **Server works locally but phone/other machine cannot connect** | You may be testing the wrong adapter IP (VPN/virtual NIC). On Windows, list candidate URLs with: `Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.)' } | ForEach-Object { "https://$($_.IPAddress):5173" }` and pick the subnet that matches the phone. |
 | Regenerated certs after Wi‑Fi IP changed | Run `npm run setup:dev-https` again so the cert includes the new LAN IP (or add hostnames manually with mkcert). |
+| **PowerShell says `curl -vk` is invalid** | Use `curl.exe -vk https://<lan-ip>:5173` (PowerShell aliases `curl` to `Invoke-WebRequest`), or use `Test-NetConnection <lan-ip> -Port 5173` for a pure TCP check. |
 | **Login works on PC but "Failed to fetch" on phone** | **`VITE_API_BASE_URL` must be empty** for LAN testing so `/api` goes through Vite on port 5173. Values like `http://localhost:5032` resolve to the **phone** on mobile, not your PC. Restart Vite after changing `.env.local`. In dev, the app warns in the console if it detects this. |
 | **Vite: `http proxy error` / `ECONNREFUSED 127.0.0.1:5000` (or :5032)** | The API is not reachable at the proxy target. Start **`docker compose`** (port **5000** on the host) or **`dotnet run`** and set `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032` if you use the default launch profile. |

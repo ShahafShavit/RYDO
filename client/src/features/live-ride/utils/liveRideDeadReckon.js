@@ -64,6 +64,81 @@ export function enuDeltaMeters(lat0, lng0, lat1, lng1) {
   return { east, north };
 }
 
+/**
+ * Shortest signed angle from `fromDeg` to `toDeg` (degrees, navigation clockwise), in (-180, 180].
+ */
+export function shortestSignedAngleDeg(fromDeg, toDeg) {
+  if (!Number.isFinite(fromDeg) || !Number.isFinite(toDeg)) return 0;
+  let d = toDeg - fromDeg;
+  d = ((d + 540) % 360) - 180;
+  return d;
+}
+
+/**
+ * Rotate `currentDeg` toward `targetDeg` by a fraction `alpha` of the shortest arc (0–1).
+ * Returns normalized heading in [0, 360).
+ */
+export function stepAngleTowardDeg(currentDeg, targetDeg, alpha) {
+  if (!Number.isFinite(targetDeg)) return Number.isFinite(currentDeg) ? ((currentDeg % 360) + 360) % 360 : null;
+  if (!Number.isFinite(currentDeg)) return ((targetDeg % 360) + 360) % 360;
+  const a = Math.min(1, Math.max(0, alpha));
+  const delta = shortestSignedAngleDeg(currentDeg, targetDeg);
+  let next = currentDeg + a * delta;
+  next = ((next % 360) + 360) % 360;
+  return next;
+}
+
+/** Below this smoothed speed (m/s), freeze puck/camera/hub jitter (~2 km/h). */
+export const MIN_MAP_MOTION_SPEED_MPS = 2 / 3.6;
+/** Leave stationary display when speed exceeds this (hysteresis, ~1.15× {@link MIN_MAP_MOTION_SPEED_MPS}). */
+export const MIN_MAP_MOTION_SPEED_EXIT_MPS = MIN_MAP_MOTION_SPEED_MPS * 1.15;
+/**
+ * Heading display smoothing: fraction of the shortest turn per “nominal” 60 Hz frame.
+ * Scaled by `dt` in {@link stepDisplayHeadingTowardTarget} for frame-rate independence.
+ */
+export const HEADING_DISPLAY_SMOOTH = 0.12;
+
+/**
+ * Low-pass `dr.displayHeadingDeg` toward `dr.extrapolateHeadingDeg` (call from rAF with real `dtSeconds`).
+ * Mutates `dr.displayHeadingDeg`; leaves it unset if there is no valid target.
+ */
+export function stepDisplayHeadingTowardTarget(dr, dtSeconds) {
+  const target = dr.extrapolateHeadingDeg;
+  if (target == null || !Number.isFinite(target)) {
+    return;
+  }
+  const dt = Number.isFinite(dtSeconds) && dtSeconds > 0 ? dtSeconds : 1 / 60;
+  const a = Math.min(1, HEADING_DISPLAY_SMOOTH * (dt / (1 / 60)));
+  if (dr.displayHeadingDeg == null || !Number.isFinite(dr.displayHeadingDeg)) {
+    dr.displayHeadingDeg = ((target % 360) + 360) % 360;
+    return;
+  }
+  dr.displayHeadingDeg = stepAngleTowardDeg(dr.displayHeadingDeg, target, a);
+}
+
+/**
+ * Hysteresis for map/camera/hub freeze when smoothed speed is near stationary.
+ * Mutates `state` `{ active: boolean, snapshot: { lat, lng, bearingDeg, accuracyM } | null }`.
+ */
+export function syncStationaryDisplayFreeze(dr, pose, bearingDeg, accuracyM, state) {
+  const v = Number.isFinite(dr.speedMps) ? dr.speedMps : 0;
+  if (!state.active) {
+    if (v < MIN_MAP_MOTION_SPEED_MPS) {
+      state.active = true;
+      state.snapshot = {
+        lat: pose.lat,
+        lng: pose.lng,
+        bearingDeg,
+        accuracyM: accuracyM ?? null,
+      };
+    }
+  } else if (v >= MIN_MAP_MOTION_SPEED_EXIT_MPS) {
+    state.active = false;
+    state.snapshot = null;
+  }
+  return state.active;
+}
+
 export const DR_MIN_SPEED_MPS = 0.35;
 /** Base fraction of error closed toward GPS per accepted fix (scaled by accuracy in `correctSyntheticTowardGps`). */
 export const DR_CORRECTION_BLEND = 0.42;
@@ -88,6 +163,8 @@ export const KIN_STATIONARY_MAX_M = 2;
 export const KIN_VEL_SMOOTH = 0.42;
 /** When GPS speed agrees with implied speed (m/s), blend toward GPS magnitude. */
 export const KIN_SPEED_HINT_BLEND = 0.38;
+/** Ignore speed-hint blending when both implied and hinted speeds are near-stationary. */
+export const KIN_SPEED_HINT_MIN_MPS = 0.9;
 /** rAF speed decay per second when fixes are rejected (avoids drifting on stale heading). */
 export const KIN_REJECT_SPEED_DECAY_PER_S = 2.8;
 
@@ -244,8 +321,12 @@ export function updateAcceptedKinematics(dr, prevLat, prevLng, incoming, dtS, op
 
   let speed = Math.hypot(dr.velEastMps, dr.velNorthMps);
   const hint = incoming.speedMpsHint;
-  if (Number.isFinite(hint) && hint >= 0 && speed > 0.15) {
-    if (Math.abs(hint - speed) < Math.max(3.5, 0.45 * Math.max(speed, hint))) {
+  if (
+    Number.isFinite(hint) &&
+    hint >= KIN_SPEED_HINT_MIN_MPS &&
+    speed >= KIN_SPEED_HINT_MIN_MPS
+  ) {
+    if (Math.abs(hint - speed) < Math.max(2.2, 0.35 * Math.max(speed, hint))) {
       const blended = (1 - KIN_SPEED_HINT_BLEND) * speed + KIN_SPEED_HINT_BLEND * hint;
       const scale = blended / speed;
       dr.velEastMps *= scale;

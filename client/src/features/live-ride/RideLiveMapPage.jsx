@@ -9,6 +9,7 @@ import {
   correctSyntheticTowardGps,
   decaySpeedOnRejectedGps,
   DR_MIN_SPEED_MPS,
+  distanceMeters,
   evaluateKinematicGate,
   getSmoothedPoseLngLat,
   inferSeedDtSeconds,
@@ -17,15 +18,24 @@ import {
   bearingDegrees,
   offsetByHeadingMeters,
   stepDisplayEmaTowardSyn,
+  stepDisplayHeadingTowardTarget,
+  syncStationaryDisplayFreeze,
   updateAcceptedKinematics,
 } from '@/features/live-ride/utils/liveRideDeadReckon';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
+import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
+import { blendHeadingBySpeedKmh } from '@/features/live-ride/utils/liveRideHeadingBlend';
+import { createSpeedFilterState, updateFilteredSpeedMps } from '@/features/live-ride/utils/liveRideSpeedFilter';
 import {
   enableRideLiveDebugFromQuery,
   isKinematicGateEnabled,
   isRideLiveLogEnabled,
   rideLiveLog,
 } from '@/features/live-ride/utils/rideLiveLog';
+import {
+  getStoredLiveRideOrientationOutcome,
+  setStoredLiveRideOrientationOutcome,
+} from '@/features/live-ride/utils/requestLiveRidePermissions';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { env } from '@/shared/config/env';
@@ -36,6 +46,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Compass,
   Crosshair,
   Gauge,
   Loader2,
@@ -54,6 +65,16 @@ const MAP_ZOOM = 15.5;
 const FOLLOW_CAMERA_MIN_MS = 45;
 /** Throttle React updates for puck position from rAF (~30 Hz). */
 const PUCK_DISPLAY_MIN_MS = 33;
+/** Keep cone logic disabled below this speed. */
+const CONE_MIN_SPEED_KMH = 7;
+/** Freeze motion/extrapolation below this speed to avoid stationary drift. */
+const LOW_SPEED_FREEZE_KMH = 5;
+/** Every Nth low-speed update, allow GPS recenter to avoid self-fed drift. */
+const LOW_SPEED_RECENTER_EVERY_N = 20;
+/** Persistent drift lock guard: hard reseed when low-speed error stays high. */
+const DRIFT_RESEED_ERROR_M = 22;
+const DRIFT_RESEED_MIN_DURATION_MS = 10_000;
+const DRIFT_RESEED_MIN_FIXES = 6;
 
 const routeLineLayer = {
   id: 'ride-live-route-line',
@@ -175,9 +196,22 @@ export default function RideLiveMapPage() {
   const [puckDisplay, setPuckDisplay] = useState(null);
   const [clockTick, setClockTick] = useState(() => Date.now());
   const [nearbyOpen, setNearbyOpen] = useState(false);
+  const [compassCtaDismissed, setCompassCtaDismissed] = useState(false);
+  const [orientationPermissionUi, setOrientationPermissionUi] = useState(() =>
+    getStoredLiveRideOrientationOutcome(),
+  );
 
   const selfFixRef = useRef(null);
+  const compassHeadingRef = useRef(null);
+  const gpsHeadingRef = useRef(null);
+  const gpsUpdateSeqRef = useRef(0);
+  const speedFilterRef = useRef(createSpeedFilterState());
+  const driftLockRef = useRef({ firstDriftMs: null, lastDriftMs: null, driftFixCount: 0 });
   const puckDisplayRef = useRef(null);
+  /** Stationary map freeze (hysteresis); snapshot taken when entering freeze. */
+  const stationaryMapRef = useRef({ active: false, snapshot: null });
+  const stationaryPrevFrozenRef = useRef(false);
+  const lastHubEnabledForLiveRef = useRef(false);
   /**
    * Dead reckoning: `syn*` is kinematic truth (gate, DR); `display*` EMA-smoothed for puck/camera/hub.
    */
@@ -189,6 +223,7 @@ export default function RideLiveMapPage() {
     displayLng: null,
     speedMps: 0,
     extrapolateHeadingDeg: null,
+    displayHeadingDeg: null,
     lastRafMs: null,
     lastCameraApplyMs: 0,
     kinematicHistory: false,
@@ -208,6 +243,23 @@ export default function RideLiveMapPage() {
   useLayoutEffect(() => {
     puckDisplayRef.current = puckDisplay;
   }, [puckDisplay]);
+
+  const handleEnableCompassClick = useCallback(async () => {
+    const r = await requestDeviceOrientationPermission();
+    const outcome = r === 'granted' ? 'granted' : r === 'denied' ? 'denied' : 'not_applicable';
+    setStoredLiveRideOrientationOutcome(outcome);
+    setOrientationPermissionUi(outcome);
+  }, []);
+
+  useEffect(() => {
+    if (!hubEnabled) {
+      compassHeadingRef.current = null;
+      return undefined;
+    }
+    return subscribeDeviceCompass((h) => {
+      compassHeadingRef.current = h;
+    });
+  }, [hubEnabled]);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
@@ -316,7 +368,17 @@ export default function RideLiveMapPage() {
   );
 
   useEffect(() => {
-    if (!hubEnabled) return undefined;
+    if (!hubEnabled) {
+      lastHubEnabledForLiveRef.current = false;
+      stationaryMapRef.current = { active: false, snapshot: null };
+      stationaryPrevFrozenRef.current = false;
+      return undefined;
+    }
+    if (!lastHubEnabledForLiveRef.current) {
+      deadReckonRef.current.displayHeadingDeg = null;
+    }
+    lastHubEnabledForLiveRef.current = true;
+
     if (!navigator.geolocation) {
       const t = window.setTimeout(() => setGeoError('Geolocation is not available in this browser.'), 0);
       return () => clearTimeout(t);
@@ -330,21 +392,28 @@ export default function RideLiveMapPage() {
         const accuracy = pos.coords.accuracy;
         const rawSpeed = pos.coords.speed;
         const speed = Number.isFinite(rawSpeed) && rawSpeed >= 0 ? rawSpeed : 0;
+        const filteredSpeedMps = updateFilteredSpeedMps(speedFilterRef.current, speed);
+        const speedKmh = filteredSpeedMps * 3.6;
         let heading = pos.coords.heading;
         if (heading != null && Number.isNaN(heading)) heading = null;
 
         const prev = selfFixRef.current;
         const courseOverGround =
           prev?.lat != null && prev?.lng != null ? bearingDegrees(prev.lat, prev.lng, lat, lng) : null;
-        const extrapolateHeadingDeg =
-          heading != null ? heading : courseOverGround ?? deadReckonRef.current.extrapolateHeadingDeg;
+        const gpsDegForBlend =
+          heading != null && Number.isFinite(heading) ? heading : courseOverGround;
+        gpsHeadingRef.current = gpsDegForBlend ?? null;
 
+        const seq = (gpsUpdateSeqRef.current += 1);
+        const lowSpeedBypassCone = seq % LOW_SPEED_RECENTER_EVERY_N === 0;
         setSelfFix((old) => ({
           lat,
           lng,
           heading,
-          speed,
+          speedRaw: speed,
+          speedFiltered: filteredSpeedMps,
           accuracy,
+          lowSpeedBypassCone,
           previousFix: old && old.lat != null && old.lng != null ? { lat: old.lat, lng: old.lng } : null,
         }));
 
@@ -355,7 +424,7 @@ export default function RideLiveMapPage() {
           lat,
           lng,
           timestampMs: ts,
-          speedMpsHint: speed,
+          speedMpsHint: filteredSpeedMps,
           accuracyM: accuracy,
         };
 
@@ -364,6 +433,86 @@ export default function RideLiveMapPage() {
           dr.synLng = lng;
           dr.initialized = true;
         }
+
+        if (speedKmh < LOW_SPEED_FREEZE_KMH) {
+          dr.speedMps = 0;
+          dr.velEastMps = 0;
+          dr.velNorthMps = 0;
+          dr.consecutiveRejects = 0;
+
+          const shouldRecenter = seq % LOW_SPEED_RECENTER_EVERY_N === 0;
+          const driftErrorM =
+            dr.synLat != null && dr.synLng != null ? distanceMeters(dr.synLat, dr.synLng, lat, lng) : 0;
+          const drift = driftLockRef.current;
+          const driftDetected = Number.isFinite(driftErrorM) && driftErrorM >= DRIFT_RESEED_ERROR_M;
+          if (driftDetected) {
+            if (drift.firstDriftMs == null) drift.firstDriftMs = ts;
+            drift.lastDriftMs = ts;
+            drift.driftFixCount += 1;
+          } else {
+            drift.firstDriftMs = null;
+            drift.lastDriftMs = null;
+            drift.driftFixCount = 0;
+          }
+
+          const driftDurationMs =
+            drift.firstDriftMs != null && drift.lastDriftMs != null ? drift.lastDriftMs - drift.firstDriftMs : 0;
+          const shouldHardReseed =
+            driftDetected &&
+            driftDurationMs >= DRIFT_RESEED_MIN_DURATION_MS &&
+            drift.driftFixCount >= DRIFT_RESEED_MIN_FIXES;
+
+          if (shouldRecenter || shouldHardReseed) {
+            dr.synLat = lat;
+            dr.synLng = lng;
+            dr.lastAcceptedLat = lat;
+            dr.lastAcceptedLng = lng;
+            dr.lastAcceptedMs = ts;
+            if (Number.isFinite(accuracy)) dr.lastAcceptedAccuracyM = accuracy;
+            dr.velEastMps = 0;
+            dr.velNorthMps = 0;
+            dr.consecutiveRejects = 0;
+            stationaryMapRef.current = { active: false, snapshot: null };
+            drift.firstDriftMs = null;
+            drift.lastDriftMs = null;
+            drift.driftFixCount = 0;
+          }
+
+          const vKmhFreeze = 0;
+          const blendedHeadingDeg = blendHeadingBySpeedKmh(
+            compassHeadingRef.current,
+            gpsDegForBlend,
+            vKmhFreeze,
+          );
+          if (blendedHeadingDeg != null && Number.isFinite(blendedHeadingDeg)) {
+            dr.extrapolateHeadingDeg = blendedHeadingDeg;
+          }
+
+          stepDisplayEmaTowardSyn(dr, 0.16);
+          const freezePose = getSmoothedPoseLngLat(dr);
+          const freezeBearing =
+            dr.displayHeadingDeg ??
+            dr.extrapolateHeadingDeg ??
+            (heading != null && Number.isFinite(heading) ? heading : null);
+          const freezeAcc = dr.lastAcceptedAccuracyM ?? accuracy ?? null;
+          syncStationaryDisplayFreeze(dr, freezePose, freezeBearing, freezeAcc, stationaryMapRef.current);
+          const snapFreeze = stationaryMapRef.current.snapshot;
+          if (snapFreeze) {
+            sendPose(
+              snapFreeze.lat,
+              snapFreeze.lng,
+              freezeBearing ?? snapFreeze.bearingDeg ?? null,
+              freezeAcc ?? snapFreeze.accuracyM ?? null,
+            );
+          } else {
+            sendPose(freezePose.lat, freezePose.lng, freezeBearing, freezeAcc);
+          }
+          return;
+        }
+
+        driftLockRef.current.firstDriftMs = null;
+        driftLockRef.current.lastDriftMs = null;
+        driftLockRef.current.driftFixCount = 0;
 
         const gateEnabled = isKinematicGateEnabled();
         const prevState = {
@@ -394,17 +543,23 @@ export default function RideLiveMapPage() {
           }
           stepDisplayEmaTowardSyn(dr, 0.35);
           const rej = getSmoothedPoseLngLat(dr);
-          setPuckDisplay({
-            lat: rej.lat,
-            lng: rej.lng,
-            bearing: dr.extrapolateHeadingDeg ?? heading ?? null,
-          });
-          sendPose(
-            rej.lat,
-            rej.lng,
-            dr.extrapolateHeadingDeg ?? heading ?? null,
-            dr.lastAcceptedAccuracyM ?? accuracy ?? null,
-          );
+          const rejBearing =
+            dr.displayHeadingDeg ??
+            dr.extrapolateHeadingDeg ??
+            (heading != null && Number.isFinite(heading) ? heading : null);
+          const rejAcc = dr.lastAcceptedAccuracyM ?? accuracy ?? null;
+          syncStationaryDisplayFreeze(dr, rej, rejBearing, rejAcc, stationaryMapRef.current);
+          const snapRej = stationaryMapRef.current.snapshot;
+          if (stationaryMapRef.current.active && snapRej) {
+            sendPose(
+              snapRej.lat,
+              snapRej.lng,
+              rejBearing ?? snapRej.bearingDeg ?? null,
+              rejAcc ?? snapRej.accuracyM ?? null,
+            );
+          } else {
+            sendPose(rej.lat, rej.lng, rejBearing, rejAcc);
+          }
           return;
         }
 
@@ -420,19 +575,31 @@ export default function RideLiveMapPage() {
           hardReseed: gate.reason === 'gap_reseed',
         });
 
-        if (extrapolateHeadingDeg != null && Number.isFinite(extrapolateHeadingDeg)) {
-          dr.extrapolateHeadingDeg = extrapolateHeadingDeg;
+        const vKmh = (Number.isFinite(dr.speedMps) ? dr.speedMps : 0) * 3.6;
+        const blendedHeadingDeg = blendHeadingBySpeedKmh(compassHeadingRef.current, gpsDegForBlend, vKmh);
+        if (blendedHeadingDeg != null && Number.isFinite(blendedHeadingDeg)) {
+          dr.extrapolateHeadingDeg = blendedHeadingDeg;
         }
 
         stepDisplayEmaTowardSyn(dr, 0.42);
         const pose = getSmoothedPoseLngLat(dr);
-        setPuckDisplay({
-          lat: pose.lat,
-          lng: pose.lng,
-          bearing: extrapolateHeadingDeg ?? heading ?? null,
-        });
-
-        sendPose(pose.lat, pose.lng, dr.extrapolateHeadingDeg ?? heading ?? null, dr.lastAcceptedAccuracyM ?? accuracy ?? null);
+        const poseBearing =
+          dr.displayHeadingDeg ??
+          dr.extrapolateHeadingDeg ??
+          (heading != null && Number.isFinite(heading) ? heading : null);
+        const poseAcc = dr.lastAcceptedAccuracyM ?? accuracy ?? null;
+        syncStationaryDisplayFreeze(dr, pose, poseBearing, poseAcc, stationaryMapRef.current);
+        const snapPose = stationaryMapRef.current.snapshot;
+        if (stationaryMapRef.current.active && snapPose) {
+          sendPose(
+            snapPose.lat,
+            snapPose.lng,
+            poseBearing ?? snapPose.bearingDeg ?? null,
+            poseAcc ?? snapPose.accuracyM ?? null,
+          );
+        } else {
+          sendPose(pose.lat, pose.lng, poseBearing, poseAcc);
+        }
       },
       (err) => {
         setGeoError(err.message || 'Could not read GPS');
@@ -457,6 +624,16 @@ export default function RideLiveMapPage() {
 
         decaySpeedOnRejectedGps(dr, dt);
 
+        const vKmh = (Number.isFinite(dr.speedMps) ? dr.speedMps : 0) * 3.6;
+        const blendedHeading = blendHeadingBySpeedKmh(
+          compassHeadingRef.current,
+          gpsHeadingRef.current,
+          vKmh,
+        );
+        if (blendedHeading != null && Number.isFinite(blendedHeading)) {
+          dr.extrapolateHeadingDeg = blendedHeading;
+        }
+
         if (dr.speedMps >= DR_MIN_SPEED_MPS && dr.extrapolateHeadingDeg != null) {
           const dist = dr.speedMps * dt;
           if (dist > 0) {
@@ -468,24 +645,49 @@ export default function RideLiveMapPage() {
 
         stepDisplayEmaTowardSyn(dr);
 
+        stepDisplayHeadingTowardTarget(dr, dt);
+
         const raw = selfFixRef.current;
         const displayBearing =
+          dr.displayHeadingDeg ??
           dr.extrapolateHeadingDeg ??
           (raw?.heading != null && Number.isFinite(raw.heading) ? raw.heading : null);
 
         const smooth = getSmoothedPoseLngLat(dr);
-        if (now - lastPuckThrottle.t >= PUCK_DISPLAY_MIN_MS) {
-          lastPuckThrottle.t = now;
-          setPuckDisplay({
-            lat: smooth.lat,
-            lng: smooth.lng,
-            bearing: displayBearing,
-          });
-        }
+        const smoothAcc = dr.lastAcceptedAccuracyM ?? raw?.accuracy ?? null;
+        const frozen = syncStationaryDisplayFreeze(dr, smooth, displayBearing, smoothAcc, stationaryMapRef.current);
 
-        if (followCameraRef.current && now - dr.lastCameraApplyMs >= FOLLOW_CAMERA_MIN_MS) {
-          dr.lastCameraApplyMs = now;
-          applyFollowCamera(smooth.lng, smooth.lat, displayBearing ?? undefined);
+        if (frozen) {
+          const snap = stationaryMapRef.current.snapshot;
+          if (snap && now - lastPuckThrottle.t >= PUCK_DISPLAY_MIN_MS) {
+            lastPuckThrottle.t = now;
+            setPuckDisplay({
+              lat: snap.lat,
+              lng: snap.lng,
+              // Keep heading live while stationary; only position remains frozen.
+              bearing: displayBearing ?? snap.bearingDeg ?? null,
+            });
+          }
+          if (snap && followCameraRef.current && now - dr.lastCameraApplyMs >= FOLLOW_CAMERA_MIN_MS) {
+            dr.lastCameraApplyMs = now;
+            applyFollowCamera(snap.lng, snap.lat, displayBearing ?? snap.bearingDeg ?? undefined);
+          }
+          if (snap) stationaryPrevFrozenRef.current = true;
+        } else {
+          stationaryPrevFrozenRef.current = false;
+          if (now - lastPuckThrottle.t >= PUCK_DISPLAY_MIN_MS) {
+            lastPuckThrottle.t = now;
+            setPuckDisplay({
+              lat: smooth.lat,
+              lng: smooth.lng,
+              bearing: displayBearing,
+            });
+          }
+
+          if (followCameraRef.current && now - dr.lastCameraApplyMs >= FOLLOW_CAMERA_MIN_MS) {
+            dr.lastCameraApplyMs = now;
+            applyFollowCamera(smooth.lng, smooth.lat, displayBearing ?? undefined);
+          }
         }
       }
 
@@ -511,15 +713,29 @@ export default function RideLiveMapPage() {
     }
   }, [ride, isLoading, user, rideId, navigate, amParticipant, upcoming]);
 
+  const orientationGateRequired =
+    typeof DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission === 'function';
+  const showCompassCta =
+    hubEnabled &&
+    orientationGateRequired &&
+    orientationPermissionUi !== 'granted' &&
+    orientationPermissionUi !== 'denied' &&
+    !compassCtaDismissed;
+
   const nearbyInfo = useMemo(() => {
+    const speedKmh = Number.isFinite(selfFix?.speedFiltered) ? selfFix.speedFiltered * 3.6 : 0;
     return nearestPeersAheadBehind({
       selfLat: selfFix?.lat,
       selfLng: selfFix?.lng,
-      headingDeg: selfFix?.heading,
+      headingDeg: puckDisplay?.bearing ?? selfFix?.heading,
+      speedKmh,
+      coneMinSpeedKmh: CONE_MIN_SPEED_KMH,
+      forceDisableCone: Boolean(selfFix?.lowSpeedBypassCone),
       previousFix: selfFix?.previousFix,
       peers: peersById.values(),
     });
-  }, [selfFix, peersById]);
+  }, [selfFix, peersById, puckDisplay]);
 
   const timeLabel = useMemo(
     () =>
@@ -606,7 +822,7 @@ export default function RideLiveMapPage() {
                 name={user?.fullName ?? 'You'}
                 avatarUrl={user?.avatarUrl}
                 isSelf
-                headingDeg={showRecenter ? (puckDisplay?.bearing ?? selfFix?.heading) : null}
+                headingDeg={null}
               />
             </Marker>
           );
@@ -692,7 +908,7 @@ export default function RideLiveMapPage() {
                     className="mt-0.5 truncate text-base font-bold tabular-nums leading-tight text-fg sm:text-lg"
                     title="Ground speed from GPS"
                   >
-                    {formatSpeedKmh(selfFix?.speed)}
+                    {formatSpeedKmh(selfFix?.speedFiltered)}
                   </p>
                 </div>
               </div>
@@ -734,6 +950,34 @@ export default function RideLiveMapPage() {
               <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
             )}
           </button>
+
+          {showCompassCta ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-rydo-purple/25 bg-rydo-purple/10 px-3 py-2.5 text-xs text-fg sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-2">
+                <Compass className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple" aria-hidden />
+                <p className="min-w-0 leading-snug text-fg-muted">
+                  <span className="font-medium text-fg">Compass</span> — allow motion access so direction is stable
+                  below ~5 km/h (optional on this device).
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleEnableCompassClick}
+                  className="rounded-lg bg-rydo-purple px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95 active:scale-[0.99]"
+                >
+                  Enable
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCompassCtaDismissed(true)}
+                  className="rounded-lg border border-white/15 bg-black/20 px-3 py-1.5 text-xs text-fg-muted hover:border-white/25"
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {geoError ? (
             <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/95">

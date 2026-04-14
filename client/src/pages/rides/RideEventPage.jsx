@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { cn } from '@/shared/lib/cn';
 import RideEventCard from '@/features/rides/components/RideEventCard';
@@ -13,9 +13,11 @@ import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Button from '@/shared/components/ui/button/Button';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
+import { requestLiveRidePermissions } from '@/features/live-ride/utils/requestLiveRidePermissions';
 
 export default function RideEventPage() {
   const { rideId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
@@ -89,14 +91,18 @@ export default function RideEventPage() {
       {user && ride.rideKind !== 'soloLog' && upcoming ? (
         <div className="flex flex-wrap gap-3">
           {amParticipant && ride.routeId ? (
-            <Link
-              to={ROUTES.rideLive.replace(':rideId', String(ride.id))}
+            <button
+              type="button"
+              onClick={async () => {
+                await requestLiveRidePermissions();
+                navigate(ROUTES.rideLive.replace(':rideId', String(ride.id)));
+              }}
               className={cn(
-                'inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border-strong bg-surface-strong px-5 text-sm text-fg shadow-[inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_18%,transparent),0_8px_30px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)] backdrop-blur-xl transition duration-300 hover:border-rydo-purple/50 hover:shadow-[0_0_30px_color-mix(in_srgb,var(--rydo-purple)_30%,transparent)]',
+                'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-border-strong bg-surface-strong px-5 text-sm text-fg shadow-[inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_18%,transparent),0_8px_30px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)] backdrop-blur-xl transition duration-300 hover:border-rydo-purple/50 hover:shadow-[0_0_30px_color-mix(in_srgb,var(--rydo-purple)_30%,transparent)]',
               )}
             >
               Live map
-            </Link>
+            </button>
           ) : null}
           {amParticipant ? (
             <Button variant="secondary" type="button" onClick={() => leaveRide()} disabled={isLeaving}>
