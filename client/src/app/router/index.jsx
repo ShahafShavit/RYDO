@@ -30,7 +30,7 @@ const MyRidesPage = lazy(() => import('@/pages/rides/MyRidesPage'));
 const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
 const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
 const LeaderboardsPage = lazy(() => import('@/pages/leaderboards/LeaderboardsPage'));
-const LiveRidePage = lazy(() => import('@/features/live-ride/LiveRidePage'));
+const LiveRideReplayPage = lazy(() => import('@/features/live-ride/LiveRideReplayPage'));
 const RideLiveMapPage = lazy(() => import('@/features/live-ride/RideLiveMapPage'));
 
 export const router = createBrowserRouter([
@@ -88,7 +88,7 @@ export const router = createBrowserRouter([
     path: ROUTES.live,
     element: (
       <Suspense fallback={<Loader fullscreen />}>
-        <LiveRidePage />
+        <LiveRideReplayPage />
       </Suspense>
     ),
   },

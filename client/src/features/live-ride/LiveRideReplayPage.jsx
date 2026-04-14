@@ -1,48 +1,37 @@
 import { ROUTES } from '@/app/router/route-paths';
-import { useAuth } from '@/features/auth/hooks/useAuth';
-import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
-import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
+import LiveRidePreviewTuningPanel from '@/features/live-ride/components/LiveRidePreviewTuningPanel';
+import LiveRideReplayTimeline from '@/features/live-ride/components/LiveRideReplayTimeline';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
-import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { buildReplayFixesForUpload } from '@/features/live-ride/utils/buildReplayFixesFromGeoJson';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
-import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
-import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 import {
-  getStoredLiveRideOrientationOutcome,
-  setStoredLiveRideOrientationOutcome,
-} from '@/features/live-ride/utils/requestLiveRidePermissions';
-import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
-import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
-import { env } from '@/shared/config/env';
-import { useQuery } from '@tanstack/react-query';
+  enableRideLiveDebugFromQuery,
+  rideLiveLog,
+} from '@/features/live-ride/utils/rideLiveLog';
+import { subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
+import { mergeLiveRideMotionTuning } from '@/features/live-ride/utils/liveRideMotionTuning';
+import { buildUncertaintyFootprintPolygon } from '@/features/live-ride/utils/liveRideUncertaintyFootprint';
 import { featureCollection } from '@turf/helpers';
 import {
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
-  Compass,
   Crosshair,
   Gauge,
-  Loader2,
-  MessageCircle,
   Users,
-  XCircle,
 } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import MapGL, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
+import { Link } from 'react-router-dom';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
-/** Keep cone logic disabled below this speed. */
-const CONE_MIN_SPEED_KMH = 7;
 
 const routeLineLayer = {
-  id: 'ride-live-route-line',
+  id: 'live-replay-route-line',
   type: 'line',
   layout: { 'line-cap': 'round', 'line-join': 'round' },
   paint: {
@@ -51,6 +40,30 @@ const routeLineLayer = {
     'line-opacity': 0.88,
   },
 };
+
+const uncertaintyFillLayer = {
+  id: 'live-replay-uncertainty-fill',
+  type: 'fill',
+  paint: {
+    'fill-color': '#f59e0b',
+    'fill-opacity': 0.2,
+  },
+};
+
+const uncertaintyLineLayer = {
+  id: 'live-replay-uncertainty-line',
+  type: 'line',
+  paint: {
+    'line-color': '#fbbf24',
+    'line-width': 1.5,
+    'line-opacity': 0.85,
+  },
+};
+
+function formatHeadingDeg(d) {
+  if (d == null || !Number.isFinite(d)) return '—';
+  return `${d.toFixed(1)}°`;
+}
 
 function formatSpeedKmh(speedMps) {
   if (speedMps == null || !Number.isFinite(speedMps) || speedMps < 0) return '—';
@@ -63,127 +76,35 @@ function formatDistanceM(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
-/** Clears Mapbox logo + attribution (~2.75rem) plus safe area. */
 const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
 
-function LiveHubStatusChip({ hubStatus, hubError }) {
-  const connecting = hubStatus === 'connecting';
-  const connected = hubStatus === 'connected' && !hubError;
-
-  if (connected) {
-    return (
-      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md">
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-        <span>Connected</span>
-      </div>
-    );
-  }
-
-  if (connecting) {
-    return (
-      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg-muted shadow backdrop-blur-md">
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-fg-muted" aria-hidden />
-        <span>Connecting…</span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md md:max-w-[min(100%,14rem)]"
-      title={hubError?.message || undefined}
-    >
-      <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
-      <span className="line-clamp-2 wrap-break-word md:line-clamp-1">No Connection</span>
-    </div>
-  );
-}
-
-export default function RideLiveMapPage() {
-  const { rideId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const mapRef = useRef(null);
+export default function LiveRideReplayPage() {
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+  const mapRef = useRef(null);
   const followCameraRef = useRef(true);
   const programmaticMoveRef = useRef(false);
+  const compassHeadingRef = useRef(null);
 
-  const { ride, isLoading, isError, error } = useRideEvent(rideId);
-  const { openChat } = useClubChatUi();
-
-  const summaryQuery = useQuery({
-    queryKey: ['clubChat', 'summary'],
-    queryFn: () => clubChatApi.getSummary(),
-    enabled: !!user?.id && !env.isMockApi,
-    staleTime: 15_000,
-  });
-
-  const chatUnread = useMemo(() => {
-    const rows = summaryQuery.data || [];
-    if (ride?.clubId != null && String(ride.clubId) !== '') {
-      const id = Number(ride.clubId);
-      if (Number.isFinite(id)) {
-        return rows.find((s) => s.clubId === id)?.unreadCount ?? 0;
-      }
-    }
-    return rows.reduce((a, r) => a + (r.unreadCount || 0), 0);
-  }, [summaryQuery.data, ride?.clubId]);
-
-  const myUserId = user?.id != null ? Number(user.id) : null;
-
-  const amParticipant = useMemo(() => {
-    if (myUserId == null || !ride) return false;
-    if (Array.isArray(ride.participants) && ride.participants.length > 0) {
-      return ride.participants.map(Number).includes(myUserId);
-    }
-    if (Array.isArray(ride.participantDetails)) {
-      return ride.participantDetails.some((p) => Number(p.userId) === myUserId);
-    }
-    return false;
-  }, [myUserId, ride]);
-
-  const upcoming = ride ? isRideUpcoming(ride) : false;
-  const hubEnabled = Boolean(user && amParticipant && upcoming && ride?.routeId);
-
-  const { peersById, status: hubStatus, hubError, sendPose } = useRideLiveHub(rideId, hubEnabled, myUserId);
-
-  const trackGeoJson = useMemo(
-    () => buildRoutePreviewFeatureCollection(ride?.preview ?? null),
-    [ride?.preview],
-  );
-  const line = useMemo(() => normalizeTrackToLineString(trackGeoJson), [trackGeoJson]);
-  const routeFc = useMemo(() => (line ? featureCollection([line]) : null), [line]);
-
+  const [parseError, setParseError] = useState(null);
+  /** @type {null | { fixes: import('@/features/live-ride/utils/buildReplayFixesFromGeoJson').ReplayFix[], line: import('geojson').Feature<import('geojson').LineString>, routeFc: import('geojson').FeatureCollection, fileName: string }} */
+  const [session, setSession] = useState(null);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayEpoch, setReplayEpoch] = useState(0);
   const [showRecenter, setShowRecenter] = useState(false);
   const [clockTick, setClockTick] = useState(() => Date.now());
   const [nearbyOpen, setNearbyOpen] = useState(false);
-  const [compassCtaDismissed, setCompassCtaDismissed] = useState(false);
-  const [orientationPermissionUi, setOrientationPermissionUi] = useState(() =>
-    getStoredLiveRideOrientationOutcome(),
-  );
+  const [motionTuning, setMotionTuning] = useState(() => mergeLiveRideMotionTuning());
+  const [showUncertaintyOverlay, setShowUncertaintyOverlay] = useState(false);
+  const [showBearingHud, setShowBearingHud] = useState(false);
+  /** @type {import('geojson').FeatureCollection | null} */
+  const [uncertaintyData, setUncertaintyData] = useState(null);
+  const [bearingHud, setBearingHud] = useState(null);
 
-  const compassHeadingRef = useRef(null);
-
-  const handleEnableCompassClick = useCallback(async () => {
-    const r = await requestDeviceOrientationPermission();
-    const outcome = r === 'granted' ? 'granted' : r === 'denied' ? 'denied' : 'not_applicable';
-    setStoredLiveRideOrientationOutcome(outcome);
-    setOrientationPermissionUi(outcome);
-  }, []);
-
-  useEffect(() => {
-    if (!hubEnabled) {
-      compassHeadingRef.current = null;
-      return undefined;
-    }
-    return subscribeDeviceCompass((h) => {
-      compassHeadingRef.current = h;
-    });
-  }, [hubEnabled]);
+  const noopSendPose = useCallback(() => {}, []);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
-      rideLiveLog('debugRideLive query → map page saw flag');
+      rideLiveLog('debugRideLive query → live replay page');
     }
   }, []);
 
@@ -193,12 +114,12 @@ export default function RideLiveMapPage() {
   }, []);
 
   const initialViewState = useMemo(() => {
-    if (!line?.geometry?.coordinates?.[0]) {
+    if (!session?.line?.geometry?.coordinates?.[0]) {
       return { longitude: 34.8, latitude: 32.1, zoom: MAP_ZOOM, pitch: MAP_PITCH, bearing: 0 };
     }
-    const [lng, lat] = line.geometry.coordinates[0];
+    const [lng, lat] = session.line.geometry.coordinates[0];
     return { longitude: lng, latitude: lat, zoom: MAP_ZOOM, pitch: MAP_PITCH, bearing: 0 };
-  }, [line]);
+  }, [session?.line]);
 
   const recenterCamera = useCallback((lng, lat, bearingOpt, { instant } = { instant: false }) => {
     const map = mapRef.current?.getMap?.();
@@ -223,7 +144,6 @@ export default function RideLiveMapPage() {
     }
   }, []);
 
-  /** Imperative follow updates (rAF); must not clear followCamera via rotatestart. */
   const applyFollowCamera = useCallback((lng, lat, bearingOpt) => {
     const map = mapRef.current?.getMap?.();
     if (!map?.isStyleLoaded?.()) return;
@@ -240,18 +160,96 @@ export default function RideLiveMapPage() {
     }
   }, []);
 
-  const { geoError, selfFix, puckDisplay, deadReckonRef, puckDisplayRef } =
-    useLiveRideMotionFromPositions({
-      motionLoopEnabled: hubEnabled,
-      useDeviceGps: true,
-      replayFixes: null,
-      replayPlaying: false,
-      replayEpoch: 0,
-      sendPose,
-      applyFollowCamera,
-      followCameraRef,
-      compassHeadingRef,
+  const motionLoopEnabled = Boolean(session?.fixes?.length && replayPlaying);
+
+  const {
+    geoError,
+    selfFix,
+    puckDisplay,
+    deadReckonRef,
+    puckDisplayRef,
+    bearingTelemetryRef,
+    replayElapsedMs,
+    seekReplayToOffsetMs,
+  } = useLiveRideMotionFromPositions({
+    motionLoopEnabled,
+    useDeviceGps: false,
+    replayFixes: session?.fixes ?? null,
+    replayPlaying,
+    replayEpoch,
+    sendPose: noopSendPose,
+    applyFollowCamera,
+    followCameraRef,
+    compassHeadingRef,
+    tuning: motionTuning,
+  });
+
+  const replayDurationMs = useMemo(
+    () =>
+      session?.fixes?.length
+        ? session.fixes[session.fixes.length - 1].offsetMs
+        : 0,
+    [session?.fixes],
+  );
+
+  useEffect(() => {
+    if (!session) {
+      compassHeadingRef.current = null;
+      return undefined;
+    }
+    return subscribeDeviceCompass((h) => {
+      compassHeadingRef.current = h;
     });
+  }, [session]);
+
+  useEffect(() => {
+    if (!session || !replayPlaying || (!showUncertaintyOverlay && !showBearingHud)) {
+      setUncertaintyData(null);
+      if (!showBearingHud) setBearingHud(null);
+      return undefined;
+    }
+    const tick = () => {
+      const tel = bearingTelemetryRef.current;
+      if (showBearingHud) {
+        setBearingHud(tel);
+      } else {
+        setBearingHud(null);
+      }
+      if (!showUncertaintyOverlay) {
+        setUncertaintyData(null);
+        return;
+      }
+      const p = puckDisplayRef.current;
+      const lat = p?.lat ?? selfFix?.lat;
+      const lng = p?.lng ?? selfFix?.lng;
+      if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setUncertaintyData(null);
+        return;
+      }
+      const dr = deadReckonRef.current;
+      const bearingDeg =
+        p?.bearing ??
+        tel?.displayHeadingDeg ??
+        tel?.extrapolateHeadingDeg ??
+        null;
+      const feat = buildUncertaintyFootprintPolygon({
+        lat,
+        lng,
+        bearingDeg,
+        speedMps: dr?.speedMps != null && Number.isFinite(dr.speedMps) ? dr.speedMps : 0,
+        tuning: motionTuning,
+      });
+      setUncertaintyData(
+        feat
+          ? featureCollection([feat])
+          : null,
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 120);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs stable; interval reads fresh values
+  }, [session, replayPlaying, showUncertaintyOverlay, showBearingHud, motionTuning, selfFix?.lat, selfFix?.lng]);
 
   const onUserAdjustedView = useCallback(() => {
     if (programmaticMoveRef.current) return;
@@ -271,11 +269,11 @@ export default function RideLiveMapPage() {
   const onMapLoad = useCallback(
     (e) => {
       const map = e.target;
-      rideLiveLog('Map onLoad', { styleLoaded: map.isStyleLoaded?.() ?? null });
+      rideLiveLog('Live replay map onLoad', { styleLoaded: map.isStyleLoaded?.() ?? null });
+      const line = session?.line;
       if (line?.geometry?.coordinates?.[0]) {
         const [routeLng, routeLat] = line.geometry.coordinates[0];
         const dr = deadReckonRef.current;
-        /** GPS can win the race before the map fires onLoad — do not clobber real fixes. */
         const gpsAhead = dr.initialized && dr.synLat != null && dr.synLng != null;
         const centerLng = gpsAhead ? dr.synLng : routeLng;
         const centerLat = gpsAhead ? dr.synLat : routeLat;
@@ -291,40 +289,12 @@ export default function RideLiveMapPage() {
         } finally {
           programmaticMoveRef.current = false;
         }
-        /**
-         * When `!gpsAhead`, we only center the map on the route start. Do not seed `deadReckonRef` or
-         * the puck there — riders may join away from the origin; that broke kinematic gating. First GPS
-         * in `watchPosition` initializes position and velocity.
-         */
       }
     },
-    [line, deadReckonRef],
+    [session?.line, deadReckonRef],
   );
 
-  useEffect(() => {
-    if (!ride || isLoading) return;
-    if (!user) {
-      navigate(ROUTES.login, { replace: true, state: { from: `/ride/${rideId}/live` } });
-      return;
-    }
-    if (!ride.routeId) {
-      navigate(ROUTES.rideEvent.replace(':rideId', String(rideId)), { replace: true });
-      return;
-    }
-    if (!amParticipant || !upcoming) {
-      navigate(ROUTES.rideEvent.replace(':rideId', String(rideId)), { replace: true });
-    }
-  }, [ride, isLoading, user, rideId, navigate, amParticipant, upcoming]);
-
-  const orientationGateRequired =
-    typeof DeviceOrientationEvent !== 'undefined' &&
-    typeof DeviceOrientationEvent.requestPermission === 'function';
-  const showCompassCta =
-    hubEnabled &&
-    orientationGateRequired &&
-    orientationPermissionUi !== 'granted' &&
-    orientationPermissionUi !== 'denied' &&
-    !compassCtaDismissed;
+  const peersById = useMemo(() => new Map(), []);
 
   const nearbyInfo = useMemo(() => {
     const speedKmh = Number.isFinite(selfFix?.speedFiltered) ? selfFix.speedFiltered * 3.6 : 0;
@@ -333,12 +303,12 @@ export default function RideLiveMapPage() {
       selfLng: selfFix?.lng,
       headingDeg: puckDisplay?.bearing ?? selfFix?.heading,
       speedKmh,
-      coneMinSpeedKmh: CONE_MIN_SPEED_KMH,
+      coneMinSpeedKmh: motionTuning.CONE_MIN_SPEED_KMH,
       forceDisableCone: Boolean(selfFix?.lowSpeedBypassCone),
       previousFix: selfFix?.previousFix,
       peers: peersById.values(),
     });
-  }, [selfFix, peersById, puckDisplay]);
+  }, [selfFix, peersById, puckDisplay, motionTuning.CONE_MIN_SPEED_KMH]);
 
   const timeLabel = useMemo(
     () =>
@@ -352,55 +322,95 @@ export default function RideLiveMapPage() {
 
   const peersList = useMemo(() => [...peersById.values()], [peersById]);
 
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setParseError(null);
+    setReplayPlaying(false);
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.gpx') && !lower.endsWith('.kml')) {
+      setParseError('Choose a .gpx or .kml file.');
+      return;
+    }
+    try {
+      const text = await file.text();
+      const dom = new DOMParser().parseFromString(text, 'application/xml');
+      if (dom.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Invalid XML');
+      }
+      const toGeoJSON = await import('togeojson');
+      const geoJson = lower.endsWith('.kml') ? toGeoJSON.kml(dom) : toGeoJSON.gpx(dom);
+      const line = normalizeTrackToLineString(geoJson);
+      if (!line) {
+        throw new Error('No line geometry found in file');
+      }
+      const fixes = buildReplayFixesForUpload(lower, text, geoJson, motionTuning);
+      if (fixes.length < 2) {
+        throw new Error('Need at least two track points to replay');
+      }
+      setSession({
+        fixes,
+        line,
+        routeFc: featureCollection([line]),
+        fileName: file.name,
+      });
+      setReplayEpoch((n) => n + 1);
+      setReplayPlaying(true);
+    } catch (err) {
+      setSession(null);
+      setParseError(err.message || 'Could not parse file');
+    }
+  };
+
   if (!token) {
     return (
       <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
-        <h1 className="text-xl font-semibold tracking-tight">Live ride</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Live ride replay</h1>
         <p className="max-w-md text-sm text-fg-muted">
           Add <code className="rounded bg-surface px-1.5 py-0.5 text-fg">VITE_MAPBOX_ACCESS_TOKEN</code> to{' '}
-          <code className="rounded bg-surface px-1.5 py-0.5 text-fg">client/.env.local</code>.
+          <code className="rounded bg-surface px-1.5 py-0.5 text-fg">client/.env.local</code>, then restart the dev
+          server.
         </p>
-        <Link to={ROUTES.rideEvent.replace(':rideId', String(rideId))} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
-          Back to ride
+        <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
+          Back to home
         </Link>
       </div>
     );
   }
 
-  if (isLoading || !ride) {
+  if (!session) {
     return (
-      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-3 bg-[#0a0908] text-fg">
-        <div className="h-8 w-8 shrink-0 rounded-full border-2 border-border-strong border-t-rydo-purple animate-spin" />
-        <p className="text-sm text-fg-muted">Loading ride…</p>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
-        <p className="text-sm text-red-400">{error?.message || 'Could not load ride.'}</p>
-        <Link to={ROUTES.myRides} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
-          My rides
+      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-6 bg-[#0a0908] px-6 text-center text-fg">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Live ride replay</h1>
+          <p className="mt-2 max-w-md text-sm text-fg-muted">
+            Upload a GPX or KML track. Playback runs entirely in the browser (no API, no SignalR) using the same
+            motion logic as the live ride map.
+          </p>
+        </div>
+        {parseError ? <p className="max-w-md text-sm text-red-400">{parseError}</p> : null}
+        <label className="cursor-pointer rounded-2xl bg-rydo-purple px-6 py-3 text-sm font-medium text-white shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_35%,transparent)] transition hover:opacity-95">
+          Choose GPX or KML
+          <input
+            type="file"
+            accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml"
+            className="sr-only"
+            onChange={handleFile}
+          />
+        </label>
+        <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
+          Back to home
         </Link>
-      </div>
-    );
-  }
-
-  if (!line || !routeFc) {
-    return (
-      <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
-        <p className="text-sm text-fg-muted">This ride has no usable route line for live view.</p>
-        <Link to={ROUTES.rideEvent.replace(':rideId', String(rideId))} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
-          Back to ride
-        </Link>
+        <LiveRidePreviewTuningPanel tuning={motionTuning} onTuningChange={setMotionTuning} />
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
-      <Map
+      <MapGL
+        key={`${session.fileName}-${replayEpoch}`}
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/streets-v12"
@@ -412,9 +422,15 @@ export default function RideLiveMapPage() {
         onZoomStart={onUserAdjustedView}
         style={{ width: '100%', height: '100%' }}
       >
-        <Source id="ride-live-route" type="geojson" data={routeFc}>
+        <Source id="live-replay-route" type="geojson" data={session.routeFc}>
           <Layer {...routeLineLayer} />
         </Source>
+        {showUncertaintyOverlay && uncertaintyData ? (
+          <Source id="live-replay-uncertainty" type="geojson" data={uncertaintyData}>
+            <Layer {...uncertaintyFillLayer} />
+            <Layer {...uncertaintyLineLayer} />
+          </Source>
+        ) : null}
         {(() => {
           const puck =
             puckDisplay?.lat != null && puckDisplay?.lng != null ? puckDisplay : selfFix;
@@ -422,10 +438,10 @@ export default function RideLiveMapPage() {
           return (
             <Marker longitude={puck.lng} latitude={puck.lat} anchor="center">
               <LiveRideAvatarMarker
-                name={user?.fullName ?? 'You'}
-                avatarUrl={user?.avatarUrl}
+                name="You (replay)"
+                avatarUrl={null}
                 isSelf
-                headingDeg={null}
+                headingDeg={puck?.bearing ?? null}
               />
             </Marker>
           );
@@ -436,30 +452,107 @@ export default function RideLiveMapPage() {
           </Marker>
         ))}
         <NavigationControl position="top-right" showCompass visualizePitch />
-      </Map>
+      </MapGL>
 
       <div
         className="pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
         <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
-          <Link
-            to={ROUTES.rideEvent.replace(':rideId', String(rideId))}
+          <button
+            type="button"
+            onClick={() => {
+              setSession(null);
+              setReplayPlaying(false);
+              setParseError(null);
+            }}
             className="inline-flex rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-sm font-medium text-fg shadow backdrop-blur-md"
           >
-            Back
-          </Link>
-          <LiveHubStatusChip hubStatus={hubStatus} hubError={hubError} />
+            Another file
+          </button>
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg-muted shadow backdrop-blur-md">
+            <span className="text-fg-subtle">Local replay</span>
+            <span className="max-w-[10rem] truncate text-fg" title={session.fileName}>
+              {session.fileName}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowUncertaintyOverlay((v) => !v)}
+            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${
+              showUncertaintyOverlay
+                ? 'border-amber-400/50 bg-amber-500/20 text-amber-100'
+                : 'border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] text-fg-muted'
+            }`}
+          >
+            Uncertainty
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBearingHud((v) => !v)}
+            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${
+              showBearingHud
+                ? 'border-cyan-400/45 bg-cyan-500/15 text-cyan-100'
+                : 'border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] text-fg-muted'
+            }`}
+          >
+            Bearing HUD
+          </button>
         </div>
       </div>
+
+      {showBearingHud ? (
+        <div
+          className="pointer-events-none absolute left-3 z-[55] max-w-[min(calc(100vw-1.5rem),20rem)] rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 text-[11px] shadow-xl backdrop-blur-md"
+          style={{ top: 'max(5.5rem, calc(env(safe-area-inset-top) + 4.5rem))' }}
+        >
+          <p className="pointer-events-auto mb-2 font-semibold uppercase tracking-[0.1em] text-fg-subtle">
+            Bearing (preview)
+          </p>
+          {bearingHud ? (
+            <dl className="pointer-events-auto space-y-1.5 font-mono tabular-nums text-fg">
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">Speed</dt>
+                <dd>{bearingHud.speedKmh.toFixed(1)} km/h</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">w_GPS</dt>
+                <dd>{bearingHud.blendWeight.toFixed(2)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">Compass</dt>
+                <dd>{formatHeadingDeg(bearingHud.compassDeg)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">GPS / COG</dt>
+                <dd>{formatHeadingDeg(bearingHud.gpsDeg)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">Target (extrap.)</dt>
+                <dd>{formatHeadingDeg(bearingHud.extrapolateHeadingDeg)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-fg-muted">Display (smooth)</dt>
+                <dd>{formatHeadingDeg(bearingHud.displayHeadingDeg)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="pointer-events-auto text-fg-muted">Play track to stream telemetry…</p>
+          )}
+          <p className="pointer-events-auto mt-2 border-t border-white/10 pt-2 text-[10px] leading-snug text-fg-subtle">
+            Blend: circular mix of compass & GPS unit vectors by w_GPS; display low-pass via HEADING_DISPLAY_SMOOTH
+            each frame.
+          </p>
+        </div>
+      ) : null}
 
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pt-2"
         style={{ paddingBottom: LIVE_MAP_BOTTOM_INSET }}
       >
-        {showRecenter || (user && !env.isMockApi) ? (
+        {showRecenter || replayPlaying ? (
           <div className="pointer-events-auto relative h-14 w-full shrink-0">
-            {!showRecenter && puckDisplay && hubEnabled ? (
+            {!showRecenter && puckDisplay && replayPlaying ? (
               <div
                 className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 z-[1] inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
                 aria-live="polite"
@@ -478,25 +571,47 @@ export default function RideLiveMapPage() {
                 Center on me
               </button>
             ) : null}
-            {user && !env.isMockApi ? (
-              <button
-                type="button"
-                aria-label="Open club chat"
-                onClick={() => openChat()}
-                className="absolute top-1/2 z-[2] flex h-14 w-14 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
-                style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
-              >
-                <MessageCircle className="h-7 w-7" aria-hidden />
-                {chatUnread > 0 ? (
-                  <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-                    {chatUnread > 99 ? '99+' : chatUnread}
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
           </div>
         ) : null}
         <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-4 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+          <LiveRideReplayTimeline
+            fixes={session.fixes}
+            durationMs={replayDurationMs}
+            elapsedMs={replayElapsedMs}
+            onSeek={seekReplayToOffsetMs}
+            onScrubStart={() => setReplayPlaying(false)}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (replayPlaying) {
+                  setReplayPlaying(false);
+                  return;
+                }
+                setReplayPlaying(true);
+              }}
+              className="rounded-2xl bg-rydo-purple px-4 py-2 text-sm font-medium text-white shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_35%,transparent)] transition hover:opacity-95"
+            >
+              {replayPlaying ? 'Pause' : 'Play'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setReplayPlaying(false);
+                setReplayEpoch((n) => n + 1);
+              }}
+              className="rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-medium text-fg"
+            >
+              Restart
+            </button>
+            <Link
+              to={ROUTES.home}
+              className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
+            >
+              Home
+            </Link>
+          </div>
           <div className="flex w-full items-center gap-0 rounded-2xl border border-white/10 bg-black/28 px-3 py-2.5 sm:px-4 sm:py-3">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
               <div className="flex min-w-0 flex-1 items-start gap-2">
@@ -509,7 +624,7 @@ export default function RideLiveMapPage() {
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Speed</p>
                   <p
                     className="mt-0.5 truncate text-base font-bold tabular-nums leading-tight text-fg sm:text-lg"
-                    title="Ground speed from GPS"
+                    title="Speed from replay"
                   >
                     {formatSpeedKmh(selfFix?.speedFiltered)}
                   </p>
@@ -553,34 +668,6 @@ export default function RideLiveMapPage() {
               <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
             )}
           </button>
-
-          {showCompassCta ? (
-            <div className="flex flex-col gap-2 rounded-xl border border-rydo-purple/25 bg-rydo-purple/10 px-3 py-2.5 text-xs text-fg sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-2">
-                <Compass className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple" aria-hidden />
-                <p className="min-w-0 leading-snug text-fg-muted">
-                  <span className="font-medium text-fg">Compass</span> — allow motion access so direction is stable
-                  below ~5 km/h (optional on this device).
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={handleEnableCompassClick}
-                  className="rounded-lg bg-rydo-purple px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95 active:scale-[0.99]"
-                >
-                  Enable
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCompassCtaDismissed(true)}
-                  className="rounded-lg border border-white/15 bg-black/20 px-3 py-1.5 text-xs text-fg-muted hover:border-white/25"
-                >
-                  Not now
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           {geoError ? (
             <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/95">
@@ -640,6 +727,8 @@ export default function RideLiveMapPage() {
           ) : null}
         </div>
       </div>
+
+      <LiveRidePreviewTuningPanel tuning={motionTuning} onTuningChange={setMotionTuning} />
     </div>
   );
 }

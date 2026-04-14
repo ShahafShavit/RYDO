@@ -1,3 +1,6 @@
+import { pickTuning } from '@/features/live-ride/utils/liveRideTuningPick';
+import { DEFAULT_LIVE_RIDE_MOTION_TUNING } from '@/features/live-ride/utils/liveRideMotionTuning';
+
 /** Earth mean radius (meters). */
 const R_EARTH = 6371008.8;
 
@@ -96,19 +99,20 @@ export const MIN_MAP_MOTION_SPEED_EXIT_MPS = MIN_MAP_MOTION_SPEED_MPS * 1.15;
  * Heading display smoothing: fraction of the shortest turn per “nominal” 60 Hz frame.
  * Scaled by `dt` in {@link stepDisplayHeadingTowardTarget} for frame-rate independence.
  */
-export const HEADING_DISPLAY_SMOOTH = 0.12;
+export const HEADING_DISPLAY_SMOOTH = 0.02;
 
 /**
  * Low-pass `dr.displayHeadingDeg` toward `dr.extrapolateHeadingDeg` (call from rAF with real `dtSeconds`).
  * Mutates `dr.displayHeadingDeg`; leaves it unset if there is no valid target.
  */
-export function stepDisplayHeadingTowardTarget(dr, dtSeconds) {
+export function stepDisplayHeadingTowardTarget(dr, dtSeconds, tuning) {
+  const hds = pickTuning(tuning, 'HEADING_DISPLAY_SMOOTH', DEFAULT_LIVE_RIDE_MOTION_TUNING.HEADING_DISPLAY_SMOOTH);
   const target = dr.extrapolateHeadingDeg;
   if (target == null || !Number.isFinite(target)) {
     return;
   }
   const dt = Number.isFinite(dtSeconds) && dtSeconds > 0 ? dtSeconds : 1 / 60;
-  const a = Math.min(1, HEADING_DISPLAY_SMOOTH * (dt / (1 / 60)));
+  const a = Math.min(1, hds * (dt / (1 / 60)));
   if (dr.displayHeadingDeg == null || !Number.isFinite(dr.displayHeadingDeg)) {
     dr.displayHeadingDeg = ((target % 360) + 360) % 360;
     return;
@@ -120,10 +124,12 @@ export function stepDisplayHeadingTowardTarget(dr, dtSeconds) {
  * Hysteresis for map/camera/hub freeze when smoothed speed is near stationary.
  * Mutates `state` `{ active: boolean, snapshot: { lat, lng, bearingDeg, accuracyM } | null }`.
  */
-export function syncStationaryDisplayFreeze(dr, pose, bearingDeg, accuracyM, state) {
+export function syncStationaryDisplayFreeze(dr, pose, bearingDeg, accuracyM, state, tuning) {
   const v = Number.isFinite(dr.speedMps) ? dr.speedMps : 0;
+  const minIn = pickTuning(tuning, 'MIN_MAP_MOTION_SPEED_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.MIN_MAP_MOTION_SPEED_MPS);
+  const minOut = pickTuning(tuning, 'MIN_MAP_MOTION_SPEED_EXIT_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.MIN_MAP_MOTION_SPEED_EXIT_MPS);
   if (!state.active) {
-    if (v < MIN_MAP_MOTION_SPEED_MPS) {
+    if (v < minIn) {
       state.active = true;
       state.snapshot = {
         lat: pose.lat,
@@ -132,7 +138,7 @@ export function syncStationaryDisplayFreeze(dr, pose, bearingDeg, accuracyM, sta
         accuracyM: accuracyM ?? null,
       };
     }
-  } else if (v >= MIN_MAP_MOTION_SPEED_EXIT_MPS) {
+  } else if (v >= minOut) {
     state.active = false;
     state.snapshot = null;
   }
@@ -171,19 +177,25 @@ export const KIN_REJECT_SPEED_DECAY_PER_S = 2.8;
 /**
  * When no prior fix timestamp exists, infer Δt from distance (avoids huge implied speed on route→first-GPS jump).
  */
-export function inferSeedDtSeconds(anchorLat, anchorLng, lat, lng) {
+export function inferSeedDtSeconds(anchorLat, anchorLng, lat, lng, tuning) {
   const dM = distanceMeters(anchorLat, anchorLng, lat, lng);
-  const nominal = dM / 7.5;
-  return Math.max(0.35, Math.min(KIN_DT_MAX_S, nominal));
+  const vImpl = pickTuning(tuning, 'INFER_SEED_IMPLIED_SPEED_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.INFER_SEED_IMPLIED_SPEED_MPS);
+  const floor = pickTuning(tuning, 'INFER_SEED_DT_FLOOR_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.INFER_SEED_DT_FLOOR_S);
+  const dtMax = pickTuning(tuning, 'KIN_DT_MAX_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_DT_MAX_S);
+  const nominal = dM / Math.max(0.5, vImpl);
+  return Math.max(floor, Math.min(dtMax, nominal));
 }
 
 /**
  * Scale 0.25–1: poor reported accuracy (large meters) → smaller corrections; good accuracy → full blend.
  * @param {number|undefined|null} accuracyM `coords.accuracy` (meters), if known.
  */
-export function correctionAccuracyScale(accuracyM) {
+export function correctionAccuracyScale(accuracyM, tuning) {
+  const num = pickTuning(tuning, 'ACC_SCALE_NUMERATOR', DEFAULT_LIVE_RIDE_MOTION_TUNING.ACC_SCALE_NUMERATOR);
+  const floor = pickTuning(tuning, 'ACC_SCALE_FLOOR_M', DEFAULT_LIVE_RIDE_MOTION_TUNING.ACC_SCALE_FLOOR_M);
+  const lo = pickTuning(tuning, 'ACC_SCALE_MIN', DEFAULT_LIVE_RIDE_MOTION_TUNING.ACC_SCALE_MIN);
   if (!Number.isFinite(accuracyM) || accuracyM <= 0) return 1;
-  return Math.min(1, Math.max(0.25, 12 / Math.max(accuracyM, 8)));
+  return Math.min(1, Math.max(lo, num / Math.max(accuracyM, floor)));
 }
 
 /**
@@ -191,13 +203,15 @@ export function correctionAccuracyScale(accuracyM) {
  * Mutates `dr` fields `synLat` / `synLng`.
  * @param {{ accuracyM?: number|null }} [opts] — `coords.accuracy` scales blend and max step when poor GPS.
  */
-export function correctSyntheticTowardGps(dr, gpsLat, gpsLng, opts = {}) {
+export function correctSyntheticTowardGps(dr, gpsLat, gpsLng, opts = {}, tuning) {
   if (dr.synLat == null || dr.synLng == null) return;
   const d = distanceMeters(dr.synLat, dr.synLng, gpsLat, gpsLng);
   if (d < 0.05) return;
-  const accScale = correctionAccuracyScale(opts.accuracyM);
-  const blend = DR_CORRECTION_BLEND * accScale;
-  const maxStep = DR_MAX_CORRECTION_STEP_M * accScale;
+  const accScale = correctionAccuracyScale(opts.accuracyM, tuning);
+  const drBlend = pickTuning(tuning, 'DR_CORRECTION_BLEND', DEFAULT_LIVE_RIDE_MOTION_TUNING.DR_CORRECTION_BLEND);
+  const drMax = pickTuning(tuning, 'DR_MAX_CORRECTION_STEP_M', DEFAULT_LIVE_RIDE_MOTION_TUNING.DR_MAX_CORRECTION_STEP_M);
+  const blend = drBlend * accScale;
+  const maxStep = drMax * accScale;
   const step = Math.min(d * blend, maxStep);
   const b = bearingDegrees(dr.synLat, dr.synLng, gpsLat, gpsLng);
   const o = offsetByHeadingMeters(dr.synLat, dr.synLng, b, step);
@@ -216,16 +230,19 @@ export function getSmoothedPoseLngLat(dr) {
 
 /**
  * Low-pass display position toward kinematic `syn*` (call from rAF).
- * @param {number} [alpha] defaults to {@link DR_DISPLAY_EMA_ALPHA}
+ * @param {number | undefined} [alpha] explicit blend; if omitted, uses `DR_DISPLAY_EMA_ALPHA` from `tuning` or default.
+ * @param {Record<string, number> | null | undefined} [tuning] preview overrides (`/live` panel).
  */
-export function stepDisplayEmaTowardSyn(dr, alpha = DR_DISPLAY_EMA_ALPHA) {
+export function stepDisplayEmaTowardSyn(dr, alpha, tuning) {
+  const defA = pickTuning(tuning, 'DR_DISPLAY_EMA_ALPHA', DEFAULT_LIVE_RIDE_MOTION_TUNING.DR_DISPLAY_EMA_ALPHA);
+  const aIn = alpha != null && Number.isFinite(alpha) ? alpha : defA;
   if (dr.synLat == null || dr.synLng == null) return;
   if (dr.displayLat == null || dr.displayLng == null) {
     dr.displayLat = dr.synLat;
     dr.displayLng = dr.synLng;
     return;
   }
-  const a = Math.min(1, Math.max(0, alpha));
+  const a = Math.min(1, Math.max(0, aIn));
   dr.displayLat += a * (dr.synLat - dr.displayLat);
   dr.displayLng += a * (dr.synLng - dr.displayLng);
 }
@@ -251,7 +268,14 @@ export function stepDisplayEmaTowardSyn(dr, alpha = DR_DISPLAY_EMA_ALPHA) {
 /**
  * @returns {{ accept: boolean, reason: string, dtS?: number, dM?: number, dv?: number, maxDv?: number, maxDistM?: number }}
  */
-export function evaluateKinematicGate(prev, incoming) {
+export function evaluateKinematicGate(prev, incoming, tuning) {
+  const gapMs = pickTuning(tuning, 'KIN_GAP_RESEED_MS', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_GAP_RESEED_MS);
+  const dtMin = pickTuning(tuning, 'KIN_DT_MIN_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_DT_MIN_S);
+  const dtMax = pickTuning(tuning, 'KIN_DT_MAX_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_DT_MAX_S);
+  const statM = pickTuning(tuning, 'KIN_STATIONARY_MAX_M', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_STATIONARY_MAX_M);
+  const aMax = pickTuning(tuning, 'KIN_A_MAX_MS2', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_A_MAX_MS2);
+  const vMax = pickTuning(tuning, 'KIN_V_MAX_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_V_MAX_MPS);
+
   if (!prev.kinematicHistory) {
     return { accept: true, reason: 'seed' };
   }
@@ -265,31 +289,31 @@ export function evaluateKinematicGate(prev, incoming) {
   }
 
   const dtRawMs = incoming.timestampMs - prev.lastAcceptedMs;
-  if (dtRawMs > KIN_GAP_RESEED_MS) {
+  if (dtRawMs > gapMs) {
     return { accept: true, reason: 'gap_reseed' };
   }
 
   let dtMs = dtRawMs;
   if (!Number.isFinite(dtMs) || dtMs <= 0) dtMs = 100;
   let dtS = dtMs / 1000;
-  dtS = Math.min(KIN_DT_MAX_S, Math.max(KIN_DT_MIN_S, dtS));
+  dtS = Math.min(dtMax, Math.max(dtMin, dtS));
 
   const { east: de, north: dn } = enuDeltaMeters(prev.lastAcceptedLat, prev.lastAcceptedLng, incoming.lat, incoming.lng);
   const dM = Math.hypot(de, dn);
 
-  if (dM <= KIN_STATIONARY_MAX_M) {
+  if (dM <= statM) {
     return { accept: true, reason: 'stationary', dtS, dM };
   }
 
   const vImpE = de / dtS;
   const vImpN = dn / dtS;
   const dv = Math.hypot(vImpE - prev.velEastMps, vImpN - prev.velNorthMps);
-  const maxDv = KIN_A_MAX_MS2 * dtS;
+  const maxDv = aMax * dtS;
   if (dv > maxDv) {
     return { accept: false, reason: 'velocity_jump', dtS, dM, dv, maxDv };
   }
 
-  const maxDistM = KIN_V_MAX_MPS * dtS + 0.5 * KIN_A_MAX_MS2 * dtS * dtS;
+  const maxDistM = vMax * dtS + 0.5 * aMax * dtS * dtS;
   if (dM > maxDistM) {
     return { accept: false, reason: 'distance_jump', dtS, dM, maxDistM };
   }
@@ -302,12 +326,22 @@ export function evaluateKinematicGate(prev, incoming) {
  * Mutates `dr` (syn* already corrected). `prevLat`/`prevLng` are last accepted position before this fix.
  * @param {{ hardReseed?: boolean }} [opts] — after a long gap, set `hardReseed` so velocity follows implied motion, not stale smoothing.
  */
-export function updateAcceptedKinematics(dr, prevLat, prevLng, incoming, dtS, opts = {}) {
+export function updateAcceptedKinematics(dr, prevLat, prevLng, incoming, dtS, opts = {}, tuning) {
+  const dtMin = pickTuning(tuning, 'KIN_DT_MIN_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_DT_MIN_S);
+  const dtMax = pickTuning(tuning, 'KIN_DT_MAX_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_DT_MAX_S);
+  const vMax = pickTuning(tuning, 'KIN_V_MAX_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_V_MAX_MPS);
+  const vMaxScale = pickTuning(tuning, 'KIN_V_MAX_HINT_SCALE', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_V_MAX_HINT_SCALE);
+  const velSm = pickTuning(tuning, 'KIN_VEL_SMOOTH', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_VEL_SMOOTH);
+  const hintBlend = pickTuning(tuning, 'KIN_SPEED_HINT_BLEND', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_SPEED_HINT_BLEND);
+  const hintMin = pickTuning(tuning, 'KIN_SPEED_HINT_MIN_MPS', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_SPEED_HINT_MIN_MPS);
+  const agreeBase = pickTuning(tuning, 'KIN_HINT_AGREE_MAX_DV_BASE', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_HINT_AGREE_MAX_DV_BASE);
+  const agreeFrac = pickTuning(tuning, 'KIN_HINT_AGREE_FRAC', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_HINT_AGREE_FRAC);
+
   const { east: de, north: dn } = enuDeltaMeters(prevLat, prevLng, incoming.lat, incoming.lng);
-  const safeDt = Math.max(KIN_DT_MIN_S, Math.min(KIN_DT_MAX_S, dtS > 0 ? dtS : KIN_DT_MIN_S));
+  const safeDt = Math.max(dtMin, Math.min(dtMax, dtS > 0 ? dtS : dtMin));
   let vImpE = de / safeDt;
   let vImpN = dn / safeDt;
-  const maxImp = KIN_V_MAX_MPS * 1.12;
+  const maxImp = vMax * vMaxScale;
   const mag0 = Math.hypot(vImpE, vImpN);
   if (mag0 > maxImp) {
     const s = maxImp / mag0;
@@ -315,19 +349,15 @@ export function updateAcceptedKinematics(dr, prevLat, prevLng, incoming, dtS, op
     vImpN *= s;
   }
 
-  const a = opts.hardReseed ? 0 : KIN_VEL_SMOOTH;
+  const a = opts.hardReseed ? 0 : velSm;
   dr.velEastMps = a * dr.velEastMps + (1 - a) * vImpE;
   dr.velNorthMps = a * dr.velNorthMps + (1 - a) * vImpN;
 
   let speed = Math.hypot(dr.velEastMps, dr.velNorthMps);
   const hint = incoming.speedMpsHint;
-  if (
-    Number.isFinite(hint) &&
-    hint >= KIN_SPEED_HINT_MIN_MPS &&
-    speed >= KIN_SPEED_HINT_MIN_MPS
-  ) {
-    if (Math.abs(hint - speed) < Math.max(2.2, 0.35 * Math.max(speed, hint))) {
-      const blended = (1 - KIN_SPEED_HINT_BLEND) * speed + KIN_SPEED_HINT_BLEND * hint;
+  if (Number.isFinite(hint) && hint >= hintMin && speed >= hintMin) {
+    if (Math.abs(hint - speed) < Math.max(agreeBase, agreeFrac * Math.max(speed, hint))) {
+      const blended = (1 - hintBlend) * speed + hintBlend * hint;
       const scale = blended / speed;
       dr.velEastMps *= scale;
       dr.velNorthMps *= scale;
@@ -349,8 +379,10 @@ export function updateAcceptedKinematics(dr, prevLat, prevLng, incoming, dtS, op
 /**
  * Apply rAF decay to speed when recent fixes were rejected (mutates dr.speedMps).
  */
-export function decaySpeedOnRejectedGps(dr, dtS) {
+export function decaySpeedOnRejectedGps(dr, dtS, tuning) {
   if (!dr.consecutiveRejects || dr.consecutiveRejects <= 0) return;
-  const k = KIN_REJECT_SPEED_DECAY_PER_S * dtS;
-  dr.speedMps = Math.max(0, dr.speedMps * (1 - Math.min(0.85, k)));
+  const decay = pickTuning(tuning, 'KIN_REJECT_SPEED_DECAY_PER_S', DEFAULT_LIVE_RIDE_MOTION_TUNING.KIN_REJECT_SPEED_DECAY_PER_S);
+  const cap = pickTuning(tuning, 'DECAY_REJECT_BLEND_CAP', DEFAULT_LIVE_RIDE_MOTION_TUNING.DECAY_REJECT_BLEND_CAP);
+  const k = decay * dtS;
+  dr.speedMps = Math.max(0, dr.speedMps * (1 - Math.min(cap, k)));
 }
