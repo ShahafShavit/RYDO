@@ -14,6 +14,7 @@ using Rydo.Api.Services.RideLive;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<RydoOptions>(builder.Configuration.GetSection(RydoOptions.SectionName));
+builder.Services.Configure<TimelapseOptions>(builder.Configuration.GetSection(TimelapseOptions.SectionName));
 builder.Services.Configure<DemoClubChatSimulatorOptions>(
     builder.Configuration.GetSection(DemoClubChatSimulatorOptions.SectionName));
 builder.Services.Configure<DemoRideLiveBotsOptions>(
@@ -37,6 +38,16 @@ builder.Services.AddHttpClient("RideLiveBots", (sp, client) =>
     var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DemoRideLiveBotsOptions>>().Value;
     var baseUrl = RideLiveSelfApiBaseUrl.Resolve(cfg, opt);
     client.BaseAddress = new Uri(baseUrl + "/");
+});
+
+builder.Services.AddHttpClient("TimelapseRenderer", (sp, client) =>
+{
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<TimelapseOptions>>().Value;
+    var baseUrl = opt.RendererUrl.Trim().TrimEnd('/');
+    if (string.IsNullOrEmpty(baseUrl))
+        baseUrl = "http://localhost:3001";
+    client.BaseAddress = new Uri(baseUrl + "/");
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(60, opt.GenerateTimeoutSeconds));
 });
 
 builder.Services

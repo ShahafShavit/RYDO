@@ -16,6 +16,15 @@ docker compose up --build
 
 The API container may restart once while SQL Server finishes starting; `restart: on-failure` handles that.
 
+### GPX timelapse (9:16 MP4)
+
+Compose also builds **`timelapse-renderer`** (Playwright + Mapbox GL) and **`timelapse-encoder`** (ffmpeg). They share a volume with the API at `/data/timelapse/current` (overwrites each run).
+
+The **`timelapse-renderer`** container needs a Mapbox token as **`MAPBOX_ACCESS_TOKEN`**. In Compose, if that is unset, **`VITE_MAPBOX_ACCESS_TOKEN`** from the repo root `.env` is used instead (same value you use for the map). After changing `.env`, recreate the renderer: `docker compose up -d --force-recreate timelapse-renderer`.
+
+- UI: `http://localhost:5000/timelapse` (after the SPA is built into the image)
+- API: `POST /api/timelapse/generate` (multipart `gpxFile`), `GET /api/timelapse/video`
+
 ### Seeded test users (after first successful start)
 
 | Email | Password | Role |

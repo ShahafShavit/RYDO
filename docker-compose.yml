@@ -37,10 +37,48 @@ services:
       Jwt__Key: "rydo-dev-secret-key-min-32-chars-long!!"
       Jwt__Issuer: "rydo"
       Jwt__Audience: "rydo-client"
+      Timelapse__DataPath: /data/timelapse
+      Timelapse__RendererUrl: http://timelapse-renderer:3001
+      # Headless Mapbox + 1800+ PNG frames can exceed 10m on slow disks; keep API HttpClient in sync with Program.cs.
+      Timelapse__GenerateTimeoutSeconds: 1800
+    volumes:
+      - timelapse-work:/data/timelapse
     depends_on:
       db:
         condition: service_healthy
+      timelapse-renderer:
+        condition: service_started
+      timelapse-encoder:
+        condition: service_started
+    restart: on-failure
+
+  timelapse-renderer:
+    build:
+      context: ./server/timelapse-renderer
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3001"
+      # Prefer MAPBOX_ACCESS_TOKEN; if unset, reuse the same Mapbox token as the SPA (common single-.env setups).
+      MAPBOX_ACCESS_TOKEN: ${MAPBOX_ACCESS_TOKEN:-${VITE_MAPBOX_ACCESS_TOKEN:-}}
+      TIMELAPSE_DATA_ROOT: /data/timelapse/current
+      TIMELAPSE_ENCODER_URL: http://timelapse-encoder:8080
+      RENDERER_PUBLIC_URL: http://127.0.0.1:3001
+      TIMELAPSE_DEBUG: "1"
+    volumes:
+      - timelapse-work:/data/timelapse
+    restart: on-failure
+
+  timelapse-encoder:
+    build:
+      context: ./server/timelapse-encoder
+      dockerfile: Dockerfile
+    environment:
+      PORT: "8080"
+      TIMELAPSE_DATA_ROOT: /data/timelapse/current
+    volumes:
+      - timelapse-work:/data/timelapse
     restart: on-failure
 
 volumes:
   rydo-sqldata:
+  timelapse-work:

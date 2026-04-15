@@ -86,4 +86,9 @@ export const API_ENDPOINTS = {
     preferences: `${P}/account/preferences`,
     profile: `${P}/account/profile`,
   },
+  timelapse: {
+    generate: `${P}/timelapse/generate`,
+    renderProgress: `${P}/timelapse/render-progress`,
+    video: `${P}/timelapse/video`,
+  },
 };

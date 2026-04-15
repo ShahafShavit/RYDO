@@ -399,9 +399,14 @@ export default function LiveRideReplayPage() {
             onChange={handleFile}
           />
         </label>
-        <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
-          Back to home
-        </Link>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link to={ROUTES.timelapse} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
+            GPX timelapse (9:16)
+          </Link>
+          <Link to={ROUTES.home} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
+            Back to home
+          </Link>
+        </div>
         <LiveRidePreviewTuningPanel tuning={motionTuning} onTuningChange={setMotionTuning} />
       </div>
     );

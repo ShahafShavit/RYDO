@@ -27,6 +27,7 @@ export const ROUTES = {
 
   // Live Ride (Mapbox simulator; public for desktop QA)
   live: '/live',
+  timelapse: '/timelapse',
 
   // Fallback
   notFound: '/not-found',
