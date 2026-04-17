@@ -56,6 +56,12 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         builder.Entity<CyclingClub>(e =>
         {
             e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.AvatarImageBytes).HasMaxLength(524_288);
+        });
+
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(x => x.AvatarImageBytes).HasMaxLength(524_288);
         });
 
         builder.Entity<ClubMember>(e =>

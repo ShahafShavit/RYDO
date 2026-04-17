@@ -6,6 +6,7 @@ import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
+import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
 
 function formFromClub(club) {
   return {
@@ -13,6 +14,7 @@ function formFromClub(club) {
     description: club?.description ?? '',
     region: club?.region ?? '',
     visibility: club?.visibility === 'private' ? 'private' : 'public',
+    avatarUrl: club?.avatarUrl ?? '',
   };
 }
 
@@ -28,7 +30,7 @@ export default function ClubSettingsModal({
 
   const formSnapshotKey =
     isOpen && club
-      ? [club.id, club.name, club.description, club.region, club.visibility].join('\x1f')
+      ? [club.id, club.name, club.description, club.region, club.visibility, club.avatarUrl ?? ''].join('\x1f')
       : '';
   const [appliedFormSnapshotKey, setAppliedFormSnapshotKey] = useState(formSnapshotKey);
   if (formSnapshotKey !== appliedFormSnapshotKey) {
@@ -43,6 +45,7 @@ export default function ClubSettingsModal({
         description: form.description.trim(),
         region: form.region.trim() === '' ? '' : form.region.trim(),
         visibility: form.visibility === 'private' ? 1 : 0,
+        avatarUrl: form.avatarUrl?.trim() ?? '',
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clubs', 'detail', clubId] });
@@ -90,6 +93,15 @@ export default function ClubSettingsModal({
               value={form.region}
               onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
               placeholder="City or area"
+            />
+          </FormField>
+          <FormField label="Club image">
+            <AvatarOrUrlEditor
+              kind="club"
+              clubId={clubId}
+              displayName={form.name?.trim() || club?.name || 'Club'}
+              avatarUrl={form.avatarUrl ?? ''}
+              onAvatarUrlChange={(v) => setForm((f) => ({ ...f, avatarUrl: v }))}
             />
           </FormField>
           <FormField label="Visibility">

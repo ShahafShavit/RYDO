@@ -59,6 +59,7 @@ export const API_ENDPOINTS = {
     createInvite: (clubId) => `${P}/clubs/${clubId}/invites`,
     redeemInvite: `${P}/clubs/invites/redeem`,
     patch: (clubId) => `${P}/clubs/${clubId}`,
+    avatarUpload: (clubId) => `${P}/clubs/${clubId}/avatar/upload`,
     promote: (clubId, userId) => `${P}/clubs/${clubId}/members/${userId}/promote`,
     demote: (clubId, userId) => `${P}/clubs/${clubId}/members/${userId}/demote`,
     removeMember: (clubId, userId) => `${P}/clubs/${clubId}/members/${userId}`,
@@ -94,6 +95,7 @@ export const API_ENDPOINTS = {
     changePassword: `${P}/account/password`,
     preferences: `${P}/account/preferences`,
     profile: `${P}/account/profile`,
+    avatarUpload: `${P}/account/avatar/upload`,
   },
   timelapse: {
     generate: `${P}/timelapse/generate`,

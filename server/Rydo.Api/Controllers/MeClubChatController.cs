@@ -81,7 +81,7 @@ public class MeClubChatController(RydoDbContext db) : ControllerBase
             rows.Add((
                 clubId,
                 club.Name,
-                club.AvatarUrl,
+                AvatarUrls.ResolveClubDisplay(club),
                 unread,
                 firstUnreadMessageId,
                 preview,

@@ -106,9 +106,7 @@ internal static class RideResponseHelper
         };
 
         var rideKind = g.Kind == RideKind.SoloLog ? "soloLog" : "scheduled";
-        string? clubAvatarUrl = g.Club != null && !string.IsNullOrWhiteSpace(g.Club.AvatarUrl)
-            ? g.Club.AvatarUrl.Trim()
-            : null;
+        string? clubAvatarUrl = AvatarUrls.ResolveClubDisplay(g.Club);
 
         if (!includeRoster)
         {

@@ -14,6 +14,8 @@ export const clubsApi = {
   createInvite: (clubId) => apiClient.post(API_ENDPOINTS.clubs.createInvite(clubId)),
   redeemInvite: (token) => apiClient.post(API_ENDPOINTS.clubs.redeemInvite, { token }),
   patch: (clubId, payload) => apiClient.patch(API_ENDPOINTS.clubs.patch(clubId), payload),
+  uploadAvatar: (clubId, file) =>
+    apiClient.uploadFile(API_ENDPOINTS.clubs.avatarUpload(clubId), file, {}, { fileFieldName: 'file' }),
   promote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.promote(clubId, userId)),
   demote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.demote(clubId, userId)),
   removeMember: (clubId, userId) => apiClient.delete(API_ENDPOINTS.clubs.removeMember(clubId, userId)),

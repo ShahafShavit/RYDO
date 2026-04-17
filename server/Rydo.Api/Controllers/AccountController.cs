@@ -57,7 +57,29 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         u.LastName = body.LastName;
         u.Bio = string.IsNullOrWhiteSpace(body.Bio) ? null : body.Bio.Trim();
         u.Location = string.IsNullOrWhiteSpace(body.Location) ? null : body.Location.Trim();
-        u.AvatarUrl = string.IsNullOrWhiteSpace(body.AvatarUrl) ? null : body.AvatarUrl.Trim();
+        {
+            var t = body.AvatarUrl?.Trim() ?? "";
+            if (string.IsNullOrEmpty(t))
+            {
+                u.AvatarUrl = null;
+                u.AvatarImageBytes = null;
+                u.AvatarImageContentType = null;
+            }
+            else if (AvatarUrls.MatchesUserUploadedPath(t, u.Id) && u.AvatarImageBytes is { Length: > 0 })
+            {
+                /* keep uploaded avatar */
+            }
+            else if (AvatarUrls.IsExternalHttpUrl(t))
+            {
+                u.AvatarUrl = t;
+                u.AvatarImageBytes = null;
+                u.AvatarImageContentType = null;
+            }
+            else
+            {
+                return Problem(statusCode: 400, detail: "Avatar must be an http(s) image URL, or clear the field and upload a file.");
+            }
+        }
         u.PublicFirstName = body.PublicFirstName;
         u.PublicLastName = body.PublicLastName;
         u.PublicEmail = body.PublicEmail;
@@ -73,6 +95,35 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
         return Ok(UserProfileResponse.Full(u, roles, pref, badges));
+    }
+
+    [HttpPost("avatar/upload")]
+    [RequestSizeLimit(AvatarImageProcessor.MaxUploadBytes)]
+    public async Task<IActionResult> UploadAvatar(CancellationToken ct)
+    {
+        var uid = GetUserId();
+        if (uid == null) return Unauthorized();
+
+        var form = await Request.ReadFormAsync(ct);
+        var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+            return Problem(statusCode: 400, detail: "file is required.");
+
+        await using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var (bytes, contentType, err) = AvatarImageProcessor.TryProcessUpload(ms.ToArray());
+        if (err != null)
+            return Problem(statusCode: 400, detail: err);
+
+        var u = await users.Users.FirstOrDefaultAsync(x => x.Id == uid.Value, ct);
+        if (u == null) return Unauthorized();
+
+        u.AvatarImageBytes = bytes;
+        u.AvatarImageContentType = contentType;
+        u.AvatarUrl = null;
+        await users.UpdateAsync(u);
+
+        return Ok(new { avatarUrl = AvatarUrls.UserUploaded(u.Id) });
     }
 
     [HttpGet("preferences")]

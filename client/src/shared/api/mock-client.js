@@ -840,6 +840,15 @@ export async function mockRequest(path, options = {}) {
     return toFullProfile(profile);
   }
 
+  if (pathname === '/api/account/avatar/upload' && method === 'POST') {
+    const seed = `mockupload-${profile.id}-${Date.now()}`;
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+    profile = { ...profile, avatarUrl };
+    const uidx = users.findIndex((u) => u.id === profile.id);
+    if (uidx >= 0) users[uidx] = { ...users[uidx], avatarUrl };
+    return { avatarUrl };
+  }
+
   if (pathname === '/api/account/preferences' && method === 'GET') {
     return preferences;
   }
@@ -1052,6 +1061,36 @@ export async function mockRequest(path, options = {}) {
       avatarUrl: row.avatarUrl,
       visibility: row.visibility,
       createdAt: row.createdAt,
+    };
+  }
+
+  if (/^\/api\/clubs\/\d+\/avatar\/upload$/.test(pathname) && method === 'POST') {
+    const cid = Number(pathname.split('/')[3]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    const seed = `mockclub-${cid}-${Date.now()}`;
+    const avatarUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}`;
+    c.avatarUrl = avatarUrl;
+    return { avatarUrl };
+  }
+
+  if (/^\/api\/clubs\/\d+$/.test(pathname) && method === 'PATCH') {
+    const cid = Number(pathname.split('/')[3]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    const body = parseJsonBody(options.body);
+    if (body.name != null) c.name = String(body.name).trim();
+    if (body.description != null) c.description = String(body.description).trim();
+    if (body.region !== undefined) c.region = body.region ? String(body.region).trim() : null;
+    if (body.visibility != null) c.visibility = body.visibility === 1 ? 'private' : 'public';
+    if ('avatarUrl' in body) c.avatarUrl = body.avatarUrl ? String(body.avatarUrl).trim() : null;
+    return {
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      region: c.region,
+      avatarUrl: c.avatarUrl,
+      visibility: c.visibility,
     };
   }
 

@@ -12,6 +12,11 @@ public class ApplicationUser : IdentityUser<int>
     public string? Location { get; set; }
     public string? AvatarUrl { get; set; }
 
+    /// <summary>Uploaded square avatar (1:1), WebP. When set, this wins over <see cref="AvatarUrl"/> for display.</summary>
+    public byte[]? AvatarImageBytes { get; set; }
+
+    public string? AvatarImageContentType { get; set; }
+
     /// <summary>Visible to other signed-in users on the public profile.</summary>
     public bool PublicFirstName { get; set; } = true;
 

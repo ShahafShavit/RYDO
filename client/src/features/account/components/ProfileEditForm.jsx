@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
+import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
 import { useProfile, useUpdateProfile } from '../hooks/useAccount';
 import { normalizeAccountProfile } from '../account-mapper';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -173,14 +174,19 @@ export function ProfileEditForm() {
             className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>
-        <FormField label="Avatar image URL">
-          <input
-            name="avatarUrl"
-            value={formData.avatarUrl ?? ''}
-            onChange={handleChange}
-            type="url"
-            placeholder="https://…"
-            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+        <FormField label="Profile photo">
+          <AvatarOrUrlEditor
+            kind="user"
+            displayName={`${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 'You'}
+            avatarUrl={formData.avatarUrl ?? ''}
+            onAvatarUrlChange={(v) => {
+              setSuccessMsg('');
+              setDraft((prev) => {
+                const cur = prev || profile;
+                if (!cur) return prev;
+                return { ...cur, avatarUrl: v };
+              });
+            }}
           />
         </FormField>
       </div>

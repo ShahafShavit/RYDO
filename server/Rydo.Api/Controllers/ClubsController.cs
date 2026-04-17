@@ -55,7 +55,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         var uid = CurrentUserId();
         if (uid == null)
         {
-            var publicOnly = await db.CyclingClubs.AsNoTracking()
+            var publicRows = await db.CyclingClubs.AsNoTracking()
                 .Where(c => c.Visibility == ClubVisibility.Public)
                 .OrderBy(c => c.Name)
                 .Select(c => new
@@ -64,13 +64,23 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                     c.Name,
                     c.Description,
                     c.Region,
-                    avatarUrl = c.AvatarUrl,
-                    visibility = "public",
-                    membershipPending = false,
-                    myRole = (string?)null,
+                    c.AvatarUrl,
+                    HasBlob = c.AvatarImageBytes != null,
                     c.CreatedAt,
                 })
                 .ToListAsync(ct);
+            var publicOnly = publicRows.Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.Description,
+                c.Region,
+                avatarUrl = AvatarUrls.ResolveClubDisplay(c.AvatarUrl, c.HasBlob, c.Id),
+                visibility = "public",
+                membershipPending = false,
+                myRole = (string?)null,
+                c.CreatedAt,
+            }).ToList();
             return Ok(publicOnly);
         }
 
@@ -97,7 +107,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 c.Name,
                 c.Description,
                 c.Region,
-                avatarUrl = c.AvatarUrl,
+                c.AvatarUrl,
+                HasBlob = c.AvatarImageBytes != null,
                 c.Visibility,
                 c.CreatedAt,
             })
@@ -109,7 +120,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             var isActiveMember = role is "admin" or "member";
             var hidePrivateFields = c.Visibility == ClubVisibility.Private && !isActiveMember;
             var vis = c.Visibility == ClubVisibility.Public ? "public" : "private";
-            var avatar = string.IsNullOrWhiteSpace(c.avatarUrl) ? null : c.avatarUrl.Trim();
+            var avatar = AvatarUrls.ResolveClubDisplay(c.AvatarUrl, c.HasBlob, c.Id);
             return new
             {
                 c.Id,
@@ -205,7 +216,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         string? description = club.Description;
         string? region = club.Region;
         int? memberCountPublic = memberCount;
-        string? avatarUrl = string.IsNullOrWhiteSpace(club.AvatarUrl) ? null : club.AvatarUrl.Trim();
+        string? avatarUrl = AvatarUrls.ResolveClubDisplay(club);
         if (club.Visibility == ClubVisibility.Private && !isActiveMember)
         {
             description = null;
@@ -529,7 +540,29 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         if (body.Description != null) club.Description = body.Description.Trim();
         if (body.Region != null) club.Region = string.IsNullOrWhiteSpace(body.Region) ? null : body.Region.Trim();
         if (body.AvatarUrl != null)
-            club.AvatarUrl = string.IsNullOrWhiteSpace(body.AvatarUrl) ? null : body.AvatarUrl.Trim();
+        {
+            var t = body.AvatarUrl.Trim();
+            if (string.IsNullOrEmpty(t))
+            {
+                club.AvatarUrl = null;
+                club.AvatarImageBytes = null;
+                club.AvatarImageContentType = null;
+            }
+            else if (AvatarUrls.MatchesClubUploadedPath(t, club.Id) && club.AvatarImageBytes is { Length: > 0 })
+            {
+                /* keep uploaded club image */
+            }
+            else if (AvatarUrls.IsExternalHttpUrl(t))
+            {
+                club.AvatarUrl = t;
+                club.AvatarImageBytes = null;
+                club.AvatarImageContentType = null;
+            }
+            else
+            {
+                return Problem(statusCode: 400, detail: "Club image must be an http(s) URL, or clear the field and upload a file.");
+            }
+        }
         if (body.Visibility.HasValue) club.Visibility = body.Visibility.Value;
 
         await db.SaveChangesAsync(ct);
@@ -539,9 +572,41 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             name = club.Name,
             description = club.Description,
             region = club.Region,
-            avatarUrl = string.IsNullOrWhiteSpace(club.AvatarUrl) ? null : club.AvatarUrl.Trim(),
+            avatarUrl = AvatarUrls.ResolveClubDisplay(club),
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
         });
+    }
+
+    [HttpPost("{id:int}/avatar/upload")]
+    [Authorize]
+    [RequestSizeLimit(AvatarImageProcessor.MaxUploadBytes)]
+    public async Task<IActionResult> UploadClubAvatar(int id, CancellationToken ct)
+    {
+        var uid = CurrentUserId() ?? 0;
+        var isAdmin = await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid && m.Role == ClubMemberRole.Admin && m.MembershipStatus == ClubMembershipStatus.Active, ct);
+        if (!isAdmin) return Forbid();
+
+        var club = await db.CyclingClubs.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (club == null) return NotFound();
+
+        var form = await Request.ReadFormAsync(ct);
+        var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+            return Problem(statusCode: 400, detail: "file is required.");
+
+        await using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var (bytes, contentType, err) = AvatarImageProcessor.TryProcessUpload(ms.ToArray());
+        if (err != null)
+            return Problem(statusCode: 400, detail: err);
+
+        club.AvatarImageBytes = bytes;
+        club.AvatarImageContentType = contentType;
+        club.AvatarUrl = null;
+        await db.SaveChangesAsync(ct);
+
+        return Ok(new { avatarUrl = AvatarUrls.ClubUploaded(club.Id) });
     }
 
     [HttpPost("{id:int}/members/{userId:int}/promote")]

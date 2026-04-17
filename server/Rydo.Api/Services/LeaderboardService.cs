@@ -175,7 +175,7 @@ public class LeaderboardService(RydoDbContext db) : ILeaderboardService
             if (string.IsNullOrEmpty(displayName))
                 displayName = $"User #{uid}";
 
-            var avatar = string.IsNullOrWhiteSpace(u?.AvatarUrl) ? null : u!.AvatarUrl!.Trim();
+            var avatar = AvatarUrls.ResolveUserDisplay(u);
             list.Add(new LeaderboardRowDto(i + 1, uid, displayName, avatar, val, unit));
         }
 
