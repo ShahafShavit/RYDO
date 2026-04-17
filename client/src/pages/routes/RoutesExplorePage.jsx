@@ -81,7 +81,8 @@ export default function RoutesExplorePage() {
   const handleUseNearMe = useCallback(() => {
     clearError();
     requestPosition(({ lat, lng }) => {
-      setFilters((f) => ({ ...f, nearLat: lat, nearLng: lng }));
+      // Near-me list is always sorted by distance; clear favorite sort so UI matches API.
+      setFilters((f) => ({ ...f, nearLat: lat, nearLng: lng, sort: 'newest' }));
     });
   }, [clearError, requestPosition]);
 

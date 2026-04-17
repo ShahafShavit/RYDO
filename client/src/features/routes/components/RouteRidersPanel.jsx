@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
+import { Bike } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import RouteRidersRosterModal, { RouteRiderRow } from '@/features/routes/components/RouteRidersRosterModal';
 import { routesApi, routeKeys } from '@/features/routes/api/routesApi';
@@ -22,6 +23,7 @@ function shufflePick(arr, n) {
  * @param {{ totalCount?: number, visibleRiders?: object[] } | null | undefined} props.routeRiders
  * @param {number | string | undefined} props.routeId — required when list API returns counts only (no visible names).
  * @param {boolean} [props.prefetchRoster] — if true, fetch full roster on mount when counts-only (e.g. eager explore). Default: fetch on first hover only.
+ * @param {'card' | 'inline' | 'mapBadge'} [props.variant] — `mapBadge`: bike icon + count for map overlay (popover/modal unchanged).
  */
 export default function RouteRidersPanel({
   routeRiders,
@@ -146,7 +148,8 @@ export default function RouteRidersPanel({
     </p>
   );
 
-  if (variant === 'inline') {
+  if (variant === 'inline' || variant === 'mapBadge') {
+    const isMapBadge = variant === 'mapBadge';
     const rosterLoading = listOnlyCounts && isFetching && visible.length === 0;
 
     return (
@@ -158,11 +161,23 @@ export default function RouteRidersPanel({
               e.stopPropagation();
               openModal();
             }}
-            className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-left text-sm text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
+            className={
+              isMapBadge
+                ? 'inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/65 px-2 py-1 text-sm font-semibold tabular-nums text-white shadow-md backdrop-blur-sm transition hover:bg-black/80'
+                : 'inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-left text-sm text-fg/90 transition hover:border-border-strong hover:bg-surface-strong'
+            }
             aria-haspopup="dialog"
             aria-expanded={modalOpen}
+            aria-label={isMapBadge ? label : undefined}
           >
-            <span className="truncate font-medium">{label}</span>
+            {isMapBadge ? (
+              <>
+                <Bike className="h-3.5 w-3.5 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
+                <span>{total}</span>
+              </>
+            ) : (
+              <span className="truncate font-medium">{label}</span>
+            )}
           </button>
           {hoverOpen && popoverStyle ? (
             <div

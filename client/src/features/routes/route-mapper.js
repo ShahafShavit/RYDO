@@ -94,6 +94,7 @@ export function normalizeRoute(rawRoute = {}) {
       avatarUrl: rawRoute.createdBy?.avatarUrl?.trim() || null,
     },
     routeRiders: normalizeRouteRiders(rawRoute.routeRiders),
+    favoriteCount: Math.max(0, Number(rawRoute.favoriteCount ?? 0) || 0),
     createdAt: rawRoute.createdAt || null,
     isSaved: Boolean(rawRoute.isSaved),
     status: rawRoute.status || 'published',

@@ -260,6 +260,7 @@ function createRouteFromUpload(data) {
     startLongitude: 35.2137,
     startLatitude: 31.7683,
     status: 'published',
+    favoriteCount: 0,
   };
 }
 
@@ -284,6 +285,13 @@ function buildMockRouteRiders(routeId) {
   });
   const totalCount = visibleRiders.length;
   return { totalCount, visibleRiders };
+}
+
+/** Deterministic mock total “saved as favorite” counts (mirrors server `favoriteCount`). */
+function mockFavoriteCountForRoute(routeId) {
+  const id = Number(routeId);
+  if (!Number.isFinite(id)) return 0;
+  return (id * 17 + 5) % 47;
 }
 
 function findRoute(routeId) {
@@ -315,6 +323,7 @@ function findRoute(routeId) {
     estimatedDurationMinutes: route.estimatedDurationMinutes ?? route.durationMinutes,
     createdBy,
     routeRiders: { totalCount, visibleRiders },
+    favoriteCount: mockFavoriteCountForRoute(rid),
   };
 }
 
@@ -324,6 +333,7 @@ function enrichListRouteRow(route) {
     ...route,
     preview: { coordinates: route.coordinates },
     routeRiders: { totalCount: rr.totalCount, visibleRiders: [] },
+    favoriteCount: mockFavoriteCountForRoute(route.id),
   };
 }
 
@@ -536,7 +546,16 @@ export async function mockRequest(path, options = {}) {
         distanceFromUserKm: Math.round(d * 100) / 100,
       }));
     } else {
-      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const sortParam = (searchParams.get('sort') || '').trim().toLowerCase();
+      if (sortParam === 'favorites') {
+        list.sort((a, b) => {
+          const fav = mockFavoriteCountForRoute(b.id) - mockFavoriteCountForRoute(a.id);
+          if (fav !== 0) return fav;
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+      } else {
+        list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      }
     }
 
     const paged = paginate(list, searchParams);
@@ -567,7 +586,11 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/api/routes/saved' && method === 'GET') {
     const savedRoutes = routes.filter((route) => savedRouteIds.includes(route.id));
-    return paginate(savedRoutes, searchParams);
+    const pagedSaved = paginate(savedRoutes, searchParams);
+    return {
+      ...pagedSaved,
+      items: pagedSaved.items.map((r) => enrichListRouteRow(r)),
+    };
   }
 
   if (pathname === '/api/routes/my' && method === 'GET') {
@@ -577,7 +600,11 @@ export async function mockRequest(path, options = {}) {
         route.createdBy === profile.fullName ||
         route.createdBy?.fullName === profile.fullName,
     );
-    return paginate(myRoutes, searchParams);
+    const pagedMine = paginate(myRoutes, searchParams);
+    return {
+      ...pagedMine,
+      items: pagedMine.items.map((r) => enrichListRouteRow(r)),
+    };
   }
 
   if (/^\/api\/routes\/\d+\/save$/.test(pathname) && method === 'POST') {

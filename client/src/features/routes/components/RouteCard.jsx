@@ -1,12 +1,10 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
-import Badge from '@/shared/components/ui/badge/Badge';
-import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
-import { RouteCardDescription } from '@/features/routes/components/RouteDescriptionSnippet';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
@@ -21,12 +19,12 @@ function formatDuration(minutes) {
 export default function RouteCard({ route }) {
   const { formatKm } = useFormatDistance();
   const title = route?.title || 'Untitled route';
-  const descriptionFallback =
-    'Structured route metadata for fast decision-making before you ride.';
-  const difficulty = formatTrailMetaLabel(route?.difficulty || 'unknown');
   const terrain = formatTrailMetaLabel(route?.terrain || 'mixed');
   const duration = formatDuration(route?.estimatedDurationMinutes);
-  const distance = route?.distanceKm != null ? formatKm(route.distanceKm) : null;
+  const distance =
+    route?.distanceKm != null && Number.isFinite(Number(route.distanceKm))
+      ? formatKm(route.distanceKm)
+      : null;
   const fromYou =
     route?.distanceFromUserKm != null && Number.isFinite(Number(route.distanceFromUserKm))
       ? formatKm(route.distanceFromUserKm)
@@ -35,48 +33,99 @@ export default function RouteCard({ route }) {
   const routeId = route?.id ?? '';
   const mapPreview = useMemo(() => route?.preview ?? null, [route]);
 
-  return (
-    <Card className="flex h-full flex-col justify-between">
-      <div>
-        <CompactRouteMapPreview preview={mapPreview} />
-        <div className="mt-4 flex w-full min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap gap-2">
-            <Badge>{terrain}</Badge>
-            {fromYou && (
-              <Badge title="Straight-line distance from your location to the route start">
-                {fromYou} from you
-              </Badge>
-            )}
-            {distance && <Badge>{distance}</Badge>}
-            {duration && (
-              <span title={durationSourceLabel(route?.estimatedDurationSource)}>
-                <Badge>{duration}</Badge>
-              </span>
-            )}
-          </div>
-          <Badge variant="neon" className="shrink-0">
-            {difficulty}
-          </Badge>
-        </div>
-        <div className="mt-4">
-          <h3 className="text-xl font-semibold">{title}</h3>
-          <RouteCardDescription
-            description={route?.description}
-            fallback={descriptionFallback}
-            routeId={routeId}
-          />
-        </div>
-        {route?.routeRiders?.totalCount > 0 ? (
-          <div className="mt-4 min-w-0">
-            <RouteRidersPanel variant="inline" routeId={routeId} routeRiders={route.routeRiders} />
-          </div>
-        ) : null}
-      </div>
+  const routeHref = ROUTES.routeDetails.replace(':routeId', String(routeId));
+  const favoriteCount = route?.favoriteCount ?? 0;
+  const showRidersBadge = route?.routeRiders?.totalCount > 0;
+  const showFavoriteBadge = favoriteCount > 0;
+  const favoriteTitle =
+    favoriteCount === 1
+      ? '1 person saved this route as a favorite'
+      : `${favoriteCount} people saved this route as favorites`;
 
-      <div className="mt-6">
-        <Link to={ROUTES.routeDetails.replace(':routeId', String(routeId))}>
-          <Button variant="secondary">View route</Button>
-        </Link>
+  return (
+    <Card className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col text-center">
+        {/* isolate + map z-0 so the badge stacks above Leaflet panes (tiles/overlays use high internal z-index) */}
+        <div className="relative isolate shrink-0">
+          <div className="relative z-0">
+            <CompactRouteMapPreview preview={mapPreview} />
+          </div>
+          {showRidersBadge || showFavoriteBadge ? (
+            <div className="pointer-events-none absolute inset-x-0 top-2 z-[900] flex items-start justify-between gap-2 px-2">
+              <div className="pointer-events-auto min-w-0">
+                {showRidersBadge ? (
+                  <RouteRidersPanel
+                    variant="mapBadge"
+                    routeId={routeId}
+                    routeRiders={route.routeRiders}
+                  />
+                ) : null}
+              </div>
+              <div className="pointer-events-auto shrink-0">
+                {showFavoriteBadge ? (
+                  <div
+                    role="img"
+                    className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/65 px-2 py-1 text-sm font-semibold tabular-nums text-white shadow-md backdrop-blur-sm"
+                    title={favoriteTitle}
+                    aria-label={favoriteTitle}
+                  >
+                    <Heart className="h-3.5 w-3.5 shrink-0 fill-white/25 opacity-95" strokeWidth={2} aria-hidden />
+                    <span aria-hidden="true">{favoriteCount}</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-4 shrink-0">
+          <h3 className="text-xl font-semibold">
+            <Link
+              to={routeHref}
+              className="text-fg underline-offset-2 transition hover:text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded-sm"
+            >
+              {title}
+            </Link>
+          </h3>
+        </div>
+        {/* Fills extra row height so the stats row lines up across cards with different title lengths */}
+        <div className="min-h-0 flex-1" aria-hidden="true" />
+        <div className="mt-4 shrink-0 border-t border-border/40 pt-3">
+          <div className="flex min-w-0 gap-0 text-center">
+            <div className="min-w-0 flex-1 pr-2">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+                Terrain
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg">{terrain}</p>
+            </div>
+            <div className="min-w-0 flex-1 border-l border-border/50 px-2 sm:px-3">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+                Distance
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg">
+                {distance ?? '—'}
+              </p>
+            </div>
+            <div className="min-w-0 flex-1 border-l border-border/50 pl-2 sm:pl-3">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+                Duration
+              </p>
+              <p
+                className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg"
+                title={duration ? durationSourceLabel(route?.estimatedDurationSource) : undefined}
+              >
+                {duration || '—'}
+              </p>
+            </div>
+          </div>
+          {fromYou ? (
+            <p
+              className="mt-2.5 text-center text-xs tabular-nums text-fg-muted"
+              title="Straight-line distance from your location to the route start"
+            >
+              {fromYou} from you
+            </p>
+          ) : null}
+        </div>
       </div>
     </Card>
   );

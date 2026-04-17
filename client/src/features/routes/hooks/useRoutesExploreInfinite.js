@@ -38,6 +38,7 @@ export function useRoutesExploreInfinite(filters) {
         ...(terrain && terrain !== 'all' ? { terrain } : {}),
         ...(difficulty && difficulty !== 'all' ? { difficulty } : {}),
         ...(distance && distance !== 'all' ? { distance } : {}),
+        ...(!useNear && sort === 'favorites' ? { sort: 'favorites' } : {}),
         ...(useNear ? { nearLat, nearLng } : {}),
         ...(useNear && typeof nearMaxKm === 'number' && nearMaxKm > 0 ? { maxKm: nearMaxKm } : {}),
       });

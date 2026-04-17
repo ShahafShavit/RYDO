@@ -81,7 +81,35 @@ public static class RouteJsonMapper
             .ToDictionary(g => g.Key, g => g.Select(x => x.UserId).Distinct().Count());
     }
 
-    public static object ToClientRoute(RouteEntity r, ApplicationUser? creator, bool isSaved = false, RouteRidersInfo? routeRiders = null, double? distanceFromUserKm = null)
+    /// <summary>
+    /// How many users saved each route (favorites), for list responses — single grouped query.
+    /// </summary>
+    public static async Task<Dictionary<int, int>> LoadFavoriteCountsByRouteIdAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> routeIds,
+        CancellationToken ct)
+    {
+        if (routeIds.Count == 0)
+            return new Dictionary<int, int>();
+
+        var idSet = routeIds.Distinct().ToArray();
+
+        var rows = await db.SavedRoutes.AsNoTracking()
+            .Where(s => idSet.Contains(s.RouteId))
+            .GroupBy(s => s.RouteId)
+            .Select(g => new { RouteId = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(x => x.RouteId, x => x.Count);
+    }
+
+    public static object ToClientRoute(
+        RouteEntity r,
+        ApplicationUser? creator,
+        bool isSaved = false,
+        RouteRidersInfo? routeRiders = null,
+        double? distanceFromUserKm = null,
+        int favoriteCount = 0)
     {
         var warnings = JsonSerializer.Deserialize<List<string>>(r.WarningsJson) ?? new List<string>();
         var coords = JsonSerializer.Deserialize<List<List<double>>>(r.PreviewCoordinatesJson) ?? new List<List<double>>();
@@ -122,6 +150,7 @@ public static class RouteJsonMapper
             },
             createdAt = r.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             isSaved,
+            favoriteCount,
             status = r.Status,
             routeRiders = new
             {

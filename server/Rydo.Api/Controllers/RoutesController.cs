@@ -26,6 +26,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         [FromQuery] double? nearLat = null,
         [FromQuery] double? nearLng = null,
         [FromQuery] double? maxKm = null,
+        [FromQuery] string? sort = null,
         CancellationToken ct = default)
     {
         take = Math.Clamp(take, 1, MaxRouteListTake);
@@ -98,6 +99,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             var pageSlice = withDist.Skip(skip).Take(take).ToList();
             var nearRouteIds = pageSlice.Select(x => x.Route.Id).ToList();
             var countMapNear = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, nearRouteIds, ct);
+            var favMapNear = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, nearRouteIds, ct);
             var items = pageSlice
                 .Select(x =>
                 {
@@ -108,22 +110,35 @@ public class RoutesController(RydoDbContext db) : ControllerBase
                         x.Route.CreatedBy,
                         false,
                         rr,
-                        Math.Round(x.Dist, 2));
+                        Math.Round(x.Dist, 2),
+                        favMapNear.GetValueOrDefault(x.Route.Id, 0));
                 })
                 .ToList();
             return Ok(new { items, total, skip, take });
         }
 
-        query = query.OrderByDescending(r => r.CreatedAt);
+        var sortKey = (sort ?? "newest").Trim();
+        if (string.Equals(sortKey, "favorites", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query
+                .OrderByDescending(r => db.SavedRoutes.Count(s => s.RouteId == r.Id))
+                .ThenByDescending(r => r.CreatedAt);
+        }
+        else
+        {
+            query = query.OrderByDescending(r => r.CreatedAt);
+        }
+
         var page = Pagination.PageQueryable(query, skip, take);
         var listRouteIds = page.Items.Select(r => r.Id).ToList();
         var countMap = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, listRouteIds, ct);
+        var favMap = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, listRouteIds, ct);
         var itemsDefault = page.Items
             .Select(r =>
             {
                 var tc = countMap.GetValueOrDefault(r.Id, 0);
                 var rr = new RouteRidersInfo(tc, Array.Empty<RouteRiderVisible>());
-                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr);
+                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr, null, favMap.GetValueOrDefault(r.Id, 0));
             })
             .ToList();
         return Ok(new { items = itemsDefault, total = page.Total, skip = page.Skip, take = page.Take });
@@ -154,7 +169,8 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         var uid = GetUserId();
         var saved = uid.HasValue && await db.SavedRoutes.AnyAsync(s => s.UserId == uid && s.RouteId == routeId, ct);
         var ridersInfo = await RouteJsonMapper.LoadRouteRidersInfoAsync(db, routeId, ct);
-        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo));
+        var favoriteCount = await db.SavedRoutes.AsNoTracking().CountAsync(s => s.RouteId == routeId, ct);
+        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo, null, favoriteCount));
     }
 
     [HttpPost("upload")]
@@ -220,7 +236,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
     [HttpGet("my")]
     [Authorize]
-    public IActionResult Mine([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    public async Task<IActionResult> Mine([FromQuery] int skip = 0, [FromQuery] int take = 20, CancellationToken ct = default)
     {
         var uidOpt = GetUserId();
         if (uidOpt is not { } uid)
@@ -228,13 +244,17 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
         var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).Where(r => r.CreatedByUserId == uid).OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
-        var items = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false)).ToList();
+        var myRouteIds = page.Items.Select(r => r.Id).ToList();
+        var favMap = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, myRouteIds, ct);
+        var items = page.Items
+            .Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, null, null, favMap.GetValueOrDefault(r.Id, 0)))
+            .ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
     }
 
     [HttpGet("saved")]
     [Authorize]
-    public IActionResult Saved([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    public async Task<IActionResult> Saved([FromQuery] int skip = 0, [FromQuery] int take = 20, CancellationToken ct = default)
     {
         var uidOpt = GetUserId();
         if (uidOpt is not { } uid)
@@ -246,7 +266,11 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             orderby r.Title
             select r;
         var page = Pagination.PageQueryable(query, skip, take);
-        var items = page.Items.Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, true)).ToList();
+        var savedRouteIds = page.Items.Select(r => r.Id).ToList();
+        var favMap = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, savedRouteIds, ct);
+        var items = page.Items
+            .Select(r => RouteJsonMapper.ToClientRoute(r, r.CreatedBy, true, null, null, favMap.GetValueOrDefault(r.Id, 0)))
+            .ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
     }
 

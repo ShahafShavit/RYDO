@@ -26,6 +26,7 @@ export default function RouteFilters({
   // support a single-row pill sweep that toggles different filter dimensions.
   const options = [
     { label: 'Newest', value: 'sort:newest' },
+    { label: 'Most favorited', value: 'sort:favorites' },
     { label: 'Road', value: 'terrain:road' },
     { label: 'Gravel', value: 'terrain:gravel' },
     { label: 'Trail', value: 'terrain:trail' },
@@ -40,6 +41,7 @@ export default function RouteFilters({
 
   const activeValues = [];
   if (filters.sort === 'newest') activeValues.push('sort:newest');
+  if (filters.sort === 'favorites') activeValues.push('sort:favorites');
   if (filters.terrain && filters.terrain !== 'all') activeValues.push(`terrain:${filters.terrain}`);
   if (filters.difficulty && filters.difficulty !== 'all') activeValues.push(`difficulty:${filters.difficulty}`);
   if (filters.distance && filters.distance !== 'all') activeValues.push(`distance:${filters.distance}`);
@@ -60,6 +62,8 @@ export default function RouteFilters({
       if (type === 'difficulty') next.difficulty = v;
       if (type === 'distance') next.distance = v;
     });
+
+    if (!next.sort) next.sort = 'newest';
 
     if (onFilterChange) onFilterChange(next);
   };

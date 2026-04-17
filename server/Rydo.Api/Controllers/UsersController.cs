@@ -136,12 +136,13 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         var page = Pagination.PageQueryable(query, skip, take);
         var userRouteIds = page.Items.Select(r => r.Id).ToList();
         var userRouteCountMap = await RouteJsonMapper.LoadRouteRiderTotalCountsByRouteIdAsync(db, userRouteIds, ct);
+        var favMap = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, userRouteIds, ct);
         var items = page.Items
             .Select(r =>
             {
                 var tc = userRouteCountMap.GetValueOrDefault(r.Id, 0);
                 var rr = new RouteRidersInfo(tc, Array.Empty<RouteRiderVisible>());
-                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr);
+                return RouteJsonMapper.ToClientRoute(r, r.CreatedBy, false, rr, null, favMap.GetValueOrDefault(r.Id, 0));
             })
             .ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
