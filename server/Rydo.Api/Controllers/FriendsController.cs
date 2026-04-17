@@ -294,6 +294,8 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
 
         var q = db.InboxItems.AsNoTracking()
             .Include(i => i.FriendRequest)!.ThenInclude(f => f!.FromUser)
+            .Include(i => i.Club)
+            .Include(i => i.ClubJoinRequester)
             .Where(i => i.RecipientUserId == viewerId)
             .OrderByDescending(i => i.CreatedAt)
             .AsQueryable();
@@ -322,6 +324,24 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                         status = fr.Status.ToString().ToLowerInvariant(),
                         fromUser = UserSummary(fr.FromUser),
                     },
+                    clubJoinRequest = (object?)null,
+                });
+            }
+            else if (i.Kind == InboxItemKind.ClubJoinRequest && i.Club != null && i.ClubJoinRequester != null)
+            {
+                items.Add(new
+                {
+                    id = i.Id,
+                    kind = i.Kind,
+                    createdAt = i.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    friendRequest = (object?)null,
+                    clubJoinRequest = new
+                    {
+                        club = new { id = i.Club.Id, name = i.Club.Name },
+                        requester = UserSummary(i.ClubJoinRequester),
+                    },
                 });
             }
             else
@@ -334,6 +354,7 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                     readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     friendRequest = (object?)null,
+                    clubJoinRequest = (object?)null,
                 });
             }
         }

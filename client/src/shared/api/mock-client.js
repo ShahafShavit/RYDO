@@ -178,6 +178,10 @@ let preferences = {
   colorScheme: 'midnight',
 };
 
+/** Inbox rows for mock API (e.g. club join request to private club 2 admin). */
+let mockInboxSeq = 1;
+const mockInboxStore = [];
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1137,7 +1141,33 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (/^\/api\/clubs\/\d+\/join$/.test(pathname) && method === 'POST') {
-    return { status: 'active' };
+    const cid = Number(pathname.split('/')[3]);
+    const c = clubs.find((x) => x.id === cid);
+    if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    if ((c.visibility || 'public') === 'public') {
+      return { status: 'active' };
+    }
+    // Private club 2: mock admin is user id 2 — create inbox notification when someone else requests.
+    if (cid === 2 && profile.id !== 2) {
+      const now = new Date().toISOString();
+      mockInboxStore.push({
+        id: mockInboxSeq++,
+        recipientUserId: 2,
+        kind: 'club_join_request',
+        createdAt: now,
+        readAt: null,
+        resolvedAt: null,
+        clubJoinRequest: {
+          club: { id: cid, name: c.name },
+          requester: {
+            id: profile.id,
+            fullName: profile.fullName,
+            avatarUrl: profile.avatarUrl ?? null,
+          },
+        },
+      });
+    }
+    return { status: 'pending' };
   }
 
   if (/^\/api\/clubs\/\d+\/leave$/.test(pathname) && method === 'POST') {
@@ -1153,10 +1183,36 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (/^\/api\/clubs\/\d+\/join-requests\/\d+\/approve$/.test(pathname) && method === 'POST') {
+    const parts = pathname.split('/');
+    const cid = Number(parts[3]);
+    const uid = Number(parts[5]);
+    const now = new Date().toISOString();
+    for (const row of mockInboxStore) {
+      if (
+        row.kind === 'club_join_request' &&
+        row.clubJoinRequest?.club?.id === cid &&
+        row.clubJoinRequest?.requester?.id === uid
+      ) {
+        row.resolvedAt = now;
+      }
+    }
     return null;
   }
 
   if (/^\/api\/clubs\/\d+\/join-requests\/\d+\/reject$/.test(pathname) && method === 'POST') {
+    const parts = pathname.split('/');
+    const cid = Number(parts[3]);
+    const uid = Number(parts[5]);
+    const now = new Date().toISOString();
+    for (const row of mockInboxStore) {
+      if (
+        row.kind === 'club_join_request' &&
+        row.clubJoinRequest?.club?.id === cid &&
+        row.clubJoinRequest?.requester?.id === uid
+      ) {
+        row.resolvedAt = now;
+      }
+    }
     return null;
   }
 
@@ -1216,6 +1272,38 @@ export async function mockRequest(path, options = {}) {
       }
     }
     return findRide(String(rideId));
+  }
+
+  if (pathname === '/api/users/me/inbox/summary' && method === 'GET') {
+    const unreadCount = mockInboxStore.filter(
+      (r) => r.recipientUserId === profile.id && r.readAt == null && r.resolvedAt == null
+    ).length;
+    return { unreadCount };
+  }
+
+  if (pathname === '/api/users/me/inbox' && method === 'GET') {
+    const items = mockInboxStore
+      .filter((r) => r.recipientUserId === profile.id)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        createdAt: r.createdAt,
+        readAt: r.readAt,
+        resolvedAt: r.resolvedAt,
+        friendRequest: null,
+        clubJoinRequest: r.kind === 'club_join_request' ? r.clubJoinRequest : null,
+      }));
+    return { items };
+  }
+
+  if (/^\/api\/users\/me\/inbox\/\d+\/read$/.test(pathname) && method === 'POST') {
+    const inboxItemId = Number(pathname.split('/')[5]);
+    const row = mockInboxStore.find((r) => r.id === inboxItemId && r.recipientUserId === profile.id);
+    if (row && row.readAt == null) {
+      row.readAt = new Date().toISOString();
+    }
+    return null;
   }
 
   if (pathname === '/api/users/me/club-chat/summary' && method === 'GET') {

@@ -2,15 +2,17 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Rydo.Api.Data;
+using Rydo.Api.Hubs;
 using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/clubs")]
-public class ClubsController(RydoDbContext db) : ControllerBase
+public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChatHub) : ControllerBase
 {
     private int? CurrentUserId()
     {
@@ -20,6 +22,17 @@ public class ClubsController(RydoDbContext db) : ControllerBase
 
     private static string DisplayName(ApplicationUser? u) =>
         u == null ? "" : string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+
+    private async Task ResolveClubJoinInboxItemsAsync(int clubId, int requesterUserId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        await db.InboxItems
+            .Where(i => i.Kind == InboxItemKind.ClubJoinRequest
+                && i.ClubId == clubId
+                && i.ClubJoinRequesterUserId == requesterUserId
+                && i.ResolvedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.ResolvedAt, now), ct);
+    }
 
     private static object MemberDto(ClubMember m) => new
     {
@@ -293,9 +306,45 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                 MembershipStatus = ClubMembershipStatus.Pending,
                 RequestedAt = DateTime.UtcNow,
             });
+
+            var adminIds = await db.ClubMembers.AsNoTracking()
+                .Where(m => m.ClubId == id && m.Role == ClubMemberRole.Admin && m.MembershipStatus == ClubMembershipStatus.Active)
+                .Select(m => m.UserId)
+                .ToListAsync(ct);
+
+            var inboxNow = DateTime.UtcNow;
+            foreach (var adminId in adminIds)
+            {
+                if (adminId == uid)
+                    continue;
+                db.InboxItems.Add(new InboxItem
+                {
+                    RecipientUserId = adminId,
+                    Kind = InboxItemKind.ClubJoinRequest,
+                    ClubId = id,
+                    ClubJoinRequesterUserId = uid,
+                    CreatedAt = inboxNow,
+                });
+            }
         }
 
         await db.SaveChangesAsync(ct);
+
+        if (club.Visibility == ClubVisibility.Private)
+        {
+            var requester = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == uid, ct);
+            await clubChatHub.Clients.Group(ClubChatHub.ClubGroupName(id)).SendAsync(
+                "ClubJoinRequest",
+                new
+                {
+                    clubId = id,
+                    clubName = club.Name,
+                    requesterUserId = uid,
+                    requesterName = DisplayName(requester),
+                },
+                ct);
+        }
+
         return Ok(new { status = club.Visibility == ClubVisibility.Public ? "active" : "pending" });
     }
 
@@ -327,6 +376,9 @@ public class ClubsController(RydoDbContext db) : ControllerBase
                 .ToListAsync(ct);
             db.RideParticipants.RemoveRange(rideRows);
         }
+
+        if (m.MembershipStatus == ClubMembershipStatus.Pending)
+            await ResolveClubJoinInboxItemsAsync(id, uid, ct);
 
         db.ClubMembers.Remove(m);
         await db.SaveChangesAsync(ct);
@@ -365,6 +417,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
         m.MembershipStatus = ClubMembershipStatus.Active;
         m.ActivatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
+        await ResolveClubJoinInboxItemsAsync(id, userId, ct);
         return NoContent();
     }
 
@@ -382,6 +435,7 @@ public class ClubsController(RydoDbContext db) : ControllerBase
 
         db.ClubMembers.Remove(m);
         await db.SaveChangesAsync(ct);
+        await ResolveClubJoinInboxItemsAsync(id, userId, ct);
         return NoContent();
     }
 

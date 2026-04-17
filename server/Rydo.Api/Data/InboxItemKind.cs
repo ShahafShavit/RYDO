@@ -4,4 +4,5 @@ namespace Rydo.Api.Data;
 public static class InboxItemKind
 {
     public const string FriendRequest = "friend_request";
+    public const string ClubJoinRequest = "club_join_request";
 }

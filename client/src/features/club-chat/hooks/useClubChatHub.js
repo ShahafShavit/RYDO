@@ -10,12 +10,13 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
  * or a single club when `options.scopedClubId` is set (e.g. live ride map).
  */
 export function useClubChatHub(summaryRows, enabled, options = {}) {
-  const { onIncomingMessage, scopedClubId = null } = options;
+  const { onIncomingMessage, onClubJoinRequest, scopedClubId = null } = options;
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const connRef = useRef(null);
   const summaryRef = useRef(summaryRows);
   const onExtraRef = useRef(onIncomingMessage);
+  const onClubJoinRef = useRef(onClubJoinRequest);
 
   useEffect(() => {
     summaryRef.current = summaryRows;
@@ -24,6 +25,10 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
   useEffect(() => {
     onExtraRef.current = onIncomingMessage;
   }, [onIncomingMessage]);
+
+  useEffect(() => {
+    onClubJoinRef.current = onClubJoinRequest;
+  }, [onClubJoinRequest]);
 
   const onMessage = useCallback(
     (payload) => {
@@ -52,6 +57,9 @@ export function useClubChatHub(summaryRows, enabled, options = {}) {
       .build();
 
     conn.on('ReceiveMessage', onMessage);
+    conn.on('ClubJoinRequest', (payload) => {
+      onClubJoinRef.current?.(payload);
+    });
     connRef.current = conn;
 
     let cancelled = false;

@@ -125,8 +125,13 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.FriendRequest).WithMany().HasForeignKey(x => x.FriendRequestId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Club).WithMany().HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict: SQL Server disallows two CASCADE paths from InboxItems → AspNetUsers (Recipient + requester).
+            // AdminController deletes rows where ClubJoinRequesterUserId == userId before removing the user.
+            e.HasOne(x => x.ClubJoinRequester).WithMany().HasForeignKey(x => x.ClubJoinRequesterUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => new { x.RecipientUserId, x.ResolvedAt });
             e.HasIndex(x => new { x.RecipientUserId, x.ReadAt });
+            e.HasIndex(x => new { x.ClubId, x.ClubJoinRequesterUserId, x.ResolvedAt });
         });
     }
 }

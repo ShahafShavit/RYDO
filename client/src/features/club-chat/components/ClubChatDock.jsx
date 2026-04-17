@@ -13,6 +13,8 @@ import { env } from '@/shared/config/env';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
 import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import { useClubChatHub } from '@/features/club-chat/hooks/useClubChatHub';
+import { inboxKeys } from '@/features/social/hooks/useInbox';
+import { inboxSummaryKeys } from '@/features/social/hooks/useInboxSummary';
 import ClubChatMessageBody from '@/features/club-chat/components/ClubChatMessageBody';
 import ClubChatComposer from '@/features/club-chat/components/ClubChatComposer';
 import UserAvatar from '@/shared/components/user/UserAvatar';
@@ -102,8 +104,39 @@ export default function ClubChatDock() {
     [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId, setChatOpen]
   );
 
+  const clubJoinNotifyHandler = useCallback(
+    (payload) => {
+      queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
+      queryClient.invalidateQueries({ queryKey: inboxKeys.all });
+      if (typeof Notification === 'undefined') return;
+      if (Notification.permission !== 'granted') return;
+      if (preferences?.notificationsEnabled === false) return;
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible' &&
+        document.hasFocus()
+      ) {
+        return;
+      }
+      const title = payload?.clubName || 'Club';
+      const who = payload?.requesterName?.trim() || 'Someone';
+      const body = `${who} requested to join`;
+      try {
+        const n = new Notification(title, { body, tag: `club-join-${payload?.clubId}` });
+        n.onclick = () => {
+          window.focus();
+          n.close();
+        };
+      } catch {
+        /* ignore */
+      }
+    },
+    [preferences?.notificationsEnabled, queryClient]
+  );
+
   useClubChatHub(summary, !!user?.id && !env.isMockApi, {
     onIncomingMessage: notifyHandler,
+    onClubJoinRequest: clubJoinNotifyHandler,
     scopedClubId: liveChatScoped ? liveScopedClubId : null,
   });
 

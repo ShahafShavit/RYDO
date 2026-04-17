@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Inbox as InboxIcon } from 'lucide-react';
 import { generatePath, Link } from 'react-router-dom';
+import { clubsApi } from '@/features/clubs/api/clubs-api';
 import { friendsApi } from '@/features/social/api/friends-api';
 import { inboxKeys, useInbox } from '@/features/social/hooks/useInbox';
 import { inboxSummaryKeys } from '@/features/social/hooks/useInboxSummary';
@@ -33,6 +34,25 @@ export default function InboxPage() {
     },
   });
 
+  const approveClubMut = useMutation({
+    mutationFn: ({ clubId, userId }) => clubsApi.approveRequest(clubId, userId),
+    onSuccess: (_, v) => {
+      queryClient.invalidateQueries({ queryKey: inboxKeys.all });
+      queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['clubs', 'members', v.clubId] });
+      queryClient.invalidateQueries({ queryKey: ['clubs', 'detail', v.clubId] });
+    },
+  });
+
+  const rejectClubMut = useMutation({
+    mutationFn: ({ clubId, userId }) => clubsApi.rejectRequest(clubId, userId),
+    onSuccess: (_, v) => {
+      queryClient.invalidateQueries({ queryKey: inboxKeys.all });
+      queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['clubs', 'members', v.clubId] });
+    },
+  });
+
   const items = data?.items ?? [];
 
   useEffect(() => {
@@ -61,7 +81,7 @@ export default function InboxPage() {
           </span>
           <div>
             <h1 className="text-2xl font-semibold text-fg">Inbox</h1>
-            <p className="mt-1 text-sm text-fg-muted">Friend requests and future notifications.</p>
+            <p className="mt-1 text-sm text-fg-muted">Friend requests and club join requests.</p>
           </div>
         </div>
       </div>
@@ -120,6 +140,70 @@ export default function InboxPage() {
                           className="min-w-[88px]"
                           disabled={acceptMut.isPending || declineMut.isPending}
                           onClick={() => declineMut.mutate(fr.id)}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </Card>
+              </li>
+            );
+          }
+          if (row.kind === 'club_join_request' && row.clubJoinRequest) {
+            const cjr = row.clubJoinRequest;
+            const club = cjr.club;
+            const requester = cjr.requester;
+            const pending = !row.resolvedAt;
+            const profileHref = generatePath(ROUTES.userProfile, { userId: String(requester.id) });
+            const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
+            const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
+            return (
+              <li key={row.id}>
+                <Card className="p-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-1">
+                      <Link to={profileHref} className="flex min-w-0 items-center gap-3">
+                        <UserAvatar
+                          avatarUrl={requester.avatarUrl}
+                          displayName={requester.fullName}
+                          sizeClass="h-11 w-11"
+                          textClass="text-sm"
+                        />
+                        <span className="font-medium text-fg">{requester.fullName || 'Member'}</span>
+                      </Link>
+                      <span className="text-fg-muted">requested to join</span>
+                      <Link
+                        to={clubHref}
+                        className="font-medium text-rydo-purple underline-offset-4 hover:underline"
+                      >
+                        {club.name}
+                      </Link>
+                      <p className="w-full text-xs text-fg-muted">
+                        {pending ? 'Approve or decline this request.' : 'Resolved.'}
+                      </p>
+                    </div>
+                    {pending ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          className="min-w-[88px]"
+                          disabled={clubBusy}
+                          onClick={() =>
+                            approveClubMut.mutate({ clubId: club.id, userId: requester.id })
+                          }
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="min-w-[88px]"
+                          disabled={clubBusy}
+                          onClick={() =>
+                            rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
+                          }
                         >
                           Decline
                         </Button>

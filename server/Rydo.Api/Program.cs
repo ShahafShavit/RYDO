@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Logging;
 using Rydo.Api;
 using Rydo.Api.Data;
 using Rydo.Api.Hubs;
@@ -129,6 +130,10 @@ builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
 builder.Services.AddHostedService<ClubChatSimulatorBackgroundService>();
 
 var app = builder.Build();
+
+await DatabaseBootstrap.EnsureSchemaReadyAsync(
+    app.Services,
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrap"));
 
 app.UseForwardedHeaders();
 
