@@ -1,3 +1,4 @@
+import { getStoredToken } from '@/features/auth/utils/auth-storage';
 import { env } from '@/shared/config/env';
 import { buildQueryString } from '@/shared/api/api-helpers';
 import { ApiError, parseErrorResponse } from '@/shared/api/api-errors';
@@ -16,9 +17,15 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = typeof handler === 'function' ? handler : null;
 }
 
+/** In-memory token is null until AuthProvider's effect runs; child effects may fetch first after refresh. */
+function effectiveAuthToken() {
+  return authToken ?? getStoredToken();
+}
+
 function getDefaultHeaders(isFormData) {
+  const token = effectiveAuthToken();
   const headers = {
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(!isFormData && { 'Content-Type': 'application/json' }),
   };
   return headers;
