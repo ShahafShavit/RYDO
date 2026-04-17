@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 
+/** Fragment only — AppNavbar builds `/#…` when not already on the home route. */
 export const primaryNavigation = [
   { label: 'Overview', href: '#overview' },
   { label: 'Why RYDO', href: '#why-rydo' },

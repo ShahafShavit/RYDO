@@ -17,9 +17,13 @@ export default function AppNavbar() {
 
         <nav className="hidden items-center gap-6 lg:flex">
           {primaryNavigation.map((item) => (
-            <a key={item.href} href={item.href} className="text-2sm text-fg transition hover:text-fg-muted">
+            <Link
+              key={item.href}
+              to={{ pathname: ROUTES.home, hash: item.href }}
+              className="text-2sm text-fg transition hover:text-fg-muted"
+            >
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -29,7 +33,7 @@ export default function AppNavbar() {
           ) : (
             <>
               <Link to={ROUTES.login}><Button variant="ghost">Login</Button></Link>
-              <Link to={ROUTES.register}><Button variant="neon">Start riding</Button></Link>
+              <Link to={ROUTES.register}><Button variant="neon">Register</Button></Link>
             </>
           )}
         </div>

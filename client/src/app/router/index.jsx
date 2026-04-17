@@ -3,7 +3,7 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ROUTES } from './route-paths';
 import { LegacyRideSpaRedirect, LegacyYourRoutesRedirect } from './legacy-redirects';
-import { ProtectedRoute, AdminRoute } from './route-guards';
+import { ProtectedRoute, AdminRoute, GuestOnlyRoute } from './route-guards';
 
 import PublicLayout from '@/shared/components/layout/PublicLayout';
 import DashboardLayout from '@/shared/components/layout/DashboardLayout';
@@ -40,8 +40,13 @@ export const router = createBrowserRouter([
     element: <PublicLayout />,
     children: [
       { path: ROUTES.home, element: <LandingPage /> },
-      { path: ROUTES.login, element: <LoginPage /> },
-      { path: ROUTES.register, element: <RegisterPage /> },
+      {
+        element: <GuestOnlyRoute />,
+        children: [
+          { path: ROUTES.login, element: <LoginPage /> },
+          { path: ROUTES.register, element: <RegisterPage /> },
+        ],
+      },
     ],
   },
   {

@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import Lenis from '@studio-freight/lenis';
@@ -46,13 +46,41 @@ const metrics = [
   { label: 'One connected platform', value: '1' },
 ];
 
+/** Matches sticky `AppNavbar` height (`h-18` → 4.5rem). */
+const LANDING_STICKY_OFFSET = 72;
+
+/** Lenis programmatic scroll duration (seconds); slightly longer than wheel smoothness for section jumps. */
+const SECTION_SCROLL_DURATION = 1.35;
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
 export default function LandingPage() {
+  const location = useLocation();
   const rootRef = useRef(null);
   const heroTextRef = useRef(null);
   const heroVisualRef = useRef(null);
   const heroVideoRef = useRef(null);
   const heroBgOverlayRef = useRef(null);
   const featureRefs = useRef([]);
+  const lenisRef = useRef(null);
+
+  const scrollLandingSectionIntoView = useCallback((rawId) => {
+    const id = String(rawId).replace(/^#/, '');
+    const lenis = lenisRef.current;
+    const el = document.getElementById(id);
+    if (!lenis || !el) return false;
+    lenis.scrollTo(el, {
+      offset: -LANDING_STICKY_OFFSET,
+      duration: SECTION_SCROLL_DURATION,
+      easing: easeInOutCubic,
+      onComplete: () => {
+        ScrollTrigger.refresh();
+      },
+    });
+    return true;
+  }, []);
 
   useLayoutEffect(() => {
     const lenis = new Lenis({
@@ -60,6 +88,7 @@ export default function LandingPage() {
       smoothWheel: true,
       touchMultiplier: 1.2,
     });
+    lenisRef.current = lenis;
 
     function raf(time) {
       lenis.raf(time);
@@ -120,10 +149,66 @@ export default function LandingPage() {
     }, rootRef);
 
     return () => {
+      lenisRef.current = null;
       ctx.revert();
       lenis.destroy();
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (location.pathname !== ROUTES.home) return;
+    const id = location.hash?.replace(/^#/, '');
+    if (!id) return;
+
+    let cancelled = false;
+    let frames = 0;
+    const maxFrames = 60;
+
+    const tick = () => {
+      if (cancelled) return;
+      if (!document.getElementById(id)) return;
+      if (scrollLandingSectionIntoView(id)) return;
+      frames += 1;
+      if (frames < maxFrames) requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(() => requestAnimationFrame(tick));
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, location.hash, scrollLandingSectionIntoView]);
+
+  useEffect(() => {
+    function onDocumentClickCapture(e) {
+      if (location.pathname !== ROUTES.home) return;
+      if (e.defaultPrevented) return;
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      const a = e.target.closest?.('a[href]');
+      if (!a || a.target === '_blank') return;
+
+      let hash = '';
+      try {
+        const u = new URL(a.href, window.location.origin);
+        if (u.pathname !== ROUTES.home) return;
+        hash = u.hash.replace(/^#/, '');
+      } catch {
+        return;
+      }
+      if (!hash || !document.getElementById(hash)) return;
+
+      const current = location.hash.replace(/^#/, '');
+      if (current !== hash) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      scrollLandingSectionIntoView(hash);
+    }
+
+    document.addEventListener('click', onDocumentClickCapture, true);
+    return () => document.removeEventListener('click', onDocumentClickCapture, true);
+  }, [location.pathname, location.hash, scrollLandingSectionIntoView]);
 
   return (
     <div ref={rootRef} className="overflow-x-clip">
@@ -154,7 +239,7 @@ export default function LandingPage() {
 
               <div className="flex flex-wrap gap-3">
                 <Link to={ROUTES.register}><Button variant="neon" size="lg">Get started <ArrowRight size={18} /></Button></Link>
-                <a href="#features"><Button variant="secondary" size="lg">See how it works</Button></a>
+                <Link to={{ pathname: ROUTES.home, hash: '#features' }}><Button variant="secondary" size="lg">See how it works</Button></Link>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
