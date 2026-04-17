@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
-import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
@@ -14,23 +13,34 @@ import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
-import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
-import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
 /** First screenful of upcoming cards before "Show more". */
-const UPCOMING_PREVIEW_COUNT = 2;
+const UPCOMING_PREVIEW_COUNT = 3;
 
 /** Map / placeholder sizing for ride list cards: right column (~half card width). */
 const RIDE_CARD_MAP_CLASS =
   'h-28 w-full overflow-hidden rounded-2xl border border-border bg-surface';
 
-/** Left column: badges stacked and centered in the half-width column. */
-const RIDE_CARD_BADGES_COL_CLASS =
-  'flex w-1/2 min-w-0 flex-col items-center gap-2';
+/** Left column: stacked info rows. */
+const RIDE_CARD_INFO_COL_CLASS = 'flex w-full min-w-0 flex-col gap-2';
+const RIDE_CARD_INFO_ROW_BASE =
+  'min-h-10 w-full min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
 
-function routeDetailsPath(routeId) {
-  return ROUTES.routeDetails.replace(':routeId', String(routeId));
+function RideInfoRow({ tone = 'neutral', children, title }) {
+  const tones = {
+    neutral: 'border-border bg-surface text-fg',
+    route: 'border-cyan-400/50 bg-cyan-500/10 text-cyan-100',
+    club: 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100',
+    personal: 'border-violet-400/50 bg-violet-500/15 text-violet-100',
+    upcoming: 'border-amber-400/50 bg-amber-500/10 text-amber-100',
+    past: 'border-border/70 bg-surface-strong/40 text-fg-subtle',
+  };
+  return (
+    <div className={`${RIDE_CARD_INFO_ROW_BASE} ${tones[tone] || tones.neutral}`} title={title}>
+      {children}
+    </div>
+  );
 }
 
 function clubDetailsPath(clubId) {
@@ -45,23 +55,18 @@ function truncateAtWords(text, maxWords) {
   return `${words.slice(0, maxWords).join(' ')}…`;
 }
 
-function ClubBadge({ clubId, clubName }) {
+function ClubInfoRow({ clubId, clubName }) {
   const namePart = truncateAtWords((clubName || 'Club').trim(), 5);
-  const label = namePart;
-  const badge = (
-    <Badge variant="success" className="max-w-full min-w-0 truncate">
-      {label}
-    </Badge>
-  );
+  const row = <RideInfoRow tone="club">{namePart}</RideInfoRow>;
   if (clubId == null) {
-    return badge;
+    return row;
   }
   return (
     <Link
       to={clubDetailsPath(clubId)}
-      className="inline-flex min-w-0 max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+      className="block min-w-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
     >
-      {badge}
+      {row}
     </Link>
   );
 }
@@ -87,9 +92,6 @@ function rideKindFromScheduled(ride) {
 function ScheduledRideCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
   const hasRoute = ride.routeId != null;
-  const routeLabelRaw =
-    ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
-  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
     <Card className="relative p-4 sm:p-6">
@@ -98,28 +100,18 @@ function ScheduledRideCard({ ride }) {
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
         aria-label={`View ride: ${ride.name}`}
       />
-      <div className="relative z-10 flex gap-3 pointer-events-none">
-        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
-          <Badge variant="neon">Scheduled</Badge>
-          {ride.routeId != null ? (
-            <Link
-              to={routeDetailsPath(ride.routeId)}
-              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-            >
-              <Badge variant="route" className="max-w-full min-w-0 truncate">
-                {routeBadgeLabel}
-              </Badge>
-            </Link>
-          ) : null}
+      <div className="relative z-10 flex flex-col gap-4 pointer-events-none">
+        <div className={`${RIDE_CARD_INFO_COL_CLASS} pointer-events-auto`}>
+          <RideInfoRow tone="upcoming">Scheduled</RideInfoRow>
           {kind === 'club' ? (
-            <div className="flex w-full min-w-0 justify-center">
-              <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            <div className="w-full min-w-0">
+              <ClubInfoRow clubId={ride.clubId} clubName={ride.clubName} />
             </div>
           ) : (
-            <Badge variant="personal">Personal</Badge>
+            <RideInfoRow tone="personal">Personal</RideInfoRow>
           )}
         </div>
-        <div className="pointer-events-none w-1/2 shrink-0">
+        <div className="pointer-events-none w-full min-w-0">
           {hasRoute ? (
             <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
           ) : (
@@ -150,7 +142,7 @@ function UpcomingRidesSection({ rides }) {
         <p className="mt-3 text-sm text-fg-muted">No upcoming rides.</p>
       ) : (
         <>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((ride) => (
               <ScheduledRideCard key={ride.id} ride={ride} />
             ))}
@@ -183,9 +175,6 @@ function UpcomingRidesSection({ rides }) {
 function PastScheduledCard({ ride }) {
   const kind = rideKindFromScheduled(ride);
   const hasRoute = ride.routeId != null;
-  const routeLabelRaw =
-    ride.routeTitle || ride.routeName || (ride.routeId != null ? `Route #${ride.routeId}` : '');
-  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
     <Card className="relative p-4 sm:p-6">
@@ -194,28 +183,18 @@ function PastScheduledCard({ ride }) {
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
         aria-label={`View ride: ${ride.name}`}
       />
-      <div className="relative z-10 flex gap-3 pointer-events-none">
-        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
-          <Badge>Past event</Badge>
-          {ride.routeId != null ? (
-            <Link
-              to={routeDetailsPath(ride.routeId)}
-              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-            >
-              <Badge variant="route" className="max-w-full min-w-0 truncate">
-                {routeBadgeLabel}
-              </Badge>
-            </Link>
-          ) : null}
+      <div className="relative z-10 flex flex-col gap-4 pointer-events-none">
+        <div className={`${RIDE_CARD_INFO_COL_CLASS} pointer-events-auto`}>
+          <RideInfoRow tone="past">Past event</RideInfoRow>
           {kind === 'club' ? (
-            <div className="flex w-full min-w-0 justify-center">
-              <ClubBadge clubId={ride.clubId} clubName={ride.clubName} />
+            <div className="w-full min-w-0">
+              <ClubInfoRow clubId={ride.clubId} clubName={ride.clubName} />
             </div>
           ) : (
-            <Badge variant="personal">Personal</Badge>
+            <RideInfoRow tone="personal">Personal</RideInfoRow>
           )}
         </div>
-        <div className="pointer-events-none w-1/2 shrink-0">
+        <div className="pointer-events-none w-full min-w-0">
           {hasRoute ? (
             <CompactRouteMapPreview preview={ride.preview} className={RIDE_CARD_MAP_CLASS} />
           ) : (
@@ -252,10 +231,6 @@ function HistoryRideCard({ entry }) {
     else paceNote = 'Close to route time estimate';
   }
 
-  const routeLabelRaw =
-    entry.routeTitle || entry.routeName || (entry.routeId != null ? `Route #${entry.routeId}` : '');
-  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
-
   const ridePath =
     entry.rideId != null ? ROUTES.rideEvent.replace(':rideId', String(entry.rideId)) : null;
   const rideLabel =
@@ -270,32 +245,22 @@ function HistoryRideCard({ entry }) {
           aria-label={`View ride: ${rideLabel}`}
         />
       ) : null}
-      <div className="relative z-10 flex gap-3 pointer-events-none">
-        <div className={`${RIDE_CARD_BADGES_COL_CLASS} pointer-events-auto`}>
-          {entry.routeDifficulty ? <Badge>{formatTrailMetaLabel(entry.routeDifficulty)}</Badge> : null}
-          {entry.routeId != null ? (
-            <Link
-              to={routeDetailsPath(entry.routeId)}
-              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-            >
-              <Badge variant="route" className="max-w-full min-w-0 truncate">
-                {routeBadgeLabel}
-              </Badge>
-            </Link>
-          ) : null}
+      <div className="relative z-10 flex flex-col gap-4 pointer-events-none">
+        <div className={`${RIDE_CARD_INFO_COL_CLASS} pointer-events-auto`}>
           {kind === 'club' ? (
-            <div className="flex w-full min-w-0 justify-center">
-              <ClubBadge clubId={entry.clubId} clubName={entry.clubName} />
+            <div className="w-full min-w-0">
+              <ClubInfoRow clubId={entry.clubId} clubName={entry.clubName} />
             </div>
           ) : kind === 'personal' ? (
-            <Badge variant="personal">Personal</Badge>
+            <RideInfoRow tone="personal">Personal</RideInfoRow>
           ) : null}
         </div>
-        <div className="pointer-events-none w-1/2 shrink-0">
+        <div className="pointer-events-none w-full min-w-0">
           <CompactRouteMapPreview preview={entry.preview} className={RIDE_CARD_MAP_CLASS} />
         </div>
       </div>
       <div className="relative z-10 mt-3 text-center pointer-events-none">
+        <h3 className="text-lg font-semibold">{rideLabel}</h3>
         <p className="text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
       </div>
       <div className="relative z-10 mt-2.5 flex min-w-0 gap-0 pointer-events-none text-center">
@@ -462,9 +427,10 @@ export default function MyRidesPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
           <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
+          <div className="hidden h-36 animate-pulse rounded-3xl bg-surface-strong xl:block" />
         </div>
       ) : null}
 
@@ -482,7 +448,7 @@ export default function MyRidesPage() {
                 {pastScheduled.length === 0 ? (
                   <p className="mt-4 text-sm text-fg-muted">No past rides yet.</p>
                 ) : (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {pastScheduled.map((ride) => (
                       <PastScheduledCard key={`p-${ride.id}`} ride={ride} />
                     ))}
@@ -501,7 +467,7 @@ export default function MyRidesPage() {
               <p className="mt-4 text-sm text-fg-muted">Nothing in the past yet.</p>
             ) : (
               <>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {historyRows.map((entry) => (
                     <HistoryRideCard key={`h-${entry.id}`} entry={entry} />
                   ))}

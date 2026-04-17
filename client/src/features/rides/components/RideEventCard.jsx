@@ -1,32 +1,37 @@
 import { Link } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
-import Badge from '@/shared/components/ui/badge/Badge';
 import Button from '@/shared/components/ui/button/Button';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { ROUTES } from '@/app/router/route-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
-import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
-const badgeLinkClass =
-  'inline-flex min-w-0 max-w-full rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple';
+const INFO_ROW_BASE =
+  'min-h-9 min-w-0 rounded-xl border px-3 py-1.5 text-center text-xs font-semibold leading-tight sm:text-sm';
+
+function InfoRow({ tone = 'neutral', children }) {
+  const tones = {
+    neutral: 'border-border bg-surface text-fg',
+    route: 'border-cyan-400/50 bg-cyan-500/10 text-cyan-100',
+    club: 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100',
+    personal: 'border-violet-400/50 bg-violet-500/15 text-violet-100',
+    upcoming: 'border-amber-400/50 bg-amber-500/10 text-amber-100',
+    past: 'border-border/70 bg-surface-strong/40 text-fg-subtle',
+  };
+  return <div className={`${INFO_ROW_BASE} ${tones[tone] || tones.neutral}`}>{children}</div>;
+}
 
 /**
  * @param {{ ride: object, showEdit?: boolean, onEditClick?: () => void }} props
  */
 export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
   const upcoming = isRideUpcoming(ride);
-  const routeBadge = (
-    <Badge variant="route" className="max-w-full min-w-0 truncate">
-      {truncateTrailBadgeText(ride.routeName)}
-    </Badge>
-  );
-  const clubBadge =
+  const clubRow =
     ride.clubName != null && String(ride.clubName).trim() !== '' ? (
-      <Badge variant="success" className="max-w-full min-w-0 truncate">
+      <InfoRow tone="club">
         {ride.clubName}
-      </Badge>
+      </InfoRow>
     ) : null;
 
   const whenLabel = formatRideDateTime(ride.scheduledDate || ride.time);
@@ -35,24 +40,20 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
   return (
     <Card className="p-5 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <Badge variant="neon">{upcoming ? 'Upcoming' : 'Past'}</Badge>
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-[340px]">
+          <InfoRow tone={upcoming ? 'upcoming' : 'past'}>{upcoming ? 'Upcoming' : 'Past'}</InfoRow>
           {ride.clubId == null && ride.rideKind !== 'soloLog' ? (
-            <Badge variant="personal">Personal</Badge>
+            <InfoRow tone="personal">Personal</InfoRow>
           ) : null}
-          {ride.routeId != null ? (
-            <Link to={ROUTES.routeDetails.replace(':routeId', String(ride.routeId))} className={badgeLinkClass}>
-              {routeBadge}
-            </Link>
-          ) : (
-            routeBadge
-          )}
           {ride.clubName && ride.clubId != null ? (
-            <Link to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))} className={badgeLinkClass}>
-              {clubBadge}
+            <Link
+              to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
+              className="block min-w-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+            >
+              {clubRow}
             </Link>
           ) : (
-            clubBadge
+            clubRow
           )}
         </div>
         {showEdit ? (

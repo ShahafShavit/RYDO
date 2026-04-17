@@ -1,21 +1,25 @@
 import { Link } from 'react-router-dom';
 import { Trophy, UsersRound } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
-import Badge from '@/shared/components/ui/badge/Badge';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
-import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
-import { truncateTrailBadgeText } from '@/shared/utils/truncate-trail-badge';
 
-/** Matches My Rides history cards: badges column + half-width map. */
-const LAST_RYDO_BADGES_COL_CLASS = 'flex w-1/2 min-w-0 flex-col items-center gap-2';
+const LAST_RYDO_INFO_COL_CLASS = 'flex w-full min-w-0 flex-col gap-2';
 const LAST_RYDO_MAP_CLASS =
-  'h-24 w-full overflow-hidden rounded-2xl border border-border bg-surface sm:h-28';
+  'h-24 w-full overflow-hidden rounded-2xl border border-border bg-surface sm:h-28 lg:h-32 xl:h-36';
+const LAST_RYDO_INFO_ROW_BASE =
+  'min-h-10 w-full min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
 
-function routeDetailsPath(routeId) {
-  return ROUTES.routeDetails.replace(':routeId', String(routeId));
+function LastRideInfoRow({ tone = 'neutral', children }) {
+  const tones = {
+    neutral: 'border-border bg-surface text-fg',
+    route: 'border-cyan-400/50 bg-cyan-500/10 text-cyan-100',
+    club: 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100',
+    personal: 'border-violet-400/50 bg-violet-500/15 text-violet-100',
+  };
+  return <div className={`${LAST_RYDO_INFO_ROW_BASE} ${tones[tone] || tones.neutral}`}>{children}</div>;
 }
 
 function clubDetailsPath(clubId) {
@@ -31,20 +35,20 @@ function truncateAtWords(text, maxWords) {
 
 function DashboardClubBadge({ clubId, clubName }) {
   const namePart = truncateAtWords((clubName || 'Club').trim(), 5);
-  const badge = (
-    <Badge variant="success" className="max-w-full min-w-0 truncate">
+  const row = (
+    <LastRideInfoRow tone="club">
       {namePart}
-    </Badge>
+    </LastRideInfoRow>
   );
   if (clubId == null) {
-    return badge;
+    return row;
   }
   return (
     <Link
       to={clubDetailsPath(clubId)}
-      className="inline-flex min-w-0 max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+      className="block min-w-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
     >
-      {badge}
+      {row}
     </Link>
   );
 }
@@ -73,10 +77,6 @@ function DashboardLastRideCard({ lastRide }) {
   }
 
   const kind = lastRideKindFromEntry(lastRide.rideKind);
-  const routeLabelRaw =
-    lastRide.routeName || (lastRide.routeId != null ? `Route #${lastRide.routeId}` : '');
-  const routeBadgeLabel = truncateTrailBadgeText(routeLabelRaw);
-  const showDifficulty = lastRide.difficulty && lastRide.difficulty !== '—';
 
   return (
     <Card className="relative p-4 sm:p-5">
@@ -88,38 +88,27 @@ function DashboardLastRideCard({ lastRide }) {
       <p className="relative z-10 text-sm uppercase tracking-[0.16em] text-fg-subtle pointer-events-none">
         {lastRide.title}
       </p>
-      <div className="relative z-10 mt-3 flex gap-3 pointer-events-none">
-        <div className={`${LAST_RYDO_BADGES_COL_CLASS} pointer-events-auto`}>
-          {showDifficulty ? <Badge>{formatTrailMetaLabel(lastRide.difficulty)}</Badge> : null}
-          {lastRide.routeId != null ? (
-            <Link
-              to={routeDetailsPath(lastRide.routeId)}
-              className="inline-flex max-w-full justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-            >
-              <Badge variant="route" className="max-w-full min-w-0 truncate">
-                {routeBadgeLabel}
-              </Badge>
-            </Link>
-          ) : null}
+      <div className="relative z-10 mt-4 flex flex-col gap-4 pointer-events-none">
+        <div className={`${LAST_RYDO_INFO_COL_CLASS} pointer-events-auto`}>
           {kind === 'club' ? (
-            <div className="flex w-full min-w-0 justify-center">
+            <div className="w-full min-w-0">
               <DashboardClubBadge clubId={lastRide.clubId} clubName={lastRide.clubName} />
             </div>
           ) : kind === 'personal' ? (
-            <Badge variant="personal">Personal</Badge>
+            <LastRideInfoRow tone="personal">Personal</LastRideInfoRow>
           ) : null}
         </div>
-        <div className="pointer-events-none w-1/2 shrink-0">
+        <div className="pointer-events-none w-full min-w-0">
           <CompactRouteMapPreview preview={lastRide.preview} className={LAST_RYDO_MAP_CLASS} />
         </div>
       </div>
-      <div className="relative z-10 mt-3 text-center pointer-events-none">
+      <div className="relative z-10 mt-4 text-center pointer-events-none">
         <h3 className="text-lg font-semibold text-fg">{lastRide.routeName}</h3>
         {lastRide.completedLabel ? (
           <p className="mt-1.5 text-sm text-fg-muted">{lastRide.completedLabel}</p>
         ) : null}
       </div>
-      <div className="relative z-10 mt-3 flex min-w-0 gap-0 text-center pointer-events-none">
+      <div className="relative z-10 mt-4 flex min-w-0 gap-0 border-t border-border/40 pt-3 text-center pointer-events-none">
         <div className="min-w-0 flex-1 pr-2">
           <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
             Distance
@@ -151,9 +140,9 @@ function ProgressBar({ value }) {
   );
 }
 
-function DashboardGroupsCard({ groups }) {
+function DashboardGroupsCard({ groups, className = '' }) {
   return (
-    <Card>
+    <Card className={className}>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">YOUR RYDO CLUBS</p>
         <Link
@@ -199,11 +188,11 @@ function DashboardGroupsCard({ groups }) {
 
 const UPCOMING_SECTION_TITLE = 'Upcoming Group RYDO';
 
-function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount }) {
+function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, className = '' }) {
   const hasAny = upcomingRides.length > 0;
 
   return (
-    <Card>
+    <Card className={className}>
       <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{UPCOMING_SECTION_TITLE}</p>
 
       {!hasAny ? (
@@ -255,9 +244,9 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount }) {
 function DashboardHomeSkeleton() {
   const bar = 'h-4 rounded bg-surface-strong animate-pulse';
   return (
-    <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)] xl:gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:col-start-1 xl:row-start-1">
-        <Card>
+    <div className="grid gap-4 xl:grid-cols-12 xl:auto-rows-fr xl:items-stretch 2xl:gap-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:grid-rows-2">
+        <Card className="h-full">
           <div className={`${bar} w-24`} />
           <div className={`${bar} mt-4 h-8 w-full`} />
           <div className={`${bar} mt-4 w-20`} />
@@ -265,15 +254,27 @@ function DashboardHomeSkeleton() {
             <div className="h-full w-1/2 rounded-full bg-surface-strong" />
           </div>
         </Card>
-        <Card>
+        <Card className="h-full">
           <div className={`${bar} w-24`} />
           <div className={`${bar} mt-4 h-12 w-16`} />
           <div className={`${bar} mt-4 w-full`} />
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-surface-strong" />
         </Card>
       </div>
-      <div className="xl:col-start-2 xl:row-start-2">
-        <Card>
+      <div className="xl:col-span-4">
+        <Card className="h-full">
+          <div className={`${bar} w-40`} />
+          <div className="mt-4 flex items-start gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-surface-strong" />
+            <div className="min-w-0 flex-1">
+              <div className={`${bar} h-5 w-3/4`} />
+              <div className={`${bar} mt-2 h-4 w-full`} />
+            </div>
+          </div>
+        </Card>
+      </div>
+      <div className="xl:col-span-4">
+        <Card className="h-full">
           <div className={`${bar} w-48`} />
           <div className={`${bar} mt-4 h-6 w-3/4`} />
           <div className="mt-4 space-y-3 rounded-3xl border border-border bg-surface p-4">
@@ -290,7 +291,7 @@ function DashboardHomeSkeleton() {
           </div>
         </Card>
       </div>
-      <div className="xl:col-start-1 xl:row-start-2">
+      <div className="xl:col-span-12">
         <Card className="p-4 sm:p-5">
           <div className={`${bar} w-28`} />
           <div className="mt-3 flex gap-3">
@@ -306,18 +307,6 @@ function DashboardHomeSkeleton() {
             <div className={`${bar} h-10 flex-1`} />
             <div className={`${bar} h-10 flex-1`} />
             <div className={`${bar} h-10 flex-1`} />
-          </div>
-        </Card>
-      </div>
-      <div className="xl:col-start-2 xl:row-start-1">
-        <Card>
-          <div className={`${bar} w-40`} />
-          <div className="mt-4 flex items-start gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-surface-strong" />
-            <div className="min-w-0 flex-1">
-              <div className={`${bar} h-5 w-3/4`} />
-              <div className={`${bar} mt-2 h-4 w-full`} />
-            </div>
           </div>
         </Card>
       </div>
@@ -339,16 +328,16 @@ export default function DashboardHomeCards() {
           Some dashboard data could not be loaded. Showing what is available.
         </p>
       ) : null}
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)] xl:gap-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:col-start-1 xl:row-start-1">
-          <Card>
+      <div className="grid gap-4 xl:grid-cols-12 xl:auto-rows-fr xl:items-stretch 2xl:gap-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:grid-rows-2">
+          <Card className="h-full">
             <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.awards.title}</p>
             <h3 className="mt-4 text-2xl font-semibold">{home.awards.description}</h3>
             <p className="mt-3 text-sm text-fg-muted">{home.awards.percentage}% complete</p>
             <ProgressBar value={home.awards.percentage} />
           </Card>
 
-          <Card>
+          <Card className="h-full">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.level.title}</p>
               <Link
@@ -369,19 +358,19 @@ export default function DashboardHomeCards() {
           </Card>
         </div>
 
-        <div className="xl:col-start-2 xl:row-start-2">
+        <div className="xl:col-span-4">
+          <DashboardGroupsCard groups={home.groups} className="h-full" />
+        </div>
+
+        <div className="xl:col-span-4">
           <DashboardUpcomingRidesCard
             upcomingRides={home.upcomingRides}
             upcomingMoreCount={home.upcomingMoreCount}
+            className="h-full"
           />
         </div>
-
-        <div className="xl:col-start-1 xl:row-start-2">
+        <div className="xl:col-span-12">
           <DashboardLastRideCard lastRide={home.lastRide} />
-        </div>
-
-        <div className="xl:col-start-2 xl:row-start-1">
-          <DashboardGroupsCard groups={home.groups} />
         </div>
       </div>
     </>
