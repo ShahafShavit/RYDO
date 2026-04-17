@@ -59,14 +59,14 @@ function lastRideKindFromEntry(rideKind) {
   return null;
 }
 
-function DashboardLastRideCard({ lastRide }) {
+function DashboardLastRideCard({ lastRide, className = '' }) {
   const hasRide = lastRide.rideId != null;
   const ridePath = hasRide ? ROUTES.rideEvent.replace(':rideId', String(lastRide.rideId)) : null;
   const rideLabel = lastRide.routeName || 'Ride';
 
   if (!hasRide) {
     return (
-      <Card className="p-4 sm:p-5">
+      <Card className={`p-4 sm:p-5 ${className}`}>
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{lastRide.title}</p>
         <h3 className="mt-3 text-xl font-semibold">{lastRide.routeName}</h3>
         <p className="mt-2 text-sm text-fg-muted">
@@ -79,7 +79,7 @@ function DashboardLastRideCard({ lastRide }) {
   const kind = lastRideKindFromEntry(lastRide.rideKind);
 
   return (
-    <Card className="relative p-4 sm:p-5">
+    <Card className={`relative p-4 sm:p-5 ${className}`}>
       <Link
         to={ridePath}
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
@@ -128,6 +128,54 @@ function DashboardLastRideCard({ lastRide }) {
           <p className="mt-0.5 truncate text-sm font-semibold tabular-nums">{lastRide.elevation}</p>
         </div>
       </div>
+    </Card>
+  );
+}
+
+function DashboardWeeklySnapshotCard({ weeklySnapshot, className = '' }) {
+  return (
+    <Card className={`p-4 sm:p-5 ${className}`}>
+      <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{weeklySnapshot.title}</p>
+      <h3 className="mt-3 text-xl font-semibold text-fg">{weeklySnapshot.ridesCount} rides this week</h3>
+      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/40 pt-3 text-center">
+        <div className="min-w-0 rounded-xl border border-border/40 bg-surface px-2 py-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Distance
+          </p>
+          <p className="mt-1 truncate text-sm font-semibold tabular-nums">{weeklySnapshot.distance}</p>
+        </div>
+        <div className="min-w-0 rounded-xl border border-border/40 bg-surface px-2 py-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Duration
+          </p>
+          <p className="mt-1 truncate text-sm font-semibold tabular-nums">{weeklySnapshot.duration}</p>
+        </div>
+        <div className="min-w-0 rounded-xl border border-border/40 bg-surface px-2 py-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+            Elevation
+          </p>
+          <p className="mt-1 truncate text-sm font-semibold tabular-nums">{weeklySnapshot.elevation}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DashboardStreakCard({ streakSnapshot, className = '' }) {
+  return (
+    <Card className={`p-4 sm:p-5 ${className}`}>
+      <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{streakSnapshot.title}</p>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-3xl font-semibold tabular-nums text-fg">{streakSnapshot.currentStreak}</p>
+          <p className="text-sm text-fg-muted">day current streak</p>
+        </div>
+        <div className="rounded-xl border border-border/40 bg-surface px-3 py-2 text-right">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-fg-subtle">Longest</p>
+          <p className="text-sm font-semibold tabular-nums text-fg">{streakSnapshot.longestStreak} days</p>
+        </div>
+      </div>
+      <p className="mt-4 border-t border-border/40 pt-3 text-sm text-fg-muted">{streakSnapshot.nextRideByLabel}</p>
     </Card>
   );
 }
@@ -291,24 +339,60 @@ function DashboardHomeSkeleton() {
           </div>
         </Card>
       </div>
-      <div className="xl:col-span-12">
-        <Card className="p-4 sm:p-5">
-          <div className={`${bar} w-28`} />
-          <div className="mt-3 flex gap-3">
-            <div className="flex w-1/2 flex-col items-center gap-2">
-              <div className={`${bar} h-6 w-16 rounded-full`} />
-              <div className={`${bar} h-6 w-20 rounded-full`} />
+      <div className="grid gap-4 xl:col-span-12 xl:grid-cols-12 xl:items-stretch">
+        <div className="xl:col-span-8">
+          <Card className="h-full p-4 sm:p-5">
+            <div className={`${bar} w-28`} />
+            <div className="mt-3 flex gap-3">
+              <div className="flex w-1/2 flex-col items-center gap-2">
+                <div className={`${bar} h-6 w-16 rounded-full`} />
+                <div className={`${bar} h-6 w-20 rounded-full`} />
+              </div>
+              <div className="h-24 w-1/2 shrink-0 rounded-2xl bg-surface-strong sm:h-28" />
             </div>
-            <div className="h-24 w-1/2 shrink-0 rounded-2xl bg-surface-strong sm:h-28" />
-          </div>
-          <div className={`${bar} mx-auto mt-3 h-5 w-2/3`} />
-          <div className={`${bar} mx-auto mt-2 h-4 w-1/2`} />
-          <div className="mt-3 flex gap-0">
-            <div className={`${bar} h-10 flex-1`} />
-            <div className={`${bar} h-10 flex-1`} />
-            <div className={`${bar} h-10 flex-1`} />
-          </div>
-        </Card>
+            <div className={`${bar} mx-auto mt-3 h-5 w-2/3`} />
+            <div className={`${bar} mx-auto mt-2 h-4 w-1/2`} />
+            <div className="mt-3 flex gap-0">
+              <div className={`${bar} h-10 flex-1`} />
+              <div className={`${bar} h-10 flex-1`} />
+              <div className={`${bar} h-10 flex-1`} />
+            </div>
+          </Card>
+        </div>
+        <div className="grid gap-4 xl:col-span-4 xl:h-full xl:grid-rows-2">
+          <Card className="h-full p-4 sm:p-5">
+            <div className={`${bar} w-36`} />
+            <div className={`${bar} mt-3 h-8 w-1/2`} />
+            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/40 pt-3">
+              <div className="rounded-xl border border-border/40 bg-surface p-2">
+                <div className={`${bar} h-3 w-12`} />
+                <div className={`${bar} mt-2 h-4 w-full`} />
+              </div>
+              <div className="rounded-xl border border-border/40 bg-surface p-2">
+                <div className={`${bar} h-3 w-12`} />
+                <div className={`${bar} mt-2 h-4 w-full`} />
+              </div>
+              <div className="rounded-xl border border-border/40 bg-surface p-2">
+                <div className={`${bar} h-3 w-12`} />
+                <div className={`${bar} mt-2 h-4 w-full`} />
+              </div>
+            </div>
+          </Card>
+          <Card className="h-full p-4 sm:p-5">
+            <div className={`${bar} w-20`} />
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <div>
+                <div className={`${bar} h-9 w-12`} />
+                <div className={`${bar} mt-2 h-4 w-24`} />
+              </div>
+              <div className="rounded-xl border border-border/40 bg-surface px-3 py-2">
+                <div className={`${bar} h-3 w-12`} />
+                <div className={`${bar} mt-2 h-4 w-16`} />
+              </div>
+            </div>
+            <div className={`${bar} mt-4 h-4 w-full border-t border-border/40 pt-3`} />
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -369,8 +453,14 @@ export default function DashboardHomeCards() {
             className="h-full"
           />
         </div>
-        <div className="xl:col-span-12">
-          <DashboardLastRideCard lastRide={home.lastRide} />
+        <div className="grid gap-4 xl:col-span-12 xl:grid-cols-12 xl:items-stretch">
+          <div className="xl:col-span-8">
+            <DashboardLastRideCard lastRide={home.lastRide} className="h-full" />
+          </div>
+          <div className="grid gap-4 xl:col-span-4 xl:h-full xl:grid-rows-2">
+            <DashboardWeeklySnapshotCard weeklySnapshot={home.weeklySnapshot} className="h-full" />
+            <DashboardStreakCard streakSnapshot={home.streakSnapshot} className="h-full" />
+          </div>
         </div>
       </div>
     </>

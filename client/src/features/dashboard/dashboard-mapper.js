@@ -60,6 +60,87 @@ function normalizeHistoryRaw(historyRaw) {
   return { history, total };
 }
 
+function startOfCurrentWeekMs() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = (day + 6) % 7;
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() - diffToMonday);
+  return monday.getTime();
+}
+
+function toDayKey(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function formatWeekdayDate(dateMs) {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(dateMs));
+}
+
+function buildStreakSnapshot(history) {
+  const uniqueDayKeys = [...new Set(history.map((item) => toDayKey(item.completedAt)).filter(Number.isFinite))].sort(
+    (a, b) => b - a
+  );
+  if (uniqueDayKeys.length === 0) {
+    return {
+      title: 'Streak',
+      currentStreak: 0,
+      longestStreak: 0,
+      nextRideByLabel: 'Start with a ride today',
+    };
+  }
+
+  let currentStreak = 1;
+  for (let i = 1; i < uniqueDayKeys.length; i += 1) {
+    const prev = uniqueDayKeys[i - 1];
+    const curr = uniqueDayKeys[i];
+    const dayDiff = Math.round((prev - curr) / 86400000);
+    if (dayDiff === 1) {
+      currentStreak += 1;
+      continue;
+    }
+    break;
+  }
+
+  let longestStreak = 1;
+  let run = 1;
+  for (let i = 1; i < uniqueDayKeys.length; i += 1) {
+    const prev = uniqueDayKeys[i - 1];
+    const curr = uniqueDayKeys[i];
+    const dayDiff = Math.round((prev - curr) / 86400000);
+    if (dayDiff === 1) {
+      run += 1;
+      if (run > longestStreak) longestStreak = run;
+    } else {
+      run = 1;
+    }
+  }
+
+  const todayKey = toDayKey(Date.now());
+  const yesterdayKey = todayKey - 86400000;
+  const latestKey = uniqueDayKeys[0];
+  let nextRideByLabel = 'Start with a ride today';
+  if (latestKey === todayKey) {
+    nextRideByLabel = `Ride again by ${formatWeekdayDate(todayKey + 86400000)} to keep it`;
+  } else if (latestKey === yesterdayKey) {
+    nextRideByLabel = 'Ride today to keep your streak alive';
+  }
+
+  return {
+    title: 'Streak',
+    currentStreak,
+    longestStreak,
+    nextRideByLabel,
+  };
+}
+
 export function buildDashboardHome({
   userId,
   historyRaw,
@@ -121,6 +202,36 @@ export function buildDashboardHome({
   const within = count % RIDES_PER_LEVEL;
   const progress = count === 0 ? 0 : Math.round((within / RIDES_PER_LEVEL) * 100);
   const ridesToNext = within === 0 && count > 0 ? RIDES_PER_LEVEL : RIDES_PER_LEVEL - within;
+  const weekStartMs = startOfCurrentWeekMs();
+  const weeklyHistory = history.filter((item) => {
+    const ts = new Date(item.completedAt).getTime();
+    return Number.isFinite(ts) && ts >= weekStartMs;
+  });
+  const weeklyDistanceKm = weeklyHistory.reduce(
+    (sum, item) => sum + (Number.isFinite(Number(item.distanceKm)) ? Number(item.distanceKm) : 0),
+    0
+  );
+  const weeklyDurationMinutes = weeklyHistory.reduce(
+    (sum, item) =>
+      sum + (Number.isFinite(Number(item.durationMinutes)) ? Number(item.durationMinutes) : 0),
+    0
+  );
+  const weeklyElevationM = weeklyHistory.reduce(
+    (sum, item) =>
+      sum + (Number.isFinite(Number(item.elevationGainM)) ? Number(item.elevationGainM) : 0),
+    0
+  );
+  const weeklySnapshot = {
+    title: 'Weekly Snapshot',
+    ridesCount: weeklyHistory.length,
+    distance: formatDistanceFromKm(weeklyDistanceKm, unit),
+    duration: formatDurationMinutes(weeklyDurationMinutes),
+    elevation:
+      weeklyElevationM > 0
+        ? `${Math.round(weeklyElevationM)} m`
+        : '0 m',
+  };
+  const streakSnapshot = buildStreakSnapshot(history);
 
   const lastRide = last
     ? {
@@ -186,6 +297,8 @@ export function buildDashboardHome({
           : `${ridesToNext} more ride${ridesToNext === 1 ? '' : 's'} to level ${currentLevel + 1}`,
     },
     lastRide,
+    weeklySnapshot,
+    streakSnapshot,
     groups,
     upcomingRides,
     upcomingMoreCount,
