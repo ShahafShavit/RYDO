@@ -39,7 +39,7 @@ export CDK_DEFAULT_REGION="$AWS_REGION"
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 export CDK_DEFAULT_ACCOUNT="$ACCOUNT"
 
-echo "Will destroy stack $CDK_STACK_NAME in account $ACCOUNT region $AWS_REGION${AWS_PROFILE:+ (profile $AWS_PROFILE)}"
+echo "This script will destroy stack $CDK_STACK_NAME in account $ACCOUNT region $AWS_REGION${AWS_PROFILE:+ (profile $AWS_PROFILE)}"
 echo "Set CDK_DESTROY_FORCE=1 to skip the CDK confirmation prompt (e.g. CI)."
 echo ""
 
