@@ -168,11 +168,11 @@ function DashboardStreakCard({ streakSnapshot, className = '' }) {
       <div className="mt-3 flex items-end justify-between gap-3">
         <div>
           <p className="text-3xl font-semibold tabular-nums text-fg">{streakSnapshot.currentStreak}</p>
-          <p className="text-sm text-fg-muted">day current streak</p>
+          <p className="text-sm text-fg-muted">week current streak</p>
         </div>
         <div className="rounded-xl border border-border/40 bg-surface px-3 py-2 text-right">
           <p className="text-[10px] uppercase tracking-[0.14em] text-fg-subtle">Longest</p>
-          <p className="text-sm font-semibold tabular-nums text-fg">{streakSnapshot.longestStreak} days</p>
+          <p className="text-sm font-semibold tabular-nums text-fg">{streakSnapshot.longestStreak} weeks</p>
         </div>
       </div>
       <p className="mt-4 border-t border-border/40 pt-3 text-sm text-fg-muted">{streakSnapshot.nextRideByLabel}</p>

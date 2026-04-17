@@ -14,6 +14,29 @@ public static class DbSeeder
     public const string UserPassword = "User123!";
     /// <summary>Password for bulk demo riders (rider003@ … rider036@rydo.test).</summary>
     public const string DemoRiderPassword = "User123!";
+    private static readonly SeedTimeProfile TimeProfile = new();
+
+    private sealed class SeedTimeProfile
+    {
+        public (int Min, int Max) ClubPastRecentDays { get; init; } = (2, 21);
+        public (int Min, int Max) ClubPastMidDays { get; init; } = (21, 75);
+        public (int Min, int Max) ClubPastOlderDays { get; init; } = (75, 260);
+        public int ClubUpcomingStartDays { get; init; } = 3;
+        public int ClubUpcomingCadenceDays { get; init; } = 5;
+        public int ClubUpcomingHourMin { get; init; } = 6;
+        public int ClubUpcomingHourMaxExclusive { get; init; } = 18;
+        public int MaxUpcomingTotal { get; init; } = 8;
+        public int MaxUpcomingPerClub { get; init; } = 3;
+
+        public int PersonalPastDays { get; init; } = 10;
+        public int PersonalFutureDays { get; init; } = 4;
+
+        public (int Min, int Max) SoloHistoryCurrentWeekDays { get; init; } = (0, 2);
+        public (int Min, int Max) SoloHistoryRecentDays { get; init; } = (1, 6);
+        public (int Min, int Max) SoloHistoryMidDays { get; init; } = (7, 28);
+        public (int Min, int Max) SoloHistoryOlderDays { get; init; } = (29, 220);
+        public int GuaranteedWeeklyStreakWeeks { get; init; } = 6;
+    }
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -120,7 +143,10 @@ public static class DbSeeder
 
             var personalRideGroups = SeedPersonalRideGroups(routes, rnd, allUsers);
             var rideGroups = SeedRideGroups(db, routes, rnd, clubs).Concat(personalRideGroups).ToList();
-            ApplyRideScheduleCaps(rideGroups, maxUpcomingTotal: 4, maxUpcomingPerClub: 2);
+            ApplyRideScheduleCaps(
+                rideGroups,
+                maxUpcomingTotal: TimeProfile.MaxUpcomingTotal,
+                maxUpcomingPerClub: TimeProfile.MaxUpcomingPerClub);
             db.Rides.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
@@ -425,7 +451,10 @@ public static class DbSeeder
             SeedUserPreferences(db, userIds);
 
         // Participant seeding must not increase the number of future-dated rides; enforce cap last.
-        ApplyRideScheduleCaps(rideGroups, maxUpcomingTotal: 4, maxUpcomingPerClub: 2);
+        ApplyRideScheduleCaps(
+            rideGroups,
+            maxUpcomingTotal: TimeProfile.MaxUpcomingTotal,
+            maxUpcomingPerClub: TimeProfile.MaxUpcomingPerClub);
 
         await db.SaveChangesAsync();
 
@@ -1168,12 +1197,22 @@ public static class DbSeeder
             DateTime scheduled;
             if (i < pastCount)
             {
-                scheduled = now.AddDays(-(8 + rnd.Next(1, 380))).Date.AddHours(6 + rnd.Next(0, 12));
+                var daysAgo = i % 3 switch
+                {
+                    0 => rnd.Next(TimeProfile.ClubPastRecentDays.Min, TimeProfile.ClubPastRecentDays.Max),
+                    1 => rnd.Next(TimeProfile.ClubPastMidDays.Min, TimeProfile.ClubPastMidDays.Max),
+                    _ => rnd.Next(TimeProfile.ClubPastOlderDays.Min, TimeProfile.ClubPastOlderDays.Max),
+                };
+                scheduled = now.AddDays(-daysAgo).Date.AddHours(
+                    rnd.Next(TimeProfile.ClubUpcomingHourMin, TimeProfile.ClubUpcomingHourMaxExclusive));
             }
             else
             {
                 var u = i - pastCount;
-                scheduled = now.AddDays(5 + u * 6).Date.AddHours(6 + rnd.Next(0, 12));
+                scheduled = now
+                    .AddDays(TimeProfile.ClubUpcomingStartDays + u * TimeProfile.ClubUpcomingCadenceDays)
+                    .Date
+                    .AddHours(rnd.Next(TimeProfile.ClubUpcomingHourMin, TimeProfile.ClubUpcomingHourMaxExclusive));
             }
 
             var clubId = clubs[i % clubs.Count].Id;
@@ -1207,7 +1246,7 @@ public static class DbSeeder
                 Kind = RideKind.Scheduled,
                 Name = "Solo sunrise spin",
                 Description = "Personal ride — no club.",
-                ScheduledDate = now.AddDays(-12).Date.AddHours(6.5),
+                ScheduledDate = now.AddDays(-TimeProfile.PersonalPastDays).Date.AddHours(6.5),
                 RouteId = pick().Id,
                 MaxParticipants = 4,
                 ClubId = null,
@@ -1218,7 +1257,7 @@ public static class DbSeeder
                 Kind = RideKind.Scheduled,
                 Name = "Lunch loop — personal",
                 Description = "Quick midday miles — route TBD.",
-                ScheduledDate = now.AddDays(4).Date.AddHours(12.25),
+                ScheduledDate = now.AddDays(TimeProfile.PersonalFutureDays).Date.AddHours(12.25),
                 RouteId = null,
                 MaxParticipants = 4,
                 ClubId = null,
@@ -1628,11 +1667,28 @@ public static class DbSeeder
         var seq = 0;
         foreach (var userId in userIds.OrderBy(u => u))
         {
-            var soloCount = rnd.Next(2, 7);
+            var soloCount = rnd.Next(7, 12);
             for (var k = 0; k < soloCount; k++, seq++)
             {
                 var route = routes[(userId * 131 + seq * 17) % routes.Count];
-                var daysAgo = 1 + seq * 47 % 499;
+                int daysAgo;
+                if (k < TimeProfile.GuaranteedWeeklyStreakWeeks)
+                {
+                    // Guarantee one ride in each of the latest N weeks to produce realistic weekly streaks.
+                    var jitter = k == 0
+                        ? rnd.Next(TimeProfile.SoloHistoryCurrentWeekDays.Min, TimeProfile.SoloHistoryCurrentWeekDays.Max + 1)
+                        : rnd.Next(0, 3);
+                    daysAgo = k * 7 + jitter;
+                }
+                else
+                {
+                    daysAgo = k switch
+                    {
+                        0 => rnd.Next(TimeProfile.SoloHistoryRecentDays.Min, TimeProfile.SoloHistoryRecentDays.Max + 1),
+                        1 => rnd.Next(TimeProfile.SoloHistoryMidDays.Min, TimeProfile.SoloHistoryMidDays.Max + 1),
+                        _ => rnd.Next(TimeProfile.SoloHistoryOlderDays.Min, TimeProfile.SoloHistoryOlderDays.Max + 1),
+                    };
+                }
                 var completedAt = DateTime.UtcNow.AddDays(-daysAgo);
                 var sparse = seq % 11 == 0;
                 var durJitter = seq % 41 - 20;

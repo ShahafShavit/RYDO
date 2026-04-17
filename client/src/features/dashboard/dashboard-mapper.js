@@ -70,39 +70,42 @@ function startOfCurrentWeekMs() {
   return monday.getTime();
 }
 
-function toDayKey(date) {
+function startOfWeekMs(date) {
   const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return NaN;
+  const day = d.getDay();
+  const diffToMonday = (day + 6) % 7;
   d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - diffToMonday);
   return d.getTime();
 }
 
-function formatWeekdayDate(dateMs) {
+function formatShortDate(dateMs) {
   return new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
     month: 'short',
     day: 'numeric',
   }).format(new Date(dateMs));
 }
 
 function buildStreakSnapshot(history) {
-  const uniqueDayKeys = [...new Set(history.map((item) => toDayKey(item.completedAt)).filter(Number.isFinite))].sort(
+  const uniqueWeekKeys = [...new Set(history.map((item) => startOfWeekMs(item.completedAt)).filter(Number.isFinite))].sort(
     (a, b) => b - a
   );
-  if (uniqueDayKeys.length === 0) {
+  if (uniqueWeekKeys.length === 0) {
     return {
       title: 'Streak',
       currentStreak: 0,
       longestStreak: 0,
-      nextRideByLabel: 'Start with a ride today',
+      nextRideByLabel: 'Start a streak with a ride this week',
     };
   }
 
   let currentStreak = 1;
-  for (let i = 1; i < uniqueDayKeys.length; i += 1) {
-    const prev = uniqueDayKeys[i - 1];
-    const curr = uniqueDayKeys[i];
-    const dayDiff = Math.round((prev - curr) / 86400000);
-    if (dayDiff === 1) {
+  for (let i = 1; i < uniqueWeekKeys.length; i += 1) {
+    const prev = uniqueWeekKeys[i - 1];
+    const curr = uniqueWeekKeys[i];
+    const weekDiff = Math.round((prev - curr) / (86400000 * 7));
+    if (weekDiff === 1) {
       currentStreak += 1;
       continue;
     }
@@ -111,11 +114,11 @@ function buildStreakSnapshot(history) {
 
   let longestStreak = 1;
   let run = 1;
-  for (let i = 1; i < uniqueDayKeys.length; i += 1) {
-    const prev = uniqueDayKeys[i - 1];
-    const curr = uniqueDayKeys[i];
-    const dayDiff = Math.round((prev - curr) / 86400000);
-    if (dayDiff === 1) {
+  for (let i = 1; i < uniqueWeekKeys.length; i += 1) {
+    const prev = uniqueWeekKeys[i - 1];
+    const curr = uniqueWeekKeys[i];
+    const weekDiff = Math.round((prev - curr) / (86400000 * 7));
+    if (weekDiff === 1) {
       run += 1;
       if (run > longestStreak) longestStreak = run;
     } else {
@@ -123,14 +126,14 @@ function buildStreakSnapshot(history) {
     }
   }
 
-  const todayKey = toDayKey(Date.now());
-  const yesterdayKey = todayKey - 86400000;
-  const latestKey = uniqueDayKeys[0];
-  let nextRideByLabel = 'Start with a ride today';
-  if (latestKey === todayKey) {
-    nextRideByLabel = `Ride again by ${formatWeekdayDate(todayKey + 86400000)} to keep it`;
-  } else if (latestKey === yesterdayKey) {
-    nextRideByLabel = 'Ride today to keep your streak alive';
+  const currentWeekKey = startOfCurrentWeekMs();
+  const previousWeekKey = currentWeekKey - 86400000 * 7;
+  const latestWeekKey = uniqueWeekKeys[0];
+  let nextRideByLabel = 'Start a streak with a ride this week';
+  if (latestWeekKey === currentWeekKey) {
+    nextRideByLabel = `Great week. Ride again after ${formatShortDate(currentWeekKey + 86400000 * 7)} to extend it`;
+  } else if (latestWeekKey === previousWeekKey) {
+    nextRideByLabel = 'Ride this week to keep your streak alive';
   }
 
   return {
