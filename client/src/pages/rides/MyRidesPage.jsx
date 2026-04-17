@@ -18,14 +18,14 @@ import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimar
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 3;
 
-/** Map / placeholder sizing for ride list cards: right column (~half card width). */
+/** Map / placeholder sizing for ride list cards (full width below badges). */
 const RIDE_CARD_MAP_CLASS =
   'h-28 w-full overflow-hidden rounded-2xl border border-border bg-surface';
 
-/** Left column: stacked info rows. */
+/** Stacked badge rows above the map. */
 const RIDE_CARD_INFO_COL_CLASS = 'flex w-full min-w-0 flex-col gap-2';
 const RIDE_CARD_INFO_ROW_BASE =
-  'min-h-10 w-full min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
+  'flex min-h-10 w-full min-w-0 items-center justify-center rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
 
 function RideInfoRow({ tone = 'neutral', children, title }) {
   const tones = {

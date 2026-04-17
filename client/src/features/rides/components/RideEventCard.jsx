@@ -7,114 +7,131 @@ import { ROUTES } from '@/app/router/route-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
 
-const INFO_ROW_BASE =
-  'min-h-9 min-w-0 rounded-xl border px-3 py-1.5 text-center text-xs font-semibold leading-tight sm:text-sm';
-
-function InfoRow({ tone = 'neutral', children }) {
-  const tones = {
-    neutral: 'border-border bg-surface text-fg',
-    route: 'border-cyan-400/50 bg-cyan-500/10 text-cyan-100',
-    club: 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100',
-    personal: 'border-violet-400/50 bg-violet-500/15 text-violet-100',
-    upcoming: 'border-amber-400/50 bg-amber-500/10 text-amber-100',
-    past: 'border-border/70 bg-surface-strong/40 text-fg-subtle',
-  };
-  return <div className={`${INFO_ROW_BASE} ${tones[tone] || tones.neutral}`}>{children}</div>;
-}
-
 /**
- * @param {{ ride: object, showEdit?: boolean, onEditClick?: () => void }} props
+ * @param {{ ride: object, showEdit?: boolean, onEditClick?: () => void, headerExtra?: import('react').ReactNode }} props
  */
-export default function RideEventCard({ ride, showEdit = false, onEditClick }) {
+export default function RideEventCard({ ride, showEdit = false, onEditClick, headerExtra = null }) {
   const upcoming = isRideUpcoming(ride);
-  const clubRow =
-    ride.clubName != null && String(ride.clubName).trim() !== '' ? (
-      <InfoRow tone="club">
-        {ride.clubName}
-      </InfoRow>
-    ) : null;
-
   const whenLabel = formatRideDateTime(ride.scheduledDate || ride.time);
   const notes = String(ride.notes || '').trim();
+  const hasClub = ride.clubId != null && ride.clubName != null && String(ride.clubName).trim() !== '';
+  const organizer = ride.createdBy;
+  const hasOrganizer = organizer?.fullName;
+
+  const showTitleActions = showEdit || headerExtra;
 
   return (
     <Card className="p-5 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-[340px]">
-          <InfoRow tone={upcoming ? 'upcoming' : 'past'}>{upcoming ? 'Upcoming' : 'Past'}</InfoRow>
-          {ride.clubId == null && ride.rideKind !== 'soloLog' ? (
-            <InfoRow tone="personal">Personal</InfoRow>
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          <h1 className="min-w-0 flex-1 text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+            {ride.name}
+          </h1>
+          {showTitleActions ? (
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+              {headerExtra}
+              {showEdit ? (
+                <Button variant="secondary" type="button" className="shrink-0" onClick={onEditClick}>
+                  Edit ride
+                </Button>
+              ) : null}
+            </div>
           ) : null}
-          {ride.clubName && ride.clubId != null ? (
-            <Link
-              to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
-              className="block min-w-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-            >
-              {clubRow}
-            </Link>
-          ) : (
-            clubRow
-          )}
         </div>
-        {showEdit ? (
-          <Button variant="secondary" type="button" className="shrink-0" onClick={onEditClick}>
-            Edit ride
-          </Button>
+
+        {hasOrganizer ? (
+          <div className="flex flex-wrap items-start gap-3 sm:gap-4">
+            <div className="flex shrink-0 items-center gap-2">
+              {organizer?.id != null ? (
+                <Link
+                  to={ROUTES.userProfile.replace(':userId', String(organizer.id))}
+                  className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                >
+                  <UserAvatar
+                    avatarUrl={organizer.avatarUrl}
+                    displayName={organizer.fullName}
+                    sizeClass="h-11 w-11"
+                    textClass="text-xs"
+                  />
+                </Link>
+              ) : (
+                <UserAvatar
+                  avatarUrl={organizer.avatarUrl}
+                  displayName={organizer.fullName}
+                  sizeClass="h-11 w-11"
+                  textClass="text-xs"
+                />
+              )}
+              {hasClub ? (
+                <Link
+                  to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
+                  className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                >
+                  <UserAvatar
+                    avatarUrl={ride.clubAvatarUrl}
+                    displayName={ride.clubName}
+                    sizeClass="h-11 w-11"
+                    textClass="text-xs"
+                  />
+                </Link>
+              ) : null}
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm leading-snug text-fg">
+                <span className="text-fg-subtle">Organized by </span>
+                {organizer?.id != null ? (
+                  <Link
+                    to={ROUTES.userProfile.replace(':userId', String(organizer.id))}
+                    className="font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
+                  >
+                    {organizer.fullName}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-fg">{organizer.fullName}</span>
+                )}
+              </p>
+              {hasClub ? (
+                <p className="text-sm leading-snug text-fg">
+                  <span className="text-fg-subtle">for </span>
+                  <Link
+                    to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
+                    className="font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
+                  >
+                    {ride.clubName}
+                  </Link>
+                </p>
+              ) : ride.clubId == null && ride.rideKind !== 'soloLog' ? (
+                <p className="text-sm text-fg-muted">Personal ride</p>
+              ) : null}
+            </div>
+          </div>
         ) : null}
-      </div>
 
-      <div className="mt-6 space-y-5">
-        <div className="space-y-4">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl">{ride.name}</h1>
-
-          {ride.createdBy?.fullName ? (
-            ride.createdBy?.id != null ? (
-              <Link
-                to={ROUTES.userProfile.replace(':userId', String(ride.createdBy.id))}
-                className="inline-flex max-w-full min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface py-1.5 pl-1.5 pr-4 text-sm text-fg transition hover:border-border-strong hover:bg-surface-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
-              >
-                <UserAvatar
-                  avatarUrl={ride.createdBy.avatarUrl}
-                  displayName={ride.createdBy.fullName}
-                  sizeClass="h-9 w-9"
-                  textClass="text-xs"
-                />
-                <span className="min-w-0 truncate text-left">
-                  <span className="text-fg-subtle">Organized by </span>
-                  <span className="font-medium text-fg">{ride.createdBy.fullName}</span>
-                </span>
-              </Link>
-            ) : (
-              <div className="inline-flex max-w-full min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface py-1.5 pl-1.5 pr-4 text-sm">
-                <UserAvatar
-                  avatarUrl={ride.createdBy.avatarUrl}
-                  displayName={ride.createdBy.fullName}
-                  sizeClass="h-9 w-9"
-                  textClass="text-xs"
-                />
-                <span className="min-w-0 truncate text-left text-fg-subtle">
-                  Organized by{' '}
-                  <span className="font-medium text-fg">{ride.createdBy.fullName}</span>
-                </span>
+        <div
+          className={`grid gap-4 ${notes ? 'sm:grid-cols-2' : ''}`}
+        >
+          <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-strong/40 px-4 py-3.5 backdrop-blur-sm">
+            <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle" strokeWidth={2} aria-hidden />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">When</p>
+                {upcoming ? (
+                  <span className="rounded-md border border-amber-400/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100">
+                    Upcoming
+                  </span>
+                ) : null}
               </div>
-            )
+              <p className="mt-1 text-base font-semibold tabular-nums text-fg">{whenLabel}</p>
+            </div>
+          </div>
+
+          {notes ? (
+            <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">Details</p>
+              <p className="mt-2 text-sm leading-relaxed text-fg-muted">{notes}</p>
+            </div>
           ) : null}
         </div>
-
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-strong/40 px-4 py-3.5 backdrop-blur-sm">
-          <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle" strokeWidth={2} aria-hidden />
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">When</p>
-            <p className="mt-1 text-base font-semibold tabular-nums text-fg">{whenLabel}</p>
-          </div>
-        </div>
-
-        {notes ? (
-          <div className="rounded-2xl border border-border bg-surface px-4 py-4 sm:px-5 sm:py-5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">Details</p>
-            <p className="mt-2.5 text-sm leading-relaxed text-fg-muted">{notes}</p>
-          </div>
-        ) : null}
       </div>
     </Card>
   );

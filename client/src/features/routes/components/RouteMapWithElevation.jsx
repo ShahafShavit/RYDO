@@ -22,6 +22,7 @@ const mapFallbackSplit = (
  * - If `profile` is omitted, the profile is built from GeoJSON when coordinates include a third (elevation) value.
  * @param {'stack'|'split'} [layout='stack'] — `split`: map and elevation sit side by side from the `md` breakpoint (stacked on small screens).
  * @param {import('react').ReactNode} [splitTrailing] — Optional third column on `md+` when `layout="split"` (e.g. weather beside map and elevation).
+ * @param {'default'|'mapHalf'} [splitTriplePreset='default'] — With map + elevation + trailing: `mapHalf` = map 50% width, elevation and trailing each 25% (`md+` only).
  */
 export default function RouteMapWithElevation({
   geoJson,
@@ -31,6 +32,7 @@ export default function RouteMapWithElevation({
   scrollWheelZoom = true,
   layout = 'stack',
   splitTrailing = null,
+  splitTriplePreset = 'default',
 }) {
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
@@ -44,13 +46,18 @@ export default function RouteMapWithElevation({
   const splitMapOnlyTrailing = split && hasTrailing && !splitWithProfile;
   const splitThreeCol = splitWithProfile && hasTrailing;
 
+  const splitThreeColGrid =
+    splitTriplePreset === 'mapHalf'
+      ? 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]'
+      : 'md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_minmax(13rem,280px)]';
+
   const defaultMapClass = split
     ? 'h-64 min-h-64 w-full rounded-3xl border border-border bg-surface overflow-hidden md:h-full md:min-h-0'
     : 'h-64 rounded-3xl border border-border bg-surface overflow-hidden';
 
   const rootClass =
     splitThreeCol
-      ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_minmax(13rem,280px)] md:items-stretch md:gap-4'
+      ? `flex flex-col gap-3 md:grid md:min-h-[280px] ${splitThreeColGrid} md:items-stretch md:gap-4`
       : splitWithProfile
         ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[3fr_2fr] md:items-stretch md:gap-4'
         : splitMapOnlyTrailing
