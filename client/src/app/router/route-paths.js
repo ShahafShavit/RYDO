@@ -13,6 +13,7 @@ export const ROUTES = {
   myRides: '/my-rides',
   settings: '/settings',
   findPeople: '/find-people',
+  inbox: '/inbox',
   userProfile: '/users/:userId',
   rideEvent: '/ride/:rideId',
   rideLive: '/ride/:rideId/live',

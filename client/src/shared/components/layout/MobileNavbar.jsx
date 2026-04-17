@@ -1,5 +1,5 @@
 import { NavLink, generatePath } from 'react-router-dom';
-import { Menu, X, LogOut, User, Settings } from 'lucide-react';
+import { Menu, X, LogOut, Settings, Inbox } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dashboardNavigation, adminNavigation } from '@/shared/config/navigation';
@@ -8,6 +8,8 @@ import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
+import UserAvatar from '@/shared/components/user/UserAvatar';
 
 const MotionDiv = motion.div;
 const MotionButton = motion.button;
@@ -15,6 +17,8 @@ const MotionButton = motion.button;
 export default function MobileNavbar({ isAdminLayout }) {
     const [isOpen, setIsOpen] = useState(false);
     const { user, logout, isAdmin } = useAuth();
+    const { data: inboxSummary } = useInboxSummary();
+    const unreadInbox = inboxSummary?.unreadCount ?? 0;
     const navItems = isAdminLayout ? adminNavigation : dashboardNavigation;
     const reducedMotion = useReducedMotion();
     const firstLinkRef = useRef(null);
@@ -129,8 +133,38 @@ export default function MobileNavbar({ isAdminLayout }) {
                                             }`
                                         }
                                     >
-                                        <User className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                                        <span className="relative shrink-0">
+                                            <UserAvatar
+                                                avatarUrl={user.avatarUrl}
+                                                displayName={user.fullName}
+                                                sizeClass="h-9 w-9"
+                                                textClass="text-xs"
+                                            />
+                                            {unreadInbox > 0 ? (
+                                                <span
+                                                    className="absolute -right-1 -top-1 flex min-h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-rydo-purple px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-[var(--rydo-bg-deep)]"
+                                                    aria-hidden
+                                                >
+                                                    {unreadInbox > 99 ? '99+' : unreadInbox}
+                                                </span>
+                                            ) : null}
+                                        </span>
                                         <span className="min-w-0">Profile</span>
+                                    </NavLink>
+                                ) : null}
+                                {user?.id ? (
+                                    <NavLink
+                                        to={ROUTES.inbox}
+                                        onClick={() => setIsOpen(false)}
+                                        className={({ isActive }) =>
+                                            `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive
+                                                ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
+                                                : 'text-fg-muted hover:bg-surface hover:text-fg'
+                                            }`
+                                        }
+                                    >
+                                        <Inbox className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                                        <span className="min-w-0">Inbox</span>
                                     </NavLink>
                                 ) : null}
                                 <NavLink

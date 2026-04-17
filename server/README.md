@@ -32,9 +32,9 @@ The **`timelapse-renderer`** container needs a Mapbox token as **`MAPBOX_ACCESS_
 | `admin@rydo.test` | `Admin123!` | admin |
 | `user@rydo.test` | `User123!` | user |
 
-The seeder also creates **34 community riders** (`rider003@rydo.test` … `rider036@rydo.test`, password `User123!`), plus many routes, hazards, rides, history rows, and preferences so admin and dashboards reflect a busy platform.
+The seeder also creates **34 community riders** (`rider003@rydo.test` … `rider036@rydo.test`, password `User123!`), plus many routes (from Groopy scrape assets), hazards, rides, history rows, demo friend requests / inbox items, and preferences so admin and dashboards reflect a busy platform.
 
-Source: [`Rydo.Api/Data/DbSeeder.cs`](Rydo.Api/Data/DbSeeder.cs). Seeding runs only when the database has **no roles** yet (first boot with an empty volume). To apply a fresh seed after schema/data changes, remove the SQL volume and bring Compose up again.
+Source: [`Rydo.Api/Data/DbSeeder.cs`](Rydo.Api/Data/DbSeeder.cs). Seeding runs only when the database has **no roles** yet (first boot with an empty volume). After **EF model or seed changes** (new tables, columns, or seeder updates), recreate the SQL volume so `EnsureCreated` and the seeder run on a clean schema: e.g. `docker compose down -v` then `docker compose up -d`.
 
 ## Run locally (without Docker)
 

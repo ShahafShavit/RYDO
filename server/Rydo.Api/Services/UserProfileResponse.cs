@@ -43,6 +43,8 @@ public static class UserProfileResponse
                 publicDefaultBikeType = u.PublicDefaultBikeType,
                 publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
                 publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
+                publicFriendsListOnProfile = pref?.PublicFriendsListOnProfile ?? true,
+                publicInOthersFriendsLists = pref?.PublicInOthersFriendsLists ?? true,
             },
             leaderboardBadges = SerializeBadges(leaderboardBadges),
         };
@@ -68,6 +70,7 @@ public static class UserProfileResponse
             defaultBikeType = u.PublicDefaultBikeType && pref != null ? pref.DefaultBikeType : null,
             publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
             publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
+            publicFriendsListOnProfile = pref?.PublicFriendsListOnProfile ?? true,
             leaderboardBadges = SerializeBadges(leaderboardBadges),
         };
     }

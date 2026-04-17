@@ -113,6 +113,7 @@ public static class DbSeeder
         if (await db.HistoryEntries.AnyAsync())
         {
             await EnsureClubChatSeedAsync(db, rider.Id);
+            await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             return;
         }
 
@@ -125,10 +126,13 @@ public static class DbSeeder
         if (!await db.Routes.AnyAsync())
         {
             var hostEnv = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-            var gpxPool = LoadGpxSeedPool(hostEnv.ContentRootPath);
-            var groopyRoutes = LoadGroopyRoutesFromSeed(hostEnv.ContentRootPath, allUsers, rnd);
-            var syntheticRoutes = SeedSyntheticRoutes(allUsers, rnd, gpxPool);
-            var routes = groopyRoutes.Concat(syntheticRoutes).ToList();
+            var routes = LoadGroopyRoutesFromSeed(hostEnv.ContentRootPath, allUsers, rnd);
+            if (routes.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "Route seed produced zero routes. Ensure server/Rydo.Api/SeedData/groopy-routes.json and matching GPX files exist under GpxSeed/ (run scraper/build-seed-json.mjs from the scraper folder).");
+            }
+
             db.Routes.AddRange(routes);
             await db.SaveChangesAsync();
 
@@ -153,6 +157,7 @@ public static class DbSeeder
             await EnsureClubChatSeedAsync(db, rider.Id);
 
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
+            await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             return;
         }
 
@@ -163,6 +168,84 @@ public static class DbSeeder
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
         await EnsureClubChatSeedAsync(db, rider.Id);
+        await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
+    }
+
+    /// <summary>
+    /// Demo friendships and pending friend requests (with inbox rows). Idempotent: skips when any friend request already exists.
+    /// </summary>
+    private static async Task SeedFriendInboxIfNeededAsync(
+        RydoDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser admin,
+        ApplicationUser rider)
+    {
+        if (await db.FriendRequests.AnyAsync() || await db.Friendships.AnyAsync())
+            return;
+
+        static Task<ApplicationUser?> ByEmail(UserManager<ApplicationUser> um, string email) =>
+            um.FindByEmailAsync(email);
+
+        var r3 = await ByEmail(userManager, "rider003@rydo.test");
+        var r4 = await ByEmail(userManager, "rider004@rydo.test");
+        var r5 = await ByEmail(userManager, "rider005@rydo.test");
+        var r6 = await ByEmail(userManager, "rider006@rydo.test");
+        var r7 = await ByEmail(userManager, "rider007@rydo.test");
+        var r8 = await ByEmail(userManager, "rider008@rydo.test");
+        var r9 = await ByEmail(userManager, "rider009@rydo.test");
+
+        if (r3 == null || r4 == null)
+            return;
+
+        var now = DateTime.UtcNow;
+
+        void AddFriendship(int a, int b)
+        {
+            var lo = Math.Min(a, b);
+            var hi = Math.Max(a, b);
+            db.Friendships.Add(new Friendship
+            {
+                UserIdLower = lo,
+                UserIdHigher = hi,
+                CreatedAt = now.AddDays(-14),
+            });
+        }
+
+        void AddPending(int fromId, int toId)
+        {
+            var fr = new FriendRequest
+            {
+                FromUserId = fromId,
+                ToUserId = toId,
+                Status = FriendRequestStatus.Pending,
+                CreatedAt = now.AddDays(-2),
+            };
+            db.FriendRequests.Add(fr);
+            db.InboxItems.Add(new InboxItem
+            {
+                RecipientUserId = toId,
+                Kind = InboxItemKind.FriendRequest,
+                FriendRequest = fr,
+                CreatedAt = now.AddDays(-2),
+            });
+        }
+
+        AddFriendship(r3.Id, r4.Id);
+        if (r5 != null && r6 != null)
+            AddFriendship(r5.Id, r6.Id);
+        if (r5 != null)
+            AddFriendship(admin.Id, r5.Id);
+
+        AddFriendship(rider.Id, r4.Id);
+
+        if (r7 != null)
+            AddPending(r7.Id, admin.Id);
+        if (r8 != null)
+            AddPending(r8.Id, rider.Id);
+        if (r9 != null)
+            AddPending(r9.Id, admin.Id);
+
+        await db.SaveChangesAsync();
     }
 
     /// <summary>
@@ -574,38 +657,6 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<(string FileName, byte[] Bytes)> LoadGpxSeedPool(string contentRoot)
-    {
-        var dir = Path.Combine(contentRoot, "GpxSeed");
-        if (!Directory.Exists(dir))
-            return [];
-
-        var list = new List<(string FileName, byte[] Bytes)>();
-        foreach (var path in Directory.EnumerateFiles(dir, "*.gpx", SearchOption.TopDirectoryOnly))
-        {
-            try
-            {
-                var name = Path.GetFileName(path);
-                var bytes = File.ReadAllBytes(path);
-                if (bytes.Length == 0)
-                    continue;
-                if (!GpxTrackParser.IsTrackPlausible(bytes, out _))
-                {
-                    Debug.WriteLine($"[DbSeeder] Skipped implausible GPX seed file: {name}");
-                    continue;
-                }
-
-                list.Add((name, bytes));
-            }
-            catch
-            {
-                // skip unreadable entries
-            }
-        }
-
-        return list;
-    }
-
     private static List<RouteEntity> LoadGroopyRoutesFromSeed(string contentRoot, IReadOnlyList<ApplicationUser> users, Random rnd)
     {
         var path = Path.Combine(contentRoot, "SeedData", "groopy-routes.json");
@@ -718,112 +769,6 @@ public static class DbSeeder
         public string? GpxFileName { get; set; }
         public string? SourceUrl { get; set; }
         public string? Notes { get; set; }
-    }
-
-    private static List<RouteEntity> SeedSyntheticRoutes(IReadOnlyList<ApplicationUser> users, Random rnd, IReadOnlyList<(string FileName, byte[] Bytes)> gpxPool)
-    {
-        var regions = new[]
-        {
-            "Tel Aviv–Jaffa", "Haifa Bay", "Jerusalem Hills", "Negev Desert Route", "Golan Heights", "Dead Sea Loop",
-            "Coastal Plain North", "Jezreel Valley", "Carmel Ridge", "Shfela Rolling Hills", "Galilee West", "Arava Trail",
-        };
-        var terrains = new[] { "road", "gravel", "trail", "mixed" };
-        var difficulties = new[] { "casual", "moderate", "hard", "expert" };
-        var titles = new[]
-        {
-            "Sunrise Coastal Sprint", "Friday Coffee Loop", "Hill Repeats — Mount Carmel", "Family Greenway",
-            "Gravel Explorer: North Fields", "Jerusalem Ridge Classic", "Desert Dawn Empty Roads", "Harbour to Harbour",
-            "Vineyard Ramble", "Lake Circuit Tempo", "Recovery Spin — Flat 40", "Weekend Metric Century",
-            "After-work City Loop", "Mountain Pass Challenge", "Wadi Descent Technical", "Group Ride: Social Pace",
-            "TT Practice — Out and Back", "Shabbat Morning Easy", "Night Ride — Lit Corridors", "Gran Fondo Prep Block",
-            "Spring Classics Simulation", "Autumn Leaves Scenic", "Wind Training Laps", "Climb Series — Stage 3",
-            "CX Skills Circuit", "Endurance Base — Zone 2", "Sprint City Blocks", "Rolling Hills Sweetspot",
-            "Coastal Headwind Builder", "Forest Service Road Tour", "River Path Commuter", "Summit Seekers Loop",
-            "Charity Ride Segment", "Club Championship Course", "Scenic Photo Stop Route", "Intervals — VO2 Ladder",
-            "Long Slow Distance", "Brick Session Add-on", "Tourist Friendly Highlights", "Race Recon — Full Course",
-            "Brevet Training Stretch", "Gravel & Espresso", "Sunset Return Leg", "Midweek Lunch Loop",
-            "Weekend Escape — Two Counties", "Hilly Commute Alternative", "Quiet Side Roads Discovery",
-            "Peloton Practice Rotating", "Solo Meditative Miles", "Night Ferry Return",
-        };
-
-        var routes = new List<RouteEntity>();
-        var baseLat = 32.08;
-        var baseLng = 34.78;
-
-        IReadOnlyList<(string FileName, byte[] Bytes)> syntheticPool = gpxPool;
-        if (gpxPool.Count > 0)
-        {
-            var withoutGroopy = gpxPool.Where(p => !p.FileName.StartsWith("groopy-", StringComparison.OrdinalIgnoreCase)).ToList();
-            if (withoutGroopy.Count > 0)
-                syntheticPool = withoutGroopy;
-        }
-
-        for (var i = 0; i < titles.Length; i++)
-        {
-            var creator = users[rnd.Next(users.Count)];
-            var daysAgo = rnd.Next(2, 400);
-            var dist = Math.Round(12 + rnd.NextDouble() * 95, 1);
-            var elev = Math.Round(rnd.Next(80, 2200) + rnd.NextDouble() * 100);
-            var dur = Math.Max(35, (int)(dist * 2.2 + rnd.Next(-15, 40)));
-            var lat = baseLat + (rnd.NextDouble() - 0.5) * 0.45;
-            var lng = baseLng + (rnd.NextDouble() - 0.5) * 0.55;
-            var lat2 = lat + (rnd.NextDouble() - 0.5) * 0.02;
-            var lng2 = lng + (rnd.NextDouble() - 0.5) * 0.02;
-
-            var warnings = rnd.Next(5) == 0
-                ? """["Busy traffic on weekends","Loose gravel after rain"]"""
-                : rnd.Next(4) == 0 ? """["Cattle crossing possible"]""" : "[]";
-
-            string previewJson = $"[[{lng:F5},{lat:F5}],[{lng2:F5},{lat2:F5}]]";
-            string gpxRef = $"routes/seed-{i + 1}.gpx";
-            byte[]? gpxBlob = null;
-            var estimatedDurationSource = RouteDurationSource.Estimated;
-            var routeStartLat = lat;
-            var routeStartLng = lng;
-
-            if (syntheticPool.Count > 0)
-            {
-                var pick = syntheticPool[rnd.Next(syntheticPool.Count)];
-                gpxBlob = pick.Bytes;
-                gpxRef = $"routes/{pick.FileName}";
-                if (GpxTrackParser.TryParse(pick.Bytes, out var parsedPreview, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var seedStartLat, out var seedStartLng))
-                {
-                    previewJson = parsedPreview;
-                    dist = pathKm;
-                    if (pathElev > 0)
-                        elev = pathElev;
-                    estimatedDurationSource = derivedSrc;
-                    // Match client upload: timestamps → minutes, else distance ÷ SuggestedDurationSpeedKmh (see GpxTrackParser).
-                    dur = suggestedDur ?? Math.Max(1, (int)Math.Round(pathKm / GpxTrackParser.SuggestedDurationSpeedKmh * 60.0));
-                    routeStartLat = seedStartLat;
-                    routeStartLng = seedStartLng;
-                }
-            }
-
-            routes.Add(new RouteEntity
-            {
-                Title = titles[i],
-                Description = $"Popular loop in {regions[i % regions.Length]}. Distance ~{dist} km; good for {(difficulties[i % difficulties.Length] == "casual" ? "beginners" : "experienced riders")}.",
-                Terrain = terrains[i % terrains.Length],
-                Difficulty = difficulties[i % difficulties.Length],
-                Region = regions[i % regions.Length],
-                StartLatitude = routeStartLat,
-                StartLongitude = routeStartLng,
-                DistanceKm = dist,
-                ElevationGainM = elev,
-                EstimatedDurationMinutes = dur,
-                EstimatedDurationSource = estimatedDurationSource,
-                WarningsJson = warnings,
-                PreviewCoordinatesJson = previewJson,
-                CreatedByUserId = creator.Id,
-                CreatedAt = DateTime.UtcNow.AddDays(-daysAgo),
-                Status = rnd.Next(12) == 0 ? "pending_review" : "published",
-                GpxReference = gpxRef,
-                GpxBlob = gpxBlob,
-            });
-        }
-
-        return routes;
     }
 
     private static void SeedSavedRoutes(RydoDbContext db, List<RouteEntity> routes, IReadOnlyList<int> userIds, Random rnd)

@@ -21,6 +21,9 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
     public DbSet<ClubChatMessage> ClubChatMessages => Set<ClubChatMessage>();
     public DbSet<ClubChatReadState> ClubChatReadStates => Set<ClubChatReadState>();
+    public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
+    public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<InboxItem> InboxItems => Set<InboxItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -101,6 +104,29 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<FriendRequest>(e =>
+        {
+            e.HasOne(x => x.FromUser).WithMany().HasForeignKey(x => x.FromUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ToUser).WithMany().HasForeignKey(x => x.ToUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.FromUserId, x.ToUserId }).IsUnique();
+            e.HasIndex(x => new { x.ToUserId, x.Status });
+        });
+
+        builder.Entity<Friendship>(e =>
+        {
+            e.HasOne(x => x.UserLower).WithMany().HasForeignKey(x => x.UserIdLower).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.UserHigher).WithMany().HasForeignKey(x => x.UserIdHigher).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.UserIdLower, x.UserIdHigher }).IsUnique();
+        });
+
+        builder.Entity<InboxItem>(e =>
+        {
+            e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.FriendRequest).WithMany().HasForeignKey(x => x.FriendRequestId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.RecipientUserId, x.ResolvedAt });
+            e.HasIndex(x => new { x.RecipientUserId, x.ReadAt });
         });
     }
 }

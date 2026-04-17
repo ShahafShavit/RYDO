@@ -78,6 +78,16 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             .Where(r => r.CreatedByUserId == userId)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.CreatedByUserId, systemAdmin.Id), ct);
 
+        await db.InboxItems.Where(i => i.RecipientUserId == userId).ExecuteDeleteAsync(ct);
+        var frIds = await db.FriendRequests.AsNoTracking()
+            .Where(f => f.FromUserId == userId || f.ToUserId == userId)
+            .Select(f => f.Id)
+            .ToListAsync(ct);
+        if (frIds.Count > 0)
+            await db.InboxItems.Where(i => i.FriendRequestId != null && frIds.Contains(i.FriendRequestId.Value)).ExecuteDeleteAsync(ct);
+        await db.FriendRequests.Where(f => f.FromUserId == userId || f.ToUserId == userId).ExecuteDeleteAsync(ct);
+        await db.Friendships.Where(f => f.UserIdLower == userId || f.UserIdHigher == userId).ExecuteDeleteAsync(ct);
+
         await users.DeleteAsync(u);
         return NoContent();
     }

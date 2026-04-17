@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../api/account-api';
 import { normalizeAccountProfile, normalizePreferences } from '@/features/account/account-mapper';
 import { userProfileKeys } from '@/features/users/hooks/useUserProfile';
+import { friendsListKeys } from '@/features/social/hooks/useFriendsList';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const accountKeys = {
@@ -38,6 +39,7 @@ export const useUpdatePreferences = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.preferences() });
             queryClient.invalidateQueries({ queryKey: userProfileKeys.all });
+            queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
         },
     });
 

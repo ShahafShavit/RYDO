@@ -108,6 +108,8 @@ function mockDefaultPrivacy() {
     publicDefaultBikeType: true,
     publicUploadedRoutesOnProfile: true,
     publicParticipatedRidesOnProfile: true,
+    publicFriendsListOnProfile: true,
+    publicInOthersFriendsLists: true,
   };
 }
 
@@ -120,6 +122,8 @@ function toFullProfile(p) {
     ...mergeMockPrivacy(p.privacy),
     publicUploadedRoutesOnProfile: preferences.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: preferences.publicParticipatedRidesOnProfile !== false,
+    publicFriendsListOnProfile: preferences.publicFriendsListOnProfile !== false,
+    publicInOthersFriendsLists: preferences.publicInOthersFriendsLists !== false,
   };
   return {
     id: p.id,
@@ -151,8 +155,9 @@ function toPublicProfileView(u) {
     location: privacy.publicLocation ? u.location : null,
     avatarUrl: privacy.publicAvatarUrl ? u.avatarUrl : null,
     defaultBikeType: privacy.publicDefaultBikeType ? (u.defaultBikeType ?? 'road') : null,
-    publicUploadedRoutesOnProfile: true,
-    publicParticipatedRidesOnProfile: true,
+    publicUploadedRoutesOnProfile: privacy.publicUploadedRoutesOnProfile !== false,
+    publicParticipatedRidesOnProfile: privacy.publicParticipatedRidesOnProfile !== false,
+    publicFriendsListOnProfile: privacy.publicFriendsListOnProfile !== false,
     leaderboardBadges: mockLeaderboardBadgesForUser(u.id),
   };
 }
@@ -168,6 +173,8 @@ let preferences = {
   publicInRouteRiderLists: true,
   publicUploadedRoutesOnProfile: true,
   publicParticipatedRidesOnProfile: true,
+  publicFriendsListOnProfile: true,
+  publicInOthersFriendsLists: true,
   colorScheme: 'midnight',
 };
 

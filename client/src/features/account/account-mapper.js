@@ -21,6 +21,8 @@ const defaultPrivacy = () => ({
   publicDefaultBikeType: true,
   publicUploadedRoutesOnProfile: true,
   publicParticipatedRidesOnProfile: true,
+  publicFriendsListOnProfile: true,
+  publicInOthersFriendsLists: true,
 });
 
 export function normalizeAccountProfile(payload = {}) {
@@ -44,6 +46,8 @@ export function normalizeAccountProfile(payload = {}) {
       publicUploadedRoutesOnProfile: priv.publicUploadedRoutesOnProfile ?? defaultPrivacy().publicUploadedRoutesOnProfile,
       publicParticipatedRidesOnProfile:
         priv.publicParticipatedRidesOnProfile ?? defaultPrivacy().publicParticipatedRidesOnProfile,
+      publicFriendsListOnProfile: priv.publicFriendsListOnProfile ?? defaultPrivacy().publicFriendsListOnProfile,
+      publicInOthersFriendsLists: priv.publicInOthersFriendsLists ?? defaultPrivacy().publicInOthersFriendsLists,
     },
     leaderboardBadges: normalizeLeaderboardBadges(payload),
   };
@@ -70,6 +74,7 @@ export function normalizeUserPublicProfile(payload = {}) {
     privacy: null,
     publicUploadedRoutesOnProfile: payload.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: payload.publicParticipatedRidesOnProfile !== false,
+    publicFriendsListOnProfile: payload.publicFriendsListOnProfile !== false,
     leaderboardBadges: normalizeLeaderboardBadges(payload),
   };
 }
@@ -119,6 +124,8 @@ export function normalizePreferences(payload = {}) {
     publicInRouteRiderLists: payload.publicInRouteRiderLists ?? true,
     publicUploadedRoutesOnProfile: payload.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: payload.publicParticipatedRidesOnProfile !== false,
+    publicFriendsListOnProfile: payload.publicFriendsListOnProfile !== false,
+    publicInOthersFriendsLists: payload.publicInOthersFriendsLists !== false,
     colorScheme,
   };
 }

@@ -19,6 +19,8 @@ export const RidingPreferencesForm = () => {
         publicInRouteRiderLists: true,
         publicUploadedRoutesOnProfile: true,
         publicParticipatedRidesOnProfile: true,
+        publicFriendsListOnProfile: true,
+        publicInOthersFriendsLists: true,
         colorScheme: 'midnight',
     };
 
@@ -150,6 +152,38 @@ export const RidingPreferencesForm = () => {
                     </div>
                     <p className="text-xs text-fg-subtle leading-snug">
                         When off, others won&apos;t see scheduled rides you participate in on your profile (club and ride visibility rules still apply when shown).
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-fg text-sm font-medium">Show friends list on my profile</span>
+                        <input
+                            type="checkbox"
+                            name="publicFriendsListOnProfile"
+                            checked={Boolean(formData.publicFriendsListOnProfile)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-fg-subtle leading-snug">
+                        When off, other members won&apos;t see your friends on your profile. You can still see your own list.
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-fg text-sm font-medium">Show me on other members&apos; friends lists</span>
+                        <input
+                            type="checkbox"
+                            name="publicInOthersFriendsLists"
+                            checked={Boolean(formData.publicInOthersFriendsLists)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-fg-subtle leading-snug">
+                        When off, your name won&apos;t appear when someone else views a mutual friend&apos;s friends list.
                     </p>
                 </div>
             </div>

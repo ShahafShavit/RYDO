@@ -94,6 +94,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
             publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
             publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
+            publicFriendsListOnProfile = p.PublicFriendsListOnProfile,
+            publicInOthersFriendsLists = p.PublicInOthersFriendsLists,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }
@@ -105,6 +107,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         bool? PublicInRouteRiderLists,
         bool? PublicUploadedRoutesOnProfile,
         bool? PublicParticipatedRidesOnProfile,
+        bool? PublicFriendsListOnProfile,
+        bool? PublicInOthersFriendsLists,
         string? ColorScheme);
 
     [HttpPut("preferences")]
@@ -126,6 +130,10 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             p.PublicUploadedRoutesOnProfile = body.PublicUploadedRoutesOnProfile.Value;
         if (body.PublicParticipatedRidesOnProfile.HasValue)
             p.PublicParticipatedRidesOnProfile = body.PublicParticipatedRidesOnProfile.Value;
+        if (body.PublicFriendsListOnProfile.HasValue)
+            p.PublicFriendsListOnProfile = body.PublicFriendsListOnProfile.Value;
+        if (body.PublicInOthersFriendsLists.HasValue)
+            p.PublicInOthersFriendsLists = body.PublicInOthersFriendsLists.Value;
         if (body.ColorScheme != null)
             p.ColorScheme = NormalizeColorScheme(body.ColorScheme);
         await db.SaveChangesAsync(ct);
@@ -137,6 +145,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
             publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
             publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
+            publicFriendsListOnProfile = p.PublicFriendsListOnProfile,
+            publicInOthersFriendsLists = p.PublicInOthersFriendsLists,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
         });
     }
