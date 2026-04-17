@@ -41,10 +41,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = "https://www.groopy.co.il/trackinfo.aspx";
-const PIDS = range(2817, 2750, -1);
+const PIDS = range(2750, 2650, -1);
 
 
-const OUT_DIR = path.join(__dirname, "out");
+const OUT_DIR = path.join(__dirname, "out_"+PIDS[0]+"-"+PIDS[PIDS.length-1]);
 const CSV_PATH = path.join(OUT_DIR, "tracks.csv");
 const GPX_DIR = path.join(OUT_DIR, "gpx");
 
