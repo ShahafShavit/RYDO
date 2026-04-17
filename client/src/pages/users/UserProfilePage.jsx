@@ -12,6 +12,7 @@ import { ApiError } from '@/shared/api/api-errors';
 import { UserProfilePublicCard } from '@/features/users/components/UserProfilePublicCard';
 import { UserProfileActivitySections } from '@/features/users/components/UserProfileActivitySections';
 import { UserProfileFriendsSection } from '@/features/users/components/UserProfileFriendsSection';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 export default function UserProfilePage() {
   const { userId } = useParams();
@@ -21,6 +22,8 @@ export default function UserProfilePage() {
   const queryClient = useQueryClient();
   const { data: profile, isLoading, isError, error } = useUserProfile(userId);
   const { data: relationship, isLoading: relLoading } = useRelationship(userId, { enabled: !isOwn });
+
+  usePageBreadcrumbDetail(profile?.fullName);
 
   const sendMut = useMutation({
     mutationFn: () => friendsApi.sendFriendRequest(id),
@@ -55,9 +58,6 @@ export default function UserProfilePage() {
       <section className="space-y-4">
         <h1 className="text-2xl font-semibold text-fg">Invalid profile</h1>
         <p className="text-fg-muted">This user link is not valid.</p>
-        <Link to={ROUTES.dashboard}>
-          <Button variant="secondary">Back to dashboard</Button>
-        </Link>
       </section>
     );
   }
@@ -77,9 +77,6 @@ export default function UserProfilePage() {
         <section className="space-y-4">
           <h1 className="text-2xl font-semibold text-fg">User not found</h1>
           <p className="text-fg-muted">No account matches this profile.</p>
-          <Link to={ROUTES.dashboard}>
-            <Button variant="secondary">Back to dashboard</Button>
-          </Link>
         </section>
       );
     }
@@ -87,9 +84,6 @@ export default function UserProfilePage() {
       <section className="space-y-4">
         <h1 className="text-2xl font-semibold text-fg">Could not load profile</h1>
         <p className="text-fg-muted">{error?.message || 'Something went wrong.'}</p>
-        <Link to={ROUTES.dashboard}>
-          <Button variant="secondary">Back to dashboard</Button>
-        </Link>
       </section>
     );
   }

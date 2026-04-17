@@ -35,6 +35,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
@@ -109,6 +110,9 @@ export default function RideLiveMapPage() {
   const programmaticMoveRef = useRef(false);
 
   const { ride, isLoading, isError, error } = useRideEvent(rideId);
+
+  usePageBreadcrumbDetail(ride?.name);
+
   const { openChat } = useClubChatUi();
 
   const summaryQuery = useQuery({

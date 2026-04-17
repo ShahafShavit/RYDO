@@ -10,11 +10,14 @@ import Button from '@/shared/components/ui/button/Button';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
   const { route, isLoading: routeLoading } = useRouteDetails(routeId);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+
+  usePageBreadcrumbDetail(route?.title);
 
   const geoJson = useMemo(
     () => buildRoutePreviewFeatureCollection(route?.preview ?? null),

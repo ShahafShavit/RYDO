@@ -14,6 +14,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { requestLiveRidePermissions } from '@/features/live-ride/utils/requestLiveRidePermissions';
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 export default function RideEventPage() {
   const { rideId } = useParams();
@@ -21,6 +22,8 @@ export default function RideEventPage() {
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
+
+  usePageBreadcrumbDetail(ride?.name);
   const { joinRide, leaveRide, isJoining, isLeaving } = useRideAttendance(rideId);
   const rid = ride?.routeId != null ? String(ride.routeId) : '';
   const { route: linkedRoute, isLoading: routeLoading } = useRouteDetails(rid);

@@ -257,7 +257,7 @@ export default function ClubChatDock() {
                   {!liveChatScoped ? (
                     <button
                       type="button"
-                      aria-label="Back to clubs"
+                      aria-label="Show all clubs in chat"
                       className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
                       onClick={() => {
                         setClubId(null);

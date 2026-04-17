@@ -11,6 +11,8 @@ import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDash
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 import { ClubChatUiProvider } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
+import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
+import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
@@ -21,6 +23,7 @@ export default function DashboardLayout() {
   }, []);
 
   return (
+    <BreadcrumbProvider>
     <ClubChatUiProvider>
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? <MobileNavbar /> : null}
@@ -66,11 +69,13 @@ export default function DashboardLayout() {
 
       <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8">
         <div className="mx-auto max-w-6xl">
+          <PageBreadcrumbs variant="dashboard" />
           <AnimatedOutlet />
         </div>
       </main>
       <ClubChatDock />
     </div>
     </ClubChatUiProvider>
+    </BreadcrumbProvider>
   );
 }

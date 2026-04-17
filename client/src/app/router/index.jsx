@@ -8,6 +8,7 @@ import { ProtectedRoute, AdminRoute, GuestOnlyRoute } from './route-guards';
 import PublicLayout from '@/shared/components/layout/PublicLayout';
 import DashboardLayout from '@/shared/components/layout/DashboardLayout';
 import AdminLayout from '@/shared/components/layout/AdminLayout';
+import ToolPageShell from '@/shared/components/layout/ToolPageShell';
 import Loader from '@/shared/components/feedback/Loader';
 
 // Lazy-loaded pages
@@ -96,7 +97,9 @@ export const router = createBrowserRouter([
     path: ROUTES.live,
     element: (
       <Suspense fallback={<Loader fullscreen />}>
-        <LiveRideReplayPage />
+        <ToolPageShell>
+          <LiveRideReplayPage />
+        </ToolPageShell>
       </Suspense>
     ),
   },
@@ -104,7 +107,9 @@ export const router = createBrowserRouter([
     path: ROUTES.timelapse,
     element: (
       <Suspense fallback={<Loader fullscreen />}>
-        <TimelapsePage />
+        <ToolPageShell>
+          <TimelapsePage />
+        </ToolPageShell>
       </Suspense>
     ),
   },

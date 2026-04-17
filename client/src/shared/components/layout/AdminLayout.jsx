@@ -8,6 +8,8 @@ import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchAdminRoutes } from '@/shared/components/layout/prefetchAdminRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
+import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
+import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 
 export default function AdminLayout() {
   useEffect(() => {
@@ -15,6 +17,7 @@ export default function AdminLayout() {
   }, []);
 
   return (
+    <BreadcrumbProvider>
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       <MobileNavbar isAdminLayout />
 
@@ -57,9 +60,11 @@ export default function AdminLayout() {
 
       <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8 relative z-0">
         <div className="mx-auto max-w-6xl">
+          <PageBreadcrumbs variant="admin" />
           <AnimatedOutlet />
         </div>
       </main>
     </div>
+    </BreadcrumbProvider>
   );
 }

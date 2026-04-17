@@ -11,6 +11,7 @@ import Card from '@/shared/components/ui/card/Card';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 function ridePeopleSummary(r) {
   const fromDetails = Array.isArray(r.participantDetails) ? r.participantDetails.length : 0;
   const fromParts = Array.isArray(r.participants) ? r.participants.length : 0;
@@ -136,6 +137,8 @@ export default function ClubDetailPage() {
 
   const club = clubQuery.data;
 
+  usePageBreadcrumbDetail(club?.name);
+
   const [ridePartitionNowMs, setRidePartitionNowMs] = useState(() => Date.now());
   useEffect(() => {
     queueMicrotask(() => {
@@ -181,9 +184,6 @@ export default function ClubDetailPage() {
     return (
       <section>
         <p className="text-red-400">Could not load this club.</p>
-        <Link to={ROUTES.clubs} className="mt-4 inline-block text-rydo-purple">
-          Back to clubs
-        </Link>
       </section>
     );
   }
@@ -199,11 +199,24 @@ export default function ClubDetailPage() {
   return (
     <section className="space-y-6">
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to={ROUTES.clubs} className="text-sm text-rydo-purple hover:underline">
-            ← Clubs
-          </Link>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
+            <UserAvatar
+              avatarUrl={club.avatarUrl}
+              displayName={club.name}
+              sizeClass="h-14 w-14"
+              textClass="text-lg"
+              className="shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Club</p>
+              <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
+              {club.description ? <p className="mt-2 text-fg-muted">{club.description}</p> : null}
+              {club.region ? <p className="mt-2 text-sm text-fg-muted">{club.region}</p> : null}
+            </div>
+          </div>
+
+          <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:justify-end">
             {club.currentUserMembership === 'admin' ? (
               <div
                 className="inline-flex items-center gap-0 rounded-full border border-border bg-surface p-1 pl-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
@@ -312,22 +325,6 @@ export default function ClubDetailPage() {
             {redeemMut.isError ? <p className="text-xs text-red-400">Invalid or expired code.</p> : null}
           </div>
         ) : null}
-
-        <div className="mt-4 flex min-w-0 flex-wrap items-center gap-4">
-          <UserAvatar
-            avatarUrl={club.avatarUrl}
-            displayName={club.name}
-            sizeClass="h-14 w-14"
-            textClass="text-lg"
-            className="shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Club</p>
-            <h1 className="mt-2 text-3xl font-semibold">{club.name}</h1>
-            {club.description ? <p className="mt-2 text-fg-muted">{club.description}</p> : null}
-            {club.region ? <p className="mt-2 text-sm text-fg-muted">{club.region}</p> : null}
-          </div>
-        </div>
       </div>
 
       <Card>
