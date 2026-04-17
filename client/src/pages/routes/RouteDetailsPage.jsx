@@ -9,10 +9,11 @@ import ScheduleRideFromRouteModal from '@/features/rides/components/ScheduleRide
 import Button from '@/shared/components/ui/button/Button';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
+import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
-  const { route } = useRouteDetails(routeId);
+  const { route, isLoading: routeLoading } = useRouteDetails(routeId);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const geoJson = useMemo(
@@ -31,7 +32,18 @@ export default function RouteDetailsPage() {
         ) : null}
       </RouteDetailsHeader>
       <div className="relative z-0">
-        <RouteMapWithElevation geoJson={geoJson} layout="split" />
+        <RouteMapWithElevation
+          geoJson={geoJson}
+          layout="split"
+          splitTrailing={
+            <RouteWeatherPanel
+              key={route?.id ?? 'route-weather'}
+              route={route}
+              isRouteLoading={routeLoading}
+              layout="split"
+            />
+          }
+        />
         <RouteDetailsDescription description={route?.description} />
       </div>
       {route?.id ? (

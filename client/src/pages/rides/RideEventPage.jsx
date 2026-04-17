@@ -14,6 +14,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import Button from '@/shared/components/ui/button/Button';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { requestLiveRidePermissions } from '@/features/live-ride/utils/requestLiveRidePermissions';
+import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 
 export default function RideEventPage() {
   const { rideId } = useParams();
@@ -78,11 +79,21 @@ export default function RideEventPage() {
       <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} />
       {ride.routeId ? (
         <div className="space-y-4">
-          {routeLoading ? (
-            <div className="h-64 animate-pulse rounded-3xl bg-surface-strong" />
-          ) : (
-            <RouteMapWithElevation geoJson={geoJson} layout="split" />
-          )}
+          <RouteMapWithElevation
+            geoJson={geoJson}
+            layout="split"
+            splitTrailing={
+              upcoming ? (
+                <RideWeatherSummary
+                  key={`${ride.id}-ride-weather`}
+                  ride={ride}
+                  linkedRoute={linkedRoute}
+                  routeLoading={routeLoading}
+                  layout="split"
+                />
+              ) : null
+            }
+          />
           <RouteMetadataPanel route={linkedRoute} />
         </div>
       ) : (
