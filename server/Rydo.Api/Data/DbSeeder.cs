@@ -728,6 +728,14 @@ public static class DbSeeder
             var creator = users[rnd.Next(users.Count)];
             var daysAgo = rnd.Next(2, 400);
 
+            double? physicsScore = null;
+            if (RoutePhysicsDifficulty.TryComputeIntensityDensityJPerKm(bytes, out var densityJPerKm))
+            {
+                var s = RoutePhysicsDifficulty.DensityToNotebookScaledScore(densityJPerKm);
+                if (double.IsFinite(s))
+                    physicsScore = s;
+            }
+
             list.Add(new RouteEntity
             {
                 Title = string.IsNullOrWhiteSpace(row.Title) ? $"Groopy {row.Pid}" : row.Title,
@@ -744,6 +752,7 @@ public static class DbSeeder
                 WarningsJson = "[]",
                 Notes = row.Notes,
                 PreviewCoordinatesJson = previewJson,
+                PhysicsDifficultyScore = physicsScore,
                 CreatedByUserId = creator.Id,
                 CreatedAt = DateTime.UtcNow.AddDays(-daysAgo),
                 Status = "published",

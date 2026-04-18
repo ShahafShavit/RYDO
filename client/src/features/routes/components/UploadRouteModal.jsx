@@ -3,6 +3,7 @@ import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
+import { routesApi } from '@/features/routes/api/routesApi';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
@@ -25,6 +26,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
   const [durationSuggestionSource, setDurationSuggestionSource] = useState(null);
   /** Value suggested at parse time; used to detect user edits for `estimatedDurationSource`. */
   const [suggestedMinutesSnapshot, setSuggestedMinutesSnapshot] = useState(null);
+  /** From POST /routes/gpx-preview (server physics score). */
+  const [physicsDifficultyScore, setPhysicsDifficultyScore] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -45,9 +48,17 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
 
     setFile(selected);
     setError(null);
+    setPhysicsDifficultyScore(null);
     setLoading(true);
 
     try {
+      const preview = await routesApi.previewGpx(selected);
+      const score =
+        preview?.physicsDifficultyScore != null && Number.isFinite(Number(preview.physicsDifficultyScore))
+          ? Number(preview.physicsDifficultyScore)
+          : null;
+      setPhysicsDifficultyScore(score);
+
       const text = await selected.text();
       const parser = new DOMParser();
       const gpxDom = parser.parseFromString(text, 'application/xml');
@@ -88,6 +99,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
       setMissingElevation(false);
       setDurationSuggestionSource(null);
       setSuggestedMinutesSnapshot(null);
+      setPhysicsDifficultyScore(null);
     } finally {
       setLoading(false);
     }
@@ -138,6 +150,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
       setMissingElevation(false);
       setDurationSuggestionSource(null);
       setSuggestedMinutesSnapshot(null);
+      setPhysicsDifficultyScore(null);
       setFormData({
         title: '',
         difficulty: 'moderate',
@@ -163,6 +176,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
     setMissingElevation(false);
     setDurationSuggestionSource(null);
     setSuggestedMinutesSnapshot(null);
+    setPhysicsDifficultyScore(null);
     setError(null);
     setFormData({
       title: '',
@@ -234,7 +248,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
               </div>
             ) : null}
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-2xl border border-border bg-surface p-4">
                 <p className="text-xs uppercase tracking-widest text-fg-subtle">Distance</p>
                 <p className="mt-2 text-2xl font-semibold">{formatKm(stats.distanceKm, 2)}</p>
@@ -256,6 +270,15 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                     `Inferred at ${SUGGESTED_DURATION_SPEED_KMH} km/h average (no GPX clock)`}
                   {durationSuggestionSource === 'none' &&
                     'Inferred (no GPX clock) — default 60 min until you change it below'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className="text-xs uppercase tracking-widest text-fg-subtle">Physics intensity</p>
+                <p className="mt-2 text-2xl font-semibold tabular-nums">
+                  {physicsDifficultyScore != null ? `${physicsDifficultyScore.toFixed(1)} / 10` : '—'}
+                </p>
+                <p className="mt-1 text-[11px] leading-snug text-fg-subtle">
+                  Mechanical load vs calibrated corpus (same score after save)
                 </p>
               </div>
             </div>

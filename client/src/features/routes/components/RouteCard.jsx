@@ -117,6 +117,11 @@ export default function RouteCard({ route }) {
               </p>
             </div>
           </div>
+          {route?.physicsDifficultyScore != null && Number.isFinite(Number(route.physicsDifficultyScore)) ? (
+            <p className="mt-2 text-center text-xs tabular-nums text-fg-muted" title="Mechanical intensity (GPX physics)">
+              Physics {Number(route.physicsDifficultyScore).toFixed(1)}/10
+            </p>
+          ) : null}
           {fromYou ? (
             <p
               className="mt-2.5 text-center text-xs tabular-nums text-fg-muted"

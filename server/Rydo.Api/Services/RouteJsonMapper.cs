@@ -123,6 +123,7 @@ public static class RouteJsonMapper
             description = r.Description,
             terrain = r.Terrain,
             difficulty = r.Difficulty,
+            physicsDifficultyScore = r.PhysicsDifficultyScore,
             region = r.Region,
             distanceFromUserKm,
             distanceKm = r.DistanceKm,

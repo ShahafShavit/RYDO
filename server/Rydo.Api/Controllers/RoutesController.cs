@@ -173,6 +173,27 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo, null, favoriteCount));
     }
 
+    /// <summary>Validate GPX and compute physics difficulty before saving (same rules as upload).</summary>
+    [HttpPost("gpx-preview")]
+    [Authorize]
+    [RequestSizeLimit(52_428_800)]
+    public async Task<IActionResult> GpxPreview(CancellationToken ct)
+    {
+        var form = await Request.ReadFormAsync(ct);
+        var file = form.Files.GetFile("gpxFile") ?? form.Files.FirstOrDefault();
+        if (file == null || file.Length == 0)
+            return Problem(statusCode: 400, detail: "gpxFile is required.");
+
+        await using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
+        if (!RoutePhysicsScoring.TryValidateAndScoreGpx(bytes, out var physicsScore, out var problemDetail))
+            return Problem(statusCode: 400, detail: problemDetail ?? "Invalid GPX.");
+
+        return Ok(new { physicsDifficultyScore = physicsScore });
+    }
+
     [HttpPost("upload")]
     [Authorize]
     [RequestSizeLimit(52_428_800)]
@@ -195,6 +216,14 @@ public class RoutesController(RydoDbContext db) : ControllerBase
 
         if (!GpxTrackParser.IsTrackPlausible(bytes, out var rejectReason))
             return Problem(statusCode: 400, detail: rejectReason ?? "This GPX file failed validation.");
+
+        double? physicsScore = null;
+        if (RoutePhysicsDifficulty.TryComputeIntensityDensityJPerKm(bytes, out var densityJPerKm))
+        {
+            var s = RoutePhysicsDifficulty.DensityToNotebookScaledScore(densityJPerKm);
+            if (double.IsFinite(s))
+                physicsScore = s;
+        }
 
         var previewJson = parsedPreview;
         var parserDurationSource = derivedSrc;
@@ -221,6 +250,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             GpxBlob = bytes,
             GpxReference = $"routes/upload-{Guid.NewGuid():N}.gpx",
             PreviewCoordinatesJson = previewJson,
+            PhysicsDifficultyScore = physicsScore,
             CreatedByUserId = uid,
             CreatedAt = DateTime.UtcNow,
             Status = "published",

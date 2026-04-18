@@ -7,6 +7,7 @@ export const MOCK_ROUTES = [
         distanceKm: 45.5,
         elevationGainM: 1200,
         difficulty: 'hard',
+        physicsDifficultyScore: 7.2,
         terrain: 'trail',
         durationMinutes: 270,
         estimatedDurationSource: 'gpx_timestamps',

@@ -105,6 +105,7 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             ["description"] = r.Description,
             ["terrain"] = r.Terrain,
             ["difficulty"] = r.Difficulty,
+            ["physicsDifficultyScore"] = r.PhysicsDifficultyScore,
             ["region"] = r.Region,
             ["distanceKm"] = r.DistanceKm,
             ["elevationGainM"] = r.ElevationGainM,

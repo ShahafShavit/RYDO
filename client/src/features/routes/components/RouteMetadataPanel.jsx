@@ -28,6 +28,12 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
       </>,
     ],
     ['Difficulty', formatTrailMetaLabel(route.difficulty)],
+    [
+      'Physics intensity',
+      route.physicsDifficultyScore != null && Number.isFinite(Number(route.physicsDifficultyScore))
+        ? `${Number(route.physicsDifficultyScore).toFixed(1)} / 10`
+        : '—',
+    ],
     ['Terrain', formatTrailMetaLabel(route.terrain)],
     ['Region', route.region || '—'],
     ['Total elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],

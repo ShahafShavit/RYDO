@@ -272,6 +272,7 @@ function createRouteFromUpload(data) {
     startLatitude: 31.7683,
     status: 'published',
     favoriteCount: 0,
+    physicsDifficultyScore: 6.3,
   };
 }
 
@@ -576,6 +577,10 @@ export async function mockRequest(path, options = {}) {
       skip: paged.skip,
       take: paged.take,
     };
+  }
+
+  if (pathname === '/api/routes/gpx-preview' && method === 'POST') {
+    return { physicsDifficultyScore: 6.3 };
   }
 
   if (pathname === '/api/routes/upload' && method === 'POST') {

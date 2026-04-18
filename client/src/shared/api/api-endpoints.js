@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     riderRoster: (routeId) => `${P}/routes/${routeId}/rider-roster`,
     upload: `${P}/routes`,
     uploadGpx: `${P}/routes/upload`,
+    gpxPreview: `${P}/routes/gpx-preview`,
     saved: `${P}/routes/saved`,
     my: `${P}/routes/my`,
     save: (routeId) => `${P}/routes/${routeId}/save`,

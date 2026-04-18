@@ -21,6 +21,8 @@ export const routesApi = {
   getRiderRoster: (routeId) => apiClient.get(API_ENDPOINTS.routes.riderRoster(routeId)),
   upload: ({ file, ...metadata }) =>
     apiClient.uploadFile(API_ENDPOINTS.routes.uploadGpx, file, metadata, { fileFieldName: 'gpxFile' }),
+  /** Server validates GPX and returns physics difficulty (same rules as upload). */
+  previewGpx: (file) => apiClient.uploadFile(API_ENDPOINTS.routes.gpxPreview, file, {}, { fileFieldName: 'gpxFile' }),
   getSaved: (params = {}) => apiClient.get(API_ENDPOINTS.routes.saved, { query: params }),
   getMine: (params = {}) => apiClient.get(API_ENDPOINTS.routes.my, { query: params }),
   save: (routeId) => apiClient.post(API_ENDPOINTS.routes.save(routeId)),

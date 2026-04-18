@@ -7,6 +7,10 @@ public class RouteEntity
     public string Description { get; set; } = "";
     public string Terrain { get; set; } = "mixed";
     public string Difficulty { get; set; } = "moderate";
+
+    /// <summary>Mechanical intensity 1–10 (one decimal), from GPX physics; null if not computed.</summary>
+    public double? PhysicsDifficultyScore { get; set; }
+
     public string? Region { get; set; }
 
     /// <summary>First point of the track (WGS84). Used for &quot;near me&quot; search.</summary>

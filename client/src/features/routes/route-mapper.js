@@ -61,6 +61,12 @@ export function normalizeRoute(rawRoute = {}) {
     description: rawRoute.description || '',
     terrain: normalizeTerrain(rawRoute.terrain || rawRoute.soilType || rawRoute.surfaceType),
     difficulty: normalizeDifficulty(rawRoute.difficulty),
+    physicsDifficultyScore: (() => {
+      const v = rawRoute.physicsDifficultyScore;
+      if (v == null || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    })(),
     region: rawRoute.region || rawRoute.location || rawRoute.area || null,
     distanceFromUserKm: (() => {
       const v = rawRoute.distanceFromUserKm;
