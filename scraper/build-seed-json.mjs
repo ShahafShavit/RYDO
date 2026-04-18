@@ -1,7 +1,10 @@
 /**
- * Reads out/tracks.csv (RFC 4180, multiline) and writes
- * ../server/Rydo.Api/SeedData/groopy-routes.json
- * Copies out/gpx/{pid}.gpx → ../server/Rydo.Api/GpxSeed/groopy-{pid}.gpx
+ * Reads scraped CSV(s) and writes ../server/Rydo.Api/SeedData/groopy-routes.json
+ * Copies each batch's gpx/{pid}.gpx → ../server/Rydo.Api/GpxSeed/groopy-{pid}.gpx
+ *
+ * Batch roots: any directory under this folder named `out` or `out_*` that contains
+ * tracks.csv (RFC 4180, multiline). All such folders are merged; duplicate pid rows
+ * keep the first occurrence and log a warning.
  *
  * Run: npm run build:seed-json
  */
@@ -11,11 +14,33 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const OUT_DIR = path.join(__dirname, "out");
-const CSV_PATH = path.join(OUT_DIR, "tracks.csv");
-const GPX_DIR = path.join(OUT_DIR, "gpx");
 const DEST_JSON = path.join(__dirname, "..", "server", "Rydo.Api", "SeedData", "groopy-routes.json");
 const DEST_GPX_DIR = path.join(__dirname, "..", "server", "Rydo.Api", "GpxSeed");
+
+/** Directories named `out` or `out_*` that contain tracks.csv. Sorted: `out` first, then out_* by name. */
+async function discoverBatchRoots() {
+  const entries = await fs.readdir(__dirname, { withFileTypes: true });
+  const roots = [];
+  for (const ent of entries) {
+    if (!ent.isDirectory()) continue;
+    if (ent.name !== "out" && !/^out_/.test(ent.name)) continue;
+    const root = path.join(__dirname, ent.name);
+    try {
+      await fs.access(path.join(root, "tracks.csv"));
+      roots.push(root);
+    } catch {
+      /* skip */
+    }
+  }
+  roots.sort((a, b) => {
+    const an = path.basename(a);
+    const bn = path.basename(b);
+    if (an === "out") return -1;
+    if (bn === "out") return 1;
+    return an.localeCompare(bn);
+  });
+  return roots;
+}
 
 const DESC_MAX = 8000;
 
@@ -110,77 +135,104 @@ function mapTerrain(rideType, singleTrack) {
 }
 
 async function main() {
-  const raw = await fs.readFile(CSV_PATH, "utf8");
-  const table = parseCsv(raw);
-  if (table.length < 2) {
-    console.error("No data rows in", CSV_PATH);
+  const batchRoots = await discoverBatchRoots();
+  if (batchRoots.length === 0) {
+    console.error(
+      "No scrape batch folders found. Add directories named `out` or `out_*` under scraper/, each with tracks.csv (and gpx/ files referenced by gpxLocalPath).",
+    );
     process.exit(1);
   }
-  const header = table[0].map((h) => h.replace(/^\uFEFF/, "").trim());
+  console.log("Batch roots:", batchRoots.map((p) => path.basename(p)).join(", "));
 
   const out = [];
   let copied = 0;
-  for (let r = 1; r < table.length; r++) {
-    const cells = table[r];
-    if (cells.length < header.length) continue;
-    const row = {};
-    for (let c = 0; c < header.length; c++) {
-      row[header[c]] = cells[c] ?? "";
-    }
+  const seenPid = new Set();
 
-    const pidStr = row.pid?.trim() ?? "";
-    const pid = parseInt(pidStr, 10);
-    const trackName = (row.trackName ?? "").trim();
-    const gpxLocal = (row.gpxLocalPath ?? "").trim();
-
-    if (!Number.isFinite(pid) || pid <= 0) continue;
-    if (!trackName) continue;
-    if (!gpxLocal) continue;
-
-    const srcGpx = path.join(OUT_DIR, gpxLocal.replace(/\//g, path.sep));
-    let stat;
-    try {
-      stat = await fs.stat(srcGpx);
-    } catch {
-      console.warn("Skip pid", pid, "(no GPX file", srcGpx, ")");
+  for (const batchRoot of batchRoots) {
+    const csvPath = path.join(batchRoot, "tracks.csv");
+    const raw = await fs.readFile(csvPath, "utf8");
+    const table = parseCsv(raw);
+    if (table.length < 2) {
+      console.warn("Skip empty CSV:", csvPath);
       continue;
     }
-    if (!stat.isFile() || stat.size === 0) continue;
+    const header = table[0].map((h) => h.replace(/^\uFEFF/, "").trim());
 
-    const destName = `groopy-${pid}.gpx`;
-    const destPath = path.join(DEST_GPX_DIR, destName);
-    await fs.mkdir(DEST_GPX_DIR, { recursive: true });
-    await fs.copyFile(srcGpx, destPath);
-    copied++;
+    for (let r = 1; r < table.length; r++) {
+      const cells = table[r];
+      if (cells.length < header.length) continue;
+      const row = {};
+      for (let c = 0; c < header.length; c++) {
+        row[header[c]] = cells[c] ?? "";
+      }
 
-    const lenKm = firstNumber(row.length);
-    const climbM = firstNumber(row.climb);
-    const hours = firstNumber(row.hoursNet);
-    const durationMinutes =
-      hours != null && hours > 0 ? Math.max(1, Math.round(hours * 60)) : null;
+      const pidStr = row.pid?.trim() ?? "";
+      const pid = parseInt(pidStr, 10);
+      const trackName = (row.trackName ?? "").trim();
+      const gpxLocal = (row.gpxLocalPath ?? "").trim();
 
-    let desc = (row.descriptionText ?? "").trim();
-    if (desc.length > DESC_MAX) desc = desc.slice(0, DESC_MAX);
+      if (!Number.isFinite(pid) || pid <= 0) continue;
+      if (!trackName) continue;
+      if (!gpxLocal) continue;
 
-    const notesParts = [];
-    if (row.url) notesParts.push(`Source: ${row.url}`);
-    if (row.openerName?.trim()) notesParts.push(`Opener: ${row.openerName.trim()}`);
-    const notes = notesParts.length ? notesParts.join(" · ") : null;
+      if (seenPid.has(pid)) {
+        console.warn("Duplicate pid", pid, "— keeping first occurrence");
+        continue;
+      }
 
-    out.push({
-      pid,
-      title: trackName,
-      region: (row.area ?? "").trim() || null,
-      terrain: mapTerrain(row.rideType, row.singleTrack),
-      difficulty: mapDifficulty(row.difficulty),
-      description: desc,
-      lengthKm: lenKm,
-      elevationGainM: climbM,
-      durationMinutes,
-      gpxFileName: destName,
-      sourceUrl: (row.url ?? "").trim() || null,
-      notes,
-    });
+      const srcGpx = path.join(batchRoot, gpxLocal.replace(/\//g, path.sep));
+      let stat;
+      try {
+        stat = await fs.stat(srcGpx);
+      } catch {
+        console.warn("Skip pid", pid, "(no GPX file", srcGpx, ")");
+        continue;
+      }
+      if (!stat.isFile() || stat.size === 0) continue;
+
+      const destName = `groopy-${pid}.gpx`;
+      const destPath = path.join(DEST_GPX_DIR, destName);
+      await fs.mkdir(DEST_GPX_DIR, { recursive: true });
+      await fs.copyFile(srcGpx, destPath);
+      copied++;
+      seenPid.add(pid);
+
+      const lenKm = firstNumber(row.length);
+      const climbM = firstNumber(row.climb);
+      const hours = firstNumber(row.hoursNet);
+      const durationMinutes =
+        hours != null && hours > 0 ? Math.max(1, Math.round(hours * 60)) : null;
+
+      let desc = (row.descriptionText ?? "").trim();
+      if (desc.length > DESC_MAX) desc = desc.slice(0, DESC_MAX);
+
+      const notesParts = [];
+      if (row.url) notesParts.push(`Source: ${row.url}`);
+      if (row.openerName?.trim()) notesParts.push(`Opener: ${row.openerName.trim()}`);
+      const notes = notesParts.length ? notesParts.join(" · ") : null;
+
+      out.push({
+        pid,
+        title: trackName,
+        region: (row.area ?? "").trim() || null,
+        terrain: mapTerrain(row.rideType, row.singleTrack),
+        difficulty: mapDifficulty(row.difficulty),
+        description: desc,
+        lengthKm: lenKm,
+        elevationGainM: climbM,
+        durationMinutes,
+        gpxFileName: destName,
+        sourceUrl: (row.url ?? "").trim() || null,
+        notes,
+      });
+    }
+  }
+
+  if (out.length === 0) {
+    console.error(
+      "No routes produced. Check tracks.csv rows (trackName, gpxLocalPath) and that GPX files exist under each batch folder.",
+    );
+    process.exit(1);
   }
 
   await fs.mkdir(path.dirname(DEST_JSON), { recursive: true });

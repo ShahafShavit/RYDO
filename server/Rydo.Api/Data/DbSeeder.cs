@@ -6,37 +6,20 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rydo.Api.Data;
 
+/// <summary>
+/// Database seed orchestration. Uses a layered graph (see <see cref="SeedGraph"/>) and
+/// <see cref="DeterministicSeed"/> for all variation — no <see cref="System.Random"/>.
+/// </summary>
 public static class DbSeeder
 {
     public const string AdminEmail = "admin@rydo.test";
     public const string UserEmail = "user@rydo.test";
     public const string AdminPassword = "Admin123!";
     public const string UserPassword = "User123!";
-    /// <summary>Password for bulk demo riders (rider003@ … rider036@rydo.test).</summary>
+    /// <summary>Password for bulk demo riders (see <see cref="DbSeedProfile.CommunityRiderCount"/> / <see cref="DbSeedProfile.CommunityRiderEmailStartNumber"/>).</summary>
     public const string DemoRiderPassword = "User123!";
-    private static readonly SeedTimeProfile TimeProfile = new();
 
-    private sealed class SeedTimeProfile
-    {
-        public (int Min, int Max) ClubPastRecentDays { get; init; } = (2, 21);
-        public (int Min, int Max) ClubPastMidDays { get; init; } = (21, 75);
-        public (int Min, int Max) ClubPastOlderDays { get; init; } = (75, 260);
-        public int ClubUpcomingStartDays { get; init; } = 3;
-        public int ClubUpcomingCadenceDays { get; init; } = 5;
-        public int ClubUpcomingHourMin { get; init; } = 6;
-        public int ClubUpcomingHourMaxExclusive { get; init; } = 18;
-        public int MaxUpcomingTotal { get; init; } = 8;
-        public int MaxUpcomingPerClub { get; init; } = 3;
-
-        public int PersonalPastDays { get; init; } = 10;
-        public int PersonalFutureDays { get; init; } = 4;
-
-        public (int Min, int Max) SoloHistoryCurrentWeekDays { get; init; } = (0, 2);
-        public (int Min, int Max) SoloHistoryRecentDays { get; init; } = (1, 6);
-        public (int Min, int Max) SoloHistoryMidDays { get; init; } = (7, 28);
-        public (int Min, int Max) SoloHistoryOlderDays { get; init; } = (29, 220);
-        public int GuaranteedWeeklyStreakWeeks { get; init; } = 6;
-    }
+    private static readonly DbSeedProfile Profile = new();
 
     public static async Task SeedAsync(IServiceProvider services)
     {
@@ -112,6 +95,7 @@ public static class DbSeeder
         // Changing SeedData/GpxSeed does not re-run this path on an existing DB; recreate the database (e.g. docker compose down -v) to apply updated seed assets.
         if (await db.HistoryEntries.AnyAsync())
         {
+            await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             return;
@@ -121,42 +105,43 @@ public static class DbSeeder
         allUsers.AddRange(await SeedCommunityUsersAsync(userManager));
 
         var userIds = allUsers.Select(u => u.Id).ToList();
-        var rnd = new Random(42);
+        var det = new DeterministicSeed(Profile.RandomSeed);
 
         if (!await db.Routes.AnyAsync())
         {
             var hostEnv = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
-            var routes = LoadGroopyRoutesFromSeed(hostEnv.ContentRootPath, allUsers, rnd);
+            var routes = LoadGroopyRoutesFromSeed(hostEnv.ContentRootPath, allUsers, det);
             if (routes.Count == 0)
             {
                 throw new InvalidOperationException(
-                    "Route seed produced zero routes. Ensure server/Rydo.Api/SeedData/groopy-routes.json and matching GPX files exist under GpxSeed/ (run scraper/build-seed-json.mjs from the scraper folder).");
+                    "Route seed produced zero routes. Ensure server/Rydo.Api/SeedData/groopy-routes.json and matching GPX files exist under GpxSeed/ (from the scraper folder run: npm run build:seed-json).");
             }
 
             db.Routes.AddRange(routes);
             await db.SaveChangesAsync();
 
-            SeedSavedRoutes(db, routes, userIds, rnd);
-            db.Hazards.AddRange(SeedHazards(allUsers, rnd));
+            SeedSavedRoutes(db, routes, userIds, det);
+            db.Hazards.AddRange(SeedHazards(allUsers, det));
 
             var clubs = SeedCyclingClubs(routes, allUsers);
             db.CyclingClubs.AddRange(clubs);
             await db.SaveChangesAsync();
 
-            SeedClubMembersAndInvites(db, clubs, admin, rider, allUsers, rnd);
+            SeedClubMembersAndInvites(db, clubs, admin, rider, allUsers, det);
 
-            var personalRideGroups = SeedPersonalRideGroups(routes, rnd, allUsers);
-            var rideGroups = SeedRideGroups(db, routes, rnd, clubs).Concat(personalRideGroups).ToList();
+            var personalRideGroups = SeedPersonalRideGroups(routes, det, allUsers);
+            var rideGroups = SeedRideGroups(db, routes, det, clubs).Concat(personalRideGroups).ToList();
             ApplyRideScheduleCaps(
                 rideGroups,
-                maxUpcomingTotal: TimeProfile.MaxUpcomingTotal,
-                maxUpcomingPerClub: TimeProfile.MaxUpcomingPerClub);
+                maxUpcomingTotal: Profile.Time.MaxUpcomingTotal,
+                maxUpcomingPerClub: Profile.Time.MaxUpcomingPerClub);
             db.Rides.AddRange(rideGroups);
             await db.SaveChangesAsync();
 
+            await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
 
-            await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, rnd);
+            await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, det);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             return;
         }
@@ -166,7 +151,8 @@ public static class DbSeeder
         var routesFromDb = await db.Routes.AsNoTracking().ToListAsync();
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
-        await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, rnd);
+        await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
+        await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
     }
@@ -183,19 +169,16 @@ public static class DbSeeder
         if (await db.FriendRequests.AnyAsync() || await db.Friendships.AnyAsync())
             return;
 
-        static Task<ApplicationUser?> ByEmail(UserManager<ApplicationUser> um, string email) =>
-            um.FindByEmailAsync(email);
+        var community = await LoadOrderedCommunityUsersForFriendSeedAsync(userManager);
+        var spec = Profile.FriendInbox;
+        ApplicationUser? C(int index) =>
+            (uint)index < (uint)community.Count ? community[index] : null;
 
-        var r3 = await ByEmail(userManager, "rider003@rydo.test");
-        var r4 = await ByEmail(userManager, "rider004@rydo.test");
-        var r5 = await ByEmail(userManager, "rider005@rydo.test");
-        var r6 = await ByEmail(userManager, "rider006@rydo.test");
-        var r7 = await ByEmail(userManager, "rider007@rydo.test");
-        var r8 = await ByEmail(userManager, "rider008@rydo.test");
-        var r9 = await ByEmail(userManager, "rider009@rydo.test");
-
-        if (r3 == null || r4 == null)
-            return;
+        for (var req = 0; req < spec.MinimumCommunityUsersForSeed; req++)
+        {
+            if (C(req) == null)
+                return;
+        }
 
         var now = DateTime.UtcNow;
 
@@ -207,7 +190,7 @@ public static class DbSeeder
             {
                 UserIdLower = lo,
                 UserIdHigher = hi,
-                CreatedAt = now.AddDays(-14),
+                CreatedAt = now.AddDays(-Profile.FriendshipCreatedDaysAgo),
             });
         }
 
@@ -218,7 +201,7 @@ public static class DbSeeder
                 FromUserId = fromId,
                 ToUserId = toId,
                 Status = FriendRequestStatus.Pending,
-                CreatedAt = now.AddDays(-2),
+                CreatedAt = now.AddDays(-Profile.FriendRequestCreatedDaysAgo),
             };
             db.FriendRequests.Add(fr);
             db.InboxItems.Add(new InboxItem
@@ -226,24 +209,102 @@ public static class DbSeeder
                 RecipientUserId = toId,
                 Kind = InboxItemKind.FriendRequest,
                 FriendRequest = fr,
-                CreatedAt = now.AddDays(-2),
+                CreatedAt = now.AddDays(-Profile.FriendRequestCreatedDaysAgo),
             });
         }
 
-        AddFriendship(r3.Id, r4.Id);
-        if (r5 != null && r6 != null)
-            AddFriendship(r5.Id, r6.Id);
-        if (r5 != null)
-            AddFriendship(admin.Id, r5.Id);
+        for (var p = 0; p < spec.AdjacentCommunityPairCount; p++)
+        {
+            var a = C(2 * p);
+            var b = C(2 * p + 1);
+            if (a == null || b == null)
+                continue;
+            AddFriendship(a.Id, b.Id);
+        }
 
-        AddFriendship(rider.Id, r4.Id);
+        if (spec.AdminBefriendsCommunityIndex is { } ai && C(ai) is { } adminFriend)
+            AddFriendship(admin.Id, adminFriend.Id);
 
-        if (r7 != null)
-            AddPending(r7.Id, admin.Id);
-        if (r8 != null)
-            AddPending(r8.Id, rider.Id);
-        if (r9 != null)
-            AddPending(r9.Id, admin.Id);
+        if (spec.DemoRiderBefriendsCommunityIndex is { } di && C(di) is { } riderFriend)
+            AddFriendship(rider.Id, riderFriend.Id);
+
+        var cycle = spec.PendingRecipientCycle;
+        if (cycle.Length > 0)
+        {
+            for (var i = 0; i < spec.PendingRequestCount; i++)
+            {
+                var from = C(spec.PendingFirstCommunityIndex + i);
+                if (from == null)
+                    continue;
+                var toId = cycle[i % cycle.Length] switch
+                {
+                    FriendInboxPendingRecipient.Admin => admin.Id,
+                    FriendInboxPendingRecipient.DemoRider => rider.Id,
+                    _ => throw new InvalidOperationException($"Unknown {nameof(FriendInboxPendingRecipient)}."),
+                };
+                AddPending(from.Id, toId);
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Community riders in seed order: index <c>i</c> = email <c>rider{Start+i}</c>.
+    /// </summary>
+    private static async Task<List<ApplicationUser?>> LoadOrderedCommunityUsersForFriendSeedAsync(
+        UserManager<ApplicationUser> userManager)
+    {
+        var list = new List<ApplicationUser?>(Profile.CommunityRiderCount);
+        for (var i = 0; i < Profile.CommunityRiderCount; i++)
+        {
+            var n = Profile.CommunityRiderEmailStartNumber + i;
+            list.Add(await userManager.FindByEmailAsync(Profile.CommunityRiderEmail(n)));
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Ensures <c>admin@rydo.test</c> and <c>user@rydo.test</c> (John Rider) have the intended multi-club demo layout.
+    /// Idempotent. Safe on existing DBs (e.g. after partial seed or drift) so chat + inbox demos keep stable anchors.
+    /// Club <i>ordinal</i> is the <see cref="CyclingClub"/> row order by <see cref="CyclingClub.Id"/> (matches initial seed order).
+    /// </summary>
+    private static async Task EnsureDemoLoginClubMembershipsAsync(RydoDbContext db, int adminId, int demoRiderId)
+    {
+        var clubs = await db.CyclingClubs.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
+        if (clubs.Count == 0)
+            return;
+
+        var clubCount = clubs.Count;
+
+        async Task TryAddAsync(int clubOrdinal, int userId, ClubMemberRole role, int daysActivatedAgo)
+        {
+            if (clubOrdinal < 0 || clubOrdinal >= clubCount)
+                return;
+            var clubId = clubs[clubOrdinal].Id;
+            if (await db.ClubMembers.AnyAsync(m => m.ClubId == clubId && m.UserId == userId))
+                return;
+
+            var activated = DateTime.UtcNow.AddDays(-daysActivatedAgo);
+            db.ClubMembers.Add(new ClubMember
+            {
+                ClubId = clubId,
+                UserId = userId,
+                Role = role,
+                MembershipStatus = ClubMembershipStatus.Active,
+                RequestedAt = activated.AddDays(-1),
+                ActivatedAt = activated,
+            });
+        }
+
+        // Keep in sync with <see cref="SeedClubMembersAndInvites"/> AddDemoMember calls.
+        await TryAddAsync(0, adminId, ClubMemberRole.Admin, 100);
+        await TryAddAsync(3, adminId, ClubMemberRole.Member, 40);
+        await TryAddAsync(5, adminId, ClubMemberRole.Member, 35);
+        await TryAddAsync(2, demoRiderId, ClubMemberRole.Admin, 50);
+        await TryAddAsync(4, demoRiderId, ClubMemberRole.Member, 28);
+        await TryAddAsync(7, demoRiderId, ClubMemberRole.Member, 22);
 
         await db.SaveChangesAsync();
     }
@@ -274,7 +335,7 @@ public static class DbSeeder
                 .Where(m => m.ClubId == club.Id && m.MembershipStatus == ClubMembershipStatus.Active)
                 .OrderBy(m => m.UserId)
                 .Select(m => m.UserId)
-                .Take(12)
+                .Take(Profile.ClubChatMemberSampleLimit)
                 .ToListAsync();
 
             if (memberIds.Count < 2)
@@ -329,7 +390,7 @@ public static class DbSeeder
         var u3 = memberIds.Count > 3 ? memberIds[3] : u0;
 
         var mix = ClubChatMix(clubId, clubName, u0);
-        var scenario = Math.Abs(mix) % 4;
+        var scenario = Math.Abs(mix) % Profile.ClubChatScenarioModulo;
 
         var savedRouteId = await db.SavedRoutes.AsNoTracking()
             .Where(s => s.UserId == u0 || s.UserId == u1)
@@ -354,7 +415,7 @@ public static class DbSeeder
             ? $"{clubRide.Name.Trim()} · {clubRide.ScheduledDate.ToUniversalTime():yyyy-MM-dd}"
             : null;
 
-        var dayBack = 5 + (Math.Abs(mix >> 3) % 5);
+        var dayBack = Profile.ClubChatThreadStartDayBackMin + (Math.Abs(mix >> 3) % Profile.ClubChatThreadStartDayBackExtraMaxExclusive);
         var start = DateTime.UtcNow.AddDays(-dayBack);
         var messages = new List<ClubChatMessage>();
         double t = 0;
@@ -364,7 +425,7 @@ public static class DbSeeder
         {
             if (messages.Count > 0)
             {
-                var gap = 12 + (salt++ * 31 + clubId * 7 + (mix & 0xFF)) % 120;
+                var gap = Profile.ClubChatMessageGapBase + (salt++ * 31 + clubId * 7 + (mix & 0xFF)) % Profile.ClubChatMessageGapSpanMaxExclusive;
                 t += gap;
             }
 
@@ -506,7 +567,7 @@ public static class DbSeeder
         List<Ride> rideGroups,
         List<Ride> personalRideGroups,
         IReadOnlyList<int> userIds,
-        Random rnd)
+        DeterministicSeed det)
     {
         var (membersByClub, clubsByUser) = await LoadActiveMembershipMapsAsync(db);
         var fallbackClubId = await db.CyclingClubs.OrderBy(c => c.Id).Select(c => c.Id).FirstAsync();
@@ -516,19 +577,19 @@ public static class DbSeeder
         var rideIds = rideGroups.Select(r => r.Id).Distinct().ToArray();
         var partIndex = await ParticipantIndex.LoadExistingAsync(db, rideIds);
 
-        SeedRideParticipants(db, rideGroups.Where(r => r.ClubId.HasValue).ToList(), membersByClub, partIndex, rnd);
+        SeedRideParticipants(db, rideGroups.Where(r => r.ClubId.HasValue).ToList(), membersByClub, partIndex, det);
         // Flush so LINQ against RideParticipants sees these rows (avoids duplicate composite keys in the change tracker).
         await db.SaveChangesAsync();
 
         EnsureAllUsersParticipantInSomeClubRide(db, rideGroups, userIds, clubsByUser, partIndex);
-        SeedPersonalRideParticipants(db, personalRideGroups, userIds, partIndex, rnd);
+        SeedPersonalRideParticipants(db, personalRideGroups, userIds, partIndex, det);
         await db.SaveChangesAsync();
 
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
-        EnsureVariedClubRideParticipations(db, rideGroups, userIds, clubsByUser, partIndex, rnd);
+        EnsureVariedClubRideParticipations(db, rideGroups, userIds, clubsByUser, partIndex, det);
 
         if (!await db.Challenges.AnyAsync())
-            db.Challenges.AddRange(SeedChallenges(rnd));
+            db.Challenges.AddRange(SeedChallenges(det));
 
         if (!await db.UserPreferences.AnyAsync())
             SeedUserPreferences(db, userIds);
@@ -536,15 +597,15 @@ public static class DbSeeder
         // Participant seeding must not increase the number of future-dated rides; enforce cap last.
         ApplyRideScheduleCaps(
             rideGroups,
-            maxUpcomingTotal: TimeProfile.MaxUpcomingTotal,
-            maxUpcomingPerClub: TimeProfile.MaxUpcomingPerClub);
+            maxUpcomingTotal: Profile.Time.MaxUpcomingTotal,
+            maxUpcomingPerClub: Profile.Time.MaxUpcomingPerClub);
 
         await db.SaveChangesAsync();
 
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
         await db.SaveChangesAsync();
 
-        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex, rnd);
+        await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex, det);
         await db.SaveChangesAsync();
 
         await ValidateSeedDataCoherenceAsync(db);
@@ -622,23 +683,28 @@ public static class DbSeeder
             "Lavi", "Mor", "Nissan", "Ohana", "Pinto", "Rosen", "Segal", "Tal", "Weiss", "Yaron",
         };
 
-        for (var i = 0; i < first.Length; i++)
+        for (var i = 0; i < Profile.CommunityRiderCount; i++)
         {
-            var email = $"rider{(i + 3):000}@rydo.test";
-            if (await userManager.FindByEmailAsync(email) != null)
+            var riderNo = Profile.CommunityRiderEmailStartNumber + i;
+            var email = Profile.CommunityRiderEmail(riderNo);
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing != null)
+            {
+                list.Add(existing);
                 continue;
+            }
 
             var u = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                FirstName = first[i],
+                FirstName = first[i % first.Length],
                 LastName = last[i % last.Length],
-                CreatedAt = DateTime.UtcNow.AddDays(-(90 + i * 2)),
+                CreatedAt = DateTime.UtcNow.AddDays(-(Profile.CommunityAccountAgeDaysBase + i * Profile.CommunityAccountAgeDaysStep)),
                 Bio = $"Community rider — usually out on {(i % 2 == 0 ? "gravel" : "road")} at the weekend.",
                 Location = i % 4 == 0 ? "Jerusalem" : i % 4 == 1 ? "Beer Sheva" : i % 4 == 2 ? "Netanya" : "Herzliya",
-                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed=rider{i + 3}",
+                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed=rider{riderNo}",
                 PublicEmail = i % 5 == 0,
                 PublicBio = i % 3 != 1,
                 PublicLocation = i % 7 != 0,
@@ -657,7 +723,41 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<RouteEntity> LoadGroopyRoutesFromSeed(string contentRoot, IReadOnlyList<ApplicationUser> users, Random rnd)
+    /// <summary>
+    /// Per-user sampling weights for who “published” seeded routes: Zipf by rank, with rank order shuffled
+    /// deterministically by user id so top publishers are not always the first rows in <paramref name="users"/>.
+    /// </summary>
+    private static int[] BuildRoutePublisherWeights(IReadOnlyList<ApplicationUser> users, DeterministicSeed det)
+    {
+        var n = users.Count;
+        if (n == 0)
+            return [];
+
+        var order = new int[n];
+        for (var i = 0; i < n; i++)
+            order[i] = i;
+
+        Array.Sort(order, (a, b) =>
+        {
+            var ha = SeedDeterminism.Mix(det.Root, SeedGraph.Salt.GroopyRoutePublisherOrder, users[a].Id);
+            var hb = SeedDeterminism.Mix(det.Root, SeedGraph.Salt.GroopyRoutePublisherOrder, users[b].Id);
+            return hb.CompareTo(ha);
+        });
+
+        var weights = new int[n];
+        var scale = Profile.RoutePublisherZipfScale;
+        var exp = Profile.RoutePublisherZipfExponent;
+        for (var rank = 0; rank < n; rank++)
+        {
+            var userIdx = order[rank];
+            var zipf = (int)(scale / Math.Pow(rank + 1, exp));
+            weights[userIdx] = Math.Max(SeedBehaviorWeights.MinUserWeight, zipf);
+        }
+
+        return weights;
+    }
+
+    private static List<RouteEntity> LoadGroopyRoutesFromSeed(string contentRoot, IReadOnlyList<ApplicationUser> users, DeterministicSeed det)
     {
         var path = Path.Combine(contentRoot, "SeedData", "groopy-routes.json");
         if (!File.Exists(path))
@@ -674,7 +774,9 @@ public static class DbSeeder
             return [];
         }
 
+        var publisherWeights = BuildRoutePublisherWeights(users, det);
         var list = new List<RouteEntity>();
+        var acceptedRowOrdinal = 0;
         foreach (var row in rows)
         {
             if (string.IsNullOrWhiteSpace(row.GpxFileName))
@@ -700,7 +802,7 @@ public static class DbSeeder
             if (!GpxTrackParser.TryParse(bytes, out var previewJson, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var startLat, out var startLng))
                 continue;
 
-            var dist = pathKm > 0 ? pathKm : (row.LengthKm ?? 12);
+            var dist = pathKm > 0 ? pathKm : (row.LengthKm ?? Profile.RouteFallbackDistanceKm);
             var elev = pathElev > 0 ? pathElev : (row.ElevationGainM ?? 0);
             if (pathElev <= 0 && row.ElevationGainM.HasValue && row.ElevationGainM.Value > 0)
                 elev = row.ElevationGainM.Value;
@@ -725,8 +827,14 @@ public static class DbSeeder
                     : derivedSrc;
             }
 
-            var creator = users[rnd.Next(users.Count)];
-            var daysAgo = rnd.Next(2, 400);
+            var creatorIdx = SeedBehaviorWeights.PickWeightedIndex(
+                publisherWeights,
+                det,
+                SeedGraph.Salt.GroopyRouteCreator,
+                row.Pid,
+                acceptedRowOrdinal);
+            var creator = users[creatorIdx];
+            var daysAgo = det.Int(Profile.RouteCreatedDaysAgoMin, Profile.RouteCreatedDaysAgoMaxExclusive, SeedGraph.Salt.GroopyRouteCreatedDays, row.Pid, acceptedRowOrdinal);
 
             double? physicsScore = null;
             if (RoutePhysicsDifficulty.TryComputeIntensityDensityJPerKm(bytes, out var densityJPerKm))
@@ -759,6 +867,7 @@ public static class DbSeeder
                 GpxReference = $"routes/{row.GpxFileName}",
                 GpxBlob = bytes,
             });
+            acceptedRowOrdinal++;
         }
 
         return list;
@@ -780,17 +889,21 @@ public static class DbSeeder
         public string? Notes { get; set; }
     }
 
-    private static void SeedSavedRoutes(RydoDbContext db, List<RouteEntity> routes, IReadOnlyList<int> userIds, Random rnd)
+    private static void SeedSavedRoutes(RydoDbContext db, List<RouteEntity> routes, IReadOnlyList<int> userIds, DeterministicSeed det)
     {
-        const int minSavedPerUser = 6;
+        var minSavedPerUser = Profile.MinSavedRoutesPerUser;
         var pairs = new HashSet<(int UserId, int RouteId)>();
         var perUser = userIds.ToDictionary(id => id, _ => 0);
 
-        var target = Math.Min(280, Math.Max(routes.Count * userIds.Count / 2, userIds.Count * minSavedPerUser));
+        var ids = userIds.ToList();
+        var savedWeights = ids.Select(id => SeedBehaviorWeights.SavedRouteWeight(SeedUserTraits.For(id, det.Root))).ToList();
+
+        var target = Math.Min(Profile.MaxSavedRoutePairingsTotal, Math.Max(routes.Count * userIds.Count / 2, userIds.Count * minSavedPerUser));
         for (var n = 0; n < target; n++)
         {
-            var u = userIds[rnd.Next(userIds.Count)];
-            var r = routes[rnd.Next(routes.Count)];
+            var wi = SeedBehaviorWeights.PickWeightedIndex(savedWeights, det, SeedGraph.Salt.SavedRoutePair, n, 0);
+            var u = ids[wi];
+            var r = routes[det.PickIndex(routes.Count, SeedGraph.Salt.SavedRoutePair, n, 1)];
             if (!pairs.Add((u, r.Id)))
                 continue;
             db.SavedRoutes.Add(new SavedRoute { UserId = u, RouteId = r.Id });
@@ -800,10 +913,10 @@ public static class DbSeeder
         foreach (var uid in userIds)
         {
             var attempts = 0;
-            while (perUser[uid] < minSavedPerUser && attempts < routes.Count * 4)
+            while (perUser[uid] < minSavedPerUser && attempts < routes.Count * Profile.SavedRoutesTopUpMaxAttemptsPerUserRoutes)
             {
                 attempts++;
-                var r = routes[rnd.Next(routes.Count)];
+                var r = routes[det.PickIndex(routes.Count, SeedGraph.Salt.SavedRouteTopUp, uid, attempts)];
                 if (!pairs.Add((uid, r.Id)))
                     continue;
                 db.SavedRoutes.Add(new SavedRoute { UserId = uid, RouteId = r.Id });
@@ -812,7 +925,7 @@ public static class DbSeeder
         }
     }
 
-    private static List<HazardEntity> SeedHazards(IReadOnlyList<ApplicationUser> users, Random rnd)
+    private static List<HazardEntity> SeedHazards(IReadOnlyList<ApplicationUser> users, DeterministicSeed det)
     {
         var types = new[] { "pothole", "construction", "debris", "flooding", "poor_lighting", "road_damage", "glass", "animals" };
         var severities = new[] { "low", "medium", "high" };
@@ -820,24 +933,30 @@ public static class DbSeeder
         var statuses = new[] { "active", "active", "active", "active", "active", "resolved", "acknowledged" };
 
         var list = new List<HazardEntity>();
-        var baseLat = 32.07;
-        var baseLng = 34.76;
+        var baseLat = Profile.HazardBaseLatitude;
+        var baseLng = Profile.HazardBaseLongitude;
 
-        for (var i = 0; i < 46; i++)
+        var hazardUsers = users.OrderBy(u => u.Id).ToList();
+        var hazardWeights = hazardUsers
+            .Select(u => SeedBehaviorWeights.HazardReporterWeight(SeedUserTraits.For(u.Id, det.Root)))
+            .ToList();
+
+        for (var i = 0; i < Profile.HazardCount; i++)
         {
-            var reporter = users[rnd.Next(users.Count)];
-            var status = statuses[rnd.Next(statuses.Length)];
+            var wi = SeedBehaviorWeights.PickWeightedIndex(hazardWeights, det, SeedGraph.Salt.Hazard, i, 6);
+            var reporter = hazardUsers[wi];
+            var status = statuses[det.PickIndex(statuses.Length, SeedGraph.Salt.Hazard, 1, i)];
             list.Add(new HazardEntity
             {
                 Type = types[i % types.Length],
-                Severity = severities[rnd.Next(severities.Length)],
+                Severity = severities[det.PickIndex(severities.Length, SeedGraph.Salt.Hazard, 2, i)],
                 Description = DescribeHazard(types[i % types.Length], regions[i % regions.Length]),
-                Latitude = baseLat + (rnd.NextDouble() - 0.5) * 0.5,
-                Longitude = baseLng + (rnd.NextDouble() - 0.5) * 0.55,
+                Latitude = baseLat + (det.Double01(SeedGraph.Salt.Hazard, i, 3) - 0.5) * 0.5,
+                Longitude = baseLng + (det.Double01(SeedGraph.Salt.Hazard, i, 4) - 0.5) * 0.55,
                 Region = regions[i % regions.Length],
                 Status = status,
                 ReportedByUserId = reporter.Id,
-                ReportedAt = DateTime.UtcNow.AddDays(-rnd.Next(0, 180)),
+                ReportedAt = DateTime.UtcNow.AddDays(-det.Int(0, Profile.HazardReportedDaysMaxExclusive, SeedGraph.Salt.Hazard, 5, i)),
             });
         }
 
@@ -984,13 +1103,13 @@ public static class DbSeeder
         ApplicationUser admin,
         ApplicationUser rider,
         List<ApplicationUser> allUsers,
-        Random rnd)
+        DeterministicSeed det)
     {
         var a = admin.Id;
         var r = rider.Id;
         var others = allUsers.Where(u => u.Id != a && u.Id != r).OrderBy(u => u.Id).ToList();
         var clubCount = clubs.Count;
-        var adminSlots = clubCount * 2;
+        var adminSlots = clubCount * Profile.AdminsPerClub;
         if (others.Count < adminSlots)
             throw new InvalidOperationException($"Seed needs at least {adminSlots} community users for club admins; got {others.Count}.");
 
@@ -1020,14 +1139,14 @@ public static class DbSeeder
             AddMember(lead.Id, ClubMemberRole.Admin, ClubMembershipStatus.Active, 95 - i * 4);
             AddMember(co.Id, ClubMemberRole.Admin, ClubMembershipStatus.Active, 94 - i * 4);
 
-            // 3–5 additional active members per club from the non-admin pool.
+            // Additional active members per club from the non-admin pool (see profile for count range).
             var seenInClub = new HashSet<int> { lead.Id, co.Id };
-            var extra = Math.Min(memberPool.Count, 4 + rnd.Next(0, 2));
+            var extra = Math.Min(memberPool.Count, Profile.ExtraClubMembersBase + det.Int(0, Profile.ExtraClubMembersExtraRandMaxExclusive, SeedGraph.Salt.ClubExtraMember, i, 0));
             for (var j = 0; j < extra; j++)
             {
                 var u = memberPool[(i * 5 + j) % memberPool.Count];
                 if (!seenInClub.Add(u.Id)) continue;
-                AddMember(u.Id, ClubMemberRole.Member, ClubMembershipStatus.Active, rnd.Next(5, 70));
+                AddMember(u.Id, ClubMemberRole.Member, ClubMembershipStatus.Active, det.Int(Profile.ClubMemberActivatedDaysMin, Profile.ClubMemberActivatedDaysMaxExclusive, SeedGraph.Salt.ClubExtraMember, i, j + 1));
             }
         }
 
@@ -1065,7 +1184,7 @@ public static class DbSeeder
             Token = "seed-invite-jerusalem-hills-demo",
             CreatedByUserId = jerusalemLead.Id,
             CreatedAt = DateTime.UtcNow.AddDays(-5),
-            MaxUses = 50,
+            MaxUses = Profile.JerusalemInviteMaxUses,
             UsedCount = 0,
         });
     }
@@ -1086,7 +1205,7 @@ public static class DbSeeder
         for (var i = maxUpcoming; i < future.Count; i++)
         {
             var g = future[i];
-            g.ScheduledDate = now.AddDays(-12 - (i - maxUpcoming)).Date.AddHours(10 + (i % 5));
+            g.ScheduledDate = now.AddDays(-Profile.CapMoveToPastDaysBase - (i - maxUpcoming)).Date.AddHours(10 + (i % Profile.CapPastHourSpread));
         }
     }
 
@@ -1106,7 +1225,7 @@ public static class DbSeeder
             for (var i = maxPerClub; i < futureForClub.Count; i++)
             {
                 var g = futureForClub[i];
-                g.ScheduledDate = now.AddDays(-14 - (i - maxPerClub)).Date.AddHours(10 + (i % 5));
+                g.ScheduledDate = now.AddDays(-Profile.CapPerClubMoveToPastDaysBase - (i - maxPerClub)).Date.AddHours(10 + (i % Profile.CapPastHourSpread));
             }
         }
     }
@@ -1114,7 +1233,7 @@ public static class DbSeeder
     private static List<Ride> SeedRideGroups(
         RydoDbContext db,
         List<RouteEntity> routes,
-        Random rnd,
+        DeterministicSeed det,
         List<CyclingClub> clubs)
     {
         var names = new[]
@@ -1141,32 +1260,32 @@ public static class DbSeeder
         }
 
         var now = DateTime.UtcNow;
-        const int upcomingClub = 3;
+        var upcomingClub = Profile.UpcomingClubRideCount;
         var pastCount = names.Length - upcomingClub;
 
         var list = new List<Ride>();
         for (var i = 0; i < names.Length; i++)
         {
-            var route = routes[rnd.Next(routes.Count)];
+            var route = routes[det.PickIndex(routes.Count, SeedGraph.Salt.ClubRideSchedule, i, 0)];
             DateTime scheduled;
             if (i < pastCount)
             {
                 var daysAgo = i % 3 switch
                 {
-                    0 => rnd.Next(TimeProfile.ClubPastRecentDays.Min, TimeProfile.ClubPastRecentDays.Max),
-                    1 => rnd.Next(TimeProfile.ClubPastMidDays.Min, TimeProfile.ClubPastMidDays.Max),
-                    _ => rnd.Next(TimeProfile.ClubPastOlderDays.Min, TimeProfile.ClubPastOlderDays.Max),
+                    0 => det.Int(Profile.Time.ClubPastRecentDays.Min, Profile.Time.ClubPastRecentDays.Max, SeedGraph.Salt.ClubRideSchedule, i, 1),
+                    1 => det.Int(Profile.Time.ClubPastMidDays.Min, Profile.Time.ClubPastMidDays.Max, SeedGraph.Salt.ClubRideSchedule, i, 2),
+                    _ => det.Int(Profile.Time.ClubPastOlderDays.Min, Profile.Time.ClubPastOlderDays.Max, SeedGraph.Salt.ClubRideSchedule, i, 3),
                 };
                 scheduled = now.AddDays(-daysAgo).Date.AddHours(
-                    rnd.Next(TimeProfile.ClubUpcomingHourMin, TimeProfile.ClubUpcomingHourMaxExclusive));
+                    det.Int(Profile.Time.ClubUpcomingHourMin, Profile.Time.ClubUpcomingHourMaxExclusive, SeedGraph.Salt.ClubRideSchedule, i, 4));
             }
             else
             {
                 var u = i - pastCount;
                 scheduled = now
-                    .AddDays(TimeProfile.ClubUpcomingStartDays + u * TimeProfile.ClubUpcomingCadenceDays)
+                    .AddDays(Profile.Time.ClubUpcomingStartDays + u * Profile.Time.ClubUpcomingCadenceDays)
                     .Date
-                    .AddHours(rnd.Next(TimeProfile.ClubUpcomingHourMin, TimeProfile.ClubUpcomingHourMaxExclusive));
+                    .AddHours(det.Int(Profile.Time.ClubUpcomingHourMin, Profile.Time.ClubUpcomingHourMaxExclusive, SeedGraph.Salt.ClubRideSchedule, i, 5));
             }
 
             var clubId = clubs[i % clubs.Count].Id;
@@ -1177,7 +1296,7 @@ public static class DbSeeder
                 Description = $"Open group ride — {route.Region ?? "mixed terrain"}. Respect traffic rules.",
                 ScheduledDate = scheduled,
                 RouteId = route.Id,
-                MaxParticipants = 8 + rnd.Next(0, 25),
+                MaxParticipants = Profile.ClubRideMaxParticipantsMin + det.Int(0, Profile.ClubRideMaxParticipantsSpan, SeedGraph.Salt.ClubRideParticipantsCap, i, 0),
                 CreatedByUserId = CreatorForClub(clubId),
             };
             rg.ClubId = clubId;
@@ -1187,11 +1306,11 @@ public static class DbSeeder
         return list;
     }
 
-    private static List<Ride> SeedPersonalRideGroups(List<RouteEntity> routes, Random rnd, IReadOnlyList<ApplicationUser> users)
+    private static List<Ride> SeedPersonalRideGroups(List<RouteEntity> routes, DeterministicSeed det, IReadOnlyList<ApplicationUser> users)
     {
         var now = DateTime.UtcNow;
-        var pick = () => routes[rnd.Next(routes.Count)];
-        var org = () => users[rnd.Next(users.Count)].Id;
+        var pick = (int slot) => routes[det.PickIndex(routes.Count, SeedGraph.Salt.PersonalRide, 0, slot)];
+        int Org(int slot) => users[det.PickIndex(users.Count, SeedGraph.Salt.PersonalRide, 1, slot)].Id;
         // Few personal scheduled rides so seeded data skews club-heavy (club list size trades off vs this list).
         return new List<Ride>
         {
@@ -1200,22 +1319,22 @@ public static class DbSeeder
                 Kind = RideKind.Scheduled,
                 Name = "Solo sunrise spin",
                 Description = "Personal ride — no club.",
-                ScheduledDate = now.AddDays(-TimeProfile.PersonalPastDays).Date.AddHours(6.5),
-                RouteId = pick().Id,
-                MaxParticipants = 4,
+                ScheduledDate = now.AddDays(-Profile.Time.PersonalPastDays).Date.AddHours(Profile.PersonalPastRideHour),
+                RouteId = pick(0).Id,
+                MaxParticipants = Profile.PersonalRideMaxParticipants,
                 ClubId = null,
-                CreatedByUserId = org(),
+                CreatedByUserId = Org(0),
             },
             new()
             {
                 Kind = RideKind.Scheduled,
                 Name = "Lunch loop — personal",
                 Description = "Quick midday miles — route TBD.",
-                ScheduledDate = now.AddDays(TimeProfile.PersonalFutureDays).Date.AddHours(12.25),
+                ScheduledDate = now.AddDays(Profile.Time.PersonalFutureDays).Date.AddHours(Profile.PersonalFutureRideHour),
                 RouteId = null,
-                MaxParticipants = 4,
+                MaxParticipants = Profile.PersonalRideMaxParticipants,
                 ClubId = null,
-                CreatedByUserId = org(),
+                CreatedByUserId = Org(1),
             },
         };
     }
@@ -1229,7 +1348,7 @@ public static class DbSeeder
         List<Ride> personalGroups,
         IReadOnlyList<int> userIds,
         ParticipantIndex partIndex,
-        Random rnd)
+        DeterministicSeed det)
     {
         var ordered = userIds.OrderBy(id => id).ToList();
         if (ordered.Count == 0)
@@ -1239,20 +1358,21 @@ public static class DbSeeder
 
         foreach (var g in personalGroups.OrderBy(g => g.Id))
         {
-            var maxSmall = Math.Min(4, ordered.Count);
-            var minSmall = Math.Min(2, ordered.Count);
-            var target = minSmall > maxSmall ? minSmall : rnd.Next(minSmall, maxSmall + 1);
+            var maxSmall = Math.Min(Profile.PersonalRideParticipantsMax, ordered.Count);
+            var minSmall = Math.Min(Profile.PersonalRideParticipantsMin, ordered.Count);
+            var target = minSmall > maxSmall ? minSmall : det.Int(minSmall, maxSmall + 1, SeedGraph.Salt.PersonalRideParticipants, g.Id, 0);
 
             var chosen = new HashSet<int>();
             if (idSet.Contains(g.CreatedByUserId))
                 chosen.Add(g.CreatedByUserId);
             else
-                chosen.Add(ordered[rnd.Next(ordered.Count)]);
+                chosen.Add(ordered[det.PickIndex(ordered.Count, SeedGraph.Salt.PersonalRideParticipants, g.Id, 1)]);
 
             var pool = ordered.Where(u => !chosen.Contains(u)).ToList();
+            var step = 0;
             while (chosen.Count < target && pool.Count > 0)
             {
-                var idx = rnd.Next(pool.Count);
+                var idx = det.PickIndex(pool.Count, SeedGraph.Salt.PersonalRideParticipants, g.Id, step++);
                 chosen.Add(pool[idx]);
                 pool.RemoveAt(idx);
             }
@@ -1339,7 +1459,7 @@ public static class DbSeeder
         {
             var anyClub = allRides.FirstOrDefault(r => r.ClubId.HasValue);
             if (anyClub == null) return;
-            anyClub.ScheduledDate = now.AddDays(14).Date.AddHours(8);
+            anyClub.ScheduledDate = now.AddDays(Profile.EnsureFutureRideWhenEmptyListDays).Date.AddHours(Profile.EnsureFutureRideHour);
             futureClub = FutureClubRides();
         }
 
@@ -1355,7 +1475,7 @@ public static class DbSeeder
                 .FirstOrDefault();
             if (promote == null)
                 return;
-            promote.ScheduledDate = now.AddDays(10).Date.AddHours(8);
+            promote.ScheduledDate = now.AddDays(Profile.EnsureFutureRidePromoteDays).Date.AddHours(Profile.EnsureFutureRideHour);
             futureClub = FutureClubRides();
         }
 
@@ -1399,7 +1519,7 @@ public static class DbSeeder
             {
                 var any = allRides.Where(r => r.ClubId.HasValue && myClubs.Contains(r.ClubId!.Value)).OrderBy(r => r.Id).FirstOrDefault();
                 if (any == null) continue;
-                any.ScheduledDate = now.AddDays(12).Date.AddHours(8);
+                any.ScheduledDate = now.AddDays(Profile.EnsureFutureRideLastResortDays).Date.AddHours(Profile.EnsureFutureRideHour);
                 futureClub = FutureClubRides();
                 eligible = futureClub.Where(r => myClubs.Contains(r.ClubId!.Value)).OrderBy(r => r.ScheduledDate).ThenBy(r => r.Id).ToList();
                 ride = eligible.FirstOrDefault();
@@ -1423,7 +1543,7 @@ public static class DbSeeder
         IReadOnlyList<int> userIds,
         IReadOnlyDictionary<int, List<int>> clubsByUser,
         ParticipantIndex partIndex,
-        Random rnd)
+        DeterministicSeed det)
     {
         static int CountClubScheduledParticipations(ParticipantIndex idx, int userId, List<Ride> rides)
         {
@@ -1439,26 +1559,21 @@ public static class DbSeeder
             return n;
         }
 
-        static void Shuffle<T>(IList<T> list, Random r)
-        {
-            for (var i = list.Count - 1; i > 0; i--)
-            {
-                var j = r.Next(i + 1);
-                (list[i], list[j]) = (list[j], list[i]);
-            }
-        }
-
         var usersShuffled = userIds.ToList();
-        Shuffle(usersShuffled, rnd);
+        det.Shuffle(usersShuffled, SeedGraph.Salt.VariedParticipation, 0, 0);
 
         foreach (var uid in usersShuffled)
         {
             if (!clubsByUser.TryGetValue(uid, out var myClubs) || myClubs.Count == 0)
                 continue;
 
+            var traits = SeedUserTraits.For(uid, det.Root);
             // Wider spread + mild boost for multi-club members (demo riders) so club overlap isn't a flat histogram.
-            var target = rnd.Next(14, 30) + myClubs.Count * rnd.Next(0, 4) + (uid % 5);
-            target = Math.Min(target, 52);
+            var target = det.Int(Profile.VariedParticipationTargetMin, Profile.VariedParticipationTargetMaxExclusive, SeedGraph.Salt.VariedParticipation, uid, 0)
+                + myClubs.Count * det.Int(0, Profile.VariedParticipationClubBoostMaxExclusive, SeedGraph.Salt.VariedParticipation, uid, 1)
+                + (uid % Profile.VariedParticipationUidModulo)
+                + SeedBehaviorWeights.ParticipationTargetDelta(traits, Profile.UserBehaviorParticipationTraitStrength);
+            target = Math.Min(target, Profile.VariedParticipationAbsoluteCap);
 
             var need = target - CountClubScheduledParticipations(partIndex, uid, allRides);
             if (need <= 0)
@@ -1469,7 +1584,7 @@ public static class DbSeeder
                     && r.Kind == RideKind.Scheduled
                     && UserMayJoinClubRide(r, uid, clubsByUser))
                 .ToList();
-            Shuffle(eligible, rnd);
+            det.Shuffle(eligible, SeedGraph.Salt.VariedParticipation, uid, 0);
 
             foreach (var ride in eligible)
             {
@@ -1484,10 +1599,11 @@ public static class DbSeeder
                 need--;
             }
 
+            var pass = 1;
             while (need > 0)
             {
                 var progressed = false;
-                Shuffle(eligible, rnd);
+                det.Shuffle(eligible, SeedGraph.Salt.VariedParticipation, uid, pass++);
                 foreach (var ride in eligible)
                 {
                     if (need <= 0)
@@ -1514,7 +1630,7 @@ public static class DbSeeder
         List<Ride> rides,
         IReadOnlyDictionary<int, List<int>> membersByClub,
         ParticipantIndex partIndex,
-        Random rnd)
+        DeterministicSeed det)
     {
         var ridesByClub = rides
             .Where(r => r.ClubId.HasValue)
@@ -1530,8 +1646,9 @@ public static class DbSeeder
             var idxInClub = ridesByClub[cid].FindIndex(r => r.Id == ride.Id);
             if (idxInClub < 0) idxInClub = 0;
 
-            var k = Math.Min(members.Count, rnd.Next(2, 15) + (Math.Abs(ride.Id * 17 + idxInClub * 3) % 4));
-            var start = (ride.Id * 7919 + rnd.Next(0, members.Count)) % members.Count;
+            var k = Math.Min(members.Count, det.Int(Profile.InitialClubRideParticipantsMin, Profile.InitialClubRideParticipantsMaxExclusive, SeedGraph.Salt.RideParticipantPick, ride.Id, idxInClub)
+                + (Math.Abs(ride.Id * 17 + idxInClub * 3) % Profile.InitialClubRideParticipantSpreadModulo));
+            var start = (ride.Id * 7919 + det.PickIndex(members.Count, SeedGraph.Salt.RideParticipantPick, ride.Id, idxInClub + 1000)) % members.Count;
             for (var t = 0; t < k; t++)
             {
                 var uid = members[(start + t) % members.Count];
@@ -1541,7 +1658,7 @@ public static class DbSeeder
         }
     }
 
-    private static List<ChallengeEntity> SeedChallenges(Random rnd)
+    private static List<ChallengeEntity> SeedChallenges(DeterministicSeed det)
     {
         var now = DateTime.UtcNow;
         return new List<ChallengeEntity>
@@ -1551,7 +1668,7 @@ public static class DbSeeder
                 Title = "Spring Vertical Challenge",
                 Description = "Accumulate 5,000 m elevation before summer.",
                 TargetValue = 5000,
-                CurrentValue = 3200 + rnd.Next(0, 400),
+                CurrentValue = 3200 + det.Int(0, Profile.ChallengeElevationProgressBonusMax, SeedGraph.Salt.ChallengeProgress, 0, 0),
                 Unit = "meters",
                 StartDate = now.AddMonths(-2),
                 EndDate = now.AddMonths(2),
@@ -1562,7 +1679,7 @@ public static class DbSeeder
                 Title = "Coastal Distance Month",
                 Description = "Ride 400 km on coastal routes this month.",
                 TargetValue = 400,
-                CurrentValue = 210 + rnd.Next(0, 80),
+                CurrentValue = 210 + det.Int(0, Profile.ChallengeDistanceProgressBonusMax, SeedGraph.Salt.ChallengeProgress, 1, 0),
                 Unit = "km",
                 StartDate = now.AddDays(-20),
                 EndDate = now.AddDays(10),
@@ -1611,7 +1728,7 @@ public static class DbSeeder
         IReadOnlyList<Ride> personalRideGroups,
         IReadOnlyList<Ride> allRideGroups,
         ParticipantIndex partIndex,
-        Random rnd)
+        DeterministicSeed det)
     {
         if (routes.Count == 0 || userIds.Count == 0)
             return;
@@ -1621,32 +1738,40 @@ public static class DbSeeder
         var seq = 0;
         foreach (var userId in userIds.OrderBy(u => u))
         {
-            var soloCount = rnd.Next(7, 12);
+            var traits = SeedUserTraits.For(userId, det.Root);
+            var rawSolo = det.Int(Profile.SoloRidesPerUserMin, Profile.SoloRidesPerUserMaxExclusive, SeedGraph.Salt.SoloHistory, userId, 0);
+            var soloCount = SeedBehaviorWeights.SkewExclusiveRange(
+                Profile.SoloRidesPerUserMin,
+                Profile.SoloRidesPerUserMaxExclusive,
+                rawSolo,
+                traits.ActivityMillis,
+                Profile.UserBehaviorSoloSkewStrength);
             for (var k = 0; k < soloCount; k++, seq++)
             {
                 var route = routes[(userId * 131 + seq * 17) % routes.Count];
                 int daysAgo;
-                if (k < TimeProfile.GuaranteedWeeklyStreakWeeks)
+                if (k < Profile.Time.GuaranteedWeeklyStreakWeeks)
                 {
                     // Guarantee one ride in each of the latest N weeks to produce realistic weekly streaks.
                     var jitter = k == 0
-                        ? rnd.Next(TimeProfile.SoloHistoryCurrentWeekDays.Min, TimeProfile.SoloHistoryCurrentWeekDays.Max + 1)
-                        : rnd.Next(0, 3);
+                        ? det.Int(Profile.Time.SoloHistoryCurrentWeekDays.Min, Profile.Time.SoloHistoryCurrentWeekDays.Max + 1, SeedGraph.Salt.SoloHistory, userId, k, seq)
+                        : det.Int(0, Profile.SoloWeeklyStreakExtraJitterMaxExclusive, SeedGraph.Salt.SoloHistory, userId, k, seq);
                     daysAgo = k * 7 + jitter;
                 }
                 else
                 {
                     daysAgo = k switch
                     {
-                        0 => rnd.Next(TimeProfile.SoloHistoryRecentDays.Min, TimeProfile.SoloHistoryRecentDays.Max + 1),
-                        1 => rnd.Next(TimeProfile.SoloHistoryMidDays.Min, TimeProfile.SoloHistoryMidDays.Max + 1),
-                        _ => rnd.Next(TimeProfile.SoloHistoryOlderDays.Min, TimeProfile.SoloHistoryOlderDays.Max + 1),
+                        0 => det.Int(Profile.Time.SoloHistoryRecentDays.Min, Profile.Time.SoloHistoryRecentDays.Max + 1, SeedGraph.Salt.SoloHistory, userId, k, seq),
+                        1 => det.Int(Profile.Time.SoloHistoryMidDays.Min, Profile.Time.SoloHistoryMidDays.Max + 1, SeedGraph.Salt.SoloHistory, userId, k, seq),
+                        _ => det.Int(Profile.Time.SoloHistoryOlderDays.Min, Profile.Time.SoloHistoryOlderDays.Max + 1, SeedGraph.Salt.SoloHistory, userId, k, seq),
                     };
                 }
                 var completedAt = DateTime.UtcNow.AddDays(-daysAgo);
-                var sparse = seq % 11 == 0;
-                var durJitter = seq % 41 - 20;
-                var dur = Math.Max(25, route.EstimatedDurationMinutes + durJitter);
+                var sparseMod = SeedBehaviorWeights.SoloSparseModulo(Profile.SoloSparseEveryN, traits);
+                var sparse = seq % sparseMod == 0;
+                var durJitter = seq % Profile.SoloDurationJitterModulo - Profile.SoloDurationJitterCenter;
+                var dur = Math.Max(Profile.SoloMinDurationMinutes, route.EstimatedDurationMinutes + durJitter);
                 soloMeta.Add((route, userId, completedAt, sparse, dur));
                 soloRides.Add(new Ride
                 {
@@ -1694,15 +1819,15 @@ public static class DbSeeder
             for (var pi = 0; pi < participantIds.Count; pi++)
             {
                 var uid = participantIds[pi];
-                var dur = Math.Max(25, route.EstimatedDurationMinutes + pi % 21 - 10);
-                var distFactor = 0.94 + pi % 11 * 0.01;
-                var elevFactor = 0.92 + pi % 9 * 0.01;
+                var dur = Math.Max(Profile.SoloMinDurationMinutes, route.EstimatedDurationMinutes + pi % Profile.HistoryDurationJitterModulo - Profile.HistoryDurationJitterCenter);
+                var distFactor = 0.94 + pi % Profile.HistoryDistanceFactorModulo * 0.01;
+                var elevFactor = 0.92 + pi % Profile.HistoryElevationFactorModulo * 0.01;
                 db.HistoryEntries.Add(new HistoryEntry
                 {
                     UserId = uid,
                     RouteId = route.Id,
                     RouteTitle = route.Title,
-                    CompletedAt = g.ScheduledDate.AddHours(1) + TimeSpan.FromMinutes(pi * 3),
+                    CompletedAt = g.ScheduledDate.AddHours(Profile.HistoryStartHourOffset) + TimeSpan.FromMinutes(pi * Profile.HistoryParticipantMinuteStep),
                     DurationMinutes = dur,
                     DistanceKm = Math.Round(route.DistanceKm * distFactor, 1),
                     ElevationGainM = Math.Round(route.ElevationGainM * elevFactor, 1),
@@ -1725,15 +1850,15 @@ public static class DbSeeder
             for (var pi = 0; pi < participantIds.Count; pi++)
             {
                 var uid = participantIds[pi];
-                var dur = Math.Max(25, route.EstimatedDurationMinutes + pi % 21 - 10);
-                var distFactor = 0.94 + pi % 11 * 0.01;
-                var elevFactor = 0.92 + pi % 9 * 0.01;
+                var dur = Math.Max(Profile.SoloMinDurationMinutes, route.EstimatedDurationMinutes + pi % Profile.HistoryDurationJitterModulo - Profile.HistoryDurationJitterCenter);
+                var distFactor = 0.94 + pi % Profile.HistoryDistanceFactorModulo * 0.01;
+                var elevFactor = 0.92 + pi % Profile.HistoryElevationFactorModulo * 0.01;
                 db.HistoryEntries.Add(new HistoryEntry
                 {
                     UserId = uid,
                     RouteId = route.Id,
                     RouteTitle = route.Title,
-                    CompletedAt = g.ScheduledDate.AddHours(1) + TimeSpan.FromMinutes(pi * 3),
+                    CompletedAt = g.ScheduledDate.AddHours(Profile.HistoryStartHourOffset) + TimeSpan.FromMinutes(pi * Profile.HistoryParticipantMinuteStep),
                     DurationMinutes = dur,
                     DistanceKm = Math.Round(route.DistanceKm * distFactor, 1),
                     ElevationGainM = Math.Round(route.ElevationGainM * elevFactor, 1),
@@ -1792,16 +1917,19 @@ public static class DbSeeder
         // Keep in sync with client BIKE_TYPES (RidingPreferencesForm / bikeTypes.js)
         var bikes = new[] { "road", "mountain", "gravel", "hybrid", "electric", "touring", "city" };
         var units = new[] { "km", "mi" };
-        var rnd = new Random(99);
+        var detPrefs = new DeterministicSeed(Profile.UserPreferencesRandomSeed);
         foreach (var uid in userIds)
         {
+            var traits = SeedUserTraits.For(uid, Profile.RandomSeed);
+            var notifCut = Math.Clamp(6 - (2 + traits.ConsistencyMillis * 3 / 1000), 0, 5);
+            var pubCut = Math.Clamp(9 - (2 + traits.SocialMillis * 4 / 1000), 0, 8);
             db.UserPreferences.Add(new UserPreference
             {
                 UserId = uid,
-                DefaultBikeType = bikes[rnd.Next(bikes.Length)],
-                DistanceUnit = units[rnd.Next(2)],
-                NotificationsEnabled = rnd.Next(6) != 0,
-                PublicInRouteRiderLists = rnd.Next(9) != 0,
+                DefaultBikeType = bikes[detPrefs.PickIndex(bikes.Length, SeedGraph.Salt.UserPreference, uid, 0)],
+                DistanceUnit = units[detPrefs.PickIndex(units.Length, SeedGraph.Salt.UserPreference, uid, 1)],
+                NotificationsEnabled = detPrefs.Int(0, 6, SeedGraph.Salt.UserPreference, uid, 2) >= notifCut,
+                PublicInRouteRiderLists = detPrefs.Int(0, 9, SeedGraph.Salt.UserPreference, uid, 3) >= pubCut,
                 ColorScheme = "midnight",
             });
         }

@@ -4,7 +4,7 @@
  * HTML (curl) is server-rendered; key fields use stable ids like
  * #mainContentPlaceHolder_lblLength, #mainContentPlaceHolder_linkGPSFileDownload, etc.
  *
- * Writes: out/tracks.csv, out/gpx/{pid}.gpx
+ * Writes: out_{firstPid}-{lastPid}/tracks.csv, out_{...}/gpx/{pid}.gpx
  *
  * Run: npm install && npx playwright install chromium && npm start
  * Optional: HEADLESS=1 npm start (no visible browser)
