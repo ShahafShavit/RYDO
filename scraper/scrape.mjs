@@ -41,7 +41,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = "https://www.groopy.co.il/trackinfo.aspx";
-const PIDS = range(2750, 2650, -1);
+const PIDS = range(2450, 2150, -1);
 
 
 const OUT_DIR = path.join(__dirname, "out_"+PIDS[0]+"-"+PIDS[PIDS.length-1]);

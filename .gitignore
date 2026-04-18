@@ -1,3 +1,8 @@
+# Python — GPX physics tooling (venv under scraper/physics)
+scraper/physics/.venv/
+scraper/.venv/
+scraper/physics/**/__pycache__/
+
 # Node / frontend
 node_modules/
 dist/
@@ -14,9 +19,10 @@ logs/
 .DS_Store
 Thumbs.db
 
-# IDE — ignore VS Code workspace files except shared tasks we commit
+# IDE — ignore VS Code workspace files except shared tasks / physics interpreter we commit
 .vscode/*
 !.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 
 .github/

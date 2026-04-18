@@ -1,0 +1,154 @@
+# Paired rows: same rules as scatter / correlation (self-contained)
+try:
+    from bidi.algorithm import get_display as _bidi_display
+except ImportError:
+    def _bidi_display(s: str) -> str:
+        return s
+
+_GROOPY_ORD = {
+    "קל": 2.0,
+    "מתאים למתחילים": 2.0,
+    "בינוני-קל": 3.5,
+    "בינוני": 5.0,
+    "בינוני-קשה": 7.0,
+    "למתקדמים": 8.5,
+}
+
+
+def _groopy_to_ord(s) -> float | None:
+    if s is None or (isinstance(s, float) and pd.isna(s)):
+        return None
+    t = str(s).strip()
+    if not t or t.lower() == "nan":
+        return None
+    return _GROOPY_ORD.get(t)
+
+
+_dc = res.copy()
+_dc["groopy_ord"] = _dc["difficulty_groopy"].map(_groopy_to_ord)
+pair = _dc.dropna(subset=["groopy_ord", "physics_score_1_10"]).copy()
+pair = pair[np.isfinite(pair["groopy_ord"]) & np.isfinite(pair["physics_score_1_10"])]
+
+if len(pair) < 3:
+    print("Need at least 3 paired rows for diagnostics; got", len(pair))
+else:
+    cat_order = [k for k in _GROOPY_ORD if k in pair["difficulty_groopy"].unique()]
+    pair["difficulty_groopy"] = pd.Categorical(pair["difficulty_groopy"], categories=cat_order, ordered=True)
+
+    resid = pair["physics_score_1_10"].to_numpy(dtype=float) - pair["groopy_ord"].to_numpy(dtype=float)
+    mean_ab = 0.5 * (
+        pair["physics_score_1_10"].to_numpy(dtype=float) + pair["groopy_ord"].to_numpy(dtype=float)
+    )
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+
+    # 1) Boxplot: physics score by Groopy label (separation check)
+    ax = axes[0, 0]
+    data_box = []
+    labels_short = []
+    for lab in cat_order:
+        vals = pair.loc[pair["difficulty_groopy"] == lab, "physics_score_1_10"].dropna().values
+        if len(vals) == 0:
+            continue
+        data_box.append(vals)
+        raw_lbl = lab[:12] + "…" if len(lab) > 12 else lab
+        labels_short.append(_bidi_display(raw_lbl))
+    bp = ax.boxplot(data_box, tick_labels=labels_short, patch_artist=True)
+    for patch in bp["boxes"]:
+        patch.set(facecolor="lightsteelblue", alpha=0.85)
+    ax.axhline(5.5, color="gray", linestyle=":", linewidth=0.8)
+    ax.set_ylabel("Physics score (1–10)")
+    ax.set_title("Physics score by Groopy tag")
+    ax.tick_params(axis="x", rotation=35)
+
+    # 2) Residual (physics − ordinal): how often we disagree
+    ax = axes[0, 1]
+    ax.hist(resid, bins=24, color="teal", edgecolor="white", alpha=0.85)
+    ax.axvline(0.0, color="black", linestyle="--", linewidth=1)
+    ax.set_xlabel("Physics score − Groopy ordinal")
+    ax.set_ylabel("Count")
+    ax.set_title("Residual distribution (paired rows)")
+
+    # 3) Bland–Altman style: difference vs average (both on 1–10-ish scale)
+    ax = axes[1, 0]
+    ax.scatter(mean_ab, resid, alpha=0.65, s=36, edgecolors="k", linewidths=0.25)
+    ax.axhline(0.0, color="black", linestyle="--", linewidth=0.8)
+    rm = float(np.nanmean(resid))
+    ax.axhline(rm, color="coral", linestyle="-", linewidth=1, label=f"mean Δ = {rm:.2f}")
+    ax.legend(loc="best", fontsize=8)
+    ax.set_xlabel("Mean (physics score, Groopy ordinal) / 2")
+    ax.set_ylabel("Physics score − Groopy ordinal")
+    ax.set_title("Bland–Altman style (diagnostic)")
+
+    # 4) Internal consistency: tortuosity tax vs outcome
+    ax = axes[1, 1]
+    sc = ax.scatter(
+        pair["kinetic_factor"],
+        pair["physics_score_1_10"],
+        c=pair["groopy_ord"],
+        cmap="viridis",
+        alpha=0.75,
+        s=40,
+        edgecolors="k",
+        linewidths=0.25,
+    )
+    plt.colorbar(sc, ax=ax, label="Groopy ordinal")
+    ax.set_xlabel("kinetic_factor (SI tax on rolling work)")
+    ax.set_ylabel("Physics score (1–10)")
+    ax.set_title("Score vs kinetic factor (colored by Groopy ordinal)")
+
+    plt.tight_layout()
+    plt.show()
+
+    # Hexbin: crowding in Groopy ordinal × physics score plane
+    fig2, ax2 = plt.subplots(figsize=(7, 6))
+    hb = ax2.hexbin(
+        pair["groopy_ord"],
+        pair["physics_score_1_10"],
+        gridsize=(14, 14),
+        cmap="Blues",
+        mincnt=1,
+    )
+    plt.colorbar(hb, ax=ax2, label="routes per bin")
+    ax2.plot([0.5, 10.5], [0.5, 10.5], "k--", alpha=0.35, linewidth=0.8)
+    ax2.set_xlim(0.5, 10.5)
+    ax2.set_ylim(0.5, 10.5)
+    ax2.set_xlabel("Groopy ordinal")
+    ax2.set_ylabel("Physics score (1–10)")
+    ax2.set_title("2D density of pairs (dashed: y = x reference)")
+    plt.tight_layout()
+    plt.show()
+
+    # SI_p90 vs physics score (path sinuosity before kinetic_factor)
+    fig3, ax3 = plt.subplots(figsize=(7, 5))
+    sc3 = ax3.scatter(
+        pair["si_p90"],
+        pair["physics_score_1_10"],
+        c=pair["intensity_density_J_per_km"],
+        cmap="magma",
+        alpha=0.78,
+        s=38,
+        edgecolors="k",
+        linewidths=0.2,
+    )
+    plt.colorbar(sc3, ax=ax3, label="Intensity density (J/km)")
+    ax3.set_xlabel("SI_p90 (rolling-window sinuosity)")
+    ax3.set_ylabel("Physics score (1–10)")
+    ax3.set_title("Physics score vs SI_p90 (color = raw J/km)")
+    plt.tight_layout()
+    plt.show()
+
+    # Summary table: mean ± std physics score per tag
+    summ = (
+        pair.groupby("difficulty_groopy", observed=False)["physics_score_1_10"]
+        .agg(["count", "mean", "std"])
+        .reindex(cat_order)
+    )
+    print("Physics score by Groopy tag (mean ± std, n):")
+    for lab in cat_order:
+        row = summ.loc[lab]
+        if pd.isna(row["count"]) or row["count"] == 0:
+            continue
+        print(
+            f"  {lab!s}: {row['mean']:.2f} ± {row['std']:.2f}  (n={int(row['count'])})"
+        )
