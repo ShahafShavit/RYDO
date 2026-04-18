@@ -179,6 +179,17 @@ export default function ClubChatDock() {
     return () => window.clearTimeout(t);
   }, [threadClubId, open, messagesQuery.isSuccess, messages.length, queryClient]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'default') return;
+    if (preferences?.notificationsEnabled === false) return;
+    const p = Notification.requestPermission();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {});
+    }
+  }, [open, preferences?.notificationsEnabled]);
+
   const totalUnread = useMemo(() => {
     if (liveChatScoped && liveScopedClubId != null) {
       const row = summary.find((s) => s.clubId === liveScopedClubId);
@@ -211,11 +222,6 @@ export default function ClubChatDock() {
     },
     [threadClubId, sendMutation]
   );
-
-  const requestDesktopAlerts = useCallback(() => {
-    if (typeof Notification === 'undefined') return;
-    Notification.requestPermission();
-  }, []);
 
   const closeDock = useCallback(() => setChatOpen(false), [setChatOpen]);
 
@@ -291,15 +297,6 @@ export default function ClubChatDock() {
               ) : (
                 <h2 className="flex-1 text-sm font-semibold text-fg pl-1">Club chat</h2>
               )}
-              {typeof Notification !== 'undefined' && Notification.permission === 'default' ? (
-                <button
-                  type="button"
-                  className="hidden sm:inline text-xs text-rydo-green hover:underline"
-                  onClick={requestDesktopAlerts}
-                >
-                  Alerts
-                </button>
-              ) : null}
               <button
                 type="button"
                 aria-label="Close chat"
