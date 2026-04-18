@@ -18,7 +18,7 @@ const TRUNCATION_SUFFIX = '...';
 function splitWords(text) {
   return String(text || '')
     .trim()
-    .split(/[\s()]+/)
+    .split(/[\s(-–)]+/)
     .filter(Boolean);
 }
 
