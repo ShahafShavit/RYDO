@@ -25,7 +25,11 @@ function formatWhen(iso) {
 function ProfileRidePreviewCard({ ride }) {
   return (
     <Card className="flex flex-col">
-      <h3 className="text-lg font-semibold leading-snug">{ride.name}</h3>
+      <h3 className="w-full min-w-0 text-center text-lg font-semibold leading-snug">
+        <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
+          {ride.name}
+        </span>
+      </h3>
       <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       <div className="mt-4">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>

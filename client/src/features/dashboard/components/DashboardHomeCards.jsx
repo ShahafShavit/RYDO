@@ -68,7 +68,11 @@ function DashboardLastRideCard({ lastRide, className = '' }) {
     return (
       <Card className={`p-4 sm:p-5 ${className}`}>
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{lastRide.title}</p>
-        <h3 className="mt-3 text-xl font-semibold">{lastRide.routeName}</h3>
+        <h3 className="mt-3 w-full min-w-0 text-center text-xl font-semibold">
+          <span className="inline-block max-w-full truncate align-top" title={lastRide.routeName} dir="auto">
+            {lastRide.routeName}
+          </span>
+        </h3>
         <p className="mt-2 text-sm text-fg-muted">
           Your trail preview will appear here after you complete a ride with a saved route.
         </p>
@@ -103,7 +107,11 @@ function DashboardLastRideCard({ lastRide, className = '' }) {
         </div>
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
-        <h3 className="text-lg font-semibold text-fg">{lastRide.routeName}</h3>
+        <h3 className="w-full min-w-0 text-lg font-semibold text-fg">
+          <span className="inline-block max-w-full truncate align-top" title={lastRide.routeName} dir="auto">
+            {lastRide.routeName}
+          </span>
+        </h3>
         {lastRide.completedLabel ? (
           <p className="mt-1.5 text-sm text-fg-muted">{lastRide.completedLabel}</p>
         ) : null}
@@ -256,9 +264,13 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, classNam
             <Link
               key={ride.id}
               to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}
-              className="block rounded-3xl border border-border bg-surface p-4 text-left transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+              className="block min-w-0 rounded-3xl border border-border bg-surface p-4 text-left transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
             >
-              <h3 className="text-xl font-semibold text-fg">{ride.routeName}</h3>
+              <h3 className="w-full min-w-0 text-center text-xl font-semibold text-fg">
+                <span className="inline-block max-w-full truncate align-top" title={ride.routeName} dir="auto">
+                  {ride.routeName}
+                </span>
+              </h3>
               <p className="mt-2 text-sm text-fg-muted">{ride.dateTime}</p>
               {ride.clubName ? (
                 <div className="mt-3 flex items-center gap-2">

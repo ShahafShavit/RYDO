@@ -120,7 +120,11 @@ function ScheduledRideCard({ ride }) {
         </div>
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
-        <h3 className="text-lg font-semibold">{ride.name}</h3>
+        <h3 className="w-full min-w-0 text-lg font-semibold">
+          <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
+            {ride.name}
+          </span>
+        </h3>
         <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       </div>
     </Card>
@@ -203,7 +207,11 @@ function PastScheduledCard({ ride }) {
         </div>
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
-        <h3 className="text-lg font-semibold">{ride.name}</h3>
+        <h3 className="w-full min-w-0 text-lg font-semibold">
+          <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
+            {ride.name}
+          </span>
+        </h3>
         <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
         <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
       </div>
@@ -260,7 +268,11 @@ function HistoryRideCard({ entry }) {
         </div>
       </div>
       <div className="relative z-10 mt-3 text-center pointer-events-none">
-        <h3 className="text-lg font-semibold">{rideLabel}</h3>
+        <h3 className="w-full min-w-0 text-lg font-semibold">
+          <span className="inline-block max-w-full truncate align-top" title={rideLabel} dir="auto">
+            {rideLabel}
+          </span>
+        </h3>
         <p className="text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
       </div>
       <div className="relative z-10 mt-2.5 flex min-w-0 gap-0 pointer-events-none text-center">

@@ -77,11 +77,13 @@ export default function RouteCard({ route }) {
             </div>
           ) : null}
         </div>
-        <div className="mt-4 shrink-0">
+        <div className="mt-4 w-full min-w-0 shrink-0 text-center">
           <h3 className="text-xl font-semibold">
             <Link
               to={routeHref}
-              className="text-fg underline-offset-2 transition hover:text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded-sm"
+              title={title}
+              dir="auto"
+              className="inline-block max-w-full truncate align-top text-fg underline-offset-2 transition hover:text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded-sm"
             >
               {title}
             </Link>
