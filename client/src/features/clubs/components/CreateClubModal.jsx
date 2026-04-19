@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
-import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
 
 const emptyForm = { name: '', description: '', region: '', visibility: 'public' };
 
 export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
+  const titleId = useId();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
 
@@ -30,14 +31,9 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
   });
 
   return (
-    <AnimatedModal open={isOpen} onClose={onClose} contentClassName="p-6">
-      <Card className="w-full" role="dialog" aria-modal="true">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold">Create a club</h2>
-          <button type="button" className="text-fg-muted transition hover:text-fg" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
+    <AnimatedModal open={isOpen} onClose={onClose}>
+      <ModalPanel className="w-full" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <ModalHeader title="Create a club" titleId={titleId} onClose={onClose} />
         <form
           className="mt-4 space-y-4"
           onSubmit={(e) => {
@@ -69,7 +65,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
           </FormField>
           <FormField label="Visibility">
             <select
-              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25"
+              className={modalControlClass}
               value={form.visibility}
               onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))}
             >
@@ -86,7 +82,7 @@ export default function CreateClubModal({ isOpen, onClose, onSuccess }) {
             </Button>
           </div>
         </form>
-      </Card>
+      </ModalPanel>
     </AnimatedModal>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import { Image as ImageIcon, Link2, Upload } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
@@ -6,6 +6,7 @@ import { getCroppedImg } from '@/shared/lib/crop-image';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel } from '@/shared/components/ui/modal/ModalPrimitives';
 import { accountApi } from '@/features/account/api/account-api';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 
@@ -20,6 +21,7 @@ const DICEBEAR_CLUB = 'https://api.dicebear.com/7.x/shapes/svg?seed=YourClubName
  * @param {number} [props.clubId] Required when kind === 'club' for uploads
  */
 export default function AvatarOrUrlEditor({ kind, displayName, avatarUrl, onAvatarUrlChange, clubId }) {
+  const cropTitleId = useId();
   const [section, setSection] = useState('url');
   const [cropOpen, setCropOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
@@ -162,9 +164,18 @@ export default function AvatarOrUrlEditor({ kind, displayName, avatarUrl, onAvat
         }}
         maxWidthClassName="max-w-lg"
       >
-        <div className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold">Crop to square</h3>
-          <p className="mt-1 text-sm text-fg-muted">Adjust the square. Result must be 1:1.</p>
+        <ModalPanel role="dialog" aria-modal="true" aria-labelledby={cropTitleId}>
+          <ModalHeader
+            title="Crop to square"
+            titleId={cropTitleId}
+            description="Adjust the square. Result must be 1:1."
+            closeDisabled={uploading}
+            onClose={() => {
+              if (uploading) return;
+              setCropOpen(false);
+              resetCropState();
+            }}
+          />
           <div className="relative mt-4 h-64 w-full overflow-hidden rounded-xl bg-black/80 sm:h-80">
             {imageSrc ? (
               <Cropper
@@ -208,7 +219,7 @@ export default function AvatarOrUrlEditor({ kind, displayName, avatarUrl, onAvat
               {uploading ? 'Uploading…' : 'Upload'}
             </Button>
           </div>
-        </div>
+        </ModalPanel>
       </AnimatedModal>
     </div>
   );

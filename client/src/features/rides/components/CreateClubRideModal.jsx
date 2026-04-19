@@ -1,6 +1,6 @@
 import { useId } from 'react';
-import Card from '@/shared/components/ui/card/Card';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel } from '@/shared/components/ui/modal/ModalPrimitives';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 
 /**
@@ -12,29 +12,13 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
 
   return (
     <AnimatedModal open={isOpen} onClose={onClose}>
-      <Card
+      <ModalPanel
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="max-h-[min(90vh,720px)] w-full overflow-y-auto border border-border bg-[var(--rydo-bg-deep)]/95 shadow-2xl shadow-black/40"
+        className="max-h-[min(90vh,720px)] w-full overflow-y-auto"
       >
-        <div className="border-b border-border pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 id={titleId} className="text-xl font-semibold">
-                Ride!
-              </h2>
-            </div>
-            <button
-              type="button"
-              className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-fg-muted transition hover:bg-surface-strong hover:text-fg"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+        <ModalHeader title="Ride!" titleId={titleId} onClose={onClose} divider />
 
         <CreateRideForm
           clubId={clubId}
@@ -46,7 +30,7 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
             onClose();
           }}
         />
-      </Card>
+      </ModalPanel>
     </AnimatedModal>
   );
 }

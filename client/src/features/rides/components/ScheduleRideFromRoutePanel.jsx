@@ -6,6 +6,7 @@ import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
+import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 
@@ -163,7 +164,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
           ) : null}
           <FormField label="Club">
             <select
-              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg focus:border-rydo-purple/60 focus:outline-none"
+              className={modalControlClass}
               value={clubId}
               onChange={(e) => setClubId(e.target.value)}
               required

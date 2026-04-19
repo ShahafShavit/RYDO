@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { useUpdateRide } from '@/features/rides/hooks/useUpdateRide';
 import Button from '@/shared/components/ui/button/Button';
-import Card from '@/shared/components/ui/card/Card';
+import FormField from '@/shared/components/ui/form-field/FormField';
+import Input from '@/shared/components/ui/input/Input';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 import { ROUTES } from '@/app/router/route-paths';
 
 function toDatetimeLocalValue(iso) {
@@ -56,9 +59,8 @@ function EditRideForm({ ride, onClose }) {
 
   return (
     <>
-      <h2 className="text-xl font-semibold">Edit ride</h2>
       {ride.clubName ? (
-        <p className="mt-2 text-sm text-fg-muted">
+        <p className="mt-4 text-sm text-fg-muted">
           Club:{' '}
           {ride.clubId != null ? (
             <Link
@@ -72,41 +74,26 @@ function EditRideForm({ ride, onClose }) {
           )}
         </p>
       ) : (
-        <p className="mt-2 text-sm text-fg-muted">Personal ride</p>
+        <p className="mt-4 text-sm text-fg-muted">Personal ride</p>
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-name">
-            Name
-          </label>
-          <input
-            id="er-name"
-            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
-            value={name}
-            onChange={(ev) => setName(ev.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-desc">
-            Description
-          </label>
+        <FormField label="Name">
+          <Input id="er-name" value={name} onChange={(ev) => setName(ev.target.value)} required />
+        </FormField>
+        <FormField label="Description">
           <textarea
             id="er-desc"
-            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
+            className={cn(modalControlClass, 'min-h-[4.5rem] resize-y')}
             rows={2}
             value={description}
             onChange={(ev) => setDescription(ev.target.value)}
           />
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-route">
-            Route
-          </label>
+        </FormField>
+        <FormField label="Route">
           <select
             id="er-route"
-            className="mt-2 w-full rounded-2xl border border-border bg-[var(--rydo-bg-deep)] px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
+            className={cn(modalControlClass, 'disabled:opacity-50')}
             value={routeId}
             onChange={(ev) => setRouteId(ev.target.value)}
             disabled={routesLoading}
@@ -118,33 +105,25 @@ function EditRideForm({ ride, onClose }) {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-when">
-            When
-          </label>
-          <input
+        </FormField>
+        <FormField label="When">
+          <Input
             id="er-when"
             type="datetime-local"
-            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={scheduledLocal}
             onChange={(ev) => setScheduledLocal(ev.target.value)}
             required
           />
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="er-max">
-            Max participants
-          </label>
-          <input
+        </FormField>
+        <FormField label="Max participants">
+          <Input
             id="er-max"
             type="number"
             min={1}
-            className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
             value={maxParticipants}
             onChange={(ev) => setMaxParticipants(ev.target.value)}
           />
-        </div>
+        </FormField>
 
         {isError ? <p className="text-sm text-red-400">{error?.message || 'Could not save changes.'}</p> : null}
 
@@ -163,11 +142,17 @@ function EditRideForm({ ride, onClose }) {
 
 /** @param {{ open: boolean, onClose: () => void, ride: object | null }} props */
 export default function EditRideModal({ open, onClose, ride }) {
+  const titleId = useId();
   return (
     <AnimatedModal open={open} onClose={onClose}>
-      <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
-        {open && ride ? <EditRideForm ride={ride} onClose={onClose} /> : null}
-      </Card>
+      <ModalPanel className="max-h-[90vh] w-full overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        {open && ride ? (
+          <>
+            <ModalHeader title="Edit ride" titleId={titleId} onClose={onClose} />
+            <EditRideForm ride={ride} onClose={onClose} />
+          </>
+        ) : null}
+      </ModalPanel>
     </AnimatedModal>
   );
 }

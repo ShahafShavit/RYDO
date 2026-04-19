@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
-import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel, modalControlClass, modalSectionTitleClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
@@ -54,16 +54,14 @@ export default function ClubSettingsModal({
   });
 
   return (
-    <AnimatedModal open={isOpen} onClose={onClose} maxWidthClassName="max-w-lg" contentClassName="p-4 sm:p-6">
-      <Card className="max-h-[min(90vh,720px)] w-full overflow-y-auto p-6" role="dialog" aria-modal="true" aria-labelledby="club-settings-title">
-        <div className="flex items-start justify-between gap-4">
-          <h2 id="club-settings-title" className="text-xl font-semibold">
-            Club settings
-          </h2>
-          <button type="button" className="shrink-0 text-fg-muted transition hover:text-fg" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
+    <AnimatedModal open={isOpen} onClose={onClose} maxWidthClassName="max-w-lg">
+      <ModalPanel
+        className="max-h-[min(90vh,720px)] w-full overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="club-settings-title"
+      >
+        <ModalHeader title="Club settings" titleId="club-settings-title" onClose={onClose} />
 
         <form
           className="mt-6 space-y-4 border-b border-border pb-6"
@@ -72,7 +70,7 @@ export default function ClubSettingsModal({
             patchMut.mutate();
           }}
         >
-          <p className="text-sm font-semibold text-fg/90">Details</p>
+          <p className={modalSectionTitleClass}>Details</p>
           <FormField label="Club name">
             <Input
               value={form.name}
@@ -106,7 +104,7 @@ export default function ClubSettingsModal({
           </FormField>
           <FormField label="Visibility">
             <select
-              className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25"
+              className={modalControlClass}
               value={form.visibility}
               onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))}
             >
@@ -123,7 +121,7 @@ export default function ClubSettingsModal({
         </form>
 
         <div className="mt-6 border-b border-border pb-6">
-          <p className="text-sm font-semibold text-fg/90">Invites</p>
+          <p className={modalSectionTitleClass}>Invites</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button variant="secondary" type="button" onClick={() => inviteMut.mutate()} disabled={inviteMut.isPending}>
               {inviteMut.isPending ? 'Creating…' : 'Create invite code'}
@@ -141,7 +139,7 @@ export default function ClubSettingsModal({
             Done
           </Button>
         </div>
-      </Card>
+      </ModalPanel>
     </AnimatedModal>
   );
 }

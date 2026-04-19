@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { cn } from '@/shared/lib/cn';
 
 const MotionDiv = motion.div;
 
@@ -9,7 +10,8 @@ const easeOut = [0.32, 0.72, 0, 1];
 
 /**
  * Portal modal: one fade on the shell, motion on the panel via transform only (no nested opacity multiply).
- * Lighter backdrop (no heavy blur) keeps dev/local runs from feeling sluggish.
+ * Scrim uses `.rydo-modal-scrim` (dim + blur) — see `index.css`.
+ * `contentClassName` merges onto the fixed overlay (centering + padding), not the inner panel.
  */
 export default function AnimatedModal({
   open,
@@ -44,7 +46,7 @@ export default function AnimatedModal({
       {open ? (
         <MotionDiv
           key="animated-modal"
-          className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-4 sm:p-6 ${contentClassName}`}
+          className={cn('fixed inset-0 flex items-center justify-center p-4 sm:p-6', zIndexClass, contentClassName)}
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -52,14 +54,14 @@ export default function AnimatedModal({
           transition={{ duration: shellDur, ease: easeOut }}
         >
           <div
-            className="absolute inset-0 bg-black/72"
+            className="rydo-modal-scrim"
             aria-hidden
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) onClose();
             }}
           />
           <MotionDiv
-            className={`relative z-10 w-full ${maxWidthClassName} ${panelClassName}`}
+            className={cn('relative z-10 w-full', maxWidthClassName, panelClassName)}
             initial={
               reducedMotion
                 ? { y: 0, scale: 1 }

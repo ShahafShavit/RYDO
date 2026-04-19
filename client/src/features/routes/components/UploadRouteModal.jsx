@@ -1,7 +1,17 @@
 import { useState, lazy, Suspense, useId } from 'react';
-import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
+import FormField from '@/shared/components/ui/form-field/FormField';
+import Input from '@/shared/components/ui/input/Input';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import {
+  ModalHeader,
+  ModalPanel,
+  modalControlClass,
+  modalFinePrintClass,
+  modalHintClass,
+  modalMetricLabelClass,
+} from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
 import { routesApi } from '@/features/routes/api/routesApi';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
@@ -191,20 +201,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <AnimatedModal open={isOpen} onClose={handleClose} maxWidthClassName="max-w-2xl">
-      <Card className="max-h-[90vh] w-full space-y-6 overflow-y-auto p-8" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <div className="flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-2xl font-semibold">
-            Upload GPX Route
-          </h2>
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={loading}
-            className="text-fg-muted transition hover:text-fg"
-          >
-            ✕
-          </button>
-        </div>
+      <ModalPanel className="max-h-[90vh] w-full space-y-6 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <ModalHeader title="Upload GPX route" titleId={titleId} onClose={handleClose} closeDisabled={loading} />
 
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
@@ -213,25 +211,22 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
         )}
 
         {step === 1 && (
-          <div>
-            <label className="block">
-              <p className="mb-3 text-sm font-semibold">Select GPX File</p>
-              <input
-                type="file"
-                accept=".gpx"
-                onChange={handleFileSelect}
-                disabled={loading}
-                className="block w-full text-fg-muted file:mr-4 file:rounded-lg file:border-0 file:bg-rydo-purple/30 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-rydo-purple hover:file:bg-rydo-purple/40"
-              />
-            </label>
-          </div>
+          <FormField label="Select GPX file">
+            <input
+              type="file"
+              accept=".gpx"
+              onChange={handleFileSelect}
+              disabled={loading}
+              className="block w-full text-sm text-fg-muted file:mr-4 file:rounded-xl file:border-0 file:bg-rydo-purple/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-rydo-purple hover:file:bg-rydo-purple/40"
+            />
+          </FormField>
         )}
 
         {step === 2 && geoJson && stats && (
           <div className="space-y-6">
             <Suspense
               fallback={
-                <div className="mb-4 flex h-64 items-center justify-center rounded-2xl border border-border bg-surface text-fg-subtle">
+                <div className="mb-4 flex h-64 items-center justify-center rounded-2xl border border-border bg-surface text-sm text-fg-subtle">
                   Loading Map...
                 </div>
               }
@@ -250,20 +245,18 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className="text-xs uppercase tracking-widest text-fg-subtle">Distance</p>
-                <p className="mt-2 text-2xl font-semibold">{formatKm(stats.distanceKm, 2)}</p>
+                <p className={modalMetricLabelClass}>Distance</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{formatKm(stats.distanceKm, 2)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className="text-xs uppercase tracking-widest text-fg-subtle">Elevation gain</p>
-                <p className="mt-2 text-2xl font-semibold">{missingElevation ? '—' : `${stats.elevationGainM} m`}</p>
-                {!missingElevation ? (
-                  <p className="mt-1 text-[11px] text-fg-subtle">Smoothed track, noise filtered</p>
-                ) : null}
+                <p className={modalMetricLabelClass}>Elevation gain</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{missingElevation ? '—' : `${stats.elevationGainM} m`}</p>
+                {!missingElevation ? <p className={cn('mt-1', modalFinePrintClass)}>Smoothed track, noise filtered</p> : null}
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className="text-xs uppercase tracking-widest text-fg-subtle">Duration</p>
-                <p className="mt-2 text-2xl font-semibold">{formData.estimatedDurationMinutes} min</p>
-                <p className="mt-1 text-[11px] leading-snug text-fg-subtle">
+                <p className={modalMetricLabelClass}>Duration</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{formData.estimatedDurationMinutes} min</p>
+                <p className={cn('mt-1', modalFinePrintClass)}>
                   {durationSuggestionSource === 'timestamps' &&
                     'Recorded — from GPX clock times (first to last point with times)'}
                   {durationSuggestionSource === 'pace' &&
@@ -273,65 +266,65 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 </p>
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className="text-xs uppercase tracking-widest text-fg-subtle">Physics intensity</p>
-                <p className="mt-2 text-2xl font-semibold tabular-nums">
+                <p className={modalMetricLabelClass}>Physics intensity</p>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-fg">
                   {physicsDifficultyScore != null ? `${physicsDifficultyScore.toFixed(1)} / 10` : '—'}
                 </p>
-                <p className="mt-1 text-[11px] leading-snug text-fg-subtle">
+                <p className={cn('mt-1', modalFinePrintClass)}>
                   Mechanical load vs calibrated corpus (same score after save)
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Route Name *</label>
-                <input
+              <FormField label="Route name">
+                <Input
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="e.g., Oak Ridge Loop"
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
+                  required
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Duration (minutes) *</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={formData.estimatedDurationMinutes}
-                  onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
-                />
-                <p className="mt-2 text-[12px] leading-snug text-fg-subtle">
-                  {durationSuggestionSource === 'timestamps' && (
-                    <>
-                      This matches the GPX recording clock (wall time). Change it only if you want to store a different
-                      story than the file&apos;s timestamps.
-                    </>
-                  )}
-                  {durationSuggestionSource === 'pace' && (
-                    <>
-                      Inferred from track length at{' '}
-                      <span className="text-fg-muted">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock
-                      in the file. Adjust minutes to match how you ride.
-                    </>
-                  )}
-                  {durationSuggestionSource === 'none' && (
-                    <>
-                      Inferred (no GPX clock) — we default to 60 minutes; set a value that fits this route.
-                    </>
-                  )}
-                </p>
-              </div>
+              <FormField label="Duration (minutes)">
+                <div className="space-y-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={formData.estimatedDurationMinutes}
+                    onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
+                    required
+                  />
+                  <p className={modalHintClass}>
+                    {durationSuggestionSource === 'timestamps' && (
+                      <>
+                        This matches the GPX recording clock (wall time). Change it only if you want to store a different
+                        story than the file&apos;s timestamps.
+                      </>
+                    )}
+                    {durationSuggestionSource === 'pace' && (
+                      <>
+                        Inferred from track length at{' '}
+                        <span className="text-fg/90">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock in
+                        the file. Adjust minutes to match how you ride.
+                      </>
+                    )}
+                    {durationSuggestionSource === 'none' && (
+                      <>
+                        Inferred (no GPX clock) — we default to 60 minutes; set a value that fits this route.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Difficulty *</label>
+              <FormField label="Difficulty">
                 <select
                   value={formData.difficulty}
                   onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg focus:border-rydo-purple/50 focus:outline-none"
+                  className={modalControlClass}
+                  required
                 >
                   {DIFFICULTY_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -339,14 +332,14 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Terrain *</label>
+              <FormField label="Terrain">
                 <select
                   value={formData.terrain}
                   onChange={(e) => handleInputChange('terrain', e.target.value)}
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg focus:border-rydo-purple/50 focus:outline-none"
+                  className={modalControlClass}
+                  required
                 >
                   {TERRAIN_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -354,29 +347,26 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Region</label>
-                <input
+              <FormField label="Region">
+                <Input
                   type="text"
                   value={formData.region}
                   onChange={(e) => handleInputChange('region', e.target.value)}
                   placeholder="e.g., Carmel Ridge"
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Description</label>
+              <FormField label="Description">
                 <textarea
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Add notes about the route..."
-                  rows="3"
-                  className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-fg placeholder-fg-subtle focus:border-rydo-purple/50 focus:outline-none"
+                  rows={3}
+                  className={cn(modalControlClass, 'min-h-[5.5rem] resize-y')}
                 />
-              </div>
+              </FormField>
             </div>
           </div>
         )}
@@ -401,7 +391,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
             </>
           )}
         </div>
-      </Card>
+      </ModalPanel>
     </AnimatedModal>
   );
 }

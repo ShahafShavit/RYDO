@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import Button from '@/shared/components/ui/button/Button';
-import Card from '@/shared/components/ui/card/Card';
+import FormField from '@/shared/components/ui/form-field/FormField';
+import Input from '@/shared/components/ui/input/Input';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return '';
@@ -14,6 +17,7 @@ function toDatetimeLocalValue(iso) {
 }
 
 export default function CreatePersonalRideModal({ open, onClose }) {
+  const titleId = useId();
   const { routes, isLoading: routesLoading } = useRoutesList({ take: 80 });
   const createPersonal = useCreatePersonalRide();
   const [name, setName] = useState('');
@@ -56,41 +60,26 @@ export default function CreatePersonalRideModal({ open, onClose }) {
 
   return (
     <AnimatedModal open={open} onClose={onClose}>
-      <Card className="max-h-[90vh] w-full overflow-y-auto p-6" role="dialog" aria-modal="true">
-        <h2 className="text-xl font-semibold">Ride!</h2>
+      <ModalPanel className="max-h-[90vh] w-full overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <ModalHeader title="Ride!" titleId={titleId} onClose={onClose} />
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-name">
-              Name
-            </label>
-            <input
-              id="pr-name"
-              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
-              value={name}
-              onChange={(ev) => setName(ev.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-desc">
-              Description
-            </label>
+          <FormField label="Name">
+            <Input id="pr-name" value={name} onChange={(ev) => setName(ev.target.value)} required />
+          </FormField>
+          <FormField label="Description">
             <textarea
               id="pr-desc"
-              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
+              className={cn(modalControlClass, 'min-h-[4.5rem] resize-y')}
               rows={2}
               value={description}
               onChange={(ev) => setDescription(ev.target.value)}
             />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-route">
-              Route
-            </label>
+          </FormField>
+          <FormField label="Route">
             <select
               id="pr-route"
-              className="mt-2 w-full rounded-2xl border border-border bg-[var(--rydo-bg-deep)] px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
+              className={cn(modalControlClass, 'disabled:opacity-50')}
               value={routeId}
               onChange={(ev) => setRouteId(ev.target.value)}
               disabled={routesLoading}
@@ -102,33 +91,25 @@ export default function CreatePersonalRideModal({ open, onClose }) {
                 </option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-when">
-              When
-            </label>
-            <input
+          </FormField>
+          <FormField label="When">
+            <Input
               id="pr-when"
               type="datetime-local"
-              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={scheduledLocal}
               onChange={(ev) => setScheduledLocal(ev.target.value)}
               required
             />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.14em] text-fg-subtle" htmlFor="pr-max">
-              Max participants
-            </label>
-            <input
+          </FormField>
+          <FormField label="Max participants">
+            <Input
               id="pr-max"
               type="number"
               min={1}
-              className="mt-2 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none focus:border-rydo-purple"
               value={maxParticipants}
               onChange={(ev) => setMaxParticipants(ev.target.value)}
             />
-          </div>
+          </FormField>
 
           {createPersonal.isError ? (
             <p className="text-sm text-red-400">{createPersonal.error?.message || 'Could not create ride.'}</p>
@@ -143,7 +124,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
             </Button>
           </div>
         </form>
-      </Card>
+      </ModalPanel>
     </AnimatedModal>
   );
 }

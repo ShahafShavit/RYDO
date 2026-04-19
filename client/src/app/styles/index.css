@@ -403,6 +403,21 @@ html[data-theme='dune'] .app-logo {
     var(--rydo-glass-outer);
 }
 
+/* Portal modals: one frosted layer on the panel (same tokens as .rydo-glass); scrim blurs page behind */
+.rydo-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Avoid stacked backdrop-blur on inputs inside a glass modal — blur lives on the shell only */
+.rydo-modal-panel :is(input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']), textarea, select) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 .rydo-container {
   width: min(1240px, calc(100% - 32px));
   margin-inline: auto;

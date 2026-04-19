@@ -1,7 +1,8 @@
 import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Card from '@/shared/components/ui/card/Card';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 import { ROUTES } from '@/app/router/route-paths';
 
 function initialsFromName(name) {
@@ -48,27 +49,13 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
   }, [riders, q]);
 
   return (
-    <Card
+    <ModalPanel
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="max-h-[min(90vh,640px)] w-full overflow-hidden border border-border bg-[var(--rydo-bg-deep)]/95 shadow-2xl shadow-black/40"
+      className="max-h-[min(90vh,640px)] w-full overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
-        <div>
-          <h2 id={titleId} className="text-xl font-semibold">
-            Who rode this route
-          </h2>
-        </div>
-        <button
-          type="button"
-          className="shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-fg-muted transition hover:bg-surface-strong hover:text-fg"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
+      <ModalHeader title="Who rode this route" titleId={titleId} onClose={onClose} divider />
 
       <div className="pt-4">
         <label className="sr-only" htmlFor="route-riders-search">
@@ -81,7 +68,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
           placeholder="Search by name…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-rydo-purple/50 focus:outline-none focus:ring-1 focus:ring-rydo-purple/40"
+          className={cn(modalControlClass, 'placeholder:text-fg-subtle')}
         />
 
         <ul className="mt-3 max-h-[min(50vh,22rem)] space-y-0.5 overflow-y-auto overscroll-contain pr-1">
@@ -95,26 +82,18 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
               />
             ))
           ) : (
-            <li className="py-8 text-center text-sm text-fg-subtle">No names match your search.</li>
+            <li className="py-8 text-center text-sm text-fg-muted">No names match your search.</li>
           )}
         </ul>
 
         {hiddenCount > 0 ? (
-          <p className="mt-3 border-t border-border pt-3 text-sm leading-snug text-fg-subtle">
+          <p className="mt-3 border-t border-border pt-3 text-sm leading-snug text-fg-muted">
             +{hiddenCount}{' '}
             {hiddenCount === 1 ? 'rider has' : 'riders have'} hidden their name in Settings → Preferences.
           </p>
         ) : null}
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-5 w-full rounded-xl border border-border bg-surface py-2.5 text-sm font-medium text-fg/90 transition hover:bg-surface-strong"
-        >
-          Close
-        </button>
       </div>
-    </Card>
+    </ModalPanel>
   );
 }
 

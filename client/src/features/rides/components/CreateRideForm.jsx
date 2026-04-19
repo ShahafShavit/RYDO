@@ -3,6 +3,8 @@ import Button from '@/shared/components/ui/button/Button';
 import Card from '@/shared/components/ui/card/Card';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
+import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 import { useCreateRide } from '@/features/rides/hooks/useCreateRide';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 
@@ -74,7 +76,7 @@ export default function CreateRideForm({
         <FormField label="Route">
           <select
             name="routeId"
-            className="w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg transition-colors focus:border-rydo-purple/60 focus:outline-none focus:ring-2 focus:ring-rydo-purple/25 disabled:opacity-50"
+            className={cn(modalControlClass, 'disabled:opacity-50')}
             value={form.routeId}
             onChange={handleChange}
             disabled={routesLoading}
