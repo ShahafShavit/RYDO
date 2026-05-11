@@ -39,7 +39,6 @@ export default function LoginForm() {
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <div>
           <h1 className="text-2xl font-semibold">Login to RYDO</h1>
-          <p className="mt-2 text-white/64">Continue to routes, rides, navigation and live group coordination.</p>
         </div>
 
         <FormField label="Email">
@@ -54,8 +53,8 @@ export default function LoginForm() {
 
         {error && <p className="text-red-400">{error}</p>}
 
-        <p className="text-sm text-white/56">
-          No account yet? <Link to={ROUTES.register} className="text-white underline">Register</Link>
+        <p className="text-sm text-fg-muted">
+          No account yet? <Link to={ROUTES.register} className="text-fg underline">Register</Link>
         </p>
       </form>
     </Card>

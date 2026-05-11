@@ -1,0 +1,15 @@
+**/bin
+**/obj
+**/node_modules
+# Dev-only Vite env must not affect production image build (localhost URLs).
+client/.env.local
+client/.env.development.local
+client/.env.production.local
+**/.git
+client/dist
+server/Rydo.Api/wwwroot
+.vs
+.idea
+**/*.user
+infra/cdk.out
+**/cdk.out

@@ -4,7 +4,7 @@ export default function EmptyState({ title = 'No data yet', description = 'There
   return (
     <Card className="border-dashed text-center">
       <h3 className="text-lg font-semibold">{title}</h3>
-      <p className="mt-2 text-white/64">{description}</p>
+      <p className="mt-2 text-fg-muted">{description}</p>
     </Card>
   );
 }

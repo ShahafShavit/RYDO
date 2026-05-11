@@ -6,17 +6,29 @@ export const ROUTES = {
 
   // User routes
   dashboard: '/dashboard',
+  leaderboards: '/leaderboards',
   routes: '/routes',
   routeDetails: '/routes/:routeId',
-  yourRoutes: '/your-routes',
+  myRoutes: '/my-routes',
+  myRides: '/my-rides',
   settings: '/settings',
-  rideEvent: '/rides/:rideId',
+  findPeople: '/find-people',
+  inbox: '/inbox',
+  userProfile: '/users/:userId',
+  rideEvent: '/ride/:rideId',
+  rideLive: '/ride/:rideId/live',
+  clubs: '/clubs',
+  clubDetails: '/clubs/:clubId',
 
   // Admin
   admin: '/admin',
   adminUsers: '/admin/users',
   adminRoutes: '/admin/routes',
   adminHazards: '/admin/hazards',
+
+  // Live Ride (Mapbox simulator; public for desktop QA)
+  live: '/live',
+  timelapse: '/timelapse',
 
   // Fallback
   notFound: '/not-found',

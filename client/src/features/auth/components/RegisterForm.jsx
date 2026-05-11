@@ -39,7 +39,6 @@ export default function RegisterForm() {
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <div>
           <h1 className="text-2xl font-semibold">Create your RYDO account</h1>
-          <p className="mt-2 text-white/64">Join the platform for routes, group rides, hazards and challenges.</p>
         </div>
 
         <FormField label="First name">
@@ -61,8 +60,8 @@ export default function RegisterForm() {
         <Button type="submit" variant="neon" className="w-full" disabled={isLoading}>{isLoading ? 'Creating…' : 'Create account'}</Button>
 
         {error && <p className="text-red-400">{error}</p>}
-        <p className="text-sm text-white/56">
-          Already have an account? <Link to={ROUTES.login} className="text-white underline">Login</Link>
+        <p className="text-sm text-fg-muted">
+          Already have an account? <Link to={ROUTES.login} className="text-fg underline">Login</Link>
         </p>
       </form>
     </Card>

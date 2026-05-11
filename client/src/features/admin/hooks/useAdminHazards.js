@@ -24,6 +24,9 @@ export function useUpdateHazardStatus() {
 
   return useMutation({
     mutationFn: ({ hazardId, status }) => adminApi.updateHazardStatus(hazardId, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.hazards() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.hazards() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.summary() });
+    },
   });
 }

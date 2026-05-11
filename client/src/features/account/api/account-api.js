@@ -20,5 +20,9 @@ export const accountApi = {
 
     updateProfile: async (data) => {
         return apiClient.put(API_ENDPOINTS.account.profile, data);
-    }
+    },
+
+    uploadAvatar: async (file) => {
+        return apiClient.uploadFile(API_ENDPOINTS.account.avatarUpload, file, {}, { fileFieldName: 'file' });
+    },
 };

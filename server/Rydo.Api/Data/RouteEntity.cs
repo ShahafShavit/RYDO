@@ -1,0 +1,37 @@
+namespace Rydo.Api.Data;
+
+public class RouteEntity
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Terrain { get; set; } = "mixed";
+    public string Difficulty { get; set; } = "moderate";
+
+    /// <summary>Mechanical intensity 1–10 (one decimal), from GPX physics; null if not computed.</summary>
+    public double? PhysicsDifficultyScore { get; set; }
+
+    public string? Region { get; set; }
+
+    /// <summary>First point of the track (WGS84). Used for &quot;near me&quot; search.</summary>
+    public double? StartLatitude { get; set; }
+
+    /// <summary>First point of the track (WGS84). Used for &quot;near me&quot; search.</summary>
+    public double? StartLongitude { get; set; }
+
+    public double DistanceKm { get; set; }
+    public double ElevationGainM { get; set; }
+    public int EstimatedDurationMinutes { get; set; }
+
+    /// <summary>See <see cref="RouteDurationSource"/>.</summary>
+    public string EstimatedDurationSource { get; set; } = RouteDurationSource.Unknown;
+    public string WarningsJson { get; set; } = "[]";
+    public string? Notes { get; set; }
+    public string? GpxReference { get; set; }
+    public byte[]? GpxBlob { get; set; }
+    public string PreviewCoordinatesJson { get; set; } = "[]";
+    public int CreatedByUserId { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = "published";
+}

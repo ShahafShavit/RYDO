@@ -1,9 +1,8 @@
-export default function AdminHeader({ title = 'Admin Dashboard', description = 'Moderation, metrics and operational control for the platform.' }) {
+export default function AdminHeader({ title = 'Admin Dashboard' }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs uppercase tracking-[0.16em] text-white/42">Control</p>
+      <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Control</p>
       <h1 className="text-3xl font-semibold">{title}</h1>
-      <p className="max-w-2xl text-white/64">{description}</p>
     </div>
   );
 }

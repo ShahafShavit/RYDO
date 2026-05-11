@@ -42,7 +42,9 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `/dashboard`
 - `/routes`
 - `/routes/:routeId`
-- `/your-routes`
+- `/my-routes` (uploaded and saved routes)
+- `/my-rides`
+- `/ride/:rideId`
 - `/settings`
 
 ### Admin routes
@@ -52,7 +54,7 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `/admin/hazards`
 
 ### Important note
-Some feature modules exist without being mounted in the main router yet, including chat, hazards reporting, rides, history, and challenges pages. Their APIs and hooks are implemented, but they are not currently reachable through the routed app shell.
+Some feature modules exist without being mounted in the main router yet (e.g. chat). APIs and hooks for rides, history, and challenges are used from routed pages such as dashboard and My rides.
 
 ## Data Models
 Detailed canonical models live in [`src/shared/api/contracts/models.md`]
@@ -206,6 +208,18 @@ npm install
 npm run dev
 ```
 
+Live ride map position is **GPS-anchored**, not the first vertex of the route polyline — see [docs/live-ride-map-position.md](docs/live-ride-map-position.md).
+
+### HTTPS on the LAN (phone + Geolocation)
+
+For testing on a physical phone without a public tunnel, use **mkcert**-backed HTTPS and bind Vite to the LAN:
+
+1. Install **mkcert** on your PC and run `mkcert -install` once (see [docs/lan-https-phone.md](docs/lan-https-phone.md)).
+2. From `client/`: `npm run setup:dev-https` then `npm run dev:lan`.
+3. Install the printed **root CA** on the phone, then open `https://<your-lan-ip>:5173`.
+
+With **`VITE_API_MODE=real`** and **`VITE_API_BASE_URL` empty**, the Vite dev server **proxies** `/api`, `/hubs`, and `/health` to the local API (default **`http://127.0.0.1:5000`**, same as `docker compose` from the repo root). For **`dotnet run`** only (see `server/Rydo.Api/Properties/launchSettings.json`, usually **5032**), set `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032`. See [docs/lan-https-phone.md](docs/lan-https-phone.md).
+
 ### Production build
 ```bash
 npm run build
@@ -230,3 +244,5 @@ VITE_API_MODE=real
 VITE_API_BASE_URL=https://your-api-host
 VITE_DEV_AUTH_ENABLED=false
 ```
+
+Local dev with **Docker API** (`docker compose`): set `VITE_API_BASE_URL` empty; proxy default is **`http://127.0.0.1:5000`**. For **`dotnet run`** API on **5032**: `VITE_DEV_PROXY_TARGET=http://127.0.0.1:5032`.

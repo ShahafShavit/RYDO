@@ -6,6 +6,7 @@ import { normalizeAuthResponse } from '@/features/auth/auth-mapper';
 import { env } from '@/shared/config/env';
 import { ROLES } from '@/shared/constants/roles';
 import { getStoredUser, setStoredUser, clearStoredUser, getStoredToken, setStoredToken } from '@/features/auth/utils/auth-storage';
+import { queryClient } from '@/app/query-client';
 import { apiClient } from '@/shared/api/api-client';
 
 export const AuthContext = createContext(null);
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
     setStoredUser(nextUser);
     setStoredToken(token);
     apiClient.setAuthToken(token);
+    queryClient.invalidateQueries();
   }, []);
 
   const clearSession = useCallback((shouldRedirect = false) => {
@@ -91,6 +93,15 @@ export function AuthProvider({ children }) {
     clearSession(true);
   }, [clearSession]);
 
+  const updateUser = useCallback((partial) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...partial };
+      setStoredUser(next);
+      return next;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -100,8 +111,9 @@ export function AuthProvider({ children }) {
       register,
       login,
       logout,
+      updateUser,
     }),
-    [isAuthReady, login, logout, register, user]
+    [isAuthReady, login, logout, register, updateUser, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

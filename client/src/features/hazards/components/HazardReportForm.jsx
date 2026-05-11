@@ -36,7 +36,6 @@ export default function HazardReportForm() {
   return (
     <Card className="max-w-2xl">
       <h1 className="text-2xl font-semibold">Report live trail issue</h1>
-      <p className="mt-2 text-white/64">Surface closures, roadwork, blocked gates or hazards affecting the ride.</p>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <FormField label="Type"><Input name="type" value={form.type} onChange={handleChange} placeholder="gate" /></FormField>
         <FormField label="Severity"><Input name="severity" value={form.severity} onChange={handleChange} placeholder="medium" /></FormField>

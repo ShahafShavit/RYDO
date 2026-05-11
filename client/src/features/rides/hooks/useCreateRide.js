@@ -5,8 +5,14 @@ export function useCreateRide() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ridesApi.createRide,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rides', 'groups'] }),
+    mutationFn: ({ clubId, ...body }) => ridesApi.createClubRide(clubId, body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rides', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['clubs'] });
+      if (variables?.clubId != null) {
+        queryClient.invalidateQueries({ queryKey: ['clubs', 'rides', variables.clubId] });
+      }
+    },
   });
 
   return {

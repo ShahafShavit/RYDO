@@ -1,3 +1,5 @@
+import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
+
 function normalizeDifficulty(value) {
   const difficulty = String(value || '').toLowerCase();
 
@@ -59,10 +61,24 @@ export function normalizeRoute(rawRoute = {}) {
     description: rawRoute.description || '',
     terrain: normalizeTerrain(rawRoute.terrain || rawRoute.soilType || rawRoute.surfaceType),
     difficulty: normalizeDifficulty(rawRoute.difficulty),
+    physicsDifficultyScore: (() => {
+      const v = rawRoute.physicsDifficultyScore;
+      if (v == null || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    })(),
     region: rawRoute.region || rawRoute.location || rawRoute.area || null,
+    distanceFromUserKm: (() => {
+      const v = rawRoute.distanceFromUserKm;
+      if (v == null || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    })(),
     distanceKm: Number(rawRoute.distanceKm || rawRoute.distance || 0),
     elevationGainM: Number(rawRoute.elevationGainM || rawRoute.elevation || 0),
     estimatedDurationMinutes: Number(rawRoute.estimatedDurationMinutes || rawRoute.durationMinutes || rawRoute.duration || 0),
+    estimatedDurationSource:
+      rawRoute.estimatedDurationSource || rawRoute.durationSource || ESTIMATED_DURATION_SOURCE.UNKNOWN,
     warnings: normalizeWarnings(rawRoute.warnings),
     notes: rawRoute.notes || null,
     gpx: {
@@ -74,12 +90,36 @@ export function normalizeRoute(rawRoute = {}) {
       coordinates,
     },
     createdBy: {
-      id: rawRoute.createdBy?.id ?? rawRoute.createdById ?? null,
+      id:
+        rawRoute.createdBy?.id != null
+          ? Number(rawRoute.createdBy.id)
+          : rawRoute.createdById != null
+            ? Number(rawRoute.createdById)
+            : null,
       fullName: creatorName,
+      avatarUrl: rawRoute.createdBy?.avatarUrl?.trim() || null,
     },
+    routeRiders: normalizeRouteRiders(rawRoute.routeRiders),
+    favoriteCount: Math.max(0, Number(rawRoute.favoriteCount ?? 0) || 0),
     createdAt: rawRoute.createdAt || null,
     isSaved: Boolean(rawRoute.isSaved),
     status: rawRoute.status || 'published',
+  };
+}
+
+/** Normalizes `routeRiders` on a route or the body of `GET /routes/:id/rider-roster`. */
+export function normalizeRouteRiders(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { totalCount: 0, visibleRiders: [] };
+  }
+  const visible = Array.isArray(raw.visibleRiders) ? raw.visibleRiders : [];
+  return {
+    totalCount: Number(raw.totalCount ?? visible.length ?? 0) || 0,
+    visibleRiders: visible.map((r) => ({
+      userId: Number(r.userId ?? r.id ?? 0),
+      fullName: String(r.fullName || r.displayName || '').trim() || 'Rider',
+      avatarUrl: r.avatarUrl?.trim() || null,
+    })),
   };
 }
 
@@ -90,6 +130,8 @@ export function toRouteUploadPayload(formData) {
     terrain: normalizeTerrain(formData.terrain),
     difficulty: normalizeDifficulty(formData.difficulty),
     estimatedDurationMinutes: Number(formData.estimatedDurationMinutes || 0),
+    estimatedDurationSource:
+      formData.estimatedDurationSource || ESTIMATED_DURATION_SOURCE.ESTIMATED,
     region: formData.region?.trim() || '',
     warnings: Array.isArray(formData.warnings) ? formData.warnings : [],
   };

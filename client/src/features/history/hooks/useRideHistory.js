@@ -5,15 +5,23 @@ export function useRideHistory() {
   const query = useQuery({
     queryKey: ['history'],
     queryFn: async () => {
-      const rides = await historyApi.getHistory();
-      return Array.isArray(rides)
-        ? rides.map((ride) => ({
-            id: ride.id,
-            title: ride.routeTitle || ride.title || 'Untitled route',
-            date: ride.completedAt || ride.date,
-            distance: ride.distanceKm ? `${ride.distanceKm} km` : ride.distance || '—',
-          }))
-        : [];
+      const payload = await historyApi.getHistory({ skip: 0, take: 200 });
+      const rides = Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload)
+          ? payload
+          : [];
+      return rides.map((ride) => ({
+        id: ride.id,
+        title: ride.routeTitle || ride.title || 'Untitled route',
+        date: ride.completedAt || ride.date,
+        distanceKm: ride.distanceKm != null ? Number(ride.distanceKm) : null,
+        rideId: ride.rideId ?? null,
+        rideKind: ride.rideKind ?? null,
+        clubName: ride.clubName ?? null,
+        durationMinutes: ride.durationMinutes,
+        estimatedDurationMinutes: ride.estimatedDurationMinutes,
+      }));
     },
   });
 

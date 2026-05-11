@@ -1,4 +1,5 @@
 import Card from '@/shared/components/ui/card/Card';
+import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { useAdminRoutes } from '@/features/admin/hooks/useAdminRoutes';
 import { useDeleteRoute, useModerateRoute } from '@/features/admin/hooks/useAdminRoutes';
 import Button from '@/shared/components/ui/button/Button';
@@ -16,13 +17,15 @@ export default function RoutesModerationTable() {
       <h3 className="text-lg font-semibold">Routes moderation</h3>
       <div className="mt-4 space-y-3">
         {routes.map((route) => (
-          <div key={route.id} className="rounded-2xl border border-white/8 bg-black/20 p-4">
+          <div key={route.id} className="rounded-2xl border border-border bg-black/20 p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-medium">{route.title}</p>
-                <p className="mt-1 text-sm text-white/56">{route.ownerName} • {route.terrain} • {route.difficulty}</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  {route.ownerName} • {formatTrailMetaLabel(route.terrain)} • {formatTrailMetaLabel(route.difficulty)}
+                </p>
               </div>
-              <span className="text-sm text-white/56">{route.status}</span>
+              <span className="text-sm text-fg-muted">{route.status}</span>
             </div>
             <div className="mt-4 flex gap-2">
               <Button

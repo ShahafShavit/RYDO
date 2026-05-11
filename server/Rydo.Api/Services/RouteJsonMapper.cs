@@ -1,0 +1,163 @@
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Rydo.Api.Data;
+
+namespace Rydo.Api.Services;
+
+public readonly record struct RouteRiderVisible(int UserId, string FullName, string? AvatarUrl);
+
+public readonly record struct RouteRidersInfo(int TotalCount, IReadOnlyList<RouteRiderVisible> Visible);
+
+public static class RouteJsonMapper
+{
+    /// <summary>Distinct participants on past rides that used this route; names filtered by <see cref="UserPreference.PublicInRouteRiderLists"/>.</summary>
+    public static async Task<RouteRidersInfo> LoadRouteRidersInfoAsync(RydoDbContext db, int routeId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var pastRideIds = await db.Rides.AsNoTracking()
+            .Where(g => g.Kind != RideKind.SoloLog && g.RouteId == routeId && g.ScheduledDate < now)
+            .Select(g => g.Id)
+            .ToListAsync(ct);
+        if (pastRideIds.Count == 0)
+            return new RouteRidersInfo(0, Array.Empty<RouteRiderVisible>());
+
+        var riderIds = await db.RideParticipants.AsNoTracking()
+            .Where(p => pastRideIds.Contains(p.RideId))
+            .Select(p => p.UserId)
+            .Distinct()
+            .ToListAsync(ct);
+        var total = riderIds.Count;
+        if (total == 0)
+            return new RouteRidersInfo(0, Array.Empty<RouteRiderVisible>());
+
+        var prefs = await db.UserPreferences.AsNoTracking()
+            .Where(p => riderIds.Contains(p.UserId))
+            .ToDictionaryAsync(p => p.UserId, p => p.PublicInRouteRiderLists, ct);
+
+        var visibleIds = riderIds.Where(id => !prefs.TryGetValue(id, out var pub) || pub).ToList();
+
+        var users = await db.Users.AsNoTracking()
+            .Where(u => visibleIds.Contains(u.Id))
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .ToListAsync(ct);
+
+        var visible = users
+            .Select(u => new RouteRiderVisible(
+                u.Id,
+                $"{u.FirstName} {u.LastName}".Trim(),
+                UserPublicFields.RosterAvatarUrl(u)))
+            .ToList();
+
+        return new RouteRidersInfo(total, visible);
+    }
+
+    /// <summary>
+    /// Distinct rider counts per route (past rides only), for list responses — avoids N full roster queries.
+    /// </summary>
+    public static async Task<Dictionary<int, int>> LoadRouteRiderTotalCountsByRouteIdAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> routeIds,
+        CancellationToken ct)
+    {
+        if (routeIds.Count == 0)
+            return new Dictionary<int, int>();
+
+        var idSet = routeIds.Distinct().ToArray();
+        var now = DateTime.UtcNow;
+
+        var rows = await (
+            from p in db.RideParticipants.AsNoTracking()
+            join g in db.Rides.AsNoTracking() on p.RideId equals g.Id
+            where g.Kind != RideKind.SoloLog
+                  && g.RouteId != null
+                  && idSet.Contains(g.RouteId.Value)
+                  && g.ScheduledDate < now
+            select new { RouteId = g.RouteId!.Value, p.UserId }
+        ).ToListAsync(ct);
+
+        return rows
+            .GroupBy(x => x.RouteId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.UserId).Distinct().Count());
+    }
+
+    /// <summary>
+    /// How many users saved each route (favorites), for list responses — single grouped query.
+    /// </summary>
+    public static async Task<Dictionary<int, int>> LoadFavoriteCountsByRouteIdAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> routeIds,
+        CancellationToken ct)
+    {
+        if (routeIds.Count == 0)
+            return new Dictionary<int, int>();
+
+        var idSet = routeIds.Distinct().ToArray();
+
+        var rows = await db.SavedRoutes.AsNoTracking()
+            .Where(s => idSet.Contains(s.RouteId))
+            .GroupBy(s => s.RouteId)
+            .Select(g => new { RouteId = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(x => x.RouteId, x => x.Count);
+    }
+
+    public static object ToClientRoute(
+        RouteEntity r,
+        ApplicationUser? creator,
+        bool isSaved = false,
+        RouteRidersInfo? routeRiders = null,
+        double? distanceFromUserKm = null,
+        int favoriteCount = 0)
+    {
+        var warnings = JsonSerializer.Deserialize<List<string>>(r.WarningsJson) ?? new List<string>();
+        var coords = JsonSerializer.Deserialize<List<List<double>>>(r.PreviewCoordinatesJson) ?? new List<List<double>>();
+
+        var rr = routeRiders ?? new RouteRidersInfo(0, Array.Empty<RouteRiderVisible>());
+
+        return new
+        {
+            id = r.Id,
+            title = r.Title,
+            description = r.Description,
+            terrain = r.Terrain,
+            difficulty = r.Difficulty,
+            physicsDifficultyScore = r.PhysicsDifficultyScore,
+            region = r.Region,
+            distanceFromUserKm,
+            distanceKm = r.DistanceKm,
+            elevationGainM = r.ElevationGainM,
+            estimatedDurationMinutes = r.EstimatedDurationMinutes,
+            durationMinutes = r.EstimatedDurationMinutes,
+            estimatedDurationSource = r.EstimatedDurationSource,
+            warnings,
+            notes = r.Notes,
+            gpx = new
+            {
+                fileUrl = (string?)null,
+                reference = r.GpxReference ?? $"routes/{r.Id}.gpx",
+            },
+            preview = new
+            {
+                geoJson = (object?)null,
+                coordinates = coords,
+            },
+            createdBy = new
+            {
+                id = creator?.Id ?? r.CreatedByUserId,
+                fullName = creator != null ? $"{creator.FirstName} {creator.LastName}".Trim() : "Unknown",
+                avatarUrl = UserPublicFields.RosterAvatarUrl(creator),
+            },
+            createdAt = r.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            isSaved,
+            favoriteCount,
+            status = r.Status,
+            routeRiders = new
+            {
+                totalCount = rr.TotalCount,
+                visibleRiders = rr.Visible.Select(v => new { userId = v.UserId, fullName = v.FullName, avatarUrl = v.AvatarUrl }).ToList(),
+            },
+        };
+    }
+}

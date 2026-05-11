@@ -24,6 +24,9 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: adminApi.deleteUser,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.summary() });
+    },
   });
 }

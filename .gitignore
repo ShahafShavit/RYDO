@@ -1,3 +1,8 @@
+# Python — GPX physics tooling (venv under scraper/physics)
+scraper/physics/.venv/
+scraper/.venv/
+scraper/physics/**/__pycache__/
+
 # Node / frontend
 node_modules/
 dist/
@@ -14,10 +19,25 @@ logs/
 .DS_Store
 Thumbs.db
 
-# IDE
-.vscode/
+# IDE — ignore VS Code workspace files except shared tasks / physics interpreter we commit
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
 .idea/
 
 .github/
 plans/
 ReadmeFiles/
+
+# CDK / deploy
+infra/cdk.out/
+infra/node_modules/
+infra/deploy.env
+infra/cdk-outputs.json
+
+# .NET
+server/**/bin/
+server/**/obj/
+server/**/[Bb]in/
+server/**/[Oo]bj/
+*.user

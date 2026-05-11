@@ -1,4 +1,15 @@
 // client/src/shared/mocks/users.js
+const defaultPrivacy = () => ({
+    publicFirstName: true,
+    publicLastName: true,
+    publicEmail: false,
+    publicCreatedAt: true,
+    publicBio: true,
+    publicLocation: true,
+    publicAvatarUrl: true,
+    publicDefaultBikeType: true,
+});
+
 export const MOCK_USERS = [
     {
         id: 1,
@@ -9,6 +20,11 @@ export const MOCK_USERS = [
         role: 'user',
         createdAt: '2023-01-15T10:00:00Z',
         isActive: true,
+        bio: 'Weekend gravel and long coffee stops.',
+        location: 'Tel Aviv',
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=johnmock',
+        defaultBikeType: 'gravel',
+        privacy: { ...defaultPrivacy(), publicEmail: true, publicBio: false },
     },
     {
         id: 2,
@@ -19,6 +35,11 @@ export const MOCK_USERS = [
         role: 'admin',
         createdAt: '2023-01-10T09:00:00Z',
         isActive: true,
+        bio: 'Platform admin and route curator.',
+        location: 'Haifa',
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarahmock',
+        defaultBikeType: 'road',
+        privacy: defaultPrivacy(),
     },
     {
         id: 3,
@@ -29,5 +50,10 @@ export const MOCK_USERS = [
         role: 'user',
         createdAt: '2023-02-01T11:00:00Z',
         isActive: true,
+        bio: 'Coach and club organizer.',
+        location: 'Jerusalem',
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mikemock',
+        defaultBikeType: 'mountain',
+        privacy: { ...defaultPrivacy(), publicEmail: true },
     },
 ];

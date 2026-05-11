@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../api/account-api';
 import { normalizeAccountProfile, normalizePreferences } from '@/features/account/account-mapper';
+import { userProfileKeys } from '@/features/users/hooks/useUserProfile';
+import { friendsListKeys } from '@/features/social/hooks/useFriendsList';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const accountKeys = {
     all: ['account'],
@@ -20,9 +23,11 @@ export const useChangePassword = () => {
 };
 
 export const usePreferences = () => {
+    const { user } = useAuth();
     return useQuery({
         queryKey: accountKeys.preferences(),
         queryFn: async () => normalizePreferences(await accountApi.getPreferences()),
+        enabled: !!user?.id,
     });
 };
 
@@ -33,6 +38,8 @@ export const useUpdatePreferences = () => {
         mutationFn: async (data) => normalizePreferences(await accountApi.updatePreferences(data)),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.preferences() });
+            queryClient.invalidateQueries({ queryKey: userProfileKeys.all });
+            queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
         },
     });
 
@@ -56,6 +63,7 @@ export const useUpdateProfile = () => {
         mutationFn: async (data) => normalizeAccountProfile(await accountApi.updateProfile(data)),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.profile() });
+            queryClient.invalidateQueries({ queryKey: userProfileKeys.all });
         },
     });
 

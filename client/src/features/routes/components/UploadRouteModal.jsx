@@ -1,339 +1,397 @@
-import { useState, lazy, Suspense } from 'react';
-import Card from '@/shared/components/ui/card/Card';
+import { useState, lazy, Suspense, useId } from 'react';
 import Button from '@/shared/components/ui/button/Button';
+import FormField from '@/shared/components/ui/form-field/FormField';
+import Input from '@/shared/components/ui/input/Input';
+import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
+import {
+  ModalHeader,
+  ModalPanel,
+  modalControlClass,
+  modalFinePrintClass,
+  modalHintClass,
+  modalMetricLabelClass,
+} from '@/shared/components/ui/modal/ModalPrimitives';
+import { cn } from '@/shared/lib/cn';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
+import { routesApi } from '@/features/routes/api/routesApi';
+import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
 
-const RouteMapPreview = lazy(() => import('./RouteMapPreview'));
+const RouteMapWithElevation = lazy(() => import('./RouteMapWithElevation'));
 
 const DIFFICULTY_OPTIONS = ['casual', 'moderate', 'hard'];
 const TERRAIN_OPTIONS = ['road', 'gravel', 'trail', 'mixed'];
 
 export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
-    const [step, setStep] = useState(1); // 1: upload, 2: preview + metadata
-    const [file, setFile] = useState(null);
-    const [geoJson, setGeoJson] = useState(null);
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+  const { formatKm } = useFormatDistance();
+  const titleId = useId();
+  const [step, setStep] = useState(1);
+  const [file, setFile] = useState(null);
+  const [geoJson, setGeoJson] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [elevationProfile, setElevationProfile] = useState(null);
+  const [missingElevation, setMissingElevation] = useState(false);
+  // How the duration field was auto-filled: GPX clock times, pace from distance, or fallback.
+  const [durationSuggestionSource, setDurationSuggestionSource] = useState(null);
+  /** Value suggested at parse time; used to detect user edits for `estimatedDurationSource`. */
+  const [suggestedMinutesSnapshot, setSuggestedMinutesSnapshot] = useState(null);
+  /** From POST /routes/gpx-preview (server physics score). */
+  const [physicsDifficultyScore, setPhysicsDifficultyScore] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-    // Form metadata
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
+    title: '',
+    difficulty: 'moderate',
+    terrain: 'mixed',
+    estimatedDurationMinutes: 60,
+    description: '',
+    region: '',
+  });
+
+  const { upload: uploadRoute } = useUploadRoute();
+
+  const handleFileSelect = async (e) => {
+    const selected = e.target.files[0];
+    if (!selected) return;
+
+    setFile(selected);
+    setError(null);
+    setPhysicsDifficultyScore(null);
+    setLoading(true);
+
+    try {
+      const preview = await routesApi.previewGpx(selected);
+      const score =
+        preview?.physicsDifficultyScore != null && Number.isFinite(Number(preview.physicsDifficultyScore))
+          ? Number(preview.physicsDifficultyScore)
+          : null;
+      setPhysicsDifficultyScore(score);
+
+      const text = await selected.text();
+      const parser = new DOMParser();
+      const gpxDom = parser.parseFromString(text, 'application/xml');
+
+      if (gpxDom.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Invalid GPX file');
+      }
+
+      const toGeoJSON = await import('togeojson');
+      const geojson = toGeoJSON.gpx(gpxDom);
+      setGeoJson(geojson);
+
+      const analysis = analyzeGpxTrack(gpxDom);
+      if (analysis.error) {
+        throw new Error(analysis.error);
+      }
+
+      setStats({
+        distanceKm: (analysis.distanceM / 1000).toFixed(2),
+        elevationGainM: analysis.elevationGainM.toFixed(0),
+      });
+      setElevationProfile(analysis.elevationProfile);
+      setMissingElevation(Boolean(analysis.missingElevation));
+      setDurationSuggestionSource(analysis.durationSuggestionSource ?? 'none');
+      setSuggestedMinutesSnapshot(analysis.suggestedDurationMinutes ?? 60);
+      setFormData((prev) => ({
+        ...prev,
+        estimatedDurationMinutes: analysis.suggestedDurationMinutes ?? 60,
+      }));
+
+      setStep(2);
+    } catch (err) {
+      setError(err.message || 'Failed to parse GPX file');
+      setFile(null);
+      setGeoJson(null);
+      setStats(null);
+      setElevationProfile(null);
+      setMissingElevation(false);
+      setDurationSuggestionSource(null);
+      setSuggestedMinutesSnapshot(null);
+      setPhysicsDifficultyScore(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!file || !formData.title) {
+      setError('Title is required');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const curMin = Number(formData.estimatedDurationMinutes);
+      const snapMin = suggestedMinutesSnapshot != null ? Number(suggestedMinutesSnapshot) : null;
+      const estimatedDurationSource =
+        snapMin != null && !Number.isNaN(curMin) && curMin !== snapMin
+          ? ESTIMATED_DURATION_SOURCE.USER
+          : durationSuggestionSource === 'timestamps'
+            ? ESTIMATED_DURATION_SOURCE.GPX_TIMESTAMPS
+            : durationSuggestionSource === 'pace'
+              ? ESTIMATED_DURATION_SOURCE.ESTIMATED_PACE
+              : ESTIMATED_DURATION_SOURCE.ESTIMATED;
+
+      const response = await uploadRoute({
+        file,
+        title: formData.title,
+        difficulty: formData.difficulty,
+        terrain: formData.terrain,
+        estimatedDurationMinutes: formData.estimatedDurationMinutes,
+        estimatedDurationSource,
+        description: formData.description,
+        region: formData.region,
+      });
+
+      onSuccess?.(response);
+      setStep(1);
+      setFile(null);
+      setGeoJson(null);
+      setStats(null);
+      setElevationProfile(null);
+      setMissingElevation(false);
+      setDurationSuggestionSource(null);
+      setSuggestedMinutesSnapshot(null);
+      setPhysicsDifficultyScore(null);
+      setFormData({
         title: '',
         difficulty: 'moderate',
         terrain: 'mixed',
         estimatedDurationMinutes: 60,
         description: '',
         region: '',
-    });
-
-    const { upload: uploadRoute } = useUploadRoute();
-
-    if (!isOpen) return null;
-
-    const handleFileSelect = async (e) => {
-        const selected = e.target.files[0];
-        if (!selected) return;
-
-        setFile(selected);
-        setError(null);
-        setLoading(true);
-
-        try {
-            // Parse GPX client-side
-            const text = await selected.text();
-            const parser = new DOMParser();
-            const gpxDom = parser.parseFromString(text, 'application/xml');
-
-            if (gpxDom.getElementsByTagName('parsererror').length > 0) {
-                throw new Error('Invalid GPX file');
-            }
-
-            // Convert GPX to GeoJSON
-            const toGeoJSON = await import('togeojson');
-            const geojson = toGeoJSON.gpx(gpxDom);
-            setGeoJson(geojson);
-
-            // Calculate stats from geojson coordinates
-            const coords = geojson.features?.[0]?.geometry?.coordinates || [];
-            const distance = calculateDistance(coords);
-            const elevation = calculateElevation(gpxDom);
-
-            setStats({
-                distanceKm: (distance / 1000).toFixed(2),
-                elevationGainM: elevation.toFixed(0),
-            });
-
-            setStep(2); // Move to preview/metadata
-        } catch (err) {
-            setError(err.message || 'Failed to parse GPX file');
-            setFile(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleInputChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSave = async () => {
-        if (!file || !formData.title) {
-            setError('Title is required');
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await uploadRoute({
-                file,
-                title: formData.title,
-                difficulty: formData.difficulty,
-                terrain: formData.terrain,
-                estimatedDurationMinutes: formData.estimatedDurationMinutes,
-                description: formData.description,
-                region: formData.region,
-            });
-
-            onSuccess?.(response);
-            // Reset state
-            setStep(1);
-            setFile(null);
-            setGeoJson(null);
-            setStats(null);
-            setFormData({
-                title: '',
-                difficulty: 'moderate',
-                terrain: 'mixed',
-                estimatedDurationMinutes: 60,
-                description: '',
-                region: '',
-            });
-            onClose();
-        } catch (err) {
-            setError(err.message || 'Failed to save route');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleClose = () => {
-        // Reset state when closing
-        setStep(1);
-        setFile(null);
-        setGeoJson(null);
-        setStats(null);
-        setError(null);
-        setFormData({
-            title: '',
-            difficulty: 'moderate',
-            terrain: 'mixed',
-            estimatedDurationMinutes: 60,
-            description: '',
-            region: '',
-        });
-        onClose();
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-6 p-8">
-                <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-semibold">Upload GPX Route</h2>
-                    <button
-                        onClick={handleClose}
-                        disabled={loading}
-                        className="text-white/60 hover:text-white transition"
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
-                        <p className="text-sm text-red-400">{error}</p>
-                    </div>
-                )}
-
-                {step === 1 && (
-                    <div>
-                        <label className="block">
-                            <p className="mb-3 text-sm font-semibold">Select GPX File</p>
-                            <input
-                                type="file"
-                                accept=".gpx"
-                                onChange={handleFileSelect}
-                                disabled={loading}
-                                className="block w-full text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#7B5CFF]/30 file:text-[#7B5CFF] hover:file:bg-[#7B5CFF]/40"
-                            />
-                        </label>
-                    </div>
-                )}
-
-                {step === 2 && geoJson && stats && (
-                    <div className="space-y-6">
-                        <Suspense fallback={<div className="h-64 mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-white/40">Loading Map...</div>}>
-                            <RouteMapPreview geoJson={geoJson} />
-                        </Suspense>
-
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
-                                <p className="text-xs uppercase tracking-widest text-white/42">Distance</p>
-                                <p className="mt-2 text-2xl font-semibold">{stats.distanceKm} km</p>
-                            </div>
-                            <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
-                                <p className="text-xs uppercase tracking-widest text-white/42">Elevation</p>
-                                <p className="mt-2 text-2xl font-semibold">{stats.elevationGainM} m</p>
-                            </div>
-                            <div className="rounded-2xl bg-white/5 p-4 border border-white/10">
-                                <p className="text-xs uppercase tracking-widest text-white/42">Duration</p>
-                                <p className="mt-2 text-2xl font-semibold">{formData.estimatedDurationMinutes} min</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Route Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.title}
-                                    onChange={(e) => handleInputChange('title', e.target.value)}
-                                    placeholder="e.g., Oak Ridge Loop"
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Duration (minutes) *</label>
-                                <input
-                                    type="number"
-                                    value={formData.estimatedDurationMinutes}
-                                    onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Difficulty *</label>
-                                <select
-                                    value={formData.difficulty}
-                                    onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-[#7B5CFF]/50"
-                                >
-                                    {DIFFICULTY_OPTIONS.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Terrain *</label>
-                                <select
-                                    value={formData.terrain}
-                                    onChange={(e) => handleInputChange('terrain', e.target.value)}
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:outline-none focus:border-[#7B5CFF]/50"
-                                >
-                                    {TERRAIN_OPTIONS.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Region</label>
-                                <input
-                                    type="text"
-                                    value={formData.region}
-                                    onChange={(e) => handleInputChange('region', e.target.value)}
-                                    placeholder="e.g., Carmel Ridge"
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-2">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => handleInputChange('description', e.target.value)}
-                                    placeholder="Add notes about the route..."
-                                    rows="3"
-                                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#7B5CFF]/50"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex gap-3 justify-end pt-4">
-                    <Button variant="ghost" onClick={handleClose} disabled={loading}>
-                        Cancel
-                    </Button>
-                    {step === 1 && (
-                        <Button variant="primary" disabled={!file || loading}>
-                            {loading ? 'Parsing...' : 'Next'}
-                        </Button>
-                    )}
-                    {step === 2 && (
-                        <>
-                            <Button variant="secondary" onClick={() => setStep(1)} disabled={loading}>
-                                Back
-                            </Button>
-                            <Button variant="primary" onClick={handleSave} disabled={loading}>
-                                {loading ? 'Saving...' : 'Save Route'}
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </Card>
-        </div>
-    );
-}
-
-function calculateDistance(coords) {
-    let distance = 0;
-    for (let i = 0; i < coords.length - 1; i++) {
-        distance += haversineDistance(
-            coords[i][1], coords[i][0],
-            coords[i + 1][1], coords[i + 1][0]
-        );
+      });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to save route');
+    } finally {
+      setLoading(false);
     }
-    return distance;
-}
+  };
 
-function calculateElevation(gpxDom) {
-    // Extract elevation data from GPX xml
-    const ns = 'http://www.topografix.com/GPX/1/1';
-    const trkpts = Array.from(gpxDom.getElementsByTagNameNS(ns, 'trkpt'));
-
-    let elevGain = 0;
-    let prevEle = null;
-
-    trkpts.forEach(pt => {
-        const eleElem = pt.getElementsByTagNameNS(ns, 'ele')[0];
-        if (eleElem) {
-            const ele = parseFloat(eleElem.textContent);
-            if (prevEle !== null && ele > prevEle) {
-                elevGain += ele - prevEle;
-            }
-            prevEle = ele;
-        }
+  const handleClose = () => {
+    setStep(1);
+    setFile(null);
+    setGeoJson(null);
+    setStats(null);
+    setElevationProfile(null);
+    setMissingElevation(false);
+    setDurationSuggestionSource(null);
+    setSuggestedMinutesSnapshot(null);
+    setPhysicsDifficultyScore(null);
+    setError(null);
+    setFormData({
+      title: '',
+      difficulty: 'moderate',
+      terrain: 'mixed',
+      estimatedDurationMinutes: 60,
+      description: '',
+      region: '',
     });
+    onClose();
+  };
 
-    return elevGain;
-}
+  return (
+    <AnimatedModal open={isOpen} onClose={handleClose} maxWidthClassName="max-w-2xl">
+      <ModalPanel className="max-h-[90vh] w-full space-y-6 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <ModalHeader title="Upload GPX route" titleId={titleId} onClose={handleClose} closeDisabled={loading} />
 
-function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+        {error && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
 
-    const a =
-        Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        {step === 1 && (
+          <FormField label="Select GPX file">
+            <input
+              type="file"
+              accept=".gpx"
+              onChange={handleFileSelect}
+              disabled={loading}
+              className="block w-full text-sm text-fg-muted file:mr-4 file:rounded-xl file:border-0 file:bg-rydo-purple/30 file:px-4 file:py-2 file:text-sm file:font-medium file:text-rydo-purple hover:file:bg-rydo-purple/40"
+            />
+          </FormField>
+        )}
 
-    return R * c;
+        {step === 2 && geoJson && stats && (
+          <div className="space-y-6">
+            <Suspense
+              fallback={
+                <div className="mb-4 flex h-64 items-center justify-center rounded-2xl border border-border bg-surface text-sm text-fg-subtle">
+                  Loading Map...
+                </div>
+              }
+            >
+              <RouteMapWithElevation
+                geoJson={geoJson}
+                profile={missingElevation ? null : elevationProfile}
+              />
+            </Suspense>
+
+            {missingElevation ? (
+              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm text-amber-100/90">
+                No elevation data in this GPX, so we can&apos;t show a profile. Distance below is still from the track.
+              </div>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className={modalMetricLabelClass}>Distance</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{formatKm(stats.distanceKm, 2)}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className={modalMetricLabelClass}>Elevation gain</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{missingElevation ? '—' : `${stats.elevationGainM} m`}</p>
+                {!missingElevation ? <p className={cn('mt-1', modalFinePrintClass)}>Smoothed track, noise filtered</p> : null}
+              </div>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className={modalMetricLabelClass}>Duration</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{formData.estimatedDurationMinutes} min</p>
+                <p className={cn('mt-1', modalFinePrintClass)}>
+                  {durationSuggestionSource === 'timestamps' &&
+                    'Recorded — from GPX clock times (first to last point with times)'}
+                  {durationSuggestionSource === 'pace' &&
+                    `Inferred at ${SUGGESTED_DURATION_SPEED_KMH} km/h average (no GPX clock)`}
+                  {durationSuggestionSource === 'none' &&
+                    'Inferred (no GPX clock) — default 60 min until you change it below'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface p-4">
+                <p className={modalMetricLabelClass}>Physics intensity</p>
+                <p className="mt-2 text-2xl font-semibold tabular-nums text-fg">
+                  {physicsDifficultyScore != null ? `${physicsDifficultyScore.toFixed(1)} / 10` : '—'}
+                </p>
+                <p className={cn('mt-1', modalFinePrintClass)}>
+                  Mechanical load vs calibrated corpus (same score after save)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <FormField label="Route name">
+                <Input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="e.g., Oak Ridge Loop"
+                  required
+                />
+              </FormField>
+
+              <FormField label="Duration (minutes)">
+                <div className="space-y-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    value={formData.estimatedDurationMinutes}
+                    onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value, 10) || 0)}
+                    required
+                  />
+                  <p className={modalHintClass}>
+                    {durationSuggestionSource === 'timestamps' && (
+                      <>
+                        This matches the GPX recording clock (wall time). Change it only if you want to store a different
+                        story than the file&apos;s timestamps.
+                      </>
+                    )}
+                    {durationSuggestionSource === 'pace' && (
+                      <>
+                        Inferred from track length at{' '}
+                        <span className="text-fg/90">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock in
+                        the file. Adjust minutes to match how you ride.
+                      </>
+                    )}
+                    {durationSuggestionSource === 'none' && (
+                      <>
+                        Inferred (no GPX clock) — we default to 60 minutes; set a value that fits this route.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </FormField>
+
+              <FormField label="Difficulty">
+                <select
+                  value={formData.difficulty}
+                  onChange={(e) => handleInputChange('difficulty', e.target.value)}
+                  className={modalControlClass}
+                  required
+                >
+                  {DIFFICULTY_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Terrain">
+                <select
+                  value={formData.terrain}
+                  onChange={(e) => handleInputChange('terrain', e.target.value)}
+                  className={modalControlClass}
+                  required
+                >
+                  {TERRAIN_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Region">
+                <Input
+                  type="text"
+                  value={formData.region}
+                  onChange={(e) => handleInputChange('region', e.target.value)}
+                  placeholder="e.g., Carmel Ridge"
+                />
+              </FormField>
+
+              <FormField label="Description">
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Add notes about the route..."
+                  rows={3}
+                  className={cn(modalControlClass, 'min-h-[5.5rem] resize-y')}
+                />
+              </FormField>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button variant="ghost" onClick={handleClose} disabled={loading}>
+            Cancel
+          </Button>
+          {step === 1 && (
+            <Button variant="primary" disabled={!file || loading}>
+              {loading ? 'Parsing...' : 'Next'}
+            </Button>
+          )}
+          {step === 2 && (
+            <>
+              <Button variant="secondary" onClick={() => setStep(1)} disabled={loading}>
+                Back
+              </Button>
+              <Button variant="primary" onClick={handleSave} disabled={loading}>
+                {loading ? 'Saving...' : 'Save Route'}
+              </Button>
+            </>
+          )}
+        </div>
+      </ModalPanel>
+    </AnimatedModal>
+  );
 }

@@ -15,13 +15,13 @@ export default function HazardsModerationTable() {
       <h3 className="text-lg font-semibold">Hazards moderation</h3>
       <div className="mt-4 space-y-3">
         {hazards.map((hazard) => (
-          <div key={hazard.id} className="rounded-2xl border border-white/8 bg-black/20 p-4">
+          <div key={hazard.id} className="rounded-2xl border border-border bg-black/20 p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-medium">{hazard.type}</p>
-                <p className="mt-1 text-sm text-white/56">{hazard.severity} severity</p>
+                <p className="mt-1 text-sm text-fg-muted">{hazard.severity} severity</p>
               </div>
-              <span className="text-sm text-white/56">{hazard.status}</span>
+              <span className="text-sm text-fg-muted">{hazard.status}</span>
             </div>
             <div className="mt-4">
               <Button

@@ -24,7 +24,10 @@ export function useDeleteRoute() {
 
   return useMutation({
     mutationFn: adminApi.deleteRoute,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.routes() }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.routes() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.summary() });
+    },
   });
 }
 

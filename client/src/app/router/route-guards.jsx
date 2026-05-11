@@ -12,6 +12,18 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+export function GuestOnlyRoute() {
+  const { isAuthenticated, isAdmin, isAuthReady } = useAuth();
+
+  if (!isAuthReady) return <Loader fullscreen />;
+  if (isAuthenticated) {
+    const to = isAdmin ? ROUTES.admin : ROUTES.dashboard;
+    return <Navigate to={to} replace />;
+  }
+
+  return <Outlet />;
+}
+
 export function AdminRoute() {
   const { isAuthenticated, isAdmin, isAuthReady } = useAuth();
 

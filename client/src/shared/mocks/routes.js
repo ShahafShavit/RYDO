@@ -7,11 +7,16 @@ export const MOCK_ROUTES = [
         distanceKm: 45.5,
         elevationGainM: 1200,
         difficulty: 'hard',
+        physicsDifficultyScore: 7.2,
         terrain: 'trail',
         durationMinutes: 270,
-        createdBy: 'johncyclist',
+        estimatedDurationSource: 'gpx_timestamps',
+        createdBy: { id: 1, fullName: 'John Doe' },
         createdAt: '2023-03-01T08:00:00Z',
-        coordinates: [[31.7683, 35.2137], [31.7690, 35.2140]],
+        coordinates: [
+            [35.2137, 31.7683],
+            [35.214, 31.769],
+        ],
     },
     {
         id: 2,
@@ -22,9 +27,13 @@ export const MOCK_ROUTES = [
         difficulty: 'casual',
         terrain: 'road',
         durationMinutes: 75,
-        createdBy: 'sarahadmin',
+        estimatedDurationSource: 'estimated_pace',
+        createdBy: { id: 2, fullName: 'Sarah Admin' },
         createdAt: '2023-03-05T10:00:00Z',
-        coordinates: [[32.0853, 34.7818], [32.0860, 34.7820]],
+        coordinates: [
+            [34.7818, 32.0853],
+            [34.782, 32.086],
+        ],
     },
     {
         id: 3,
@@ -35,9 +44,13 @@ export const MOCK_ROUTES = [
         difficulty: 'medium',
         terrain: 'mixed',
         durationMinutes: 150,
-        createdBy: 'miketrainer',
+        estimatedDurationSource: 'estimated',
+        createdBy: { id: 3, fullName: 'Mike Trainer' },
         createdAt: '2023-03-10T12:00:00Z',
-        coordinates: [[32.7940, 34.9896], [32.7950, 34.9900]],
+        coordinates: [
+            [34.9896, 32.794],
+            [34.99, 32.795],
+        ],
     },
 ];
 

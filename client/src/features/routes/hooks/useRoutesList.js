@@ -3,48 +3,37 @@ import { normalizePaginatedResult } from '@/shared/api/api-helpers';
 import { routeKeys, routesApi } from '@/features/routes/api/routesApi';
 import { normalizeRoute } from '@/features/routes/route-mapper';
 
+/** Single-page route list (e.g. pickers). Filtering is applied on the server. */
 export function useRoutesList(options = {}) {
   const { skip = 0, take = 50, search, terrain, difficulty, distance, sort } = options;
 
+  const q = (search || '').trim() || undefined;
+
   const query = useQuery({
-    queryKey: routeKeys.list({ skip, take, search, terrain, difficulty, distance, sort }),
-    queryFn: async () => normalizePaginatedResult(await routesApi.list({ skip, take }), normalizeRoute),
+    queryKey: routeKeys.list({ skip, take, q, terrain, difficulty, distance, sort }),
+    queryFn: async () =>
+      normalizePaginatedResult(
+        await routesApi.list({
+          skip,
+          take,
+          ...(q ? { q } : {}),
+          ...(terrain && terrain !== 'all' ? { terrain } : {}),
+          ...(difficulty && difficulty !== 'all' ? { difficulty } : {}),
+          ...(distance && distance !== 'all' ? { distance } : {}),
+        }),
+        normalizeRoute,
+      ),
     staleTime: 5 * 60 * 1000,
   });
 
-  const data = query.data?.items || [];
-
-  let filtered = data.filter((route) => {
-    if (search && !route.title?.toLowerCase().includes(search.toLowerCase())) return false;
-
-    if (terrain && terrain !== 'all' && route.terrain !== terrain) return false;
-
-    if (difficulty && difficulty !== 'all' && route.difficulty !== difficulty) return false;
-
-    if (distance && distance !== 'all') {
-      const km = route.distanceKm;
-      if (distance === 'short' && km >= 20) return false;
-      if (distance === 'medium' && (km < 20 || km > 50)) return false;
-      if (distance === 'long' && km <= 50) return false;
-    }
-
-    return true;
-  });
-
-  if (sort === 'newest') {
-    filtered = [...filtered].sort((left, right) => {
-      const leftDate = left.createdAt ? new Date(left.createdAt).getTime() : 0;
-      const rightDate = right.createdAt ? new Date(right.createdAt).getTime() : 0;
-      return rightDate - leftDate;
-    });
-  }
+  const routes = query.data?.items || [];
 
   return {
-    routes: filtered,
+    routes,
     pagination: query.data || normalizePaginatedResult([], normalizeRoute),
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
-    raw: data,
+    raw: routes,
   };
 }

@@ -167,12 +167,16 @@ Response:
 {
   "defaultBikeType": "road",
   "distanceUnit": "km",
-  "notificationsEnabled": true
+  "notificationsEnabled": true,
+  "publicInRouteRiderLists": true,
+  "colorScheme": "midnight"
 }
 ```
 
+`colorScheme` is one of: `midnight`, `evergreen`, `abyss`, `daylight`, `sage`, `dune`. Invalid values are treated as `midnight`.
+
 ### `PUT /account/preferences`
-Request and response use the same shape as `GET /account/preferences`.
+Request and response use the same shape as `GET /account/preferences`. Omit optional fields to leave them unchanged (server-dependent); the client typically sends the full preference object.
 
 ### `PUT /account/password`
 Request:
@@ -185,16 +189,206 @@ Request:
 
 Response: `204 No Content`
 
+## Dashboard
+### `GET /dashboard/summary`
+Response (counts are **per authenticated user**):
+```json
+{
+  "completedRides": 0,
+  "savedRoutes": 0,
+  "groupRidesJoined": 0
+}
+```
+
+The home dashboard UI also composes **`GET /history`**, **`GET /users/me/rides`**, **`GET /clubs`**, and **`GET /challenges`** client-side (see shapes below).
+
+## History
+### `GET /history`
+Returns a JSON array of completed rides for the authenticated user, newest first. Each item includes:
+```json
+{
+  "id": 1,
+  "routeId": 1,
+  "routeTitle": "Oak Ridge Loop",
+  "routeDifficulty": "moderate",
+  "estimatedDurationMinutes": 120,
+  "completedAt": "2026-04-10T12:00:00.000Z",
+  "durationMinutes": 90,
+  "distanceKm": 22.5,
+  "elevationGainM": 120,
+  "rideId": 1,
+  "rideKind": "personal",
+  "clubId": null,
+  "clubName": null
+}
+```
+`routeDifficulty` and `estimatedDurationMinutes` mirror the linked route when the route exists; otherwise they may be omitted or null.
+
+Every completion has a **`rideId`** (the ride screen at `GET /rides/:rideId`). **`rideKind`** is `"club"` (scheduled club ride), `"personal"` (scheduled personal ride), or `"soloLog"` (solo log / ad-hoc ride). **`clubId`** / **`clubName`** are set when the underlying ride belongs to a club.
+
+Schema changes require recreating the local Docker database volume (see project README / `docker compose down -v`).
+
+## Rides (scheduled rides — club or personal)
+
+### `GET /users/me/rides` (authenticated)
+Query parameters (optional):
+
+- `q` — case-sensitive substring match on ride name, route title, and club name (server may use provider-specific case rules).
+- `when` — `upcoming` (scheduled date in the future), `past` (before now), or `all` (default). For `upcoming`, results are ordered soonest first and **capped at 4** rides; for `past`, most recent first; for `all`, most recent scheduled date first.
+
+Returns a JSON array of rides where the current user is a participant. Each item uses the **ride JSON shape** below (with roster visibility rules applied).
+
+### `POST /users/me/rides` (authenticated)
+Creates a **personal** scheduled ride (no club). Body:
+```json
+{
+  "name": "Morning solo loop",
+  "description": "",
+  "scheduledDate": "2026-07-01T06:30:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20
+}
+```
+The creator is added as a participant. Response uses the **ride JSON shape** with roster visible (`clubId` and `clubName` are null).
+
+### `GET /rides/:rideId` (anonymous or authenticated)
+Returns one scheduled ride. **Roster privacy:** active members of the ride’s club receive `participants`, `participantDetails`, and `participantCount`. Anonymous users and authenticated users who are **not** active members of that club receive **`participantCount` only** (no `participants` / `participantDetails`).
+
+If the ride belongs to a **private** club and the viewer is **not** an active member of that club, the API returns **`404 Not Found`** (no ride details), so deep links cannot bypass club privacy.
+
+**Ride JSON shape** (when roster is visible):
+```json
+{
+  "id": 1,
+  "rideKind": "scheduled",
+  "name": "Weekend Warriors",
+  "description": "Saturday social pace",
+  "scheduledDate": "2026-06-15T08:00:00.000Z",
+  "routeId": 1,
+  "routeTitle": "Mountain Peak Trail",
+  "routePreview": { "coordinates": [[34.8, 32.1], [34.81, 32.11]] },
+  "participantCount": 2,
+  "participants": [1, 2],
+  "participantDetails": [
+    { "userId": 1, "displayName": "John Rider" }
+  ],
+  "maxParticipants": 10,
+  "clubId": 1,
+  "clubName": "Coastal Open Rollers",
+  "clubAvatarUrl": "https://example.com/club-avatar.png",
+  "createdBy": { "id": 2, "fullName": "Jane Smith", "avatarUrl": "https://example.com/avatar.png" },
+  "viewerCanEdit": false
+}
+```
+
+`routePreview` is omitted or null when the ride has no route or no stored polyline; when present, `coordinates` are `[longitude, latitude]` pairs (same as history `preview`) for map thumbnails.
+
+`clubAvatarUrl` is the club’s profile image URL when the ride is linked to a club and the club has an avatar; otherwise null (same trimming rules as club list `avatarUrl`).
+
+`createdBy` identifies the user who scheduled the ride (`id`, display `fullName`, and optional `avatarUrl` using the same roster rules as ride participant rows).
+
+`viewerCanEdit` is `true` when the authenticated viewer may edit this ride: the scheduled time is still in the future, and the viewer is either the ride creator (personal or club ride), or an **active club admin** for a club-linked ride. Anonymous requests receive `viewerCanEdit: false`.
+
+When roster is hidden, `participantDetails` and `participants` are omitted or null; `participantCount` is always present.
+
+### `POST /clubs/:clubId/rides` (authenticated)
+Creates a scheduled ride for that club. The caller must be an **active** club member. Creator is added as a participant. Body (no `clubId` — it comes from the URL):
+```json
+{
+  "name": "Morning roll",
+  "description": "",
+  "scheduledDate": "2026-07-01T06:30:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20,
+  "scheduleForWholeClub": false
+}
+```
+If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator). That bulk-invite behavior applies at **create** time only; updating a ride does not re-invite the whole club.
+
+### `PATCH /rides/:rideId` (authenticated)
+Updates an **upcoming** scheduled ride. The caller must be allowed to edit (`viewerCanEdit` would be `true` for them on `GET`). Past rides cannot be updated (`403 Forbidden`). Body (same fields as create, without `scheduleForWholeClub`):
+
+```json
+{
+  "name": "Morning roll (updated)",
+  "description": "",
+  "scheduledDate": "2026-07-01T07:00:00.000Z",
+  "routeId": 3,
+  "maxParticipants": 20
+}
+```
+
+`routeId` may be `null` to clear the linked route. `maxParticipants` must be **greater than or equal to** the current number of participants; otherwise `400` with problem details. Unknown `routeId` → `404`. Response is the **ride JSON shape** (including `viewerCanEdit: true` for the editor).
+
+### `POST /rides/:rideId/join` / `POST /rides/:rideId/leave` (authenticated)
+Join or leave the ride roster. Join requires an **active** membership in the ride’s club when the ride is linked to a club (`leave` returns `204 No Content`).
+
+## Cycling clubs
+Visibility is `public` or `private` in JSON responses; create/patch use numeric enum **`0` = public, `1` = private** (`ClubVisibility`).
+
+### `GET /clubs`
+- Anonymous: public clubs only.
+- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending` and `myRole` (`member` | `admin` | `pending` | null). For **private** clubs, if the viewer is **not** an active member, `description`, `region`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
+- Each row includes optional `avatarUrl` when not redacted (image URL string or null).
+
+### `POST /clubs` (authenticated)
+Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member. Response includes `avatarUrl` (typically `null` for new clubs).
+
+### `GET /clubs/:id`
+Returns `visibility`, `memberCount`, and `currentUserMembership`: `none` | `pending` | `member` | `admin`.
+
+For **private** clubs, if the viewer is **not** an active member (`pending` or `none`), `description`, `region`, `memberCount`, and `avatarUrl` are omitted (null). The club **name** remains so people know which club they are requesting to join.
+
+### `GET /clubs/:id/members` (authenticated, active members only)
+Member roster with `userId`, `displayName`, `email`, `role`, `membershipStatus` (`active` | `pending`), and timestamps. **Regular members** receive **active** members only. **Club admins** also receive **pending** join requests in the same list (sorted with pending first), so the UI can show approve/deny alongside the roster.
+
+### `POST /clubs/:id/join` / `POST /clubs/:id/leave` (authenticated)
+Public clubs: immediate **active** membership. Private clubs: **pending** until approved. Leave blocked for sole admin (HTTP 400 with problem details).
+
+### `GET /clubs/:id/join-requests` (club admins)
+Pending membership requests.
+
+### `POST /clubs/:id/join-requests/:userId/approve` | `.../reject` (club admins)
+
+### `POST /clubs/:id/invites` (club admins)
+Returns `{ "inviteCode": "<token>", "clubId": n }`.
+
+### `POST /clubs/invites/redeem` (authenticated)
+Body: `{ "token": "<code>" }` — grants **active** membership when valid.
+
+### `PATCH /clubs/:id` (club admins)
+Update metadata including `visibility`. Optional `avatarUrl`: set to a non-empty string for an image URL, or clear the image by sending an empty string (stored as null). Omitted properties are left unchanged.
+
+### `POST /clubs/:id/members/:userId/promote` | `.../demote` (club admins)
+Demote is rejected if it would remove the last admin.
+
+### `DELETE /clubs/:id/members/:userId` (club admins)
+Cannot remove the last admin.
+
+### `GET /clubs/:id/rides`
+- **Public** club: array of scheduled ride rows. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only (names/times/routes still visible).
+- **Private** club, viewer **not** an active member: `{ "summaryOnly": true, "upcomingCount": n, "pastCount": n }` — no ride titles, times, or routes.
+
 ## Secondary Feature Endpoints
-These feature modules exist and use the shared client path, even if not all pages are currently mounted:
+These feature modules exist and use the shared client path:
 
 - `GET /dashboard/summary`
 - `GET /hazards`
 - `POST /hazards`
-- `GET /rides/groups`
-- `POST /rides/groups`
-- `GET /rides/events/:rideId`
-- `GET /chat/:rideId`
-- `POST /chat/:rideId`
+- `GET /users/me/rides` (optional `q`, `when`)
+- `POST /users/me/rides`
+- `POST /clubs/:clubId/rides`
+- `GET /rides/:rideId`
+- `PATCH /rides/:rideId`
+- `POST /rides/:rideId/join`
+- `POST /rides/:rideId/leave`
+- `GET /clubs`, `POST /clubs`, club sub-resources as above
+- Club group chat (active members only; see `GET /clubs/:id/members` rules):
+  - `GET /clubs/:clubId/chat/messages?beforeMessageId=&take=` — paginated history (newest batch uses `beforeMessageId` cursor).
+  - `POST /clubs/:clubId/chat/messages` — body `{ "body": string, "mentions": [ { "kind": "user"|"route"|"ride", "id": number } ] }` (server validates each mention).
+  - `POST /clubs/:clubId/chat/read` — body `{ "lastReadMessageId": number }` or `{ "markLatest": true }`.
+  - `GET /clubs/:clubId/chat/mentionables?q=` — optional `q` filter; returns `{ "users", "routes", "rides" }` for `@` autocomplete.
+  - `GET /users/me/club-chat/summary` — array of `{ clubId, clubName, clubAvatarUrl, unreadCount, lastMessagePreview, lastMessageAt }` for the dock (preview is truncated server-side; `clubAvatarUrl` nullable).
+- SignalR hub: `/hubs/club-chat` — JWT via `access_token` query or bearer; client joins `JoinClub(clubId)`; server pushes `ReceiveMessage` after each successful `POST` message.
 - `GET /history`
 - `GET /challenges`

@@ -87,7 +87,7 @@ export const ChangePasswordForm = () => {
                 <div className="text-red-500 text-sm mt-2">{errors.submit}</div>
             )}
             {successMsg && (
-                <div className="text-green-500 text-sm mt-2">{successMsg}</div>
+                <div className="text-success text-sm mt-2">{successMsg}</div>
             )}
 
             <Button type="submit" variant="primary" className="w-full" isLoading={isLoading}>

@@ -1,0 +1,8 @@
+{
+  "name": "rydo-timelapse-encoder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node encoder.mjs"
+  }
+}

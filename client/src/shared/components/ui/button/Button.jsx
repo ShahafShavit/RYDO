@@ -2,15 +2,15 @@ import { cn } from '@/shared/lib/cn';
 
 const variants = {
   primary:
-    'text-white border border-white/15 bg-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_30px_rgba(123,92,255,0.18)] hover:border-[#7B5CFF]/50 hover:shadow-[0_0_30px_rgba(123,92,255,0.28)]',
+    'text-fg border border-border-strong bg-surface-strong shadow-[inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_18%,transparent),0_8px_30px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)] hover:border-rydo-purple/50 hover:shadow-[0_0_30px_color-mix(in_srgb,var(--rydo-purple)_30%,transparent)]',
   secondary:
-    'text-white border border-white/12 bg-white/5 hover:bg-white/8 hover:border-white/20',
+    'text-fg border border-border bg-surface hover:bg-surface-strong hover:border-border-strong',
   neon:
-    'text-white border border-[#7B5CFF]/45 bg-[#7B5CFF]/14 shadow-[0_0_36px_rgba(123,92,255,0.24)] hover:bg-[#7B5CFF]/18',
+    'text-fg border border-rydo-purple/45 bg-rydo-purple/14 shadow-[0_0_36px_color-mix(in_srgb,var(--rydo-purple)_26%,transparent)] hover:bg-rydo-purple/18',
   success:
-    'text-white border border-[#21F1A8]/35 bg-[#21F1A8]/10 shadow-[0_0_32px_rgba(33,241,168,0.18)] hover:bg-[#21F1A8]/15',
+    'text-fg border border-rydo-green/35 bg-rydo-green/10 shadow-[0_0_32px_color-mix(in_srgb,var(--rydo-green)_20%,transparent)] hover:bg-rydo-green/15',
   ghost:
-    'text-white hover:bg-white/6',
+    'text-fg hover:bg-surface',
 };
 
 const sizes = {
@@ -31,7 +31,7 @@ export default function Button({
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-full backdrop-blur-xl transition duration-300 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex cursor-pointer items-center justify-center gap-2 rounded-full backdrop-blur-xl transition duration-300 disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
         sizes[size],
         className

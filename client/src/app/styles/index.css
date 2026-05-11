@@ -1,18 +1,291 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 @import "tailwindcss";
 
+/* ─── Base tokens (midnight — default) · warm asphalt + copper signal + teal trail ─── */
 :root {
-  --rydo-bg: #171717;
-  --rydo-bg-deep: #0f0f10;
-  --rydo-surface: rgba(255, 255, 255, 0.05);
-  --rydo-surface-strong: rgba(255, 255, 255, 0.08);
-  --rydo-border: rgba(255, 255, 255, 0.12);
-  --rydo-text: #ffffff;
-  --rydo-text-muted: rgba(255, 255, 255, 0.72);
-  --rydo-purple: #7b5cff;
-  --rydo-green: #21f1a8;
-  --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 42%);
-  --rydo-glow-purple: radial-gradient(circle at 20% 0%, rgba(123, 92, 255, 0.18), transparent 32%);
+  --rydo-bg: #151311;
+  --rydo-bg-deep: #0a0908;
+  --rydo-surface: rgba(255, 248, 240, 0.045);
+  --rydo-surface-strong: rgba(255, 245, 230, 0.075);
+  --rydo-border: rgba(245, 230, 210, 0.11);
+  --rydo-border-strong: rgba(250, 235, 215, 0.18);
+  --rydo-text: #faf7f2;
+  --rydo-text-muted: rgba(245, 235, 220, 0.72);
+  --rydo-text-subtle: rgba(220, 205, 185, 0.45);
+  --rydo-purple: #e58a2c;
+  --rydo-green: #3ecfb9;
+  --rydo-success: #2db89e;
+  --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rydo-transition-nav: 300ms var(--rydo-ease-out);
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 80% at 50% 100%,
+    rgba(229, 138, 44, 0.12),
+    transparent 55%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 12% 0%,
+    rgba(229, 138, 44, 0.14),
+    rgba(62, 207, 185, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 248, 240, 0.1),
+    rgba(40, 35, 30, 0.06)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 235, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 0, 0, 0.42);
+  --rydo-noise-opacity: 0.038;
+
+  /*
+   * Stacking (#root vs portaled modals): see body { isolation: isolate } and #root { z-index: 2 } below.
+   * Use z-(--rydo-z-*) in markup — @theme --z-* keys do not emit z-* utilities reliably here.
+   */
+  --rydo-z-live-map: 40;
+  --rydo-z-sticky: 50;
+  --rydo-z-anchor-popover: 55;
+  --rydo-z-route-header: 10;
+  --rydo-z-route-popover: 20;
+  --rydo-z-chat-fab: 100;
+  --rydo-z-chat-panel: 101;
+  --rydo-z-mobile-menu-backdrop: 115;
+  --rydo-z-mobile-menu: 120;
+  --rydo-z-live-blocking: 200;
+  --rydo-z-modal: 1000;
+  --rydo-z-modal-nested: 1010;
+}
+
+/* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */
+
+/* Evergreen: bioluminescent forest — cool pine black, chartreuse + spring (no warm metals) */
+[data-theme="evergreen"] {
+  --rydo-bg: #0c1411;
+  --rydo-bg-deep: #030806;
+  --rydo-surface: rgba(120, 220, 160, 0.06);
+  --rydo-surface-strong: rgba(100, 200, 145, 0.1);
+  --rydo-border: rgba(130, 210, 175, 0.14);
+  --rydo-border-strong: rgba(150, 230, 190, 0.22);
+  --rydo-text: #ecfdf5;
+  --rydo-text-muted: rgba(200, 245, 220, 0.72);
+  --rydo-text-subtle: rgba(160, 215, 185, 0.44);
+  --rydo-purple: #bef264;
+  --rydo-green: #4ade80;
+  --rydo-success: #22c55e;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 130% 85% at 50% 100%,
+    rgba(74, 222, 128, 0.14),
+    rgba(34, 197, 94, 0.05),
+    transparent 58%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 72% at 8% 0%,
+    rgba(190, 242, 100, 0.12),
+    rgba(52, 211, 153, 0.08),
+    transparent 50%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    155deg,
+    rgba(150, 230, 190, 0.1),
+    rgba(20, 60, 45, 0.08)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(180, 250, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 24, 12, 0.55);
+  --rydo-noise-opacity: 0.032;
+}
+
+/* Abyss: phosphor ocean — indigo void, cyan + periwinkle (cold; no amber) */
+[data-theme="abyss"] {
+  --rydo-bg: #0a0f18;
+  --rydo-bg-deep: #030711;
+  --rydo-surface: rgba(80, 130, 200, 0.08);
+  --rydo-surface-strong: rgba(90, 140, 210, 0.12);
+  --rydo-border: rgba(100, 150, 220, 0.18);
+  --rydo-border-strong: rgba(130, 175, 245, 0.3);
+  --rydo-text: #f0f9ff;
+  --rydo-text-muted: rgba(186, 220, 250, 0.76);
+  --rydo-text-subtle: rgba(140, 185, 230, 0.48);
+  --rydo-purple: #22d3ee;
+  --rydo-green: #a5b4fc;
+  --rydo-success: #38bdf8;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 82% at 50% 100%,
+    rgba(34, 211, 238, 0.12),
+    rgba(56, 189, 248, 0.06),
+    transparent 56%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 92% 70% at 20% 0%,
+    rgba(165, 180, 252, 0.14),
+    rgba(34, 211, 238, 0.08),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    160deg,
+    rgba(100, 150, 220, 0.14),
+    rgba(25, 45, 85, 0.08)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(180, 210, 255, 0.14);
+  --rydo-glass-outer: 0 20px 64px rgba(0, 12, 32, 0.58);
+  --rydo-noise-opacity: 0.034;
+}
+
+/* Light themes */
+
+/* Daylight: cool Nordic / open sky — blue-gray paper, cobalt + emerald (not warm cream) */
+[data-theme="daylight"] {
+  --rydo-bg: #e8edf3;
+  --rydo-bg-deep: #d9e2ec;
+  --rydo-surface: rgba(15, 40, 70, 0.045);
+  --rydo-surface-strong: rgba(15, 40, 70, 0.08);
+  --rydo-border: rgba(30, 58, 95, 0.12);
+  --rydo-border-strong: rgba(25, 50, 85, 0.2);
+  --rydo-text: #0f172a;
+  --rydo-text-muted: rgba(30, 41, 59, 0.68);
+  --rydo-text-subtle: rgba(51, 65, 85, 0.46);
+  --rydo-purple: #2563eb;
+  --rydo-green: #059669;
+  --rydo-success: #047857;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 88% at 50% 100%,
+    rgba(37, 99, 235, 0.08),
+    rgba(5, 150, 105, 0.05),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 72% at 12% 0%,
+    rgba(37, 99, 235, 0.1),
+    rgba(96, 165, 250, 0.06),
+    transparent 46%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(236, 242, 252, 0.62)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --rydo-glass-outer: 0 12px 40px rgba(15, 40, 70, 0.08);
+  --rydo-noise-opacity: 0.024;
+}
+
+/* Sage: celadon mist + plum accent (botanical, not rust-on-green) */
+[data-theme="sage"] {
+  --rydo-bg: #dde8e0;
+  --rydo-bg-deep: #cfdccf;
+  --rydo-surface: rgba(45, 75, 55, 0.07);
+  --rydo-surface-strong: rgba(40, 70, 52, 0.11);
+  --rydo-border: rgba(55, 85, 65, 0.14);
+  --rydo-border-strong: rgba(45, 75, 58, 0.24);
+  --rydo-text: #0f1f14;
+  --rydo-text-muted: rgba(25, 45, 35, 0.7);
+  --rydo-text-subtle: rgba(40, 60, 48, 0.46);
+  --rydo-purple: #6d28d9;
+  --rydo-green: #14532d;
+  --rydo-success: #166534;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 88% at 50% 100%,
+    rgba(20, 83, 45, 0.1),
+    rgba(109, 40, 217, 0.05),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 16% 0%,
+    rgba(109, 40, 217, 0.09),
+    rgba(74, 124, 89, 0.07),
+    transparent 46%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(230, 240, 233, 0.6)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --rydo-glass-outer: 0 12px 44px rgba(25, 45, 35, 0.1);
+  --rydo-noise-opacity: 0.025;
+}
+
+/* Dune: arid sunset — sand, rust, olive (warm; no shared teal with midnight) */
+[data-theme="dune"] {
+  --rydo-bg: #f0e6d8;
+  --rydo-bg-deep: #e3d4c4;
+  --rydo-surface: rgba(110, 60, 30, 0.06);
+  --rydo-surface-strong: rgba(100, 55, 28, 0.1);
+  --rydo-border: rgba(120, 75, 45, 0.14);
+  --rydo-border-strong: rgba(100, 60, 35, 0.24);
+  --rydo-text: #292524;
+  --rydo-text-muted: rgba(55, 48, 42, 0.7);
+  --rydo-text-subtle: rgba(75, 65, 55, 0.46);
+  --rydo-purple: #c2410c;
+  --rydo-green: #65a30d;
+  --rydo-success: #84cc16;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 125% 90% at 50% 100%,
+    rgba(194, 65, 12, 0.1),
+    rgba(101, 163, 13, 0.07),
+    transparent 54%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 95% 74% at 22% 0%,
+    rgba(234, 88, 12, 0.1),
+    rgba(161, 98, 7, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    168deg,
+    rgba(255, 250, 242, 0.9),
+    rgba(245, 230, 210, 0.58)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 252, 248, 0.88);
+  --rydo-glass-outer: 0 12px 44px rgba(90, 55, 30, 0.1);
+  --rydo-noise-opacity: 0.03;
+}
+
+[data-theme="midnight"] {
+  --rydo-bg: #151311;
+  --rydo-bg-deep: #0a0908;
+  --rydo-surface: rgba(255, 248, 240, 0.045);
+  --rydo-surface-strong: rgba(255, 245, 230, 0.075);
+  --rydo-border: rgba(245, 230, 210, 0.11);
+  --rydo-border-strong: rgba(250, 235, 215, 0.18);
+  --rydo-text: #faf7f2;
+  --rydo-text-muted: rgba(245, 235, 220, 0.72);
+  --rydo-text-subtle: rgba(220, 205, 185, 0.45);
+  --rydo-purple: #e58a2c;
+  --rydo-green: #3ecfb9;
+  --rydo-success: #2db89e;
+  --rydo-glow-bottom: radial-gradient(
+    ellipse 120% 80% at 50% 100%,
+    rgba(229, 138, 44, 0.12),
+    transparent 55%
+  );
+  --rydo-glow-purple: radial-gradient(
+    ellipse 90% 70% at 12% 0%,
+    rgba(229, 138, 44, 0.14),
+    rgba(62, 207, 185, 0.06),
+    transparent 48%
+  );
+  --rydo-glass-gradient: linear-gradient(
+    165deg,
+    rgba(255, 248, 240, 0.1),
+    rgba(40, 35, 30, 0.06)
+  );
+  --rydo-glass-inset: inset 0 1px 0 rgba(255, 235, 210, 0.1);
+  --rydo-glass-outer: 0 18px 56px rgba(0, 0, 0, 0.42);
+  --rydo-noise-opacity: 0.038;
+}
+
+@theme {
+  --color-fg: var(--rydo-text);
+  --color-fg-muted: var(--rydo-text-muted);
+  --color-fg-subtle: var(--rydo-text-subtle);
+  --color-border: var(--rydo-border);
+  --color-border-strong: var(--rydo-border-strong);
+  --color-surface: var(--rydo-surface);
+  --color-surface-strong: var(--rydo-surface-strong);
+  --color-accent: var(--rydo-purple);
+  --color-accent-2: var(--rydo-green);
+  --color-success: var(--rydo-success);
+  --color-rydo-purple: var(--rydo-purple);
+  --color-rydo-green: var(--rydo-green);
 }
 
 html,
@@ -25,17 +298,50 @@ html {
   scroll-behavior: auto;
 }
 
+html[data-theme="midnight"],
+html[data-theme="evergreen"],
+html[data-theme="abyss"] {
+  color-scheme: dark;
+}
+
+html[data-theme="daylight"],
+html[data-theme="sage"],
+html[data-theme="dune"] {
+  color-scheme: light;
+}
+
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   color: var(--rydo-text);
   background:
     var(--rydo-glow-bottom),
     var(--rydo-glow-purple),
-    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 40%, var(--rydo-bg) 100%);
+    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
   background-attachment: fixed;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Subtle film grain — static, no motion */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--rydo-noise-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+#root {
+  position: relative;
+  z-index: 2;
 }
 
 * {
@@ -48,23 +354,68 @@ a {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
 
+html[data-theme="midnight"] select,
+html[data-theme="evergreen"] select,
+html[data-theme="abyss"] select {
+  color-scheme: dark;
+}
+
+html[data-theme="daylight"] select,
+html[data-theme="sage"] select,
+html[data-theme="dune"] select {
+  color-scheme: light;
+}
+
+select option {
+  background-color: var(--rydo-bg-deep);
+  color: var(--rydo-text);
+}
+
 .rydo-brand {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: 0.08em;
+  font-family: 'Chivo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/*
+  Logo-RYDO.png is light-on-transparent. Raster images cannot be “filled” like SVG.
+  On light UI themes, flatten opaque pixels to a dark mark so the mark stays visible.
+  (Preserves alpha; multi-color logos become a single dark silhouette.)
+*/
+html[data-theme='daylight'] .app-logo,
+html[data-theme='sage'] .app-logo,
+html[data-theme='dune'] .app-logo {
+  filter: brightness(0);
 }
 
 .rydo-glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  background: var(--rydo-glass-gradient);
   border: 1px solid var(--rydo-border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 16px 64px rgba(0, 0, 0, 0.35);
+    var(--rydo-glass-inset),
+    var(--rydo-glass-outer);
+}
+
+/* Portal modals: one frosted layer on the panel (same tokens as .rydo-glass); scrim blurs page behind */
+.rydo-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Avoid stacked backdrop-blur on inputs inside a glass modal — blur lives on the shell only */
+.rydo-modal-panel :is(input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']), textarea, select) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .rydo-container {
@@ -76,4 +427,42 @@ textarea {
   padding: 7rem 0;
 }
 
-/* Removed empty .rydo-grid-noise ruleset (unused) */
+@keyframes rydo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rydo-fade-in {
+  animation: rydo-fade-in 0.3s var(--rydo-ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rydo-fade-in {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Card-sized Leaflet previews: keep required OSM credit but reduce visual weight */
+.rydo-leaflet-compact-attrib .leaflet-control-attribution {
+  font-size: 8px;
+  line-height: 1.2;
+  padding: 1px 4px;
+  margin: 0;
+  max-width: calc(100% - 4px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--rydo-bg-deep) 88%, transparent);
+  color: var(--rydo-text-muted);
+  border-radius: 2px 0 0 0;
+  border: 1px solid color-mix(in srgb, var(--rydo-border) 70%, transparent);
+}
+
+.rydo-leaflet-compact-attrib .leaflet-control-attribution a {
+  color: var(--rydo-green);
+}

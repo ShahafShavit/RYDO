@@ -12,7 +12,10 @@ export function normalizeUser(rawUser = {}) {
   return {
     id: Number(rawUser.id ?? rawUser.userId ?? 0),
     fullName,
+    firstName: rawUser.firstName ?? '',
+    lastName: rawUser.lastName ?? '',
     email: rawUser.email || '',
+    avatarUrl: rawUser.avatarUrl?.trim() || null,
     role,
     isActive: rawUser.isActive ?? true,
     createdAt: rawUser.createdAt || null,

@@ -4,7 +4,7 @@ import UsersTable from '@/features/admin/components/UsersTable';
 export default function AdminUsersPage() {
   return (
     <section className="space-y-6">
-      <AdminHeader title="Users management" description="Review platform members, roles and future moderation actions." />
+      <AdminHeader title="Users management" />
       <UsersTable />
     </section>
   );
