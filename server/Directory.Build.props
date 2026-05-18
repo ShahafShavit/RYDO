@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Apply .editorconfig code style; dotnet format enforces the same rules in CI -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

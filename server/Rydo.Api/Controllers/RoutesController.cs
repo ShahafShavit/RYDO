@@ -291,10 +291,10 @@ public class RoutesController(RydoDbContext db) : ControllerBase
             return Unauthorized();
 
         var query = from s in db.SavedRoutes
-            join r in db.Routes.Include(x => x.CreatedBy) on s.RouteId equals r.Id
-            where s.UserId == uid
-            orderby r.Title
-            select r;
+                    join r in db.Routes.Include(x => x.CreatedBy) on s.RouteId equals r.Id
+                    where s.UserId == uid
+                    orderby r.Title
+                    select r;
         var page = Pagination.PageQueryable(query, skip, take);
         var savedRouteIds = page.Items.Select(r => r.Id).ToList();
         var favMap = await RouteJsonMapper.LoadFavoriteCountsByRouteIdAsync(db, savedRouteIds, ct);

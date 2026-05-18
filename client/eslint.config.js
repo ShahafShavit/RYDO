@@ -27,6 +27,15 @@ export default defineConfig([
     },
   },
   {
+    files: ['src/**/*Context.jsx', 'src/**/context/**/*.jsx'],
+    rules: {
+      'react-refresh/only-export-components': [
+        'error',
+        { allowExportNames: ['useBreadcrumbContext', 'usePageBreadcrumbDetail'] },
+      ],
+    },
+  },
+  {
     files: ['playwright.config.js', 'vite.config.js', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: globals.node,

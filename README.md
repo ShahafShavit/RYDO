@@ -15,6 +15,20 @@ Additional **demo riders** (`rider003@rydo.test` … `rider036@rydo.test`, same 
 
 These are **development-only** credentials; change or remove them for any real deployment.
 
+## Code quality (shared across developers)
+
+Lint and format rules live in the repo so every editor and CI run the same checks.
+
+| Area | Config | Local command |
+|------|--------|----------------|
+| **Client** (React) | [`client/eslint.config.js`](client/eslint.config.js) | `cd client && npm run lint` |
+| **Server** (.NET) | [`.editorconfig`](.editorconfig), [`server/Directory.Build.props`](server/Directory.Build.props) | `dotnet format server/Rydo.sln --verify-no-changes` |
+| **All** | — | `bash scripts/verify-code.sh` or `npm run verify` from repo root |
+
+**Cursor / VS Code:** open the workspace and install the recommended extensions when prompted ([`.vscode/extensions.json`](.vscode/extensions.json)). Workspace settings wire ESLint to the `client/` folder and EditorConfig for indentation.
+
+**CI:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs client ESLint and server `dotnet build` + `dotnet format --verify-no-changes` on push/PR to `main`/`master`.
+
 ## Run the full stack
 
 REST routes live under **`/api`** (for example `POST /api/auth/login`) so the SPA can use the same host for HTML routes (`/routes`, `/clubs`, …) without colliding with JSON endpoints.

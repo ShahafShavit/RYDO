@@ -4,15 +4,17 @@ import { useLocation } from 'react-router-dom';
 const BreadcrumbContext = createContext(null);
 
 export function BreadcrumbProvider({ children }) {
-  const location = useLocation();
-  const [detailLabel, setDetailLabelState] = useState(null);
+  const { pathname } = useLocation();
+  const [detailState, setDetailState] = useState({ pathname, label: null });
 
-  useEffect(() => {
-    setDetailLabelState(null);
-  }, [location.pathname]);
+  if (detailState.pathname !== pathname) {
+    setDetailState({ pathname, label: null });
+  }
+
+  const detailLabel = detailState.label;
 
   const setDetailLabel = useCallback((value) => {
-    setDetailLabelState(value);
+    setDetailState((prev) => ({ ...prev, label: value }));
   }, []);
 
   const value = useMemo(

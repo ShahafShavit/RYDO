@@ -1,0 +1,8 @@
+{
+  "name": "rydo",
+  "private": true,
+  "scripts": {
+    "lint": "npm run lint --prefix client",
+    "verify": "bash scripts/verify-code.sh"
+  }
+}

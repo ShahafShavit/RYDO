@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Inbox as InboxIcon } from 'lucide-react';
 import { generatePath, Link } from 'react-router-dom';
@@ -53,7 +53,7 @@ export default function InboxPage() {
     },
   });
 
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
 
   useEffect(() => {
     if (!items.length) return;

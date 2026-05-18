@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace Rydo.Api.Data;
 

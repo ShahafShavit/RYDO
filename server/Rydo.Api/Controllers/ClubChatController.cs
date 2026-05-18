@@ -201,9 +201,9 @@ public class ClubChatController(RydoDbContext db, IHubContext<ClubChatHub> hubCo
             .ToList();
 
         var savedRoutes = await (from s in db.SavedRoutes.AsNoTracking()
-                join r in db.Routes.AsNoTracking() on s.RouteId equals r.Id
-                where s.UserId == uid.Value
-                select new { r.Id, r.Title })
+                                 join r in db.Routes.AsNoTracking() on s.RouteId equals r.Id
+                                 where s.UserId == uid.Value
+                                 select new { r.Id, r.Title })
             .ToListAsync(ct);
         var routes = savedRoutes
             .Select(x => new { kind = "route", id = x.Id, label = x.Title })

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Configuration;
-
 namespace Rydo.Api.Services.RideLive;
 
 /// <summary>
