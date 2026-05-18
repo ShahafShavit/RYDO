@@ -397,7 +397,7 @@ export default function MyRidesPage() {
               className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
               onClick={() => setModalOpen(true)}
             >
-              Ride!
+              Start Ride
             </Button>
           ) : null}
         </div>
