@@ -100,7 +100,7 @@ export default function LiveRideReplayPage() {
   const [uncertaintyData, setUncertaintyData] = useState(null);
   const [bearingHud, setBearingHud] = useState(null);
 
-  const noopSendPose = useCallback(() => {}, []);
+  const noopSendPose = useCallback(() => { }, []);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
@@ -339,7 +339,8 @@ export default function LiveRideReplayPage() {
       if (dom.getElementsByTagName('parsererror').length > 0) {
         throw new Error('Invalid XML');
       }
-      const toGeoJSON = await import('togeojson');
+      // const toGeoJSON = await import('togeojson');
+      const toGeoJSON = await import("@tmcw/togeojson");
       const geoJson = lower.endsWith('.kml') ? toGeoJSON.kml(dom) : toGeoJSON.gpx(dom);
       const line = normalizeTrackToLineString(geoJson);
       if (!line) {
@@ -484,22 +485,20 @@ export default function LiveRideReplayPage() {
           <button
             type="button"
             onClick={() => setShowUncertaintyOverlay((v) => !v)}
-            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${
-              showUncertaintyOverlay
+            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${showUncertaintyOverlay
                 ? 'border-amber-400/50 bg-amber-500/20 text-amber-100'
                 : 'border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] text-fg-muted'
-            }`}
+              }`}
           >
             Uncertainty
           </button>
           <button
             type="button"
             onClick={() => setShowBearingHud((v) => !v)}
-            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${
-              showBearingHud
+            className={`rounded-2xl border px-3 py-2 text-xs font-medium shadow backdrop-blur-md ${showBearingHud
                 ? 'border-cyan-400/45 bg-cyan-500/15 text-cyan-100'
                 : 'border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] text-fg-muted'
-            }`}
+              }`}
           >
             Bearing HUD
           </button>

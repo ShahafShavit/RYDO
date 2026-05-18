@@ -77,7 +77,8 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
         throw new Error('Invalid GPX file');
       }
 
-      const toGeoJSON = await import('togeojson');
+      // const toGeoJSON = await import('togeojson');
+      const toGeoJSON = await import("@tmcw/togeojson");
       const geojson = toGeoJSON.gpx(gpxDom);
       setGeoJson(geojson);
 
