@@ -112,10 +112,12 @@ export class RydoStack extends cdk.Stack {
       open: true,
     });
 
+    // Start at 0 so CloudFormation does not wait for tasks while ECR has no image yet.
+    // deploy-aws.sh scales to 1 after build + push.
     const service = new ecs.FargateService(this, 'Service', {
       cluster,
       taskDefinition: taskDef,
-      desiredCount: 1,
+      desiredCount: 0,
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       healthCheckGracePeriod: cdk.Duration.seconds(120),

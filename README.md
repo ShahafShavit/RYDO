@@ -76,7 +76,7 @@ CDK app under [`infra/`](infra/): **ECR**, **ECS Fargate** (app + ephemeral SQL 
 
 See [`infra/README.md`](infra/README.md) for `cdk deploy`, pushing the image to ECR, and `cdk destroy`.
 
-**One-command deploy (after config):** copy [`infra/deploy.env.example`](infra/deploy.env.example) to `infra/deploy.env`, set `AWS_REGION`, then run `bash scripts/deploy-aws.sh` (Git Bash / WSL / macOS/Linux). It runs CDK deploy, Docker build, ECR push, and ECS force new deployment using your region from the config file.
+**One-command deploy:** `bash scripts/deploy-aws.sh` (Git Bash / WSL / macOS/Linux). Uses your AWS CLI region/profile; optional `infra/deploy.env` for overrides. Bootstraps CDK, deploys infra when changed, builds, pushes, starts ECS, and verifies health.
 
 ### Pause AWS compute (scale ECS to zero)
 
@@ -92,7 +92,7 @@ bash scripts/ecs-scale.sh off      # desiredCount 0, wait until stable, verify
 bash scripts/ecs-scale.sh on       # desiredCount back to 1 (or DESIRED_COUNT_ON in deploy.env)
 ```
 
-A full **`cdk deploy`** can reset **`desiredCount`** to the value in [`infra/lib/rydo-stack.ts`](infra/lib/rydo-stack.ts) (currently `1`). Use **`SKIP_CDK_DEPLOY=1`** when you only build/push/roll the service, or run **`ecs-scale.sh off`** again after an infra deploy if you want the service to stay scaled down.
+A full **`cdk deploy`** resets **`desiredCount`** to **`0`** in [`infra/lib/rydo-stack.ts`](infra/lib/rydo-stack.ts); **`deploy-aws.sh`** scales back up after the image push. Use **`ecs-scale.sh off`** if you want no tasks without destroying the stack.
 
 More detail: [`infra/README.md`](infra/README.md).
 

@@ -8,19 +8,19 @@ Deploys **ECR**, **ECS Fargate** (app container + SQL Server sidecar), **ALB**, 
 - CDK bootstrapped in the account/region: `npx cdk bootstrap aws://ACCOUNT/REGION`
 - Docker (build and push the app image)
 
-## Deploy (script + config file)
+## Deploy
 
-1. Copy `deploy.env.example` to `deploy.env` and set **`AWS_REGION`** (and optional **`AWS_PROFILE`**).
-2. From the **repository root**:
+From the **repository root** (AWS CLI credentials + Docker required):
 
 ```bash
 bash scripts/deploy-aws.sh
 ```
 
-This runs `cdk deploy`, builds the root `Dockerfile`, logs in to ECR, pushes `rydo-app:latest`, and forces a new ECS deployment. Stack outputs include **`EcsClusterName`** and **`EcsServiceName`** so the script does not need hard-coded resource names.
+This bootstraps CDK if needed, deploys infra when it changed, builds the app image, pushes to ECR, starts ECS tasks, waits for stability, and verifies `/health`.
 
-- **`SKIP_CDK_DEPLOY=1`** in `deploy.env` — only build, push, and roll ECS (infra already deployed).
-- First time in an account/region, run **`npx cdk bootstrap`** once (from `infra/` or with the same `AWS_REGION` / profile).
+Optional overrides in `infra/deploy.env` (region, profile, Mapbox token). If the file is missing, region/profile come from `aws configure`.
+
+Stack outputs include **`EcsClusterName`** and **`EcsServiceName`** so the script does not need hard-coded resource names.
 
 ## Pause or resume ECS (scale to zero)
 
@@ -34,7 +34,7 @@ This runs `cdk deploy`, builds the root `Dockerfile`, logs in to ECR, pushes `ry
 
 Optional in `deploy.env`: **`DESIRED_COUNT_ON`** (integer ≥ 1) if you change desired capacity in the CDK template later.
 
-**Note:** A full **`cdk deploy`** that updates the ECS service may reset **desiredCount** to the template default (`1` in `lib/rydo-stack.ts`). After such a deploy, run **`ecs-scale.sh off`** again if you want tasks stopped. Image-only workflows can use **`SKIP_CDK_DEPLOY=1`** in `deploy-aws.sh` to avoid resetting desired count.
+**Note:** A full **`cdk deploy`** resets **desiredCount** to **`0`** in `lib/rydo-stack.ts` (so deploy does not block on an empty ECR). **`deploy-aws.sh`** scales back up after push; use **`ecs-scale.sh off`** if you want tasks stopped without destroying the stack.
 
 **Cost:** scaling to **0** stops **Fargate** charges; **ALB**, **CloudFront**, **ECR** storage, and **CloudWatch** can still incur fees until the stack is destroyed. Approximate monthly costs when running are summarized in the root [`README.md`](../README.md).
 
@@ -49,7 +49,9 @@ npm install
 npx cdk deploy
 ```
 
-The first deploy creates ECR and ECS; tasks may **fail until** an image exists. Push an image tagged `latest` to the repository (outputs show `EcrRepositoryUri` and `PushImageHint`), then start a new deployment (ECS console: **Update service** → **Force new deployment**, or use `scripts/deploy-aws.sh`).
+The ECS service is created with **`desiredCount: 0`** so `cdk deploy` does not wait on tasks while ECR is still empty. `scripts/deploy-aws.sh` builds and pushes `latest`, then sets desired count (default **1**) and waits for the service to stabilize.
+
+For a manual deploy without the script: push `latest` first, then set the service desired count to **1** and force a new deployment.
 
 From the repository root (after `cdk deploy` once so ECR exists):
 

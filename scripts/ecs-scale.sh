@@ -10,14 +10,14 @@
 #
 # Notes:
 # - ALB, CloudFront, ECR storage, and idle log groups still incur cost while the stack exists.
-# - Running "cdk deploy" may reset desired count to the value in infra/lib/rydo-stack.ts; use
-#   SKIP_CDK_DEPLOY=1 for image-only rolls, or re-run this script after a full CDK deploy.
+# - Running deploy-aws.sh scales tasks back up after push.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENV_FILE="$ROOT/infra/deploy.env"
+# shellcheck source=lib/aws-env.sh
+source "$SCRIPT_DIR/lib/aws-env.sh"
 
 usage() {
   echo "Usage: $(basename "$0") status|on|off"
@@ -28,26 +28,7 @@ usage() {
   exit "${1:-0}"
 }
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Missing $ENV_FILE — copy infra/deploy.env.example and set AWS_REGION."
-  exit 1
-fi
-
-# shellcheck source=/dev/null
-set -a
-source "$ENV_FILE"
-set +a
-
-: "${AWS_REGION:?Set AWS_REGION in infra/deploy.env}"
-CDK_STACK_NAME="${CDK_STACK_NAME:-RydoStack}"
-DESIRED_COUNT_ON="${DESIRED_COUNT_ON:-1}"
-
-if [[ -n "${AWS_PROFILE:-}" ]]; then
-  export AWS_PROFILE
-fi
-
-export AWS_DEFAULT_REGION="$AWS_REGION"
-export AWS_REGION
+load_aws_deploy_env "$ROOT"
 
 ACTION="${1:-}"
 [[ -n "$ACTION" ]] || usage 1
