@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  createEmptyBootMilestones,
   liveRideBootActiveLabel,
   liveRideBootProgress,
 } from '@/features/live-ride/liveRideBootMilestones';
@@ -145,8 +144,8 @@ export function useLiveRideBootGate({
   puckDisplay,
   geoError,
 }) {
-  const [milestones, setMilestones] = useState(createEmptyBootMilestones);
   const [mapSurfaceReady, setMapSurfaceReady] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [bootComplete, setBootComplete] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
   const cameraSettleStartedRef = useRef(false);
@@ -160,25 +159,17 @@ export function useLiveRideBootGate({
     return lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);
   }, [puckDisplay?.lat, puckDisplay?.lng, selfFix?.lat, selfFix?.lng]);
 
-  useEffect(() => {
-    setMilestones((m) => ({ ...m, module: moduleReady }));
-  }, [moduleReady]);
-
-  useEffect(() => {
-    setMilestones((m) => ({ ...m, ride: rideReady }));
-  }, [rideReady]);
-
-  useEffect(() => {
-    setMilestones((m) => ({ ...m, permissions: permissionsReady }));
-  }, [permissionsReady]);
-
-  useEffect(() => {
-    setMilestones((m) => ({ ...m, map: mapSurfaceReady }));
-  }, [mapSurfaceReady]);
-
-  useEffect(() => {
-    setMilestones((m) => ({ ...m, location: hasLocation }));
-  }, [hasLocation]);
+  const milestones = useMemo(
+    () => ({
+      module: moduleReady,
+      ride: rideReady,
+      permissions: permissionsReady,
+      map: mapSurfaceReady,
+      location: hasLocation,
+      camera: cameraReady,
+    }),
+    [moduleReady, rideReady, permissionsReady, mapSurfaceReady, hasLocation, cameraReady],
+  );
 
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap?.();
@@ -202,7 +193,7 @@ export function useLiveRideBootGate({
   }, [mapRef]);
 
   useEffect(() => {
-    if (!canMountHiddenMap || !mapSurfaceReady || !hasLocation || milestones.camera) return;
+    if (!canMountHiddenMap || !mapSurfaceReady || !hasLocation || cameraReady) return;
     if (cameraSettleStartedRef.current) return;
 
     const map = mapRef.current?.getMap?.();
@@ -222,9 +213,9 @@ export function useLiveRideBootGate({
     });
 
     map.once('idle', () => {
-      setMilestones((m) => ({ ...m, camera: true }));
+      setCameraReady(true);
     });
-  }, [canMountHiddenMap, mapSurfaceReady, hasLocation, milestones.camera, mapRef, puckDisplay, selfFix]);
+  }, [canMountHiddenMap, mapSurfaceReady, hasLocation, cameraReady, mapRef, puckDisplay, selfFix]);
 
   const allMilestonesComplete =
     milestones.module &&
@@ -236,8 +227,8 @@ export function useLiveRideBootGate({
 
   useEffect(() => {
     if (!allMilestonesComplete || bootComplete) return;
-    setFadingOut(true);
     const id = requestAnimationFrame(() => {
+      setFadingOut(true);
       requestAnimationFrame(() => setBootComplete(true));
     });
     return () => cancelAnimationFrame(id);
@@ -249,8 +240,8 @@ export function useLiveRideBootGate({
   }, [permissionsReady, geoError, bootComplete, permissions]);
 
   const retryAll = useCallback(async () => {
-    setMilestones(createEmptyBootMilestones());
     setMapSurfaceReady(false);
+    setCameraReady(false);
     cameraSettleStartedRef.current = false;
     setBootComplete(false);
     setFadingOut(false);
