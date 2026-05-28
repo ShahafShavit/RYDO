@@ -33,7 +33,7 @@ const ClubsPage = lazy(() => import('@/pages/clubs/ClubsPage'));
 const ClubDetailPage = lazy(() => import('@/pages/clubs/ClubDetailPage'));
 const LeaderboardsPage = lazy(() => import('@/pages/leaderboards/LeaderboardsPage'));
 const LiveRideReplayPage = lazy(() => import('@/features/live-ride/LiveRideReplayPage'));
-const RideLiveMapPage = lazy(() => import('@/features/live-ride/RideLiveMapPage'));
+const LiveRideRoute = lazy(() => import('@/features/live-ride/LiveRideRoute'));
 const TimelapsePage = lazy(() => import('@/features/timelapse/TimelapsePage'));
 
 export const router = createBrowserRouter([
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.clubs, element: <ClubsPage /> },
           { path: ROUTES.clubDetails, element: <ClubDetailPage /> },
           { path: ROUTES.rideEvent, element: <RideEventPage /> },
-          { path: ROUTES.rideLive, element: <RideLiveMapPage /> },
+          { path: ROUTES.rideLive, element: <LiveRideRoute /> },
           { path: '/rides/:rideId', element: <LegacyRideSpaRedirect /> },
 
           { path: ROUTES.settings, element: <SettingsPage /> },

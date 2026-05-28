@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { useOutlet, useLocation, useNavigation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { LiveRideBootModuleFallback } from '@/features/live-ride/components/LiveRideBootOverlay';
 
 const MotionDiv = motion.div;
 
@@ -52,7 +53,7 @@ export default function AnimatedOutlet() {
 
       {isRideLiveMap ? (
         <div className="min-h-0 min-w-0">
-          <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
+          <Suspense fallback={<LiveRideBootModuleFallback />}>{outlet}</Suspense>
         </div>
       ) : (
       <AnimatePresence mode="wait" initial={false}>

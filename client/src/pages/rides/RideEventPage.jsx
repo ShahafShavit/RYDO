@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useNavigation, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import EditRideModal from '@/features/rides/components/EditRideModal';
@@ -12,15 +12,20 @@ import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Button from '@/shared/components/ui/button/Button';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
-import { requestLiveRidePermissions } from '@/features/live-ride/utils/requestLiveRidePermissions';
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+
+function prefetchLiveRideRoute() {
+  import('@/features/live-ride/LiveRideRoute').catch(() => {});
+}
 
 export default function RideEventPage() {
   const { rideId } = useParams();
   const navigate = useNavigate();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
+  const [enteringLive, setEnteringLive] = useState(false);
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
 
   usePageBreadcrumbDetail(ride?.name);
@@ -44,6 +49,13 @@ export default function RideEventPage() {
     }
     return false;
   }, [myUserId, ride]);
+
+  const liveRideTarget =
+    ride?.id != null ? ROUTES.rideLive.replace(':rideId', String(ride.id)) : null;
+  const isNavigatingToLive =
+    enteringLive &&
+    navigation.state === 'loading' &&
+    navigation.location?.pathname === liveRideTarget;
 
   if (isLoading) {
     return (
@@ -79,12 +91,15 @@ export default function RideEventPage() {
             type="button"
             variant="neon"
             className="shrink-0"
-            onClick={async () => {
-              await requestLiveRidePermissions();
-              navigate(ROUTES.rideLive.replace(':rideId', String(ride.id)));
+            disabled={isNavigatingToLive}
+            onMouseEnter={prefetchLiveRideRoute}
+            onFocus={prefetchLiveRideRoute}
+            onClick={() => {
+              setEnteringLive(true);
+              navigate(liveRideTarget);
             }}
           >
-            Live Ride
+            {isNavigatingToLive ? 'Starting…' : 'Live Ride'}
           </Button>
         ) : null}
         {amParticipant ? (

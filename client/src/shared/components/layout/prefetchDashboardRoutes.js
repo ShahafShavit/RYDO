@@ -13,6 +13,7 @@ export function prefetchDashboardRoutes() {
     import('@/pages/clubs/ClubsPage'),
     import('@/pages/clubs/ClubDetailPage'),
     import('@/pages/rides/RideEventPage'),
+    import('@/features/live-ride/LiveRideRoute'),
     import('@/pages/settings/SettingsPage'),
     import('@/pages/inbox/InboxPage'),
   ]).catch(() => {});
