@@ -16,12 +16,8 @@ public static class RideLiveDiagnostics
         string? connectionId = null,
         string? detail = null)
     {
-        var level = IsSignificantStateTransition(machine, from, to)
-            ? LogLevel.Information
-            : LogLevel.Debug;
-
         logger.Log(
-            level,
+            LogLevel.Debug,
             "{Tag} state machine={Machine} ride={RideId} user={UserId} {From}->{To} reason={Reason} connection={ConnectionId}{Detail}",
             Tag,
             machine,
@@ -44,9 +40,7 @@ public static class RideLiveDiagnostics
         int? delaySeconds = null,
         string? detail = null)
     {
-        var level = action is "fired" or "scheduled" or "cancelled_before_fire"
-            ? LogLevel.Information
-            : LogLevel.Debug;
+        var level = LogLevel.Debug;
 
         logger.Log(
             level,
@@ -71,9 +65,7 @@ public static class RideLiveDiagnostics
         Exception? exception = null,
         string? detail = null)
     {
-        var level = phase is "disconnected" or "join_rejected"
-            ? LogLevel.Information
-            : LogLevel.Debug;
+        var level = LogLevel.Debug;
 
         if (exception != null)
         {
@@ -112,7 +104,7 @@ public static class RideLiveDiagnostics
         string reason,
         string? detail = null)
     {
-        var level = reason == "completed" ? LogLevel.Information : LogLevel.Debug;
+        var level = LogLevel.Debug;
 
         logger.Log(
             level,
@@ -163,9 +155,7 @@ public static class RideLiveDiagnostics
         bool? isStale = null,
         string? detail = null)
     {
-        var level = eventName == "RiderLeft" || reason == "liveness_stale"
-            ? LogLevel.Information
-            : LogLevel.Debug;
+        var level = LogLevel.Debug;
 
         logger.Log(
             level,
@@ -190,9 +180,7 @@ public static class RideLiveDiagnostics
     {
         var level = reason is "connection_never_joined_ride" or "not_permitted"
             ? LogLevel.Warning
-            : reason is "rider_not_present" or "session_not_found" or "already_stale"
-                ? LogLevel.Information
-                : LogLevel.Debug;
+            : LogLevel.Debug;
 
         logger.Log(
             level,
@@ -206,7 +194,4 @@ public static class RideLiveDiagnostics
             detail is null ? "" : $" detail={detail}");
     }
 
-    private static bool IsSignificantStateTransition(string machine, string from, string to) =>
-        machine == "liveness" && (to == nameof(PoseLiveness.Stale) || from == nameof(PoseLiveness.Stale))
-        || machine == "presence" && (to == nameof(RiderPresence.Grace) || to == nameof(RiderPresence.Absent));
 }

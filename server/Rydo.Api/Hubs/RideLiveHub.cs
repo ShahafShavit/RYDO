@@ -338,7 +338,7 @@ public class RideLiveHub(
         if (!environment.IsDevelopment())
             return;
 
-        logger.LogInformation(
+        logger.LogDebug(
             "{Tag} dev_bots scheduling ride={RideId} joinerUser={UserId} email={Email}",
             RideLiveDiagnostics.Tag,
             rideId,

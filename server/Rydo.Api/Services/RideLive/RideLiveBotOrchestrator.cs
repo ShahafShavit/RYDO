@@ -29,7 +29,7 @@ public sealed class RideLiveBotOrchestrator(
     {
         if (!environment.IsDevelopment() || !options.Value.Enabled)
         {
-            logger.LogInformation(
+            logger.LogDebug(
                 "Ride live simulators: skip ride {RideId} — IsDevelopment={IsDev}, Rydo:DemoRideLiveBots:Enabled={Enabled}.",
                 rideId,
                 environment.IsDevelopment(),
@@ -39,13 +39,13 @@ public sealed class RideLiveBotOrchestrator(
 
         if (!_startedRides.TryAdd(rideId, 0))
         {
-            logger.LogInformation(
+            logger.LogDebug(
                 "Ride live simulators: skip ride {RideId} — orchestration already registered (another JoinRide won TryAdd; simulators may already be running).",
                 rideId);
             return;
         }
 
-        logger.LogInformation(
+        logger.LogDebug(
             "Ride live simulators: TryStart ride {RideId}, triggering user {UserId}, email {Email}.",
             rideId,
             triggeringUserId,
@@ -102,7 +102,7 @@ public sealed class RideLiveBotOrchestrator(
                 .Select(u => new { u.Id, u.Email })
                 .ToList();
 
-            logger.LogInformation(
+            logger.LogDebug(
                 "Ride live simulators: ride {RideId} — {ParticipantCount} participant(s) with email; {SimulatorCount} selected (excl. admin/user/trigger, max 3).",
                 rideId,
                 participantUsers.Count,
@@ -110,7 +110,7 @@ public sealed class RideLiveBotOrchestrator(
 
             if (sims.Count == 0)
             {
-                logger.LogInformation(
+                logger.LogDebug(
                     "Ride live simulators: no eligible seeded participants on ride {RideId} to simulate (need other riders besides admin@ / user@ / joiner).",
                     rideId);
                 _startedRides.TryRemove(rideId, out _);
@@ -118,7 +118,7 @@ public sealed class RideLiveBotOrchestrator(
             }
 
             var selfBase = RideLiveSelfApiBaseUrl.Resolve(configuration, opt);
-            logger.LogInformation(
+            logger.LogDebug(
                 "Ride live simulators: starting {Count} connection(s) for ride {RideId}; self API base (login/hub)={SelfBase}.",
                 sims.Count,
                 rideId,
@@ -210,7 +210,7 @@ public sealed class RideLiveBotOrchestrator(
 
         var distanceAlong = totalLen * (simIndex + 1) / (simCount + 1);
 
-        logger.LogInformation("Ride live simulator {Email} running on ride {RideId}.", email, rideId);
+        logger.LogDebug("Ride live simulator {Email} running on ride {RideId}.", email, rideId);
 
         var poseSeq = 0;
         while (!ct.IsCancellationRequested)

@@ -1,6 +1,5 @@
 /**
- * Verbose ride-live tracing (SignalR + map peers). Enable any of:
- * - Vite dev server (`npm run dev`)
+ * Verbose ride-live tracing (SignalR + map peers). Opt in via any of:
  * - Build with `VITE_LOG_RIDE_LIVE=true` (e.g. Docker build-arg)
  * - `localStorage.setItem('rydo_debug_ride_live', '1')` then reload
  * - Append `?debugRideLive=1` to the live map URL once (sets the localStorage key)
@@ -31,7 +30,6 @@ export function isKinematicGateEnabled() {
 }
 
 export function isRideLiveLogEnabled() {
-  if (import.meta.env.DEV) return true;
   if (import.meta.env.VITE_LOG_RIDE_LIVE === 'true') return true;
   if (typeof window === 'undefined') return false;
   try {
@@ -43,7 +41,7 @@ export function isRideLiveLogEnabled() {
 
 export function rideLiveLog(...args) {
   if (!isRideLiveLogEnabled()) return;
-  console.info('[rydo:ride-live]', ...args);
+  console.debug('[rydo:ride-live]', ...args);
 }
 
 export function rideLiveWarn(...args) {

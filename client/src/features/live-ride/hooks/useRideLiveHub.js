@@ -116,8 +116,8 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
       .withServerTimeout(60000);
 
     if (isRideLiveLogEnabled()) {
-      builder.configureLogging(signalR.LogLevel.Debug);
-      rideLiveLog('SignalR client logging: Debug (shows hub protocol messages / invocation targets)');
+      builder.configureLogging(signalR.LogLevel.Information);
+      rideLiveLog('SignalR client logging: Information');
     }
 
     const conn = builder.build();
