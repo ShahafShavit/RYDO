@@ -1,7 +1,9 @@
 import { ROUTES } from '@/app/router/route-paths';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
+import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
 import LiveRidePreviewTuningPanel from '@/features/live-ride/components/LiveRidePreviewTuningPanel';
 import LiveRideReplayTimeline from '@/features/live-ride/components/LiveRideReplayTimeline';
+import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { buildReplayFixesForUpload } from '@/features/live-ride/utils/buildReplayFixesFromGeoJson';
@@ -75,8 +77,6 @@ function formatDistanceM(m) {
   if (m < 1000) return `${Math.round(m)} m`;
   return `${(m / 1000).toFixed(1)} km`;
 }
-
-const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
 
 export default function LiveRideReplayPage() {
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -414,12 +414,13 @@ export default function LiveRideReplayPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
       <MapGL
         key={`${session.fileName}-${replayEpoch}`}
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/streets-v12"
+        attributionControl={false}
         initialViewState={initialViewState}
         onLoad={onMapLoad}
         onDragStart={onUserAdjustedView}
@@ -551,11 +552,11 @@ export default function LiveRideReplayPage() {
       ) : null}
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pt-2"
-        style={{ paddingBottom: LIVE_MAP_BOTTOM_INSET }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pt-1"
+        style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
       >
         {showRecenter || replayPlaying ? (
-          <div className="pointer-events-auto relative h-14 w-full shrink-0">
+          <div className="pointer-events-auto relative h-11 w-full shrink-0">
             {!showRecenter && puckDisplay && replayPlaying ? (
               <div
                 className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 z-[1] inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
@@ -577,7 +578,7 @@ export default function LiveRideReplayPage() {
             ) : null}
           </div>
         ) : null}
-        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-4 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-1.5 rounded-2xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-2.5 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
           <LiveRideReplayTimeline
             fixes={session.fixes}
             durationMs={replayDurationMs}
@@ -595,7 +596,7 @@ export default function LiveRideReplayPage() {
                 }
                 setReplayPlaying(true);
               }}
-              className="rounded-2xl bg-rydo-purple px-4 py-2 text-sm font-medium text-white shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_35%,transparent)] transition hover:opacity-95"
+              className="rounded-2xl bg-rydo-purple px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_20px_color-mix(in_srgb,var(--rydo-purple)_35%,transparent)] transition hover:opacity-95"
             >
               {replayPlaying ? 'Pause' : 'Play'}
             </button>
@@ -605,130 +606,136 @@ export default function LiveRideReplayPage() {
                 setReplayPlaying(false);
                 setReplayEpoch((n) => n + 1);
               }}
-              className="rounded-2xl border border-border bg-surface px-4 py-2 text-sm font-medium text-fg"
+              className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-fg"
             >
               Restart
             </button>
             <Link
               to={ROUTES.home}
-              className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:text-fg"
+              className="rounded-2xl border border-border px-3 py-1.5 text-sm font-medium text-fg-muted hover:text-fg"
             >
               Home
             </Link>
           </div>
-          <div className="flex w-full items-center gap-0 rounded-2xl border border-white/10 bg-black/28 px-3 py-2.5 sm:px-4 sm:py-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-              <div className="flex min-w-0 flex-1 items-start gap-2">
-                <Gauge
-                  className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple/85"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Speed</p>
-                  <p
-                    className="mt-0.5 truncate text-base font-bold tabular-nums leading-tight text-fg sm:text-lg"
-                    title="Speed from replay"
-                  >
+          <div className="flex w-full items-center gap-0 rounded-xl border border-white/10 bg-black/28 px-2.5 py-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <Gauge className="h-3.5 w-3.5 shrink-0 text-rydo-purple/85" strokeWidth={2} aria-hidden />
+                <p className="min-w-0 truncate text-xs leading-tight text-fg">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
+                    Speed
+                  </span>
+                  <span className="mx-1 text-fg-subtle" aria-hidden>
+                    ·
+                  </span>
+                  <span className="font-semibold tabular-nums" title="Speed from replay">
                     {formatSpeedKmh(selfFix?.speedFiltered)}
-                  </p>
-                </div>
+                  </span>
+                </p>
               </div>
-              <div className="hidden h-10 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
-              <div className="flex min-w-0 flex-1 items-start gap-2">
-                <Clock
-                  className="mt-0.5 h-4 w-4 shrink-0 text-[#3ecfb9]/90"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Time</p>
-                  <p className="mt-0.5 truncate text-sm font-semibold tabular-nums leading-tight text-fg sm:text-base">
-                    {timeLabel}
-                  </p>
-                </div>
+              <div className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-[#3ecfb9]/90" strokeWidth={2} aria-hidden />
+                <p className="min-w-0 truncate text-xs leading-tight text-fg">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
+                    Time
+                  </span>
+                  <span className="mx-1 text-fg-subtle" aria-hidden>
+                    ·
+                  </span>
+                  <span className="font-semibold tabular-nums">{timeLabel}</span>
+                </p>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setNearbyOpen((o) => !o)}
-            aria-expanded={nearbyOpen}
-            aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-black/22 px-3 py-2.5 text-left transition hover:border-white/15 hover:bg-black/30 active:scale-[0.99]"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rydo-purple/20 text-rydo-purple">
-              <Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            </span>
-            <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
-              <span className="font-semibold tabular-nums text-fg">{peersById.size}</span>
-              {' · '}
-              other rider{peersById.size === 1 ? '' : 's'} on the map
-            </p>
-            {nearbyOpen ? (
-              <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
-            ) : (
-              <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
-            )}
-          </button>
-
           {geoError ? (
-            <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/95">
+            <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-center text-[11px] text-amber-100/95">
               {geoError}
             </p>
           ) : null}
 
-          {nearbyOpen ? (
-            <div className="max-h-[min(40vh,16rem)] overflow-y-auto rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
-              {nearbyInfo.mode === 'empty' ? (
-                <p className="text-fg-muted">No other riders to compare yet.</p>
-              ) : null}
-              {nearbyInfo.mode === 'unknown' ? (
-                <div className="space-y-1">
-                  <p className="text-fg-subtle">Direction unavailable — nearest by distance:</p>
-                  <ul className="space-y-1">
-                    {(nearbyInfo.nearest ?? []).map((p) => (
-                      <li key={p.userId} className="flex justify-between gap-2">
-                        <span className="truncate">{p.displayName || `Rider ${p.userId}`}</span>
-                        <span className="shrink-0 tabular-nums text-fg-muted">{formatDistanceM(p.distanceM)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              {nearbyInfo.mode === 'aheadBehind' ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Ahead</p>
-                    {nearbyInfo.aheadNearest ? (
-                      <p className="text-fg">
-                        {nearbyInfo.aheadNearest.displayName || `Rider ${nearbyInfo.aheadNearest.userId}`}
-                        <span className="ml-2 tabular-nums text-fg-muted">
-                          {formatDistanceM(nearbyInfo.aheadNearest.distanceM)}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-fg-muted">No one detected ahead</p>
-                    )}
+          <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-black/22">
+            <button
+              type="button"
+              onClick={() => setNearbyOpen((o) => !o)}
+              aria-expanded={nearbyOpen}
+              aria-controls="nearby-riders-panel-replay"
+              aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
+              className="flex w-full items-center gap-2 rounded-none border-0 bg-transparent px-2.5 py-1.5 text-left transition hover:bg-black/30 active:scale-[0.99]"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rydo-purple/20 text-rydo-purple">
+                <Users className="h-3 w-3" strokeWidth={2} aria-hidden />
+              </span>
+              <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
+                <span className="font-semibold tabular-nums text-fg">{peersById.size}</span>
+                {' · '}
+                other rider{peersById.size === 1 ? '' : 's'} on the map
+              </p>
+              {nearbyOpen ? (
+                <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+              )}
+            </button>
+            {nearbyOpen ? (
+              <div
+                id="nearby-riders-panel-replay"
+                className="max-h-[min(40vh,16rem)] overflow-y-auto border-t border-white/[0.06] px-2.5 py-2 text-xs text-fg md:max-h-[min(50vh,20rem)]"
+              >
+                {nearbyInfo.mode === 'empty' ? (
+                  <p className="text-fg-muted">No other riders to compare yet.</p>
+                ) : null}
+                {nearbyInfo.mode === 'unknown' ? (
+                  <div className="space-y-1">
+                    <p className="text-fg-subtle">Direction unavailable — nearest by distance:</p>
+                    <ul className="space-y-1">
+                      {(nearbyInfo.nearest ?? []).map((p) => (
+                        <li key={p.userId} className="flex justify-between gap-2">
+                          <span className="truncate">{p.displayName || `Rider ${p.userId}`}</span>
+                          <span className="shrink-0 tabular-nums text-fg-muted">
+                            {formatDistanceM(p.distanceM)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div>
-                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Behind</p>
-                    {nearbyInfo.behindNearest ? (
-                      <p className="text-fg">
-                        {nearbyInfo.behindNearest.displayName || `Rider ${nearbyInfo.behindNearest.userId}`}
-                        <span className="ml-2 tabular-nums text-fg-muted">
-                          {formatDistanceM(nearbyInfo.behindNearest.distanceM)}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-fg-muted">No one detected behind</p>
-                    )}
+                ) : null}
+                {nearbyInfo.mode === 'aheadBehind' ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Ahead</p>
+                      {nearbyInfo.aheadNearest ? (
+                        <p className="text-fg">
+                          {nearbyInfo.aheadNearest.displayName || `Rider ${nearbyInfo.aheadNearest.userId}`}
+                          <span className="ml-2 tabular-nums text-fg-muted">
+                            {formatDistanceM(nearbyInfo.aheadNearest.distanceM)}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-fg-muted">No one detected ahead</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Behind</p>
+                      {nearbyInfo.behindNearest ? (
+                        <p className="text-fg">
+                          {nearbyInfo.behindNearest.displayName || `Rider ${nearbyInfo.behindNearest.userId}`}
+                          <span className="ml-2 tabular-nums text-fg-muted">
+                            {formatDistanceM(nearbyInfo.behindNearest.distanceM)}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-fg-muted">No one detected behind</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <LiveRideMapAttribution />
         </div>
       </div>
 

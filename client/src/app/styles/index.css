@@ -410,3 +410,9 @@ html[data-theme='dune'] .app-logo {
 .rydo-leaflet-compact-attrib .leaflet-control-attribution a {
   color: var(--rydo-green);
 }
+
+/* Live ride Mapbox pages: hide default corner logo + (i); credits in HUD footer */
+.rydo-live-map .mapboxgl-ctrl-logo,
+.rydo-live-map .mapboxgl-ctrl-attrib {
+  display: none !important;
+}

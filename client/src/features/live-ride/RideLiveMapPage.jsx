@@ -3,6 +3,8 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
 import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
+import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
+import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { peersSnapshotUncertain, hubChipLabel } from '@/features/live-ride/connectivity/rideLiveConnectivity';
@@ -77,9 +79,6 @@ function NearbyPeerRow({ peer }) {
     </li>
   );
 }
-
-/** Clears Mapbox logo + attribution (~2.75rem) plus safe area. */
-const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
 
 const hubChipShell =
   'inline-flex max-w-full items-center gap-2 rounded-2xl border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium shadow backdrop-blur-md';
@@ -453,11 +452,12 @@ export default function RideLiveMapPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle="mapbox://styles/mapbox/streets-v12"
+        attributionControl={false}
         initialViewState={initialViewState}
         onLoad={onMapLoad}
         onDragStart={onUserAdjustedView}
@@ -521,11 +521,11 @@ export default function RideLiveMapPage() {
       </div>
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 pt-2"
-        style={{ paddingBottom: LIVE_MAP_BOTTOM_INSET }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pt-1"
+        style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
       >
         {showRecenter || (user && !env.isMockApi) ? (
-          <div className="pointer-events-auto relative h-14 w-full shrink-0">
+          <div className="pointer-events-auto relative h-11 w-full shrink-0">
             {!showRecenter && puckDisplay && hubEnabled ? (
               <div
                 className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 z-[1] inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
@@ -550,10 +550,10 @@ export default function RideLiveMapPage() {
                 type="button"
                 aria-label="Open club chat"
                 onClick={() => openChat()}
-                className="absolute top-1/2 z-[2] flex h-14 w-14 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
+                className="absolute top-1/2 z-[2] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
                 style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
               >
-                <MessageCircle className="h-7 w-7" aria-hidden />
+                <MessageCircle className="h-5 w-5" aria-hidden />
                 {chatUnread > 0 ? (
                   <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
                     {chatUnread > 99 ? '99+' : chatUnread}
@@ -563,66 +563,50 @@ export default function RideLiveMapPage() {
             ) : null}
           </div>
         ) : null}
-        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-3 rounded-3xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-4 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
-          <div className="flex w-full items-center gap-0 rounded-2xl border border-white/10 bg-black/28 px-3 py-2.5 sm:px-4 sm:py-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-              <div className="flex min-w-0 flex-1 items-start gap-2">
-                <Gauge
-                  className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple/85"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Speed</p>
-                  <p
-                    className="mt-0.5 truncate text-base font-bold tabular-nums leading-tight text-fg sm:text-lg"
+        <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-1.5 rounded-2xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-2.5 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+          <div className="flex w-full items-center gap-0 rounded-xl border border-white/10 bg-black/28 px-2.5 py-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <Gauge className="h-3.5 w-3.5 shrink-0 text-rydo-purple/85" strokeWidth={2} aria-hidden />
+                <p className="min-w-0 truncate text-xs leading-tight text-fg">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
+                    Speed
+                  </span>
+                  <span className="mx-1 text-fg-subtle" aria-hidden>
+                    ·
+                  </span>
+                  <span
+                    className="font-semibold tabular-nums"
                     title="Ground speed from GPS"
                   >
                     {formatSpeedKmh(selfFix?.speedFiltered)}
-                  </p>
-                </div>
+                  </span>
+                </p>
               </div>
-              <div className="hidden h-10 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
-              <div className="flex min-w-0 flex-1 items-start gap-2">
-                <Clock
-                  className="mt-0.5 h-4 w-4 shrink-0 text-[#3ecfb9]/90"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">Time</p>
-                  <p className="mt-0.5 truncate text-sm font-semibold tabular-nums leading-tight text-fg sm:text-base">
-                    {timeLabel}
-                  </p>
-                </div>
+              <div className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 shrink-0 text-[#3ecfb9]/90" strokeWidth={2} aria-hidden />
+                <p className="min-w-0 truncate text-xs leading-tight text-fg">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
+                    Time
+                  </span>
+                  <span className="mx-1 text-fg-subtle" aria-hidden>
+                    ·
+                  </span>
+                  <span className="font-semibold tabular-nums">{timeLabel}</span>
+                </p>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setNearbyOpen((o) => !o)}
-            aria-expanded={nearbyOpen}
-            aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-black/22 px-3 py-2.5 text-left transition hover:border-white/15 hover:bg-black/30 active:scale-[0.99]"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rydo-purple/20 text-rydo-purple">
-              <Users className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            </span>
-            <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
-              <span className="font-semibold tabular-nums text-fg">{peersById.size}</span>
-              {' · '}
-              other rider{peersById.size === 1 ? '' : 's'} on the map
+          {geoError ? (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-center text-[11px] text-amber-100/95">
+              {geoError}
             </p>
-            {nearbyOpen ? (
-              <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
-            ) : (
-              <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
-            )}
-          </button>
+          ) : null}
 
           {showCompassCta ? (
-            <div className="flex flex-col gap-2 rounded-xl border border-rydo-purple/25 bg-rydo-purple/10 px-3 py-2.5 text-xs text-fg sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 rounded-xl border border-rydo-purple/25 bg-rydo-purple/10 px-2.5 py-2 text-xs text-fg sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-start gap-2">
                 <Compass className="mt-0.5 h-4 w-4 shrink-0 text-rydo-purple" aria-hidden />
                 <p className="min-w-0 leading-snug text-fg-muted">
@@ -649,25 +633,48 @@ export default function RideLiveMapPage() {
             </div>
           ) : null}
 
-          {geoError ? (
-            <p className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/95">
-              {geoError}
-            </p>
-          ) : null}
-
-          {nearbyOpen ? (
-            <div className="max-h-[min(40vh,16rem)] overflow-y-auto rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
-              {nearbyListPeers.length === 0 ? (
-                <p className="text-fg-muted">No other riders to compare yet.</p>
+          <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-black/22">
+            <button
+              type="button"
+              onClick={() => setNearbyOpen((o) => !o)}
+              aria-expanded={nearbyOpen}
+              aria-controls="nearby-riders-panel"
+              aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
+              className="flex w-full items-center gap-2 rounded-none border-0 bg-transparent px-2.5 py-1.5 text-left transition hover:bg-black/30 active:scale-[0.99]"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rydo-purple/20 text-rydo-purple">
+                <Users className="h-3 w-3" strokeWidth={2} aria-hidden />
+              </span>
+              <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
+                <span className="font-semibold tabular-nums text-fg">{peersById.size}</span>
+                {' · '}
+                other rider{peersById.size === 1 ? '' : 's'} on the map
+              </p>
+              {nearbyOpen ? (
+                <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
               ) : (
-                <ul className="space-y-1">
-                  {nearbyListPeers.map((p) => (
-                    <NearbyPeerRow key={p.userId} peer={p} />
-                  ))}
-                </ul>
+                <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
               )}
-            </div>
-          ) : null}
+            </button>
+            {nearbyOpen ? (
+              <div
+                id="nearby-riders-panel"
+                className="max-h-[min(40vh,16rem)] overflow-y-auto border-t border-white/[0.06] px-2.5 py-2 text-xs text-fg md:max-h-[min(50vh,20rem)]"
+              >
+                {nearbyListPeers.length === 0 ? (
+                  <p className="text-fg-muted">No other riders to compare yet.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {nearbyListPeers.map((p) => (
+                      <NearbyPeerRow key={p.userId} peer={p} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          <LiveRideMapAttribution />
         </div>
       </div>
     </div>
