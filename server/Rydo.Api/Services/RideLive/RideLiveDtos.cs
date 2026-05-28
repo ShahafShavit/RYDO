@@ -8,4 +8,21 @@ public sealed record RiderPoseDto(
     double Lng,
     double? HeadingDeg,
     double? AccuracyM,
-    string AtUtc);
+    string AtUtc,
+    bool IsStale = false);
+
+public static class RideLiveWire
+{
+    public static object Pose(RiderPoseDto r) => new
+    {
+        userId = r.UserId,
+        displayName = r.DisplayName,
+        avatarUrl = r.AvatarUrl,
+        lat = r.Lat,
+        lng = r.Lng,
+        headingDeg = r.HeadingDeg,
+        accuracyM = r.AccuracyM,
+        atUtc = r.AtUtc,
+        isStale = r.IsStale,
+    };
+}

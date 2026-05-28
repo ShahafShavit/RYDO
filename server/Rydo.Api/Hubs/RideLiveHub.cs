@@ -22,6 +22,7 @@ public class RideLiveHub(
 
     /// <summary>Per-connection state — hub instances are transient; do not use instance fields for JoinRide → UpdatePose.</summary>
     private static readonly object JoinedRideIdItemKey = new();
+    private static readonly object WarnedNoJoinItemKey = new();
 
     public static string GroupName(int rideId) => $"ride_live_{rideId}";
 
@@ -46,7 +47,13 @@ public class RideLiveHub(
         await base.OnConnectedAsync();
     }
 
-    public async Task JoinRide(int rideId)
+    public async Task JoinRide(
+        int rideId,
+        double? lat = null,
+        double? lng = null,
+        double? headingDeg = null,
+        double? accuracyM = null,
+        string? atUtc = null)
     {
         var userId = CurrentUserId();
         if (userId == null)
@@ -55,7 +62,13 @@ public class RideLiveHub(
             throw new HubException("Unauthorized.");
         }
 
-        logger.LogDebug("Ride live hub JoinRide start: connection {ConnectionId} user {UserId} ride {RideId}", Context.ConnectionId, userId.Value, rideId);
+        var hasInitialPose = IsValidCoords(lat, lng);
+        logger.LogDebug(
+            "Ride live hub JoinRide start: connection {ConnectionId} user {UserId} ride {RideId} hasInitialPose {HasInitialPose}",
+            Context.ConnectionId,
+            userId.Value,
+            rideId,
+            hasInitialPose);
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
@@ -71,6 +84,7 @@ public class RideLiveHub(
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(rideId));
         Context.Items[JoinedRideIdItemKey] = rideId;
+        poseStore.CancelScheduledRemoval(rideId, userId.Value);
         logger.LogDebug(
             "Ride live hub: connection {ConnectionId} added to group {Group}",
             Context.ConnectionId,
@@ -87,14 +101,43 @@ public class RideLiveHub(
 
         sessionCoordinator.EnsureStarted(rideId, userId.Value, email);
 
+        var peerBroadcast = false;
+        if (hasInitialPose)
+        {
+            var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value, Context.ConnectionAborted);
+            if (user != null)
+            {
+                var dto = BuildPoseDto(user, lat!.Value, lng!.Value, headingDeg, accuracyM, atUtc);
+                var stored = poseStore.SetPose(rideId, dto);
+                await BroadcastRiderMovedAsync(rideId, stored);
+                peerBroadcast = true;
+                logger.LogDebug(
+                    "Ride live hub JoinRide: initial pose broadcast ride {RideId} user {UserId} lat {Lat:F6} lng {Lng:F6}",
+                    rideId,
+                    userId.Value,
+                    lat,
+                    lng);
+            }
+        }
+        else if (poseStore.TryGetPose(rideId, userId.Value, out var storedPose))
+        {
+            await BroadcastRiderMovedAsync(rideId, storedPose);
+            peerBroadcast = true;
+            logger.LogDebug(
+                "Ride live hub JoinRide: grace reconnect pose broadcast ride {RideId} user {UserId}",
+                rideId,
+                userId.Value);
+        }
+
         var snapshot = poseStore.GetSnapshot(rideId);
-        var riders = snapshot.Select(WirePose).ToList();
+        var riders = snapshot.Select(RideLiveWire.Pose).ToList();
         logger.LogInformation(
-            "Ride live hub: user {UserId} connection {ConnectionId} joined ride {RideId}, sending RidersState with {PeerCount} pose(s); joiner email: {Email}.",
+            "Ride live hub: user {UserId} connection {ConnectionId} joined ride {RideId}, sending RidersState with {PeerCount} pose(s), peerBroadcast {PeerBroadcast}; joiner email: {Email}.",
             userId.Value,
             Context.ConnectionId,
             rideId,
             riders.Count,
+            peerBroadcast,
             string.IsNullOrWhiteSpace(email) ? "(none)" : email);
         await Clients.Caller.SendAsync("RidersState", new { riders });
     }
@@ -103,9 +146,14 @@ public class RideLiveHub(
     {
         if (!TryGetJoinedRideId(out var rideId))
         {
-            logger.LogDebug(
-                "Ride live hub UpdatePose ignored: connection {ConnectionId} never called JoinRide (no ride id on connection context)",
-                Context.ConnectionId);
+            if (!Context.Items.ContainsKey(WarnedNoJoinItemKey))
+            {
+                Context.Items[WarnedNoJoinItemKey] = true;
+                logger.LogWarning(
+                    "Ride live hub UpdatePose ignored: connection {ConnectionId} never called JoinRide on this connection (reconnect without re-join?)",
+                    Context.ConnectionId);
+            }
+
             return;
         }
 
@@ -126,39 +174,23 @@ public class RideLiveHub(
             return;
         }
 
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
-        if (!await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == userId.Value, Context.ConnectionAborted))
+        if (!IsValidCoords(lat, lng))
         {
             logger.LogDebug(
-                "Ride live hub UpdatePose ignored: user {UserId} not a participant of ride {RideId}",
-                userId.Value,
-                rideId);
+                "Ride live hub UpdatePose ignored: invalid lat/lng ride {RideId} user {UserId}",
+                rideId,
+                userId.Value);
             return;
         }
 
-        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value, Context.ConnectionAborted);
-        if (user == null)
-        {
-            logger.LogDebug("Ride live hub UpdatePose ignored: user {UserId} row missing", userId.Value);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
+        var dto = await TryBuildPoseDtoAsync(db, rideId, userId.Value, lat, lng, headingDeg, accuracyM, atUtc, Context.ConnectionAborted);
+        if (dto == null)
             return;
-        }
 
-        var displayName = DisplayName(user);
-        var at = string.IsNullOrWhiteSpace(atUtc) ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : atUtc.Trim();
-        var dto = new RiderPoseDto(
-            user.Id,
-            displayName,
-            UserPublicFields.RosterAvatarUrl(user),
-            lat,
-            lng,
-            headingDeg,
-            accuracyM,
-            at);
-        poseStore.SetPose(rideId, dto);
-
-        var wire = WirePose(dto);
-        await Clients.GroupExcept(GroupName(rideId), Context.ConnectionId).SendAsync("RiderMoved", wire);
+        var stored = poseStore.SetPose(rideId, dto);
+        await BroadcastRiderMovedAsync(rideId, stored);
         logger.LogDebug(
             "Ride live hub RiderMoved broadcast: ride {RideId} from user {UserId} connection {ConnectionId} lat {Lat:F6} lng {Lng:F6} → group {Group} (excluding sender)",
             rideId,
@@ -197,24 +229,75 @@ public class RideLiveHub(
             var userId = CurrentUserId();
             if (userId != null)
             {
-                poseStore.RemoveRider(rideId, userId.Value);
-                try
-                {
-                    await Clients.Group(GroupName(rideId)).SendAsync("RiderLeft", new { userId = userId.Value });
-                    logger.LogDebug(
-                        "Ride live hub RiderLeft broadcast: ride {RideId} user {UserId}",
-                        rideId,
-                        userId.Value);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "RiderLeft broadcast failed on disconnect");
-                }
+                poseStore.ScheduleRiderRemoval(rideId, userId.Value);
+                logger.LogDebug(
+                    "Ride live hub disconnect: scheduled pose removal (grace) ride {RideId} user {UserId}",
+                    rideId,
+                    userId.Value);
             }
         }
 
         await base.OnDisconnectedAsync(exception);
     }
+
+    private async Task BroadcastRiderMovedAsync(int rideId, RiderPoseDto dto)
+    {
+        var wire = RideLiveWire.Pose(dto);
+        await Clients.GroupExcept(GroupName(rideId), Context.ConnectionId).SendAsync("RiderMoved", wire);
+    }
+
+    private async Task<RiderPoseDto?> TryBuildPoseDtoAsync(
+        RydoDbContext db,
+        int rideId,
+        int userId,
+        double lat,
+        double lng,
+        double? headingDeg,
+        double? accuracyM,
+        string? atUtc,
+        CancellationToken ct)
+    {
+        if (!await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == userId, ct))
+        {
+            logger.LogDebug(
+                "Ride live hub UpdatePose ignored: user {UserId} not a participant of ride {RideId}",
+                userId,
+                rideId);
+            return null;
+        }
+
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null)
+        {
+            logger.LogDebug("Ride live hub UpdatePose ignored: user {UserId} row missing", userId);
+            return null;
+        }
+
+        return BuildPoseDto(user, lat, lng, headingDeg, accuracyM, atUtc);
+    }
+
+    private static RiderPoseDto BuildPoseDto(
+        ApplicationUser user,
+        double lat,
+        double lng,
+        double? headingDeg,
+        double? accuracyM,
+        string? atUtc)
+    {
+        var at = string.IsNullOrWhiteSpace(atUtc) ? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : atUtc.Trim();
+        return new RiderPoseDto(
+            user.Id,
+            DisplayName(user),
+            UserPublicFields.RosterAvatarUrl(user),
+            lat,
+            lng,
+            headingDeg,
+            accuracyM,
+            at);
+    }
+
+    private static bool IsValidCoords(double? lat, double? lng) =>
+        lat is { } la && lng is { } ln && double.IsFinite(la) && double.IsFinite(ln);
 
     private int? CurrentUserId()
     {
@@ -237,15 +320,4 @@ public class RideLiveHub(
     private static string DisplayName(ApplicationUser u) =>
         string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
 
-    private static object WirePose(RiderPoseDto r) => new
-    {
-        userId = r.UserId,
-        displayName = r.DisplayName,
-        avatarUrl = r.AvatarUrl,
-        lat = r.Lat,
-        lng = r.Lng,
-        headingDeg = r.HeadingDeg,
-        accuracyM = r.AccuracyM,
-        atUtc = r.AtUtc,
-    };
 }

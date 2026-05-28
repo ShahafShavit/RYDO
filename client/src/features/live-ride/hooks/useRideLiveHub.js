@@ -11,6 +11,17 @@ import {
 } from '@/features/live-ride/utils/rideLiveLog';
 
 const MinSendMs = 2300;
+const VisibilityRetryDebounceMs = 2000;
+
+function isValidPoseCoords(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+/** @returns {boolean} whether a pending pose was included in JoinRide */
+function pendingPoseForJoin(pending) {
+  if (pending == null || !isValidPoseCoords(pending.lat, pending.lng)) return false;
+  return true;
+}
 
 /** SignalR may use camelCase or PascalCase depending on server JSON options. */
 function normalizeHubRider(r) {
@@ -30,6 +41,8 @@ function normalizeHubRider(r) {
     }
     return null;
   }
+  const rawStale = r.isStale ?? r.IsStale;
+  const isStale = rawStale === true || rawStale === 'true';
   return {
     userId: Number(userId),
     displayName: r.displayName ?? r.DisplayName ?? '',
@@ -39,7 +52,24 @@ function normalizeHubRider(r) {
     headingDeg: r.headingDeg ?? r.HeadingDeg ?? null,
     accuracyM: r.accuracyM ?? r.AccuracyM ?? null,
     atUtc: r.atUtc ?? r.AtUtc ?? null,
+    isStale,
   };
+}
+
+/**
+ * @param {unknown} payload
+ * @param {number | null} myId
+ */
+export function peersMapFromRidersState(payload, myId) {
+  const riders = Array.isArray(payload?.riders) ? payload.riders : [];
+  const m = new Map();
+  for (const r of riders) {
+    const n = normalizeHubRider(r);
+    if (n == null) continue;
+    if (myId != null && n.userId === myId) continue;
+    m.set(n.userId, n);
+  }
+  return m;
 }
 
 /**
@@ -50,10 +80,16 @@ function normalizeHubRider(r) {
 export function useRideLiveHub(rideId, enabled, myUserId) {
   const [peersById, setPeersById] = useState(() => new Map());
   const [connStatus, setConnStatus] = useState('idle');
+  const [peersStale, setPeersStale] = useState(false);
   const [hubError, setHubError] = useState(null);
   const connRef = useRef(null);
+  const sessionReadyRef = useRef(false);
+  const cancelledRef = useRef(false);
   const lastSendRef = useRef(0);
+  const pendingPoseRef = useRef(null);
   const sendPoseLogCountRef = useRef(0);
+  const retryInFlightRef = useRef(false);
+  const lastVisibilityRetryRef = useRef(0);
   const myId = myUserId != null ? Number(myUserId) : null;
 
   const status = useMemo(() => {
@@ -74,6 +110,45 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     });
   }, [myId]);
 
+  const applyRidersState = useCallback(
+    (payload) => {
+      const riders = Array.isArray(payload?.riders) ? payload.riders : [];
+      rideLiveLog('← RidersState', {
+        rideId,
+        myId,
+        rawRiderCount: riders.length,
+        payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : [],
+        sampleRaw: riders[0] ?? null,
+      });
+      const m = peersMapFromRidersState(payload, myId);
+      rideLiveLog('RidersState → peers map (excl. self)', { rideId, peerCount: m.size, peerIds: [...m.keys()] });
+      setPeersById(m);
+      setPeersStale(false);
+    },
+    [rideId, myId],
+  );
+
+  const invokeJoinRide = useCallback(async (conn) => {
+    const pending = pendingPoseRef.current;
+    const hadPendingPose = pendingPoseForJoin(pending);
+    rideLiveLog('JoinRide invoke…', { rideId, hadPendingPose });
+    await conn.invoke(
+      'JoinRide',
+      Number(rideId),
+      hadPendingPose ? pending.lat : null,
+      hadPendingPose ? pending.lng : null,
+      hadPendingPose ? pending.headingDeg ?? null : null,
+      hadPendingPose ? pending.accuracyM ?? null : null,
+      hadPendingPose ? pending.atUtc ?? null : null,
+    );
+    if (hadPendingPose) {
+      lastSendRef.current = Date.now();
+    } else {
+      lastSendRef.current = 0;
+    }
+    rideLiveLog('JoinRide invoke OK', { rideId, hadPendingPose });
+  }, [rideId]);
+
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- SignalR hub connection lifecycle */
     if (enableRideLiveDebugFromQuery()) {
@@ -88,8 +163,6 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
       return undefined;
     }
 
-    // Same-origin full-stack (Docker :5000, CloudFront): VITE_API_BASE_URL is empty — use path-only URL
-    // like club chat; SignalR normalizes to ws://current-host/hubs/ride-live.
     const base = env.apiBaseUrl.replace(/\/$/, '');
     const url = base ? `${base}/hubs/ride-live` : '/hubs/ride-live';
     rideLiveLog('building connection', { url, rideId, myUserId: myId });
@@ -100,36 +173,62 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
         withCredentials: false,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents,
       })
-      .withAutomaticReconnect([0, 2000, 5000, 10000]);
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
+      .withKeepAliveInterval(15000)
+      .withServerTimeout(60000);
     if (isRideLiveLogEnabled()) {
       builder.configureLogging(signalR.LogLevel.Debug);
       rideLiveLog('SignalR client logging: Debug (shows hub protocol messages / invocation targets)');
     }
+
     const conn = builder.build();
 
-    conn.onreconnecting((err) => rideLiveWarn('SignalR reconnecting', err?.message ?? err));
-    conn.onreconnected((id) => rideLiveLog('SignalR reconnected', { connectionId: id }));
-    conn.onclose((err) => rideLiveLog('SignalR closed', err?.message ?? err ?? '(clean)'));
+    cancelledRef.current = false;
+    sessionReadyRef.current = false;
 
-    conn.on('RidersState', (payload) => {
-      const riders = Array.isArray(payload?.riders) ? payload.riders : [];
-      rideLiveLog('← RidersState', {
-        rideId,
-        myId,
-        rawRiderCount: riders.length,
-        payloadKeys: payload && typeof payload === 'object' ? Object.keys(payload) : [],
-        sampleRaw: riders[0] ?? null,
-      });
-      const m = new Map();
-      for (const r of riders) {
-        const n = normalizeHubRider(r);
-        if (n == null) continue;
-        if (myId != null && n.userId === myId) continue;
-        m.set(n.userId, n);
+    const ensureRideSession = async () => {
+      if (cancelledRef.current) return false;
+      try {
+        await invokeJoinRide(conn);
+        if (cancelledRef.current) return false;
+        sessionReadyRef.current = true;
+        setHubError(null);
+        setConnStatus('connected');
+        return true;
+      } catch (e) {
+        if (!cancelledRef.current) {
+          rideLiveError('JoinRide failed', e);
+          sessionReadyRef.current = false;
+          setHubError(e instanceof Error ? e : new Error(String(e)));
+          setConnStatus('error');
+        }
+        return false;
       }
-      rideLiveLog('RidersState → peers map (excl. self)', { rideId, peerCount: m.size, peerIds: [...m.keys()] });
-      setPeersById(m);
+    };
+
+    conn.onreconnecting((err) => {
+      sessionReadyRef.current = false;
+      setPeersStale(true);
+      setConnStatus('reconnecting');
+      rideLiveWarn('SignalR reconnecting', err?.message ?? err);
     });
+
+    conn.onreconnected(async (id) => {
+      rideLiveLog('SignalR reconnected', { connectionId: id });
+      if (cancelledRef.current) return;
+      setConnStatus('syncing');
+      await ensureRideSession();
+    });
+
+    conn.onclose((err) => {
+      sessionReadyRef.current = false;
+      rideLiveLog('SignalR closed', err?.message ?? err ?? '(clean)');
+      if (!cancelledRef.current) {
+        setConnStatus('disconnected');
+      }
+    });
+
+    conn.on('RidersState', applyRidersState);
 
     conn.on('RiderMoved', (r) => {
       rideLiveLog('← RiderMoved raw', {
@@ -154,21 +253,20 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     connRef.current = conn;
     setConnStatus('connecting');
     setHubError(null);
+    setPeersStale(false);
 
-    let cancelled = false;
     (async () => {
       try {
         rideLiveLog('SignalR start…');
         await conn.start();
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         rideLiveLog('SignalR started', { state: conn.state, connectionId: conn.connectionId });
-        await conn.invoke('JoinRide', Number(rideId));
-        if (cancelled) return;
-        rideLiveLog('JoinRide invoke OK', { rideId });
-        setConnStatus('connected');
+        setConnStatus('syncing');
+        await ensureRideSession();
       } catch (e) {
-        if (!cancelled) {
-          rideLiveError('hub start or JoinRide failed', e);
+        if (!cancelledRef.current) {
+          rideLiveError('hub start failed', e);
+          sessionReadyRef.current = false;
           setHubError(e instanceof Error ? e : new Error(String(e)));
           setConnStatus('error');
         }
@@ -176,21 +274,89 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     })();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
+      sessionReadyRef.current = false;
       connRef.current = null;
       conn.stop().catch(() => {});
       setPeersById(new Map());
+      setPeersStale(false);
       setConnStatus('idle');
     };
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [enabled, rideId, mergeRider, myId]);
+  }, [enabled, rideId, mergeRider, myId, applyRidersState, invokeJoinRide]);
+
+  const retryHub = useCallback(async () => {
+    const conn = connRef.current;
+    if (!conn || retryInFlightRef.current) return;
+    retryInFlightRef.current = true;
+    sessionReadyRef.current = false;
+    setHubError(null);
+    setConnStatus('connecting');
+    setPeersStale(false);
+    try {
+      if (conn.state === signalR.HubConnectionState.Connected) {
+        await conn.stop();
+      }
+      rideLiveLog('retryHub: start…');
+      await conn.start();
+      setConnStatus('syncing');
+      await invokeJoinRide(conn);
+      sessionReadyRef.current = true;
+      setConnStatus('connected');
+      setHubError(null);
+      rideLiveLog('retryHub: JoinRide OK', { rideId });
+    } catch (e) {
+      rideLiveError('retryHub failed', e);
+      sessionReadyRef.current = false;
+      setHubError(e instanceof Error ? e : new Error(String(e)));
+      setConnStatus('error');
+    } finally {
+      retryInFlightRef.current = false;
+    }
+  }, [rideId, invokeJoinRide]);
+
+  useEffect(() => {
+    if (!enabled || !rideId || env.isMockApi) return undefined;
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const st = connStatus;
+      if (st !== 'disconnected' && st !== 'error') return;
+      const now = Date.now();
+      if (now - lastVisibilityRetryRef.current < VisibilityRetryDebounceMs) return;
+      lastVisibilityRetryRef.current = now;
+      rideLiveLog('visibility visible → retryHub', { connStatus: st });
+      retryHub();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [enabled, rideId, connStatus, retryHub]);
 
   /** lat/lng are typically fused synthetic pose from the live map (not raw GPS). */
   const sendPose = useCallback((lat, lng, headingDeg, accuracyM) => {
+    if (isValidPoseCoords(lat, lng)) {
+      pendingPoseRef.current = {
+        lat,
+        lng,
+        headingDeg: headingDeg ?? null,
+        accuracyM: accuracyM ?? null,
+        atUtc: new Date().toISOString(),
+      };
+    }
+
     const c = connRef.current;
-    if (!c || c.state !== signalR.HubConnectionState.Connected) {
+    const canSend =
+      sessionReadyRef.current &&
+      c &&
+      c.state === signalR.HubConnectionState.Connected;
+    if (!canSend) {
       if (isRideLiveLogEnabled()) {
-        rideLiveLog('sendPose skipped (not connected)', { state: c?.state });
+        rideLiveLog('sendPose skipped', {
+          sessionReady: sessionReadyRef.current,
+          state: c?.state,
+          buffered: pendingPoseRef.current != null,
+        });
       }
       return;
     }
@@ -210,5 +376,5 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     });
   }, []);
 
-  return { peersById, status, hubError, sendPose };
+  return { peersById, status, hubError, sendPose, retryHub, peersStale };
 }

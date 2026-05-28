@@ -5,7 +5,7 @@ import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { nearestPeersAheadBehind, stalePeersWithDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
 import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
@@ -29,6 +29,7 @@ import {
   Loader2,
   MessageCircle,
   Users,
+  X,
   XCircle,
 } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -67,31 +68,68 @@ function formatDistanceM(m) {
 /** Clears Mapbox logo + attribution (~2.75rem) plus safe area. */
 const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
 
-function LiveHubStatusChip({ hubStatus, hubError }) {
-  const connecting = hubStatus === 'connecting';
+const hubChipShell =
+  'inline-flex max-w-full items-center gap-2 rounded-2xl border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium shadow backdrop-blur-md';
+
+function LiveHubStatusChip({ hubStatus, hubError, onRetry }) {
   const connected = hubStatus === 'connected' && !hubError;
+  const spinner = <Loader2 className="h-4 w-4 shrink-0 animate-spin text-fg-muted" aria-hidden />;
 
   if (connected) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md">
+      <div className={`${hubChipShell} border-border text-fg`}>
         <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-        <span>Connected</span>
+        <span>Live</span>
       </div>
     );
   }
 
-  if (connecting) {
+  if (hubStatus === 'connecting' || hubStatus === 'syncing') {
+    const label = hubStatus === 'syncing' ? 'Syncing riders…' : 'Connecting…';
     return (
-      <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg-muted shadow backdrop-blur-md">
-        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-fg-muted" aria-hidden />
-        <span>Connecting…</span>
+      <div className={`${hubChipShell} border-border text-fg-muted`}>
+        {spinner}
+        <span>{label}</span>
+      </div>
+    );
+  }
+
+  if (hubStatus === 'reconnecting') {
+    return (
+      <div className={`${hubChipShell} border-amber-500/35 text-amber-100/95`}>
+        {spinner}
+        <span>Reconnecting…</span>
+      </div>
+    );
+  }
+
+  if (hubStatus === 'disconnected' || hubStatus === 'error') {
+    const label = hubStatus === 'error' ? 'Connection failed' : 'Disconnected';
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className={`${hubChipShell} border-red-500/30 text-fg md:max-w-[min(100%,14rem)]`}
+          title={hubError?.message || undefined}
+        >
+          <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
+          <span className="line-clamp-2 wrap-break-word md:line-clamp-1">{label}</span>
+        </div>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md hover:border-white/20"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     );
   }
 
   return (
     <div
-      className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium text-fg shadow backdrop-blur-md md:max-w-[min(100%,14rem)]"
+      className={`${hubChipShell} border-border text-fg md:max-w-[min(100%,14rem)]`}
       title={hubError?.message || undefined}
     >
       <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
@@ -149,8 +187,11 @@ export default function RideLiveMapPage() {
   const upcoming = ride ? isRideUpcoming(ride) : false;
   const hubEnabled = Boolean(user && amParticipant && upcoming && ride?.routeId);
 
-  const { peersById, status: hubStatus, hubError, sendPose } = useRideLiveHub(rideId, hubEnabled, myUserId);
-
+  const { peersById, status: hubStatus, hubError, sendPose, retryHub, peersStale } = useRideLiveHub(
+    rideId,
+    hubEnabled,
+    myUserId,
+  );
   const trackGeoJson = useMemo(
     () => buildRoutePreviewFeatureCollection(ride?.preview ?? null),
     [ride?.preview],
@@ -356,6 +397,12 @@ export default function RideLiveMapPage() {
 
   const peersList = useMemo(() => [...peersById.values()], [peersById]);
 
+  const stalePeersList = useMemo(
+    () =>
+      stalePeersWithDistance(selfFix?.lat, selfFix?.lng, peersById.values()),
+    [selfFix?.lat, selfFix?.lng, peersById],
+  );
+
   if (!token) {
     return (
       <div className="fixed inset-0 z-(--rydo-z-live-blocking) flex flex-col items-center justify-center gap-4 bg-[#0a0908] px-6 text-center text-fg">
@@ -436,7 +483,11 @@ export default function RideLiveMapPage() {
         })()}
         {peersList.map((p) => (
           <Marker key={p.userId} longitude={p.lng} latitude={p.lat} anchor="center">
-            <LiveRideAvatarMarker name={p.displayName || 'Rider'} avatarUrl={p.avatarUrl} />
+            <LiveRideAvatarMarker
+              name={p.displayName || 'Rider'}
+              avatarUrl={p.avatarUrl}
+              stale={Boolean(p.isStale)}
+            />
           </Marker>
         ))}
         <NavigationControl position="top-right" showCompass visualizePitch />
@@ -453,7 +504,16 @@ export default function RideLiveMapPage() {
           >
             Back
           </Link>
-          <LiveHubStatusChip hubStatus={hubStatus} hubError={hubError} />
+          <LiveHubStatusChip
+            hubStatus={hubStatus}
+            hubError={hubError}
+            onRetry={hubEnabled ? retryHub : undefined}
+          />
+          {peersStale && hubStatus !== 'connected' ? (
+            <p className="w-full text-[11px] text-amber-200/80">
+              Rider positions may be outdated until sync completes.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -638,6 +698,24 @@ export default function RideLiveMapPage() {
                       <p className="text-fg-muted">No one detected behind</p>
                     )}
                   </div>
+                </div>
+              ) : null}
+              {stalePeersList.length > 0 ? (
+                <div className="mt-3 border-t border-white/[0.08] pt-3">
+                  <p className="mb-2 font-medium uppercase tracking-[0.12em] text-fg-subtle">Connection lost</p>
+                  <ul className="space-y-1.5">
+                    {stalePeersList.map((p) => (
+                      <li key={p.userId} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-fg-muted">
+                          {p.displayName || `Rider ${p.userId}`}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1 tabular-nums text-fg-muted">
+                          {formatDistanceM(p.distanceM)}
+                          <X className="h-3.5 w-3.5 text-red-400" strokeWidth={2.5} aria-hidden />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
             </div>

@@ -50,7 +50,7 @@ export function relativeBearingDeg(forwardDeg, targetBearingDeg) {
  * @param {number} [params.coneMinSpeedKmh]
  * @param {boolean} [params.forceDisableCone]
  * @param {{ lat: number, lng: number } | null | undefined} params.previousFix
- * @param {Iterable<{ userId: number, lat: number, lng: number, displayName?: string, avatarUrl?: string | null }>} params.peers
+ * @param {Iterable<{ userId: number, lat: number, lng: number, displayName?: string, avatarUrl?: string | null, isStale?: boolean }>} params.peers
  */
 export function nearestPeersAheadBehind({
   selfLat,
@@ -62,7 +62,7 @@ export function nearestPeersAheadBehind({
   previousFix,
   peers,
 }) {
-  const list = [...peers];
+  const list = [...peers].filter((p) => !p.isStale);
   if (
     selfLat == null ||
     selfLng == null ||
@@ -130,4 +130,29 @@ export function nearestPeersAheadBehind({
     aheadNearest: ahead[0] ?? null,
     behindNearest: behind[0] ?? null,
   };
+}
+
+/**
+ * Stale peers with distance from self for the "Connection lost" panel.
+ * @param {number | null | undefined} selfLat
+ * @param {number | null | undefined} selfLng
+ * @param {Iterable<{ userId: number, lat: number, lng: number, displayName?: string, isStale?: boolean }>} peers
+ */
+export function stalePeersWithDistance(selfLat, selfLng, peers) {
+  const stale = [...peers].filter((p) => p.isStale);
+  if (
+    stale.length === 0 ||
+    selfLat == null ||
+    selfLng == null ||
+    !Number.isFinite(selfLat) ||
+    !Number.isFinite(selfLng)
+  ) {
+    return stale.map((p) => ({ ...p, distanceM: null }));
+  }
+  return stale
+    .map((p) => ({
+      ...p,
+      distanceM: haversineDistanceM(selfLat, selfLng, p.lat, p.lng),
+    }))
+    .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0));
 }
