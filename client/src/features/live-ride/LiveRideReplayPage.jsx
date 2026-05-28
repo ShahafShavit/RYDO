@@ -5,6 +5,7 @@ import LiveRidePreviewTuningPanel from '@/features/live-ride/components/LiveRide
 import LiveRideReplayTimeline from '@/features/live-ride/components/LiveRideReplayTimeline';
 import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
+import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
 import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { buildReplayFixesForUpload } from '@/features/live-ride/utils/buildReplayFixesFromGeoJson';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
@@ -81,6 +82,7 @@ function formatDistanceM(m) {
 export default function LiveRideReplayPage() {
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const followCameraRef = useRef(true);
   const programmaticMoveRef = useRef(false);
   const compassHeadingRef = useRef(null);
@@ -266,6 +268,9 @@ export default function LiveRideReplayPage() {
     }
   }, [recenterCamera, puckDisplayRef]);
 
+  const mapReady = Boolean(token && session);
+  const resizeMap = useMapboxResize(mapRef, containerRef, mapReady);
+
   const onMapLoad = useCallback(
     (e) => {
       const map = e.target;
@@ -290,8 +295,9 @@ export default function LiveRideReplayPage() {
           programmaticMoveRef.current = false;
         }
       }
+      resizeMap();
     },
-    [session?.line, deadReckonRef],
+    [session?.line, deadReckonRef, resizeMap],
   );
 
   const peersById = useMemo(() => new Map(), []);
@@ -414,7 +420,10 @@ export default function LiveRideReplayPage() {
   }
 
   return (
-    <div className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div
+      ref={containerRef}
+      className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]"
+    >
       <MapGL
         key={`${session.fileName}-${replayEpoch}`}
         ref={mapRef}

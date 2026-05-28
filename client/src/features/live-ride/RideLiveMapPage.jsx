@@ -4,21 +4,23 @@ import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
 import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
-import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
+import { hubChipLabel, peersSnapshotUncertain } from '@/features/live-ride/connectivity/rideLiveConnectivity';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
+import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import { peersSnapshotUncertain, hubChipLabel } from '@/features/live-ride/connectivity/rideLiveConnectivity';
+import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
+import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
 import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
-import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
-import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 import {
   getStoredLiveRideOrientationOutcome,
   setStoredLiveRideOrientationOutcome,
 } from '@/features/live-ride/utils/requestLiveRidePermissions';
+import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { env } from '@/shared/config/env';
+import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import { useQuery } from '@tanstack/react-query';
 import { featureCollection } from '@turf/helpers';
 import {
@@ -39,7 +41,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
@@ -157,6 +158,7 @@ export default function RideLiveMapPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const followCameraRef = useRef(true);
   const programmaticMoveRef = useRef(false);
@@ -327,6 +329,9 @@ export default function RideLiveMapPage() {
     }
   }, [recenterCamera, puckDisplayRef]);
 
+  const mapReady = Boolean(token && !isLoading && ride && !isError && line && routeFc);
+  const resizeMap = useMapboxResize(mapRef, containerRef, mapReady);
+
   const onMapLoad = useCallback(
     (e) => {
       const map = e.target;
@@ -356,8 +361,9 @@ export default function RideLiveMapPage() {
          * in `watchPosition` initializes position and velocity.
          */
       }
+      resizeMap();
     },
-    [line, deadReckonRef],
+    [line, deadReckonRef, resizeMap],
   );
 
   useEffect(() => {
@@ -452,7 +458,10 @@ export default function RideLiveMapPage() {
   }
 
   return (
-    <div className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]">
+    <div
+      ref={containerRef}
+      className="rydo-live-map fixed inset-0 z-(--rydo-z-live-map) h-dvh w-full overflow-hidden bg-[#0a0908]"
+    >
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
@@ -550,7 +559,7 @@ export default function RideLiveMapPage() {
                 type="button"
                 aria-label="Open club chat"
                 onClick={() => openChat()}
-                className="absolute top-1/2 z-[2] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
+                className="absolute top-1/4 z-[2] flex h-13 w-13 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
                 style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
               >
                 <MessageCircle className="h-5 w-5" aria-hidden />

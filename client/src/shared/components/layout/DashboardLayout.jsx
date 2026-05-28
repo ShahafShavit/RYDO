@@ -28,6 +28,7 @@ export default function DashboardLayout() {
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? <MobileNavbar /> : null}
 
+      {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
         <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
           <span className="h-3 w-3 rounded-full bg-rydo-green shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_65%,transparent)]" />
@@ -66,10 +67,13 @@ export default function DashboardLayout() {
           )}
         </div>
       </aside>
+      ) : null}
 
-      <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8">
-        <div className="mx-auto max-w-6xl">
-          <PageBreadcrumbs variant="dashboard" />
+      <main
+        className={`flex-1 h-full min-w-0 ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-8'}`}
+      >
+        <div className={rideLiveMatch ? 'h-full' : 'mx-auto max-w-6xl'}>
+          {!rideLiveMatch ? <PageBreadcrumbs variant="dashboard" /> : null}
           <AnimatedOutlet />
         </div>
       </main>

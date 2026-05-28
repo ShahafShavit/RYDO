@@ -5,6 +5,8 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 
 const MotionDiv = motion.div;
 
+const RIDE_LIVE_MAP_PATH = /^\/ride\/[^/]+\/live$/;
+
 function RouteTransitionFallback() {
   return (
     <div
@@ -33,9 +35,11 @@ export default function AnimatedOutlet() {
   // the outlet wrapper — otherwise AnimatePresence runs exit→enter and opacity flashes to 0.
   const routeKey = location.pathname;
   const isLoadingRoute = navigation.state === 'loading';
+  const isRideLiveMap = RIDE_LIVE_MAP_PATH.test(routeKey);
 
   const duration = reducedMotion ? 0.1 : 0.22;
   const ease = [0.25, 0.1, 0.25, 1];
+  const skipMotion = reducedMotion || isRideLiveMap;
 
   return (
     <div className="relative min-h-0 min-w-0">
@@ -46,18 +50,24 @@ export default function AnimatedOutlet() {
         />
       ) : null}
 
+      {isRideLiveMap ? (
+        <div className="min-h-0 min-w-0">
+          <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
+        </div>
+      ) : (
       <AnimatePresence mode="wait" initial={false}>
         <MotionDiv
           key={routeKey}
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+          initial={skipMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+          animate={skipMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          exit={skipMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
           transition={{ duration, ease }}
           className="min-h-0 min-w-0"
         >
           <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
         </MotionDiv>
       </AnimatePresence>
+      )}
     </div>
   );
 }
