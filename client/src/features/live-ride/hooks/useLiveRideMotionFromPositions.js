@@ -60,7 +60,7 @@ function fixToGeolocationPosition(fix) {
  * @param {import('@/features/live-ride/utils/buildReplayFixesFromGeoJson').ReplayFix[] | null | undefined} opts.replayFixes
  * @param {boolean} opts.replayPlaying
  * @param {number} opts.replayEpoch — bump to reset replay cursor and DR state.
- * @param {(lat: number, lng: number, bearing: number | null, acc: number | null) => void} opts.sendPose
+ * @param {(lat: number, lng: number, bearing: number | null, acc: number | null) => void} opts.offerPose
  * @param {(lng: number, lat: number, bearingOpt?: number) => void} opts.applyFollowCamera
  * @param {React.MutableRefObject<boolean>} opts.followCameraRef
  * @param {React.MutableRefObject<number | null | undefined>} opts.compassHeadingRef
@@ -73,7 +73,7 @@ export function useLiveRideMotionFromPositions({
   replayFixes,
   replayPlaying,
   replayEpoch,
-  sendPose,
+  offerPose,
   applyFollowCamera,
   followCameraRef,
   compassHeadingRef,
@@ -120,15 +120,15 @@ export function useLiveRideMotionFromPositions({
     consecutiveRejects: 0,
   });
 
-  const sendPoseRef = useRef(sendPose);
+  const offerPoseRef = useRef(offerPose);
   const applyFollowRef = useRef(applyFollowCamera);
   const replayFixesRef = useRef(replayFixes ?? null);
 
   useLayoutEffect(() => {
-    sendPoseRef.current = sendPose;
+    offerPoseRef.current = offerPose;
     applyFollowRef.current = applyFollowCamera;
     replayFixesRef.current = replayFixes ?? null;
-  }, [sendPose, applyFollowCamera, replayFixes]);
+  }, [offerPose, applyFollowCamera, replayFixes]);
   const replayIdxRef = useRef(0);
   /** `performance.now()` anchor so `now - anchor` equals replay timeline ms; null before first play/seek. */
   const replayT0Ref = useRef(null);
@@ -199,7 +199,7 @@ export function useLiveRideMotionFromPositions({
       accuracyM: accuracy,
     };
 
-    const send = sendPoseRef.current;
+    const send = offerPoseRef.current;
 
     if (!dr.initialized) {
       dr.synLat = lat;

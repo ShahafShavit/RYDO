@@ -84,10 +84,9 @@ export function nearestPeersAheadBehind({
     Number.isFinite(speedKmh) &&
     speedKmh >= coneMinSpeedKmh;
   if (!coneEnabled) {
-    withDist.sort((a, b) => a.distanceM - b.distanceM);
     return {
       mode: 'unknown',
-      nearest: withDist.slice(0, 5).map((x) => ({ ...x.peer, distanceM: x.distanceM })),
+      nearest: topPeersByDistance(selfLat, selfLng, peers, 4),
     };
   }
 
@@ -106,10 +105,9 @@ export function nearestPeersAheadBehind({
   }
 
   if (forwardDeg == null || !Number.isFinite(forwardDeg)) {
-    withDist.sort((a, b) => a.distanceM - b.distanceM);
     return {
       mode: 'unknown',
-      nearest: withDist.slice(0, 5).map((x) => ({ ...x.peer, distanceM: x.distanceM })),
+      nearest: topPeersByDistance(selfLat, selfLng, peers, 4),
     };
   }
 
@@ -133,26 +131,32 @@ export function nearestPeersAheadBehind({
 }
 
 /**
- * Stale peers with distance from self for the "Connection lost" panel.
+ * Peers sorted by distance: live first (nearest first), then stale (nearest first), capped at `limit`.
  * @param {number | null | undefined} selfLat
  * @param {number | null | undefined} selfLng
  * @param {Iterable<{ userId: number, lat: number, lng: number, displayName?: string, isStale?: boolean }>} peers
+ * @param {number} [limit]
  */
-export function stalePeersWithDistance(selfLat, selfLng, peers) {
-  const stale = [...peers].filter((p) => p.isStale);
-  if (
-    stale.length === 0 ||
-    selfLat == null ||
-    selfLng == null ||
-    !Number.isFinite(selfLat) ||
-    !Number.isFinite(selfLng)
-  ) {
-    return stale.map((p) => ({ ...p, distanceM: null }));
-  }
-  return stale
-    .map((p) => ({
-      ...p,
-      distanceM: haversineDistanceM(selfLat, selfLng, p.lat, p.lng),
-    }))
-    .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0));
+export function topPeersByDistance(selfLat, selfLng, peers, limit = 4) {
+  const all = [...peers];
+  if (all.length === 0) return [];
+
+  const hasSelf =
+    selfLat != null &&
+    selfLng != null &&
+    Number.isFinite(selfLat) &&
+    Number.isFinite(selfLng);
+
+  const withDist = all.map((p) => ({
+    ...p,
+    distanceM: hasSelf ? haversineDistanceM(selfLat, selfLng, p.lat, p.lng) : null,
+  }));
+
+  const live = withDist.filter((p) => !p.isStale);
+  const stale = withDist.filter((p) => p.isStale);
+
+  live.sort((a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity));
+  stale.sort((a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity));
+
+  return [...live, ...stale].slice(0, limit);
 }

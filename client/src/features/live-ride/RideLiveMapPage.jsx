@@ -5,7 +5,8 @@ import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import { nearestPeersAheadBehind, stalePeersWithDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { peersSnapshotUncertain, hubChipLabel } from '@/features/live-ride/connectivity/rideLiveConnectivity';
+import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { requestDeviceOrientationPermission, subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
 import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
@@ -40,8 +41,6 @@ import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 const MAP_PITCH = 55;
 const MAP_ZOOM = 15.5;
-/** Keep cone logic disabled below this speed. */
-const CONE_MIN_SPEED_KMH = 7;
 
 const routeLineLayer = {
   id: 'ride-live-route-line',
@@ -65,17 +64,31 @@ function formatDistanceM(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
+function NearbyPeerRow({ peer }) {
+  const name = peer.displayName || `Rider ${peer.userId}`;
+  return (
+    <li className="flex items-center justify-between gap-2">
+      <span className={`min-w-0 truncate ${peer.isStale ? 'text-fg-muted' : ''}`}>{name}</span>
+      {peer.isStale ? (
+        <X className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2.5} aria-hidden />
+      ) : (
+        <span className="shrink-0 tabular-nums text-fg-muted">{formatDistanceM(peer.distanceM)}</span>
+      )}
+    </li>
+  );
+}
+
 /** Clears Mapbox logo + attribution (~2.75rem) plus safe area. */
 const LIVE_MAP_BOTTOM_INSET = 'max(1.25rem, calc(2.75rem + env(safe-area-inset-bottom)))';
 
 const hubChipShell =
   'inline-flex max-w-full items-center gap-2 rounded-2xl border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-3 py-2 text-xs font-medium shadow backdrop-blur-md';
 
-function LiveHubStatusChip({ hubStatus, hubError, onRetry }) {
-  const connected = hubStatus === 'connected' && !hubError;
+function LiveHubStatusChip({ transportState, hubError, onRetry }) {
+  const joined = transportState === 'joined' && !hubError;
   const spinner = <Loader2 className="h-4 w-4 shrink-0 animate-spin text-fg-muted" aria-hidden />;
 
-  if (connected) {
+  if (joined) {
     return (
       <div className={`${hubChipShell} border-border text-fg`}>
         <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
@@ -84,8 +97,8 @@ function LiveHubStatusChip({ hubStatus, hubError, onRetry }) {
     );
   }
 
-  if (hubStatus === 'connecting' || hubStatus === 'syncing') {
-    const label = hubStatus === 'syncing' ? 'Syncing riders…' : 'Connecting…';
+  if (transportState === 'connecting' || transportState === 'syncing' || transportState === 'idle') {
+    const label = hubChipLabel(transportState === 'idle' ? 'connecting' : transportState);
     return (
       <div className={`${hubChipShell} border-border text-fg-muted`}>
         {spinner}
@@ -94,17 +107,17 @@ function LiveHubStatusChip({ hubStatus, hubError, onRetry }) {
     );
   }
 
-  if (hubStatus === 'reconnecting') {
+  if (transportState === 'reconnecting') {
     return (
       <div className={`${hubChipShell} border-amber-500/35 text-amber-100/95`}>
         {spinner}
-        <span>Reconnecting…</span>
+        <span>{hubChipLabel(transportState)}</span>
       </div>
     );
   }
 
-  if (hubStatus === 'disconnected' || hubStatus === 'error') {
-    const label = hubStatus === 'error' ? 'Connection failed' : 'Disconnected';
+  if (transportState === 'offline' || transportState === 'error') {
+    const label = hubChipLabel(transportState);
     return (
       <div className="flex flex-wrap items-center gap-2">
         <div
@@ -133,7 +146,9 @@ function LiveHubStatusChip({ hubStatus, hubError, onRetry }) {
       title={hubError?.message || undefined}
     >
       <XCircle className="h-4 w-4 shrink-0 text-red-400" aria-hidden />
-      <span className="line-clamp-2 wrap-break-word md:line-clamp-1">No Connection</span>
+      <span className="line-clamp-2 wrap-break-word md:line-clamp-1">
+        {hubChipLabel(transportState) ?? 'No Connection'}
+      </span>
     </div>
   );
 }
@@ -187,7 +202,7 @@ export default function RideLiveMapPage() {
   const upcoming = ride ? isRideUpcoming(ride) : false;
   const hubEnabled = Boolean(user && amParticipant && upcoming && ride?.routeId);
 
-  const { peersById, status: hubStatus, hubError, sendPose, retryHub, peersStale } = useRideLiveHub(
+  const { peersById, transportState, hubError, offerPose, retryHub } = useRideLiveHub(
     rideId,
     hubEnabled,
     myUserId,
@@ -292,7 +307,7 @@ export default function RideLiveMapPage() {
       replayFixes: null,
       replayPlaying: false,
       replayEpoch: 0,
-      sendPose,
+      offerPose,
       applyFollowCamera,
       followCameraRef,
       compassHeadingRef,
@@ -371,19 +386,13 @@ export default function RideLiveMapPage() {
     orientationPermissionUi !== 'denied' &&
     !compassCtaDismissed;
 
-  const nearbyInfo = useMemo(() => {
-    const speedKmh = Number.isFinite(selfFix?.speedFiltered) ? selfFix.speedFiltered * 3.6 : 0;
-    return nearestPeersAheadBehind({
-      selfLat: selfFix?.lat,
-      selfLng: selfFix?.lng,
-      headingDeg: puckDisplay?.bearing ?? selfFix?.heading,
-      speedKmh,
-      coneMinSpeedKmh: CONE_MIN_SPEED_KMH,
-      forceDisableCone: Boolean(selfFix?.lowSpeedBypassCone),
-      previousFix: selfFix?.previousFix,
-      peers: peersById.values(),
-    });
-  }, [selfFix, peersById, puckDisplay]);
+  const selfLatForNearby = puckDisplay?.lat ?? selfFix?.lat;
+  const selfLngForNearby = puckDisplay?.lng ?? selfFix?.lng;
+
+  const nearbyListPeers = useMemo(
+    () => topPeersByDistance(selfLatForNearby, selfLngForNearby, peersById.values(), 4),
+    [selfLatForNearby, selfLngForNearby, peersById],
+  );
 
   const timeLabel = useMemo(
     () =>
@@ -396,12 +405,6 @@ export default function RideLiveMapPage() {
   );
 
   const peersList = useMemo(() => [...peersById.values()], [peersById]);
-
-  const stalePeersList = useMemo(
-    () =>
-      stalePeersWithDistance(selfFix?.lat, selfFix?.lng, peersById.values()),
-    [selfFix?.lat, selfFix?.lng, peersById],
-  );
 
   if (!token) {
     return (
@@ -505,11 +508,11 @@ export default function RideLiveMapPage() {
             Back
           </Link>
           <LiveHubStatusChip
-            hubStatus={hubStatus}
+            transportState={transportState}
             hubError={hubError}
             onRetry={hubEnabled ? retryHub : undefined}
           />
-          {peersStale && hubStatus !== 'connected' ? (
+          {peersSnapshotUncertain(transportState) ? (
             <p className="w-full text-[11px] text-amber-200/80">
               Rider positions may be outdated until sync completes.
             </p>
@@ -654,70 +657,15 @@ export default function RideLiveMapPage() {
 
           {nearbyOpen ? (
             <div className="max-h-[min(40vh,16rem)] overflow-y-auto rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 text-xs text-fg md:max-h-[min(50vh,20rem)]">
-              {nearbyInfo.mode === 'empty' ? (
+              {nearbyListPeers.length === 0 ? (
                 <p className="text-fg-muted">No other riders to compare yet.</p>
-              ) : null}
-              {nearbyInfo.mode === 'unknown' ? (
-                <div className="space-y-1">
-                  <p className="text-fg-subtle">Direction unavailable — nearest by distance:</p>
-                  <ul className="space-y-1">
-                    {(nearbyInfo.nearest ?? []).map((p) => (
-                      <li key={p.userId} className="flex justify-between gap-2">
-                        <span className="truncate">{p.displayName || `Rider ${p.userId}`}</span>
-                        <span className="shrink-0 tabular-nums text-fg-muted">{formatDistanceM(p.distanceM)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              {nearbyInfo.mode === 'aheadBehind' ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Ahead</p>
-                    {nearbyInfo.aheadNearest ? (
-                      <p className="text-fg">
-                        {nearbyInfo.aheadNearest.displayName || `Rider ${nearbyInfo.aheadNearest.userId}`}
-                        <span className="ml-2 tabular-nums text-fg-muted">
-                          {formatDistanceM(nearbyInfo.aheadNearest.distanceM)}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-fg-muted">No one detected ahead</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="mb-1 font-medium uppercase tracking-[0.12em] text-fg-subtle">Behind</p>
-                    {nearbyInfo.behindNearest ? (
-                      <p className="text-fg">
-                        {nearbyInfo.behindNearest.displayName || `Rider ${nearbyInfo.behindNearest.userId}`}
-                        <span className="ml-2 tabular-nums text-fg-muted">
-                          {formatDistanceM(nearbyInfo.behindNearest.distanceM)}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-fg-muted">No one detected behind</p>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-              {stalePeersList.length > 0 ? (
-                <div className="mt-3 border-t border-white/[0.08] pt-3">
-                  <p className="mb-2 font-medium uppercase tracking-[0.12em] text-fg-subtle">Connection lost</p>
-                  <ul className="space-y-1.5">
-                    {stalePeersList.map((p) => (
-                      <li key={p.userId} className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate text-fg-muted">
-                          {p.displayName || `Rider ${p.userId}`}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1 tabular-nums text-fg-muted">
-                          {formatDistanceM(p.distanceM)}
-                          <X className="h-3.5 w-3.5 text-red-400" strokeWidth={2.5} aria-hidden />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+              ) : (
+                <ul className="space-y-1">
+                  {nearbyListPeers.map((p) => (
+                    <NearbyPeerRow key={p.userId} peer={p} />
+                  ))}
+                </ul>
+              )}
             </div>
           ) : null}
         </div>

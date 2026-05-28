@@ -17,9 +17,6 @@ public sealed class DemoRideLiveBotsOptions
     /// <summary>Password for simulated participants (must match bulk seeded riders, e.g. <see cref="DbSeeder.DemoRiderPassword"/>).</summary>
     public string BotPassword { get; set; } = DbSeeder.DemoRiderPassword;
 
-    /// <summary>Minimum milliseconds between UpdatePose per simulated rider.</summary>
-    public int UpdateIntervalMs { get; set; } = 2000;
-
     /// <summary>Approximate meters advanced along the polyline per update (demo pacing).</summary>
     public double StepMeters { get; set; } = 24;
 }

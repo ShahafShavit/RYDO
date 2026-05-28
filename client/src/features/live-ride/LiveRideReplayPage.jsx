@@ -100,7 +100,7 @@ export default function LiveRideReplayPage() {
   const [uncertaintyData, setUncertaintyData] = useState(null);
   const [bearingHud, setBearingHud] = useState(null);
 
-  const noopSendPose = useCallback(() => { }, []);
+  const noopOfferPose = useCallback(() => {}, []);
 
   useEffect(() => {
     if (enableRideLiveDebugFromQuery()) {
@@ -177,7 +177,7 @@ export default function LiveRideReplayPage() {
     replayFixes: session?.fixes ?? null,
     replayPlaying,
     replayEpoch,
-    sendPose: noopSendPose,
+    offerPose: noopOfferPose,
     applyFollowCamera,
     followCameraRef,
     compassHeadingRef,

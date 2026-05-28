@@ -14,11 +14,11 @@ public class RideLiveHub(
     IServiceScopeFactory scopeFactory,
     RideLivePoseStore poseStore,
     RideLiveRateLimiter rateLimiter,
-    IRideLiveSessionCoordinator sessionCoordinator,
+    RideLiveBotOrchestrator botOrchestrator,
+    IHostEnvironment environment,
     ILogger<RideLiveHub> logger)
     : Hub
 {
-    public const int MinPoseIntervalMs = 2000;
 
     /// <summary>Per-connection state — hub instances are transient; do not use instance fields for JoinRide → UpdatePose.</summary>
     private static readonly object JoinedRideIdItemKey = new();
@@ -40,10 +40,13 @@ public class RideLiveHub(
 
     public override async Task OnConnectedAsync()
     {
-        logger.LogDebug(
-            "Ride live hub: connected connection {ConnectionId} user {UserId}",
+        RideLiveDiagnostics.Transport(
+            logger,
+            "connected",
             Context.ConnectionId,
-            CurrentUserId()?.ToString() ?? "(not yet authenticated)");
+            CurrentUserId(),
+            null,
+            "websocket_established");
         await base.OnConnectedAsync();
     }
 
@@ -58,37 +61,43 @@ public class RideLiveHub(
         var userId = CurrentUserId();
         if (userId == null)
         {
-            logger.LogWarning("Ride live hub JoinRide rejected: unauthorized connection {ConnectionId}", Context.ConnectionId);
+            RideLiveDiagnostics.Transport(
+                logger,
+                "join_rejected",
+                Context.ConnectionId,
+                null,
+                rideId,
+                "unauthorized");
             throw new HubException("Unauthorized.");
         }
 
         var hasInitialPose = IsValidCoords(lat, lng);
-        logger.LogDebug(
-            "Ride live hub JoinRide start: connection {ConnectionId} user {UserId} ride {RideId} hasInitialPose {HasInitialPose}",
-            Context.ConnectionId,
-            userId.Value,
+        RideLiveDiagnostics.HubCallback(
+            logger,
+            "JoinRide",
             rideId,
-            hasInitialPose);
+            userId.Value,
+            Context.ConnectionId,
+            "start",
+            detail: $"hasInitialPose={hasInitialPose}");
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
         if (!await MayJoinLiveAsync(db, rideId, userId.Value, Context.ConnectionAborted))
         {
-            logger.LogWarning(
-                "Ride live hub JoinRide rejected: user {UserId} may not join live ride {RideId} (connection {ConnectionId})",
+            RideLiveDiagnostics.Transport(
+                logger,
+                "join_rejected",
+                Context.ConnectionId,
                 userId.Value,
                 rideId,
-                Context.ConnectionId);
+                "not_permitted");
             throw new HubException("You cannot join live for this ride.");
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(rideId));
         Context.Items[JoinedRideIdItemKey] = rideId;
-        poseStore.CancelScheduledRemoval(rideId, userId.Value);
-        logger.LogDebug(
-            "Ride live hub: connection {ConnectionId} added to group {Group}",
-            Context.ConnectionId,
-            GroupName(rideId));
+        poseStore.CancelScheduledRemoval(rideId, userId.Value, "JoinRide");
 
         var email = CurrentUserEmail();
         if (string.IsNullOrWhiteSpace(email))
@@ -99,7 +108,7 @@ public class RideLiveHub(
                 .FirstOrDefaultAsync(Context.ConnectionAborted);
         }
 
-        sessionCoordinator.EnsureStarted(rideId, userId.Value, email);
+        ScheduleDevBotsIfApplicable(rideId, userId.Value, email);
 
         var peerBroadcast = false;
         if (hasInitialPose)
@@ -108,37 +117,27 @@ public class RideLiveHub(
             if (user != null)
             {
                 var dto = BuildPoseDto(user, lat!.Value, lng!.Value, headingDeg, accuracyM, atUtc);
-                var stored = poseStore.SetPose(rideId, dto);
-                await BroadcastRiderMovedAsync(rideId, stored);
+                var stored = poseStore.SetPose(rideId, dto, "join_initial_pose");
+                await BroadcastRiderMovedAsync(rideId, stored, "join_initial_pose");
                 peerBroadcast = true;
-                logger.LogDebug(
-                    "Ride live hub JoinRide: initial pose broadcast ride {RideId} user {UserId} lat {Lat:F6} lng {Lng:F6}",
-                    rideId,
-                    userId.Value,
-                    lat,
-                    lng);
             }
         }
         else if (poseStore.TryGetPose(rideId, userId.Value, out var storedPose))
         {
-            await BroadcastRiderMovedAsync(rideId, storedPose);
+            await BroadcastRiderMovedAsync(rideId, storedPose, "join_reconnect_rebroadcast");
             peerBroadcast = true;
-            logger.LogDebug(
-                "Ride live hub JoinRide: grace reconnect pose broadcast ride {RideId} user {UserId}",
-                rideId,
-                userId.Value);
         }
 
         var snapshot = poseStore.GetSnapshot(rideId);
         var riders = snapshot.Select(RideLiveWire.Pose).ToList();
-        logger.LogInformation(
-            "Ride live hub: user {UserId} connection {ConnectionId} joined ride {RideId}, sending RidersState with {PeerCount} pose(s), peerBroadcast {PeerBroadcast}; joiner email: {Email}.",
+        RideLiveDiagnostics.HubCallback(
+            logger,
+            "JoinRide",
+            rideId,
             userId.Value,
             Context.ConnectionId,
-            rideId,
-            riders.Count,
-            peerBroadcast,
-            string.IsNullOrWhiteSpace(email) ? "(none)" : email);
+            "completed",
+            detail: $"peerCount={riders.Count} peerBroadcast={peerBroadcast} email={email ?? "(none)"}");
         await Clients.Caller.SendAsync("RidersState", new { riders });
     }
 
@@ -149,9 +148,14 @@ public class RideLiveHub(
             if (!Context.Items.ContainsKey(WarnedNoJoinItemKey))
             {
                 Context.Items[WarnedNoJoinItemKey] = true;
-                logger.LogWarning(
-                    "Ride live hub UpdatePose ignored: connection {ConnectionId} never called JoinRide on this connection (reconnect without re-join?)",
-                    Context.ConnectionId);
+                RideLiveDiagnostics.Skipped(
+                    logger,
+                    "hub",
+                    0,
+                    CurrentUserId() ?? 0,
+                    "UpdatePose",
+                    "connection_never_joined_ride",
+                    detail: $"connection={Context.ConnectionId}");
             }
 
             return;
@@ -160,26 +164,40 @@ public class RideLiveHub(
         var userId = CurrentUserId();
         if (userId == null)
         {
-            logger.LogDebug("Ride live hub UpdatePose ignored: no user id on connection {ConnectionId}", Context.ConnectionId);
+            RideLiveDiagnostics.Skipped(
+                logger,
+                "hub",
+                rideId,
+                0,
+                "UpdatePose",
+                "missing_user_id",
+                detail: $"connection={Context.ConnectionId}");
             return;
         }
 
-        if (!rateLimiter.TryAllow(rideId, userId.Value, MinPoseIntervalMs, DateTime.UtcNow))
+        if (!rateLimiter.TryAllow(rideId, userId.Value, RideLiveTiming.PoseHeartbeatIntervalMs, DateTime.UtcNow))
         {
-            logger.LogDebug(
-                "Ride live hub UpdatePose rate-limited: ride {RideId} user {UserId} connection {ConnectionId}",
+            RideLiveDiagnostics.Skipped(
+                logger,
+                "hub",
                 rideId,
                 userId.Value,
-                Context.ConnectionId);
+                "UpdatePose",
+                "rate_limited",
+                detail: $"minIntervalMs={RideLiveTiming.PoseHeartbeatIntervalMs} connection={Context.ConnectionId}");
             return;
         }
 
         if (!IsValidCoords(lat, lng))
         {
-            logger.LogDebug(
-                "Ride live hub UpdatePose ignored: invalid lat/lng ride {RideId} user {UserId}",
+            RideLiveDiagnostics.Skipped(
+                logger,
+                "hub",
                 rideId,
-                userId.Value);
+                userId.Value,
+                "UpdatePose",
+                "invalid_coordinates",
+                detail: $"lat={lat} lng={lng}");
             return;
         }
 
@@ -189,61 +207,47 @@ public class RideLiveHub(
         if (dto == null)
             return;
 
-        var stored = poseStore.SetPose(rideId, dto);
-        await BroadcastRiderMovedAsync(rideId, stored);
-        logger.LogDebug(
-            "Ride live hub RiderMoved broadcast: ride {RideId} from user {UserId} connection {ConnectionId} lat {Lat:F6} lng {Lng:F6} → group {Group} (excluding sender)",
-            rideId,
-            userId.Value,
-            Context.ConnectionId,
-            lat,
-            lng,
-            GroupName(rideId));
+        var stored = poseStore.SetPose(rideId, dto, "UpdatePose");
+        await BroadcastRiderMovedAsync(rideId, stored, "UpdatePose");
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var joined = TryGetJoinedRideId(out var rideIdFromContext);
-        var rideLabel = joined ? rideIdFromContext.ToString() : "(none)";
-        if (exception != null)
-        {
-            logger.LogDebug(
-                exception,
-                "Ride live hub disconnect: connection {ConnectionId} joinedRide {JoinedRide} user {UserId}",
-                Context.ConnectionId,
-                rideLabel,
-                CurrentUserId()?.ToString() ?? "(none)");
-        }
-        else
-        {
-            logger.LogDebug(
-                "Ride live hub disconnect: connection {ConnectionId} joinedRide {JoinedRide} user {UserId}",
-                Context.ConnectionId,
-                rideLabel,
-                CurrentUserId()?.ToString() ?? "(none)");
-        }
+        var userId = CurrentUserId();
+        var reason = exception == null
+            ? "clean_disconnect"
+            : $"disconnect_with_exception:{exception.GetType().Name}";
 
-        if (joined)
+        RideLiveDiagnostics.Transport(
+            logger,
+            "disconnected",
+            Context.ConnectionId,
+            userId,
+            joined ? rideIdFromContext : null,
+            reason,
+            exception);
+
+        if (joined && userId != null)
         {
-            var rideId = rideIdFromContext;
-            var userId = CurrentUserId();
-            if (userId != null)
-            {
-                poseStore.ScheduleRiderRemoval(rideId, userId.Value);
-                logger.LogDebug(
-                    "Ride live hub disconnect: scheduled pose removal (grace) ride {RideId} user {UserId}",
-                    rideId,
-                    userId.Value);
-            }
+            poseStore.ScheduleRiderRemoval(rideIdFromContext, userId.Value);
         }
 
         await base.OnDisconnectedAsync(exception);
     }
 
-    private async Task BroadcastRiderMovedAsync(int rideId, RiderPoseDto dto)
+    private async Task BroadcastRiderMovedAsync(int rideId, RiderPoseDto dto, string reason)
     {
         var wire = RideLiveWire.Pose(dto);
         await Clients.GroupExcept(GroupName(rideId), Context.ConnectionId).SendAsync("RiderMoved", wire);
+        RideLiveDiagnostics.Broadcast(
+            logger,
+            "RiderMoved",
+            rideId,
+            dto.UserId,
+            reason,
+            dto.IsStale,
+            detail: $"connection={Context.ConnectionId}");
     }
 
     private async Task<RiderPoseDto?> TryBuildPoseDtoAsync(
@@ -259,17 +263,26 @@ public class RideLiveHub(
     {
         if (!await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == userId, ct))
         {
-            logger.LogDebug(
-                "Ride live hub UpdatePose ignored: user {UserId} not a participant of ride {RideId}",
+            RideLiveDiagnostics.Skipped(
+                logger,
+                "hub",
+                rideId,
                 userId,
-                rideId);
+                "UpdatePose",
+                "not_ride_participant");
             return null;
         }
 
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
         {
-            logger.LogDebug("Ride live hub UpdatePose ignored: user {UserId} row missing", userId);
+            RideLiveDiagnostics.Skipped(
+                logger,
+                "hub",
+                rideId,
+                userId,
+                "UpdatePose",
+                "user_row_missing");
             return null;
         }
 
@@ -320,4 +333,29 @@ public class RideLiveHub(
     private static string DisplayName(ApplicationUser u) =>
         string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
 
+    private void ScheduleDevBotsIfApplicable(int rideId, int triggeringUserId, string? triggeringEmail)
+    {
+        if (!environment.IsDevelopment())
+            return;
+
+        logger.LogInformation(
+            "{Tag} dev_bots scheduling ride={RideId} joinerUser={UserId} email={Email}",
+            RideLiveDiagnostics.Tag,
+            rideId,
+            triggeringUserId,
+            triggeringEmail ?? "(none)");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await botOrchestrator.TryStartBotsForRideAsync(rideId, triggeringUserId, triggeringEmail)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "{Tag} dev_bots orchestration_failed ride={RideId}", RideLiveDiagnostics.Tag, rideId);
+            }
+        });
+    }
 }

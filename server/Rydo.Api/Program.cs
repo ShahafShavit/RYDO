@@ -24,7 +24,6 @@ builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
 builder.Services.AddSingleton<RideLiveBotOrchestrator>();
-builder.Services.AddSingleton<IRideLiveSessionCoordinator, RideLiveSessionCoordinator>();
 
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost,1433;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False";

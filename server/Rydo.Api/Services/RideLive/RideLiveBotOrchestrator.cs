@@ -250,7 +250,7 @@ public sealed class RideLiveBotOrchestrator(
 
             try
             {
-                await Task.Delay(opt.UpdateIntervalMs, ct).ConfigureAwait(false);
+                await Task.Delay(RideLiveTiming.PoseHeartbeatIntervalMs, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
