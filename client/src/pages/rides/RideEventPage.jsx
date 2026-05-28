@@ -59,7 +59,7 @@ export default function RideEventPage() {
 
   if (isLoading) {
     return (
-      <section className="space-y-6">
+      <section className="min-w-0 space-y-6">
         <div className="h-40 animate-pulse rounded-3xl bg-surface-strong" />
       </section>
     );
@@ -71,7 +71,7 @@ export default function RideEventPage() {
         ? 'This ride was not found or is not visible with your account.'
         : error?.message || 'Could not load this ride.';
     return (
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4">
         <p className="text-red-400">{loadError}</p>
         <Button variant="secondary" type="button" onClick={() => refetch()}>
           Retry
@@ -115,7 +115,7 @@ export default function RideEventPage() {
     ) : null;
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <RideEventCard
         ride={ride}
         showEdit={showEdit}

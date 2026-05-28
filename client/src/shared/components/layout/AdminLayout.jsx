@@ -58,8 +58,8 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 h-full overflow-y-auto min-w-0 p-4 md:p-8 relative z-0">
-        <div className="mx-auto max-w-6xl">
+      <main className="flex-1 min-h-0 min-w-0 overflow-y-auto p-4 md:p-8 relative z-0">
+        <div className="mx-auto w-full min-w-0 max-w-6xl">
           <PageBreadcrumbs variant="admin" />
           <AnimatedOutlet />
         </div>

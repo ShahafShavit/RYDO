@@ -54,7 +54,7 @@ export default function MobileNavbar({ isAdminLayout }) {
     return (
         <>
             <div
-                className={`md:hidden sticky top-0 w-full border-b border-border bg-black/40 backdrop-blur-xl ${isOpen ? 'z-(--rydo-z-mobile-menu)' : 'z-(--rydo-z-sticky)'}`}
+                className={`md:hidden sticky top-0 shrink-0 w-full border-b border-border bg-black/40 backdrop-blur-xl ${isOpen ? 'z-(--rydo-z-mobile-menu)' : 'z-(--rydo-z-sticky)'}`}
             >
                 <div className="flex items-center justify-between px-4 py-4">
                     <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ export default function MobileNavbar({ isAdminLayout }) {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={tFast}
-                            className={`absolute top-full left-0 w-full border-b border-border p-4 flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[var(--rydo-bg-deep)]' : 'bg-[var(--rydo-bg-deep)]'}`}
+                            className={`absolute top-full left-0 w-full max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-b border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col gap-2 shadow-[0_24px_48px_rgba(0,0,0,0.45)] ${isAdminLayout ? 'bg-[var(--rydo-bg-deep)]' : 'bg-[var(--rydo-bg-deep)]'}`}
                         >
                             {navItems.map((item, index) => {
                                 const ItemIcon = item.Icon;

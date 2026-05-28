@@ -70,9 +70,9 @@ export default function DashboardLayout() {
       ) : null}
 
       <main
-        className={`flex-1 h-full min-w-0 ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-8'}`}
+        className={`flex-1 min-h-0 min-w-0 ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-8'}`}
       >
-        <div className={rideLiveMatch ? 'h-full' : 'mx-auto max-w-6xl'}>
+        <div className={rideLiveMatch ? 'h-full min-w-0' : 'mx-auto w-full min-w-0 max-w-6xl'}>
           {!rideLiveMatch ? <PageBreadcrumbs variant="dashboard" /> : null}
           <AnimatedOutlet />
         </div>

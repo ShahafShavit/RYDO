@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 function initialsFromName(name) {
   const parts = String(name || '')
@@ -18,9 +19,11 @@ export default function RouteDetailsHeader({ route, children }) {
   const showUploader = cb?.id != null && cb?.fullName;
 
   return (
-    <div className="relative z-(--rydo-z-route-header) space-y-4">
+    <div className="relative z-(--rydo-z-route-header) min-w-0 space-y-4">
       <div>
-        <h1 className="text-3xl font-semibold">{route.title || 'Untitled'}</h1>
+        <h1 className="w-full min-w-0 text-3xl font-semibold">
+          <TruncatedText lineClamp={2}>{route.title || 'Untitled'}</TruncatedText>
+        </h1>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">

@@ -4,6 +4,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { buildQueryString } from '@/shared/api/api-helpers';
 import RouteCard from '@/features/routes/components/RouteCard';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 import {
   useUserParticipatedRidesPreview,
   useUserUploadedRoutesPreview,
@@ -24,11 +25,9 @@ function formatWhen(iso) {
 
 function ProfileRidePreviewCard({ ride }) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex min-w-0 flex-col">
       <h3 className="w-full min-w-0 text-center text-lg font-semibold leading-snug">
-        <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
-          {ride.name}
-        </span>
+        <TruncatedText>{ride.name}</TruncatedText>
       </h3>
       <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       <div className="mt-4">
@@ -103,7 +102,7 @@ export function UserProfileActivitySections({ userId, profile, isOwn }) {
         ) : routeItems.length === 0 ? (
           <p className="text-sm text-fg-muted">No routes uploaded yet.</p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-6 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             {routeItems.map((route) => (
               <RouteCard key={route.id} route={route} />
             ))}
@@ -131,7 +130,7 @@ export function UserProfileActivitySections({ userId, profile, isOwn }) {
         ) : rideItems.length === 0 ? (
           <p className="text-sm text-fg-muted">No rides to show yet.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             {rideItems.map((ride) => (
               <ProfileRidePreviewCard key={ride.id} ride={ride} />
             ))}

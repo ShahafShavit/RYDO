@@ -8,6 +8,7 @@ import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMap
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -43,11 +44,11 @@ export default function RouteCard({ route }) {
       : `${favoriteCount} people saved this route as favorites`;
 
   return (
-    <Card className="flex h-full min-h-0 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col text-center">
+    <Card className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col text-center">
         {/* isolate + map z-0 so the badge stacks above Leaflet panes (tiles/overlays use high internal z-index) */}
-        <div className="relative isolate shrink-0">
-          <div className="relative z-0">
+        <div className="relative isolate w-full min-w-0 shrink-0 overflow-hidden">
+          <div className="relative z-0 w-full min-w-0">
             <CompactRouteMapPreview preview={mapPreview} />
           </div>
           {showRidersBadge || showFavoriteBadge ? (
@@ -78,15 +79,14 @@ export default function RouteCard({ route }) {
           ) : null}
         </div>
         <div className="mt-4 w-full min-w-0 shrink-0 text-center">
-          <h3 className="text-xl font-semibold">
-            <Link
+          <h3 className="w-full min-w-0 text-xl font-semibold">
+            <TruncatedText
+              as={Link}
               to={routeHref}
-              title={title}
-              dir="auto"
-              className="inline-block max-w-full truncate align-top text-fg underline-offset-2 transition hover:text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded-sm"
+              className="text-fg underline-offset-2 transition hover:text-rydo-purple hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple rounded-sm"
             >
               {title}
-            </Link>
+            </TruncatedText>
           </h3>
         </div>
         {/* Fills extra row height so the stats row lines up across cards with different title lengths */}

@@ -92,7 +92,7 @@ export default function RoutesExplorePage() {
   }, [clearError]);
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Repository</p>
         <h1 className="mt-2 text-3xl font-semibold text-fg">Explore</h1>
@@ -157,7 +157,7 @@ export default function RoutesExplorePage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-[repeat(3,minmax(0,1fr))]">
             {(routes || []).map((route) => (
               <RouteCard key={route.id} route={route} />
             ))}

@@ -3,7 +3,7 @@ import DashboardHomeCards from '@/features/dashboard/components/DashboardHomeCar
 
 export default function DashboardPage() {
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <DashboardHeader />
       <DashboardHomeCards />
     </section>

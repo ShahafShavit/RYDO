@@ -25,7 +25,7 @@ export default function RouteDetailsPage() {
   );
 
   return (
-    <section className="space-y-6">
+    <section className="min-w-0 space-y-6">
       <RouteDetailsHeader route={route}>
         <SavedRouteButton routeId={route?.id} />
         {route?.id ? (

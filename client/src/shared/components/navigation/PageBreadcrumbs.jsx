@@ -8,6 +8,7 @@ import {
   buildPublicBreadcrumbTrail,
   buildToolBreadcrumbTrail,
 } from '@/shared/lib/breadcrumb-trails';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 /**
  * @param {{
@@ -37,8 +38,8 @@ export default function PageBreadcrumbs({ variant, className = '' }) {
   const list = items ?? [];
 
   return (
-    <nav aria-label="Breadcrumb" className={`mb-4 ${className}`.trim()}>
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-fg-subtle">
+    <nav aria-label="Breadcrumb" className={`mb-4 min-w-0 ${className}`.trim()}>
+      <ol className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-fg-subtle">
         {list.map((item, i) => {
           const isLast = i === list.length - 1;
           const showLink = item.to != null && item.to !== '';
@@ -50,21 +51,23 @@ export default function PageBreadcrumbs({ variant, className = '' }) {
                   <ChevronRight className="h-4 w-4 text-fg-subtle/70" strokeWidth={2} />
                 </li>
               ) : null}
-              <li className="min-w-0">
+              <li className={`min-w-0 ${isLast ? 'max-w-full flex-1 basis-0' : 'shrink-0'}`}>
                 {showLink && !isLast ? (
-                  <Link
+                  <TruncatedText
+                    as={Link}
                     to={item.to}
-                    className="truncate text-fg-subtle transition hover:text-fg/90 underline-offset-4 hover:underline"
+                    className="text-fg-subtle transition hover:text-fg/90 underline-offset-4 hover:underline"
                   >
                     {item.label}
-                  </Link>
+                  </TruncatedText>
                 ) : (
-                  <span
-                    className={isLast ? 'truncate font-medium text-fg/90' : 'truncate'}
+                  <TruncatedText
+                    as="span"
+                    className={isLast ? 'font-medium text-fg/90' : undefined}
                     {...(isLast ? { 'aria-current': 'page' } : {})}
                   >
                     {item.label}
-                  </span>
+                  </TruncatedText>
                 )}
               </li>
             </Fragment>

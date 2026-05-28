@@ -55,7 +55,7 @@ export default function YourRoutesPage() {
   ];
 
   return (
-    <section className="space-y-8">
+    <section className="min-w-0 space-y-8">
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -93,7 +93,7 @@ export default function YourRoutesPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[repeat(3,minmax(0,1fr))]">
           {currentRoutes.map((route) => (
             <RouteCard key={route.id} route={route} />
           ))}

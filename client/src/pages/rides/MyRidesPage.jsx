@@ -14,6 +14,7 @@ import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalR
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 /** First screenful of upcoming cards before "Show more". */
 const UPCOMING_PREVIEW_COUNT = 3;
@@ -25,7 +26,7 @@ const RIDE_CARD_MAP_CLASS =
 /** Stacked badge rows above the map. */
 const RIDE_CARD_INFO_COL_CLASS = 'flex w-full min-w-0 flex-col gap-2';
 const RIDE_CARD_INFO_ROW_BASE =
-  'flex min-h-10 w-full min-w-0 items-center justify-center rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
+  'flex min-h-10 w-full min-w-0 items-center justify-center overflow-hidden truncate rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
 
 function RideInfoRow({ tone = 'neutral', children, title }) {
   const tones = {
@@ -94,7 +95,7 @@ function ScheduledRideCard({ ride }) {
   const hasRoute = ride.routeId != null;
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
-    <Card className="relative p-4 sm:p-6">
+    <Card className="relative min-w-0 p-4 sm:p-6">
       <Link
         to={ridePath}
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
@@ -121,9 +122,7 @@ function ScheduledRideCard({ ride }) {
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
         <h3 className="w-full min-w-0 text-lg font-semibold">
-          <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
-            {ride.name}
-          </span>
+          <TruncatedText>{ride.name}</TruncatedText>
         </h3>
         <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
       </div>
@@ -146,7 +145,7 @@ function UpcomingRidesSection({ rides }) {
         <p className="mt-3 text-sm text-fg-muted">No upcoming rides.</p>
       ) : (
         <>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-[repeat(3,minmax(0,1fr))]">
             {visible.map((ride) => (
               <ScheduledRideCard key={ride.id} ride={ride} />
             ))}
@@ -181,7 +180,7 @@ function PastScheduledCard({ ride }) {
   const hasRoute = ride.routeId != null;
   const ridePath = ROUTES.rideEvent.replace(':rideId', String(ride.id));
   return (
-    <Card className="relative p-4 sm:p-6">
+    <Card className="relative min-w-0 p-4 sm:p-6">
       <Link
         to={ridePath}
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
@@ -208,9 +207,7 @@ function PastScheduledCard({ ride }) {
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
         <h3 className="w-full min-w-0 text-lg font-semibold">
-          <span className="inline-block max-w-full truncate align-top" title={ride.name} dir="auto">
-            {ride.name}
-          </span>
+          <TruncatedText>{ride.name}</TruncatedText>
         </h3>
         <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
         <p className="mt-2 text-sm text-fg-subtle">No logged stats for this event yet.</p>
@@ -245,7 +242,7 @@ function HistoryRideCard({ entry }) {
     entry.routeTitle || entry.routeName || (entry.routeId != null ? `Route #${entry.routeId}` : 'Ride');
 
   return (
-    <Card className="relative p-4 sm:p-6">
+    <Card className="relative min-w-0 p-4 sm:p-6">
       {ridePath != null ? (
         <Link
           to={ridePath}
@@ -269,9 +266,7 @@ function HistoryRideCard({ entry }) {
       </div>
       <div className="relative z-10 mt-3 text-center pointer-events-none">
         <h3 className="w-full min-w-0 text-lg font-semibold">
-          <span className="inline-block max-w-full truncate align-top" title={rideLabel} dir="auto">
-            {rideLabel}
-          </span>
+          <TruncatedText>{rideLabel}</TruncatedText>
         </h3>
         <p className="text-sm text-fg-muted">{formatWhen(entry.completedAt)}</p>
       </div>
@@ -298,7 +293,7 @@ function HistoryRideCard({ entry }) {
         </div>
       </div>
       {paceNote ? (
-        <p className="relative z-10 mt-2 text-center text-sm text-fg-muted pointer-events-none">{paceNote}</p>
+        <p className="relative z-10 mt-2 truncate text-center text-sm text-fg-muted pointer-events-none">{paceNote}</p>
       ) : null}
     </Card>
   );
@@ -384,11 +379,13 @@ export default function MyRidesPage() {
     : 'My Rides';
 
   return (
-    <section className="space-y-8">
+    <section className="min-w-0 space-y-8">
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
         <div className="mt-2 flex items-center justify-between gap-3">
-          <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">{pageTitle}</h1>
+          <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">
+            <TruncatedText lineClamp={2}>{pageTitle}</TruncatedText>
+          </h1>
           {!useMember ? (
             <Button
               variant="primary"
@@ -439,7 +436,7 @@ export default function MyRidesPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-[repeat(3,minmax(0,1fr))]">
           <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
           <div className="h-36 animate-pulse rounded-3xl bg-surface-strong" />
           <div className="hidden h-36 animate-pulse rounded-3xl bg-surface-strong xl:block" />
@@ -460,7 +457,7 @@ export default function MyRidesPage() {
                 {pastScheduled.length === 0 ? (
                   <p className="mt-4 text-sm text-fg-muted">No past rides yet.</p>
                 ) : (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-[repeat(3,minmax(0,1fr))]">
                     {pastScheduled.map((ride) => (
                       <PastScheduledCard key={`p-${ride.id}`} ride={ride} />
                     ))}
@@ -479,7 +476,7 @@ export default function MyRidesPage() {
               <p className="mt-4 text-sm text-fg-muted">Nothing in the past yet.</p>
             ) : (
               <>
-                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-[repeat(2,minmax(0,1fr))] xl:grid-cols-[repeat(3,minmax(0,1fr))]">
                   {historyRows.map((entry) => (
                     <HistoryRideCard key={`h-${entry.id}`} entry={entry} />
                   ))}

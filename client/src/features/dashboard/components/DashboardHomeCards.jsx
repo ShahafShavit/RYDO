@@ -5,12 +5,13 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { ROUTES } from '@/app/router/route-paths';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 const LAST_RYDO_INFO_COL_CLASS = 'flex w-full min-w-0 flex-col gap-2';
 const LAST_RYDO_MAP_CLASS =
   'h-24 w-full overflow-hidden rounded-2xl border border-border bg-surface sm:h-28 lg:h-32 xl:h-36';
 const LAST_RYDO_INFO_ROW_BASE =
-  'min-h-10 w-full min-w-0 rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
+  'min-h-10 w-full min-w-0 overflow-hidden truncate rounded-xl border px-3 py-2 text-center text-sm font-semibold leading-tight';
 
 function LastRideInfoRow({ tone = 'neutral', children }) {
   const tones = {
@@ -66,12 +67,10 @@ function DashboardLastRideCard({ lastRide, className = '' }) {
 
   if (!hasRide) {
     return (
-      <Card className={`p-4 sm:p-5 ${className}`}>
+      <Card className={`min-w-0 p-4 sm:p-5 ${className}`}>
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{lastRide.title}</p>
         <h3 className="mt-3 w-full min-w-0 text-center text-xl font-semibold">
-          <span className="inline-block max-w-full truncate align-top" title={lastRide.routeName} dir="auto">
-            {lastRide.routeName}
-          </span>
+          <TruncatedText>{lastRide.routeName}</TruncatedText>
         </h3>
         <p className="mt-2 text-sm text-fg-muted">
           Your trail preview will appear here after you complete a ride with a saved route.
@@ -83,7 +82,7 @@ function DashboardLastRideCard({ lastRide, className = '' }) {
   const kind = lastRideKindFromEntry(lastRide.rideKind);
 
   return (
-    <Card className={`relative p-4 sm:p-5 ${className}`}>
+    <Card className={`relative min-w-0 p-4 sm:p-5 ${className}`}>
       <Link
         to={ridePath}
         className="absolute inset-0 z-0 rounded-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-inset"
@@ -108,9 +107,7 @@ function DashboardLastRideCard({ lastRide, className = '' }) {
       </div>
       <div className="relative z-10 mt-4 text-center pointer-events-none">
         <h3 className="w-full min-w-0 text-lg font-semibold text-fg">
-          <span className="inline-block max-w-full truncate align-top" title={lastRide.routeName} dir="auto">
-            {lastRide.routeName}
-          </span>
+          <TruncatedText>{lastRide.routeName}</TruncatedText>
         </h3>
         {lastRide.completedLabel ? (
           <p className="mt-1.5 text-sm text-fg-muted">{lastRide.completedLabel}</p>
@@ -198,7 +195,7 @@ function ProgressBar({ value }) {
 
 function DashboardGroupsCard({ groups, className = '' }) {
   return (
-    <Card className={className}>
+    <Card className={`min-w-0 ${className}`.trim()}>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">YOUR RYDO CLUBS</p>
         <Link
@@ -219,7 +216,7 @@ function DashboardGroupsCard({ groups, className = '' }) {
             <Link
               key={group.id}
               to={ROUTES.clubDetails.replace(':clubId', group.id)}
-              className="block rounded-3xl border border-border bg-surface p-4 transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
+              className="block min-w-0 rounded-3xl border border-border bg-surface p-4 transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
             >
               <div className="flex items-start gap-3">
                 <UserAvatar
@@ -230,8 +227,8 @@ function DashboardGroupsCard({ groups, className = '' }) {
                   className="mt-0.5"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-fg">{group.name}</p>
-                  <p className="mt-1 text-sm text-fg-muted">{group.detail}</p>
+                  <TruncatedText className="font-semibold text-fg">{group.name}</TruncatedText>
+                  <p className="mt-1 truncate text-sm text-fg-muted">{group.detail}</p>
                 </div>
               </div>
             </Link>
@@ -248,7 +245,7 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, classNam
   const hasAny = upcomingRides.length > 0;
 
   return (
-    <Card className={className}>
+    <Card className={`min-w-0 ${className}`.trim()}>
       <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{UPCOMING_SECTION_TITLE}</p>
 
       {!hasAny ? (
@@ -267,20 +264,18 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, classNam
               className="block min-w-0 rounded-3xl border border-border bg-surface p-4 text-left transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
             >
               <h3 className="w-full min-w-0 text-center text-xl font-semibold text-fg">
-                <span className="inline-block max-w-full truncate align-top" title={ride.routeName} dir="auto">
-                  {ride.routeName}
-                </span>
+                <TruncatedText>{ride.routeName}</TruncatedText>
               </h3>
               <p className="mt-2 text-sm text-fg-muted">{ride.dateTime}</p>
               {ride.clubName ? (
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex min-w-0 items-center gap-2">
                   <UserAvatar
                     avatarUrl={ride.clubAvatarUrl}
                     displayName={ride.clubName}
                     sizeClass="h-9 w-9"
                     textClass="text-xs"
                   />
-                  <span className="font-semibold text-fg">{ride.clubName}</span>
+                  <TruncatedText className="min-w-0 flex-1 font-semibold text-fg">{ride.clubName}</TruncatedText>
                 </div>
               ) : ride.isPersonal ? (
                 <p className="mt-3 text-sm text-fg-muted">Personal</p>
@@ -424,16 +419,18 @@ export default function DashboardHomeCards() {
           Some dashboard data could not be loaded. Showing what is available.
         </p>
       ) : null}
-      <div className="grid gap-4 xl:grid-cols-12 xl:auto-rows-fr xl:items-stretch 2xl:gap-5">
-        <div className="grid gap-4 md:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:grid-rows-2">
-          <Card className="h-full">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-12 xl:auto-rows-fr xl:items-stretch 2xl:gap-5">
+        <div className="grid min-w-0 gap-4 md:grid-cols-[repeat(2,minmax(0,1fr))] xl:col-span-4 xl:grid-cols-1 xl:grid-rows-2">
+          <Card className="min-w-0 h-full">
             <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.awards.title}</p>
-            <h3 className="mt-4 text-2xl font-semibold">{home.awards.description}</h3>
+            <h3 className="mt-4 text-2xl font-semibold">
+              <TruncatedText lineClamp={2}>{home.awards.description}</TruncatedText>
+            </h3>
             <p className="mt-3 text-sm text-fg-muted">{home.awards.percentage}% complete</p>
             <ProgressBar value={home.awards.percentage} />
           </Card>
 
-          <Card className="h-full">
+          <Card className="min-w-0 h-full">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">{home.level.title}</p>
               <Link
@@ -449,27 +446,29 @@ export default function DashboardHomeCards() {
               <span className="text-5xl font-semibold">{home.level.currentLevel}</span>
               <span className="text-sm text-fg-muted">level</span>
             </div>
-            <p className="mt-3 text-sm text-fg-muted">{home.level.nextLevelLabel}</p>
+            <p className="mt-3 text-sm text-fg-muted">
+              <TruncatedText>{home.level.nextLevelLabel}</TruncatedText>
+            </p>
             <ProgressBar value={home.level.progress} />
           </Card>
         </div>
 
-        <div className="xl:col-span-4">
-          <DashboardGroupsCard groups={home.groups} className="h-full" />
+        <div className="min-w-0 xl:col-span-4">
+          <DashboardGroupsCard groups={home.groups} className="h-full min-w-0" />
         </div>
 
-        <div className="xl:col-span-4">
+        <div className="min-w-0 xl:col-span-4">
           <DashboardUpcomingRidesCard
             upcomingRides={home.upcomingRides}
             upcomingMoreCount={home.upcomingMoreCount}
-            className="h-full"
+            className="h-full min-w-0"
           />
         </div>
-        <div className="grid gap-4 xl:col-span-12 xl:grid-cols-12 xl:items-stretch">
-          <div className="xl:col-span-8">
+        <div className="grid min-w-0 gap-4 xl:col-span-12 xl:grid-cols-12 xl:items-stretch">
+          <div className="min-w-0 xl:col-span-8">
             <DashboardLastRideCard lastRide={home.lastRide} className="h-full" />
           </div>
-          <div className="grid gap-4 xl:col-span-4 xl:h-full xl:grid-rows-2">
+          <div className="grid min-w-0 gap-4 xl:col-span-4 xl:h-full xl:grid-rows-2">
             <DashboardWeeklySnapshotCard weeklySnapshot={home.weeklySnapshot} className="h-full" />
             <DashboardStreakCard streakSnapshot={home.streakSnapshot} className="h-full" />
           </div>

@@ -6,6 +6,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { ROUTES } from '@/app/router/route-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 /**
  * @param {{ ride: object, showEdit?: boolean, onEditClick?: () => void, headerExtra?: import('react').ReactNode }} props
@@ -21,11 +22,11 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
   const showTitleActions = showEdit || headerExtra;
 
   return (
-    <Card className="p-5 sm:p-8">
+    <Card className="min-w-0 p-5 sm:p-8">
       <div className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <h1 className="min-w-0 flex-1 text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            {ride.name}
+          <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+            <TruncatedText lineClamp={2}>{ride.name}</TruncatedText>
           </h1>
           {showTitleActions ? (
             <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
@@ -77,28 +78,30 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
               ) : null}
             </div>
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="text-sm leading-snug text-fg">
-                <span className="text-fg-subtle">Organized by </span>
+              <p className="flex min-w-0 items-baseline gap-1 text-sm leading-snug text-fg">
+                <span className="shrink-0 text-fg-subtle">Organized by</span>
                 {organizer?.id != null ? (
-                  <Link
+                  <TruncatedText
+                    as={Link}
                     to={ROUTES.userProfile.replace(':userId', String(organizer.id))}
-                    className="font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
+                    className="min-w-0 flex-1 font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
                   >
                     {organizer.fullName}
-                  </Link>
+                  </TruncatedText>
                 ) : (
-                  <span className="font-medium text-fg">{organizer.fullName}</span>
+                  <TruncatedText className="min-w-0 flex-1 font-medium text-fg">{organizer.fullName}</TruncatedText>
                 )}
               </p>
               {hasClub ? (
-                <p className="text-sm leading-snug text-fg">
-                  <span className="text-fg-subtle">for </span>
-                  <Link
+                <p className="flex min-w-0 items-baseline gap-1 text-sm leading-snug text-fg">
+                  <span className="shrink-0 text-fg-subtle">for</span>
+                  <TruncatedText
+                    as={Link}
                     to={ROUTES.clubDetails.replace(':clubId', String(ride.clubId))}
-                    className="font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
+                    className="min-w-0 flex-1 font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
                   >
                     {ride.clubName}
-                  </Link>
+                  </TruncatedText>
                 </p>
               ) : ride.clubId == null && ride.rideKind !== 'soloLog' ? (
                 <p className="text-sm text-fg-muted">Personal ride</p>
