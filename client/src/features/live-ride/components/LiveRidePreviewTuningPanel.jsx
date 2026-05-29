@@ -67,7 +67,7 @@ export default function LiveRidePreviewTuningPanel({ tuning, onTuningChange }) {
   );
 
   return (
-    <div className="pointer-events-none fixed bottom-[max(6rem,8rem)] left-3 z-[60] flex max-w-[min(100vw-1.5rem,22rem)] flex-col items-start gap-2 md:bottom-[max(7rem,9rem)]">
+    <div className="pointer-events-none fixed bottom-[max(6rem,8rem)] left-3 z-(--rydo-z-tool-panel) flex max-w-[min(100vw-1.5rem,22rem)] flex-col items-start gap-2 md:bottom-[max(7rem,9rem)]">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

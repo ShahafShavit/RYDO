@@ -181,7 +181,7 @@ export default function RouteRidersPanel({
           </button>
           {hoverOpen && popoverStyle ? (
             <div
-              className="fixed z-(--rydo-z-anchor-popover) max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] p-3 shadow-xl"
+              className="fixed z-(--rydo-z-dropdown) max-h-[min(70vh,24rem)] overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] p-3 shadow-xl"
               style={{ top: popoverStyle.top, left: popoverStyle.left, width: popoverStyle.width }}
               onMouseEnter={handleEnter}
               onMouseLeave={handleLeave}

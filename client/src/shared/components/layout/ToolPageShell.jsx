@@ -9,7 +9,7 @@ export default function ToolPageShell({ children }) {
   return (
     <BreadcrumbProvider>
       <div className="flex min-h-dvh flex-col bg-[var(--rydo-bg-deep)]">
-        <header className="shrink-0 border-b border-border bg-black/20 px-4 py-3 backdrop-blur-xl md:px-8">
+        <header className="relative z-(--rydo-z-sticky) shrink-0 border-b border-border bg-black/20 px-4 py-3 backdrop-blur-xl md:px-8">
           <div className="mx-auto max-w-6xl">
             <PageBreadcrumbs variant="tool" />
           </div>

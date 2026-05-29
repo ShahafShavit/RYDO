@@ -64,7 +64,7 @@ export default function UserProfileDropdown() {
             <AnimatePresence>
                 {isOpen && (
                     <MotionDiv
-                        className="absolute bottom-full left-0 z-(--rydo-z-sticky) mb-2 w-full origin-bottom rounded-2xl border border-border-strong bg-(--rydo-bg-deep) p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28),inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]"
+                        className="absolute bottom-full left-0 z-(--rydo-z-dropdown) mb-2 w-full origin-bottom rounded-2xl border border-border-strong bg-(--rydo-bg-deep) p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.28),inset_0_1px_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}

@@ -46,13 +46,10 @@ export default function RouteCard({ route }) {
   return (
     <Card className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col text-center">
-        {/* isolate + map z-0 so the badge stacks above Leaflet panes (tiles/overlays use high internal z-index) */}
-        <div className="relative isolate w-full min-w-0 shrink-0 overflow-hidden">
-          <div className="relative z-0 w-full min-w-0">
-            <CompactRouteMapPreview preview={mapPreview} />
-          </div>
+        <div className="relative w-full min-w-0 shrink-0 overflow-hidden">
+          <CompactRouteMapPreview preview={mapPreview} />
           {showRidersBadge || showFavoriteBadge ? (
-            <div className="pointer-events-none absolute inset-x-0 top-2 z-[900] flex items-start justify-between gap-2 px-2">
+            <div className="rydo-map-overlay pointer-events-none inset-x-0 top-2 flex items-start justify-between gap-2 px-2">
               <div className="pointer-events-auto min-w-0">
                 {showRidersBadge ? (
                   <RouteRidersPanel

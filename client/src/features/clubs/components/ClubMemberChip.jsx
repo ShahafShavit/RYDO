@@ -48,7 +48,7 @@ export default function ClubMemberChip({
       onMouseLeave={closeMenu}
       className={cn(
         'flex min-w-0 max-w-full items-center gap-1 rounded-full border border-border bg-surface py-1 pl-1 pr-1.5 text-sm text-fg/80 sm:max-w-md',
-        showActions && 'relative z-0 has-[details[open]]:z-30',
+        showActions && 'relative z-0 has-[details[open]]:z-(--rydo-z-route-elevated)',
       )}
     >
       <Link
@@ -79,7 +79,7 @@ export default function ClubMemberChip({
             ⋮
           </summary>
           <div
-            className="invisible absolute right-0 top-full z-40 min-w-[11rem] pt-1 opacity-0 transition duration-150 [details[open]_&]:visible [details[open]_&]:opacity-100"
+            className="invisible absolute right-0 top-full z-(--rydo-z-route-elevated) min-w-[11rem] pt-1 opacity-0 transition duration-150 [details[open]_&]:visible [details[open]_&]:opacity-100"
             role="presentation"
           >
             <div

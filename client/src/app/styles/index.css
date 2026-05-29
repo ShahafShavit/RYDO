@@ -30,14 +30,19 @@
   --rydo-noise-opacity: 0.038;
 
   /*
-   * Stacking (#root vs portaled modals): see body { isolation: isolate } and #root { z-index: 2 } below.
-   * Use z-(--rydo-z-*) in markup — @theme --z-* keys do not emit z-* utilities reliably here.
+   * Global stacking (low → high). Use z-(--rydo-z-*) in markup.
+   * #root vs portaled modals: body { isolation: isolate }, #root { z-index: 2 }.
+   *
+   * Leaflet panes use inline z-index up to ~700; cap them inside .rydo-leaflet-host (see below).
+   * Mapbox canvas/control containers use z-index 2; HUD uses .rydo-live-map-chrome inside .rydo-live-map.
    */
+  --rydo-z-route-header: 10;
+  --rydo-z-route-elevated: 20;
+  --rydo-z-live-chrome: 10;
   --rydo-z-live-map: 40;
   --rydo-z-sticky: 50;
-  --rydo-z-anchor-popover: 55;
-  --rydo-z-route-header: 10;
-  --rydo-z-route-popover: 20;
+  --rydo-z-dropdown: 60;
+  --rydo-z-tool-panel: 65;
   --rydo-z-chat-fab: 100;
   --rydo-z-chat-panel: 101;
   --rydo-z-mobile-menu-backdrop: 115;
@@ -45,6 +50,10 @@
   --rydo-z-live-blocking: 200;
   --rydo-z-modal: 1000;
   --rydo-z-modal-nested: 1010;
+  /* @deprecated use --rydo-z-route-elevated */
+  --rydo-z-route-popover: var(--rydo-z-route-elevated);
+  /* @deprecated use --rydo-z-dropdown */
+  --rydo-z-anchor-popover: var(--rydo-z-dropdown);
 }
 
 /* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */
@@ -418,4 +427,76 @@ html[data-theme='dune'] .app-logo {
 .rydo-live-map .mapboxgl-ctrl-logo,
 .rydo-live-map .mapboxgl-ctrl-attrib {
   display: none !important;
+}
+
+/*
+ * Leaflet: panes ship with inline z-index (tiles ~200, markers ~600). Without containment they
+ * compete with app chrome (chat, nav). Isolate the host and cap pane z-index; overlays use
+ * .rydo-map-overlay above the capped panes.
+ */
+.rydo-leaflet-host {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
+}
+
+.rydo-leaflet-host .leaflet-map-pane {
+  z-index: 1 !important;
+}
+
+.rydo-leaflet-host .leaflet-tile-pane {
+  z-index: 2 !important;
+}
+
+.rydo-leaflet-host .leaflet-overlay-pane {
+  z-index: 3 !important;
+}
+
+.rydo-leaflet-host .leaflet-shadow-pane {
+  z-index: 4 !important;
+}
+
+.rydo-leaflet-host .leaflet-marker-pane {
+  z-index: 5 !important;
+}
+
+.rydo-leaflet-host .leaflet-tooltip-pane {
+  z-index: 6 !important;
+}
+
+.rydo-leaflet-host .leaflet-popup-pane {
+  z-index: 7 !important;
+}
+
+.rydo-leaflet-host .leaflet-control-container {
+  z-index: 8 !important;
+}
+
+.rydo-map-overlay {
+  position: absolute;
+  z-index: 9;
+}
+
+/*
+ * Mapbox GL: canvas/control containers default to z-index 2. HUD must sit above them inside
+ * the same isolated host (.rydo-live-map).
+ */
+.rydo-live-map {
+  isolation: isolate;
+}
+
+.rydo-live-map .mapboxgl-canvas-container {
+  z-index: 0 !important;
+}
+
+.rydo-live-map .mapboxgl-control-container {
+  z-index: 1 !important;
+}
+
+.rydo-live-map .mapboxgl-marker {
+  z-index: 2 !important;
+}
+
+.rydo-live-map-chrome {
+  z-index: var(--rydo-z-live-chrome);
 }

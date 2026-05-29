@@ -471,7 +471,7 @@ export default function LiveRideReplayPage() {
       </MapGL>
 
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
+        className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
         <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
@@ -517,7 +517,7 @@ export default function LiveRideReplayPage() {
 
       {showBearingHud ? (
         <div
-          className="pointer-events-none absolute left-3 z-[55] max-w-[min(calc(100vw-1.5rem),20rem)] rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 text-[11px] shadow-xl backdrop-blur-md"
+          className="rydo-live-map-chrome pointer-events-none absolute left-3 max-w-[min(calc(100vw-1.5rem),20rem)] rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 text-[11px] shadow-xl backdrop-blur-md"
           style={{ top: 'max(5.5rem, calc(env(safe-area-inset-top) + 4.5rem))' }}
         >
           <p className="pointer-events-auto mb-2 font-semibold uppercase tracking-[0.1em] text-fg-subtle">
@@ -561,14 +561,14 @@ export default function LiveRideReplayPage() {
       ) : null}
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pt-1"
+        className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pt-1"
         style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
       >
         {showRecenter || replayPlaying ? (
           <div className="pointer-events-auto relative h-11 w-full shrink-0">
             {!showRecenter && puckDisplay && replayPlaying ? (
               <div
-                className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 z-[1] inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
+                className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
                 aria-live="polite"
               >
                 <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
@@ -579,7 +579,7 @@ export default function LiveRideReplayPage() {
               <button
                 type="button"
                 onClick={handleRecenterClick}
-                className="absolute left-1/2 top-1/2 z-[1] inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
+                className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
               >
                 <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
                 Center on me

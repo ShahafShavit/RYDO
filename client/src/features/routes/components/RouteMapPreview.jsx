@@ -198,7 +198,11 @@ export default function RouteMapPreview({
   return (
     <div
       ref={mapContainerRef}
-      className={cn(className ?? defaultClass, compactAttribution && 'rydo-leaflet-compact-attrib')}
+      className={cn(
+        'rydo-leaflet-host',
+        className ?? defaultClass,
+        compactAttribution && 'rydo-leaflet-compact-attrib',
+      )}
     />
   );
 }
