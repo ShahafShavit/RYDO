@@ -97,6 +97,9 @@ for attempt in 1 2 3 4 5 6; do
     echo "Deploy complete."
     echo "Public URL: $CF_URL"
     echo "Health:     $HEALTH_URL"
+    if [[ -n "${DOMAIN_NAME:-}" ]]; then
+      echo "Domain:     https://${DOMAIN_NAME}"
+    fi
     exit 0
   fi
   echo "  attempt $attempt/6 failed; retrying in 15s…"

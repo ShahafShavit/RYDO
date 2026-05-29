@@ -69,8 +69,10 @@ After the image is in ECR, force a new ECS deployment (the script does this auto
 
 ## Outputs
 
-- **CloudFrontUrl** — public HTTPS URL (use this in the browser).
+- **CloudFrontUrl** — public HTTPS URL (use this in the browser and as `VITE_API_BASE_URL` for production mobile builds).
 - **AlbDns** — direct HTTP to the load balancer (debugging).
+
+Mobile store publishing (after deploy): [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md).
 
 ## Tear down
 

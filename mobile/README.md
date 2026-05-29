@@ -180,8 +180,17 @@ mobile/
 
 ---
 
+## Publish to Play Store / App Store
+
+Local emulator flow above is **not** store publishing. For production: deploy the API to AWS, point the mobile build at the **CloudFront HTTPS URL**, then sign and upload to the stores.
+
+**Full sequence (AWS → verify → mobile build → stores):** [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md)
+
+---
+
 ## Related docs
 
+- [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md) — AWS deploy + Android/iOS store checklist  
 - [BUILD_PLAN.md](./BUILD_PLAN.md) — phases and platform adapters  
 - [../README.md](../README.md) — Docker stack and seeded logins (`user@rydo.test` / `User123!`)  
 - [../client/README.md](../client/README.md) — web client  

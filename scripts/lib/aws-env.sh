@@ -42,4 +42,8 @@ load_aws_deploy_env() {
 
   export CDK_DEFAULT_REGION="$AWS_REGION"
   export CDK_DEFAULT_ACCOUNT="${CDK_DEFAULT_ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}"
+
+  if [[ -n "${DOMAIN_NAME:-}" ]]; then
+    export DOMAIN_NAME
+  fi
 }

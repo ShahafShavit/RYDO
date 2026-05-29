@@ -80,6 +80,8 @@ CDK app under [`infra/`](infra/): **ECR**, **ECS Fargate** (app + ephemeral SQL 
 
 See [`infra/README.md`](infra/README.md) for `cdk deploy`, pushing the image to ECR, and `cdk destroy`.
 
+**Backend + mobile stores (full sequence):** [`docs/deploy-and-publish.md`](docs/deploy-and-publish.md) — deploy AWS first, then Capacitor builds pointing at CloudFront, then Play / App Store.
+
 **One-command deploy:** `bash scripts/deploy-aws.sh` (Git Bash / WSL / macOS/Linux). Uses your AWS CLI region/profile; optional `infra/deploy.env` for overrides. Bootstraps CDK, deploys infra when changed, builds, pushes, starts ECS, and verifies health.
 
 ### Pause AWS compute (scale ECS to zero)

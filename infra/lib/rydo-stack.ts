@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
@@ -6,7 +7,14 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
+
+export interface RydoStackProps extends cdk.StackProps {
+  /** Apex domain, e.g. rydo.bike — enables ACM cert, CloudFront alias, and Route53 records. */
+  domainName?: string;
+}
 
 /** Same SA password as local docker-compose (SQL Server complexity requirements). */
 const MSSQL_SA_PASSWORD = 'Your_password123';
@@ -15,8 +23,11 @@ export class RydoStack extends cdk.Stack {
   public readonly ecrRepository: ecr.Repository;
   public readonly cloudFrontUrl: string;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: RydoStackProps) {
     super(scope, id, props);
+
+    const domainName = props?.domainName?.trim().toLowerCase();
+    const wwwDomain = domainName ? `www.${domainName}` : undefined;
 
     this.ecrRepository = new ecr.Repository(this, 'RydoAppRepo', {
       repositoryName: 'rydo-app',
@@ -143,8 +154,26 @@ export class RydoStack extends cdk.Stack {
       deregistrationDelay: cdk.Duration.seconds(30),
     });
 
+    let hostedZone: route53.IHostedZone | undefined;
+    let certificate: acm.ICertificate | undefined;
+
+    if (domainName) {
+      hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName,
+      });
+      // CloudFront requires the ACM certificate in us-east-1 (stack may be elsewhere).
+      certificate = new acm.DnsValidatedCertificate(this, 'SiteCertificate', {
+        domainName,
+        subjectAlternativeNames: wwwDomain ? [wwwDomain] : undefined,
+        hostedZone,
+        region: 'us-east-1',
+      });
+    }
+
     const dist = new cloudfront.Distribution(this, 'CfDist', {
-      comment: 'RYDO demo (ALB origin)',
+      comment: domainName ? `RYDO (${domainName})` : 'RYDO demo (ALB origin)',
+      domainNames: domainName ? [domainName, ...(wwwDomain ? [wwwDomain] : [])] : undefined,
+      certificate,
       defaultBehavior: {
         origin: new origins.HttpOrigin(alb.loadBalancerDnsName, {
           httpPort: 80,
@@ -165,7 +194,21 @@ export class RydoStack extends cdk.Stack {
       httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
     });
 
-    this.cloudFrontUrl = `https://${dist.distributionDomainName}`;
+    if (domainName && hostedZone) {
+      new route53.ARecord(this, 'AliasRecord', {
+        zone: hostedZone,
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(dist)),
+      });
+      if (wwwDomain) {
+        new route53.ARecord(this, 'WwwAliasRecord', {
+          zone: hostedZone,
+          recordName: 'www',
+          target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(dist)),
+        });
+      }
+    }
+
+    this.cloudFrontUrl = domainName ? `https://${domainName}` : `https://${dist.distributionDomainName}`;
 
     new cdk.CfnOutput(this, 'EcrRepositoryUri', {
       value: this.ecrRepository.repositoryUri,
@@ -179,8 +222,22 @@ export class RydoStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'CloudFrontUrl', {
       value: this.cloudFrontUrl,
-      description: 'Public HTTPS URL (CloudFront -> ALB -> ECS)',
+      description: domainName
+        ? 'Public HTTPS URL (custom domain -> CloudFront -> ALB -> ECS)'
+        : 'Public HTTPS URL (CloudFront -> ALB -> ECS)',
     });
+
+    new cdk.CfnOutput(this, 'CloudFrontDistributionDomain', {
+      value: dist.distributionDomainName,
+      description: 'CloudFront default domain (debugging)',
+    });
+
+    if (domainName) {
+      new cdk.CfnOutput(this, 'CustomDomain', {
+        value: domainName,
+        description: 'Apex domain served by CloudFront',
+      });
+    }
 
     new cdk.CfnOutput(this, 'PushImageHint', {
       value: `aws ecr get-login-password --region ${this.region} | docker login --username AWS --password-stdin ${this.ecrRepository.repositoryUri.split('/')[0]}`,

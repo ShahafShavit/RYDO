@@ -11,5 +11,9 @@
     "eu-central-1a",
     "eu-central-1b",
     "eu-central-1c"
-  ]
+  ],
+  "hosted-zone:account=723528228271:domainName=rydo.bike:region=eu-central-1": {
+    "Id": "/hostedzone/Z03631012VYUK4PTYIN53",
+    "Name": "rydo.bike."
+  }
 }
