@@ -12,6 +12,14 @@ const config: CapacitorConfig = {
     cleartext: true,
     androidScheme: 'https',
   },
+  plugins: {
+    SafeArea: {
+      statusBarStyle: 'DARK',
+      navigationBarStyle: 'DARK',
+      initialViewportFitCover: true,
+      detectViewportFitCoverChanges: true,
+    },
+  },
 };
 
 export default config;

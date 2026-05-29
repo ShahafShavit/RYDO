@@ -237,7 +237,7 @@ export default function ClubChatDock() {
           type="button"
           aria-label="Open club chat"
           onClick={() => toggleChat()}
-          className="fixed z-(--rydo-z-chat-fab) flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] md:bottom-8 md:right-8"
+          className="fixed z-(--rydo-z-chat-fab) flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 bottom-[max(1rem,var(--rydo-safe-bottom))] right-[max(1rem,var(--rydo-safe-right))] md:bottom-8 md:right-8"
         >
           <MessageCircle className="h-7 w-7" aria-hidden />
           {totalUnread > 0 ? (
@@ -255,7 +255,7 @@ export default function ClubChatDock() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.18 }}
-            className="fixed z-(--rydo-z-chat-panel) flex flex-col border border-border bg-[var(--rydo-bg-deep)] shadow-2xl md:bottom-24 md:right-8 md:h-[min(560px,calc(100vh-8rem))] md:w-[400px] inset-x-0 bottom-0 h-[100dvh] w-full md:inset-auto rounded-t-2xl md:rounded-2xl"
+            className="rydo-safe-fixed-panel fixed z-(--rydo-z-chat-panel) flex flex-col border border-border bg-[var(--rydo-bg-deep)] shadow-2xl md:bottom-24 md:right-8 md:h-[min(560px,calc(100vh-8rem))] md:w-[400px] inset-x-0 bottom-0 h-[100dvh] w-full md:inset-auto rounded-t-2xl md:rounded-2xl"
           >
             <header className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-3 sm:px-4">
               {threadClubId ? (

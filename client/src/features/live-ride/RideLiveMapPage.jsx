@@ -10,7 +10,7 @@ import { useLiveRideBootGate, useLiveRideBootPermissions } from '@/features/live
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
-import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
+import { LIVE_MAP_SAFE_BOTTOM, LIVE_MAP_SAFE_TOP } from '@/features/live-ride/liveRideMapLayout';
 import { subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
 import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
@@ -473,7 +473,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
             <>
               <div
                 className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
-                style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+                style={{ paddingTop: LIVE_MAP_SAFE_TOP }}
               >
                 <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
                   <Link
@@ -503,7 +503,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                   <div className="pointer-events-auto relative h-11 w-full shrink-0">
                     {!showRecenter && puckDisplay && hubEnabled ? (
                       <div
-                        className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
+                        className="pointer-events-none absolute left-[max(1rem,var(--rydo-safe-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
                         aria-live="polite"
                       >
                         <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
@@ -526,7 +526,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                         aria-label="Open club chat"
                         onClick={() => openChat()}
                         className="absolute top-1/4 flex h-13 w-13 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
-                        style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
+                        style={{ right: 'max(1rem, var(--rydo-safe-right))' }}
                       >
                         <MessageCircle className="h-5 w-5" aria-hidden />
                         {chatUnread > 0 ? (

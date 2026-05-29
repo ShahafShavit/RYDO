@@ -3,7 +3,7 @@ import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatar
 import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
 import LiveRidePreviewTuningPanel from '@/features/live-ride/components/LiveRidePreviewTuningPanel';
 import LiveRideReplayTimeline from '@/features/live-ride/components/LiveRideReplayTimeline';
-import { LIVE_MAP_SAFE_BOTTOM } from '@/features/live-ride/liveRideMapLayout';
+import { LIVE_MAP_SAFE_BOTTOM, LIVE_MAP_SAFE_TOP } from '@/features/live-ride/liveRideMapLayout';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
 import { nearestPeersAheadBehind } from '@/features/live-ride/utils/liveRideNearbyPeers';
@@ -472,7 +472,7 @@ export default function LiveRideReplayPage() {
 
       <div
         className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
-        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+        style={{ paddingTop: LIVE_MAP_SAFE_TOP }}
       >
         <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
           <button
@@ -518,7 +518,7 @@ export default function LiveRideReplayPage() {
       {showBearingHud ? (
         <div
           className="rydo-live-map-chrome pointer-events-none absolute left-3 max-w-[min(calc(100vw-1.5rem),20rem)] rounded-2xl border border-white/10 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 text-[11px] shadow-xl backdrop-blur-md"
-          style={{ top: 'max(5.5rem, calc(env(safe-area-inset-top) + 4.5rem))' }}
+          style={{ top: 'max(5.5rem, calc(var(--rydo-safe-top) + 4.5rem))' }}
         >
           <p className="pointer-events-auto mb-2 font-semibold uppercase tracking-[0.1em] text-fg-subtle">
             Bearing (preview)
@@ -568,7 +568,7 @@ export default function LiveRideReplayPage() {
           <div className="pointer-events-auto relative h-11 w-full shrink-0">
             {!showRecenter && puckDisplay && replayPlaying ? (
               <div
-                className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
+                className="pointer-events-none absolute left-[max(1rem,var(--rydo-safe-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
                 aria-live="polite"
               >
                 <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />

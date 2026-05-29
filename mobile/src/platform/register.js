@@ -6,6 +6,7 @@ import { createStorage, initNativeStorage } from './storage';
 import { createGeolocation } from './geolocation';
 import { createPermissionsProvider } from './permissions';
 import { appLifecycle } from './app-lifecycle';
+import { initSystemBars } from './system-bars';
 
 /**
  * Initialize native storage and inject platform adapters into shared client code.
@@ -25,6 +26,7 @@ export async function registerPlatform() {
   setPermissionsProvider(permissions);
 
   if (isNative) {
+    await initSystemBars();
     appLifecycle.subscribeAppStateChange();
   }
 }

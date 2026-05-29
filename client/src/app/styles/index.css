@@ -54,6 +54,15 @@
   --rydo-z-route-popover: var(--rydo-z-route-elevated);
   /* @deprecated use --rydo-z-dropdown */
   --rydo-z-anchor-popover: var(--rydo-z-dropdown);
+
+  /*
+   * Safe-area insets (0 on web; env() on iOS / modern Android WebView).
+   * Capacitor uses @capacitor-community/safe-area for broken Android WebViews (webview padding).
+   */
+  --rydo-safe-top: env(safe-area-inset-top, 0px);
+  --rydo-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --rydo-safe-left: env(safe-area-inset-left, 0px);
+  --rydo-safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */
@@ -427,6 +436,39 @@ html[data-theme='dune'] .app-logo {
 .rydo-live-map .mapboxgl-ctrl-logo,
 .rydo-live-map .mapboxgl-ctrl-attrib {
   display: none !important;
+}
+
+/* Mapbox corner controls (zoom, compass) — offset from system bars on native / notched devices */
+.rydo-live-map .mapboxgl-ctrl-top-right {
+  top: var(--rydo-safe-top) !important;
+  right: var(--rydo-safe-right) !important;
+}
+
+.rydo-live-map .mapboxgl-ctrl-top-left {
+  top: var(--rydo-safe-top) !important;
+  left: var(--rydo-safe-left) !important;
+}
+
+.rydo-live-map .mapboxgl-ctrl-bottom-right {
+  bottom: var(--rydo-safe-bottom) !important;
+  right: var(--rydo-safe-right) !important;
+}
+
+.rydo-live-map .mapboxgl-ctrl-bottom-left {
+  bottom: var(--rydo-safe-bottom) !important;
+  left: var(--rydo-safe-left) !important;
+}
+
+/*
+ * Viewport-anchored chrome: add to sticky/fixed headers so content clears status bar.
+ * Pair with normal padding (e.g. py-4); top inset stacks on --rydo-safe-top.
+ */
+.rydo-safe-top {
+  padding-top: var(--rydo-safe-top);
+}
+
+.rydo-safe-bottom {
+  padding-bottom: var(--rydo-safe-bottom);
 }
 
 /*

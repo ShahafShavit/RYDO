@@ -1,20 +1,25 @@
-/* Safe-area insets for notched phones and home indicators (Capacitor WebView). */
-:root {
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+/*
+ * Capacitor native shell overrides.
+ *
+ * Safe-area tokens (--rydo-safe-*) live in client/src/app/styles/index.css.
+ * @capacitor-community/safe-area enables edge-to-edge and polyfills broken Android
+ * WebViews (< Chromium 140) by applying webview padding (env() stays 0 there).
+ *
+ * On WebViews where env() works, fixed/sticky UI must consume --rydo-safe-* — body
+ * padding does not affect position:fixed. Use .rydo-safe-top on viewport chrome.
+ */
+
+html.capacitor-native .rydo-safe-fixed-panel {
+  padding-bottom: var(--rydo-safe-bottom);
+  box-sizing: border-box;
 }
 
-html.capacitor-native body {
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
+html.capacitor-native .rydo-safe-fixed-panel > header {
+  padding-top: var(--rydo-safe-top);
 }
 
-/* Bottom nav / fixed footers — common pattern in mobile shell */
+/* Bottom nav / fixed footers */
 html.capacitor-native .fixed-bottom-nav,
 html.capacitor-native [data-mobile-bottom-nav] {
-  padding-bottom: calc(0.75rem + var(--safe-bottom));
+  padding-bottom: calc(0.75rem + var(--rydo-safe-bottom));
 }
