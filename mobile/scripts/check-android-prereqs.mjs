@@ -57,7 +57,9 @@ function checkAdbDevices() {
   if (r.error || r.status !== 0) return;
   const lines = (r.stdout || '').split(/\r?\n/).filter((l) => l.includes('\tdevice'));
   if (lines.length === 0) {
-    hints.push('No Android device/emulator running. Start an AVD in Android Studio (Device Manager) first.');
+    hints.push(
+      'No Android device/emulator running. Connect USB debugging or start an AVD in Android Studio (Device Manager).',
+    );
   } else {
     console.log(`ADB devices: ${lines.length} ready`);
   }

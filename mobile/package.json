@@ -7,8 +7,10 @@
   "scripts": {
     "env:ios": "node scripts/use-emulator-env.mjs ios",
     "env:android": "node scripts/use-emulator-env.mjs android",
+    "env:android:device": "node scripts/use-emulator-env.mjs android-device",
     "env:ios:dotnet": "node scripts/use-emulator-env.mjs ios --dotnet",
     "env:android:dotnet": "node scripts/use-emulator-env.mjs android --dotnet",
+    "env:android:device:dotnet": "node scripts/use-emulator-env.mjs android-device --dotnet",
     "env:show": "node scripts/use-emulator-env.mjs show",
     "prebuild": "node scripts/ensure-env.mjs",
     "build": "vite build",
@@ -23,7 +25,7 @@
     "env:shell": "bash scripts/android-env.sh",
     "check:android": "node scripts/check-android-prereqs.mjs",
     "run:android": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs",
-    "run:android:dotnet": "npm run env:android:dotnet && node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs --skip-env"
+    "run:android:dotnet": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs --dotnet"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",

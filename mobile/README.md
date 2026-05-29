@@ -98,7 +98,7 @@ Or repeat `npm run run:android`.
 | `JAVA_HOME is set to an invalid directory` … `java.exe` | Set `JAVA_HOME` to the **JDK root**, not `bin\java.exe`. Restart the terminal. |
 | `Cannot find a Java installation … languageVersion=21` | Capacitor 7 needs **JDK 21+**. Run `.\scripts\setup-windows-env.ps1`, restart terminal, retry. Repo configures Gradle toolchain auto-download if needed. |
 | `ANDROID_HOME` not set | Set it to your Android SDK path (see Android Studio SDK settings). |
-| No devices / emulator | Start an AVD in Device Manager before `npm run run:android`. |
+| No devices / emulator | Connect USB debugging or start an AVD in Device Manager before `npm run run:android`. |
 | App opens but login fails | `docker compose up` running? On emulator use `npm run env:android` (not `env:ios`). Test host: `curl http://localhost:5000/health` |
 | Gradle / build slow first time | Normal; downloads dependencies once. |
 
@@ -134,7 +134,7 @@ Or add a `run:ios` script later; opening Xcode is the usual flow.
 | `npm run env:android` | Writes `mobile/.env.local` (`http://10.0.2.2:5000`) |
 | `npm run build` | Vite bundles `client/src` → `mobile/dist/` |
 | `npx cap sync android` | Copies `dist/` into the native Android project |
-| `npm run run:android` | All of the above + Gradle + installs/launches on emulator |
+| `npm run run:android` | All of the above + Gradle + installs/launches (USB device preferred, else emulator) |
 | `npm run check:android` | Checks `JAVA_HOME`, `ANDROID_HOME`, `adb devices` |
 
 `npm run env:android` **alone** does not open anything — use **`npm run run:android`** to run the app.
@@ -152,9 +152,17 @@ Templates: `.env.android-emulator`, `.env.ios-emulator` — applied via `npm run
 
 ---
 
-## Physical phone (not emulator)
+## Physical phone (USB debugging)
 
-Use your PC’s LAN IP in `.env.local`, e.g. `http://192.168.1.10:5000`, rebuild, and `cap run` with USB debugging.  
+`npm run run:android` **prefers a USB-connected device** when `adb devices` shows one, and falls back to the emulator (booting an AVD if needed). It also writes the right API URL automatically:
+
+| Target | `VITE_API_BASE_URL` (Docker) |
+|--------|-------------------------------|
+| USB device | `http://<your-lan-ip>:5000` (auto-detected) |
+| Android Emulator | `http://10.0.2.2:5000` |
+
+Phone and PC must be on the **same Wi‑Fi** so the device can reach the API. Manual override: `npm run env:android:device` then `npm run run:android -- --skip-env`.
+
 Or use the **web client** on the phone: [`client/docs/lan-https-phone.md`](../client/docs/lan-https-phone.md).
 
 ---
