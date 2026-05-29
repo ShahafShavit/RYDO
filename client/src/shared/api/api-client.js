@@ -9,8 +9,6 @@ let unauthorizedHandler = null;
 
 export function setAuthToken(token) {
   authToken = token;
-  if (token) localStorage.setItem('rydo_token', token);
-  else localStorage.removeItem('rydo_token');
 }
 
 export function setUnauthorizedHandler(handler) {

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { getGeolocationProvider } from '@/shared/platform/geolocation-provider';
 
 /**
  * Browser geolocation for Explore "near me". Caller applies coords to filter state on success.
@@ -8,13 +9,14 @@ export function useNearMeGeo() {
   const [error, setError] = useState(null);
 
   const requestPosition = useCallback((onSuccess) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    const geo = getGeolocationProvider();
+    if (!geo.isAvailable) {
       setError('Location is not supported in this browser.');
       return;
     }
     setLoading(true);
     setError(null);
-    navigator.geolocation.getCurrentPosition(
+    geo.getCurrentPosition(
       (pos) => {
         setLoading(false);
         setError(null);

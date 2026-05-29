@@ -18,6 +18,7 @@ import {
   rideLiveLog,
   rideLiveWarn,
 } from '@/features/live-ride/utils/rideLiveLog';
+import { subscribeAppForeground } from '@/shared/platform/app-lifecycle';
 
 /**
  * @param {string|number|undefined|null} rideId
@@ -260,19 +261,17 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
   useEffect(() => {
     if (!enabled || !rideId || env.isMockApi) return undefined;
 
-    const onVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
+    const onForeground = () => {
       const st = transportStateRef.current;
       if (st !== 'offline' && st !== 'error') return;
       const now = Date.now();
       if (now - lastVisibilityRetryRef.current < VISIBILITY_RETRY_DEBOUNCE_MS) return;
       lastVisibilityRetryRef.current = now;
-      rideLiveLog('visibility visible → retryHub', { transportState: st });
+      rideLiveLog('app foreground → retryHub', { transportState: st });
       retryHub();
     };
 
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    return subscribeAppForeground(onForeground);
   }, [enabled, rideId, retryHub]);
 
   return { peersById, transportState: resolvedTransport, hubError, offerPose, retryHub };

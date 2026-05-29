@@ -18,6 +18,7 @@ import { mergeLiveRideMotionTuning, DEFAULT_LIVE_RIDE_MOTION_TUNING } from '@/fe
 import { pickTuning } from '@/features/live-ride/utils/liveRideTuningPick';
 import { createSpeedFilterState, updateFilteredSpeedMps } from '@/features/live-ride/utils/liveRideSpeedFilter';
 import { isKinematicGateEnabled, isRideLiveLogEnabled, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
+import { getGeolocationProvider } from '@/shared/platform/geolocation-provider';
 
 /**
  * GPS fix `heading` is only used above the compass-only band, or when compass is available at low speed.
@@ -483,12 +484,13 @@ export function useLiveRideMotionFromPositions({
       }
       lastMotionLoopRef.current = true;
 
-      if (!navigator.geolocation) {
+      const geo = getGeolocationProvider();
+      if (!geo.isAvailable) {
         const t = window.setTimeout(() => setGeoError('Geolocation is not available in this browser.'), 0);
         return () => clearTimeout(t);
       }
 
-      const id = navigator.geolocation.watchPosition(
+      const id = geo.watchPosition(
         (pos) => {
           setGeoError(null);
           applyGeolocationSample(pos);
@@ -499,7 +501,7 @@ export function useLiveRideMotionFromPositions({
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 },
       );
 
-      return () => navigator.geolocation.clearWatch(id);
+      return () => geo.clearWatch(id);
     }
 
     return undefined;

@@ -38,6 +38,7 @@ export const env = {
   apiBaseUrl: resolveApiBaseUrl(),
   apiMode,
   isMockApi: apiMode === 'mock',
+  isNativeApp: import.meta.env.VITE_PLATFORM === 'native',
   devAuthEnabled: import.meta.env.DEV && apiMode === 'mock' && import.meta.env.VITE_DEV_AUTH_ENABLED === 'true',
   devRole: import.meta.env.VITE_DEV_ROLE || 'user',
 };

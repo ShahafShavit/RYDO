@@ -1,0 +1,20 @@
+/* Safe-area insets for notched phones and home indicators (Capacitor WebView). */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+html.capacitor-native body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* Bottom nav / fixed footers — common pattern in mobile shell */
+html.capacitor-native .fixed-bottom-nav,
+html.capacitor-native [data-mobile-bottom-nav] {
+  padding-bottom: calc(0.75rem + var(--safe-bottom));
+}

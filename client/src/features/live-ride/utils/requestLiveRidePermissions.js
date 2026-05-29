@@ -1,4 +1,5 @@
 import { requestDeviceOrientationPermission } from '@/features/live-ride/utils/liveRideCompass';
+import { getPermissionsProvider } from '@/shared/platform/permissions-provider';
 
 const STORAGE_KEY = 'rydoLiveRideOrientation';
 
@@ -46,6 +47,8 @@ export function getStoredLiveRideOrientationOutcome() {
  * @returns {boolean}
  */
 export function isOrientationPermissionRequired() {
+  const platform = getPermissionsProvider();
+  if (platform) return platform.isOrientationPermissionRequired();
   const Ctor = typeof window !== 'undefined' ? window.DeviceOrientationEvent : undefined;
   return Boolean(Ctor && typeof Ctor.requestPermission === 'function');
 }
@@ -70,6 +73,9 @@ export async function queryGeolocationPermissionState() {
  * @returns {Promise<{ location: LocationOutcome, blockingReason?: string }>}
  */
 export async function requestLiveRideLocationPermission() {
+  const platform = getPermissionsProvider();
+  if (platform) return platform.requestLocationPermission();
+
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     return { location: 'unavailable', blockingReason: LOCATION_UNAVAILABLE_MSG };
   }
@@ -100,6 +106,9 @@ export async function requestLiveRideLocationPermission() {
  * @returns {Promise<{ orientation: OrientationOutcome, blockingReason?: string }>}
  */
 export async function requestLiveRideOrientationPermission() {
+  const platform = getPermissionsProvider();
+  if (platform) return platform.requestOrientationPermission();
+
   if (!isOrientationPermissionRequired()) {
     setStoredLiveRideOrientationOutcome('not_applicable');
     return { orientation: 'not_applicable' };

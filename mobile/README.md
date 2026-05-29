@@ -96,6 +96,7 @@ Or repeat `npm run run:android`.
 |---------|-----|
 | `error: invalid source release: 21` | **JDK 21+ required** (Capacitor 7). Run `.\scripts\setup-windows-env.ps1` — uses `C:\Program Files\Java\jdk-23` if installed. |
 | `JAVA_HOME is set to an invalid directory` … `java.exe` | Set `JAVA_HOME` to the **JDK root**, not `bin\java.exe`. Restart the terminal. |
+| `Cannot find a Java installation … languageVersion=21` | Capacitor 7 needs **JDK 21+**. Run `.\scripts\setup-windows-env.ps1`, restart terminal, retry. Repo configures Gradle toolchain auto-download if needed. |
 | `ANDROID_HOME` not set | Set it to your Android SDK path (see Android Studio SDK settings). |
 | No devices / emulator | Start an AVD in Device Manager before `npm run run:android`. |
 | App opens but login fails | `docker compose up` running? On emulator use `npm run env:android` (not `env:ios`). Test host: `curl http://localhost:5000/health` |

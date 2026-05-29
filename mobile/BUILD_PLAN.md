@@ -294,14 +294,14 @@ Replace `localStorage` in [`client/src/features/auth/utils/auth-storage.js`](../
 
 | Capability | Plugin / API | Used by | Status |
 |------------|--------------|---------|--------|
-| Core runtime | `@capacitor/core` | All | ⬜ |
-| App lifecycle | `@capacitor/app` | Hub reconnect, deep links | ⬜ |
-| Status bar / splash | `@capacitor/status-bar`, `@capacitor/splash-screen` | Polish | ⬜ |
+| Core runtime | `@capacitor/core` | All | ✅ |
+| App lifecycle | `@capacitor/app` | Hub reconnect, deep links | ✅ |
+| Status bar / splash | `@capacitor/status-bar`, `@capacitor/splash-screen` | Polish | ✅ |
 | Keyboard | `@capacitor/keyboard` | Chat composer, forms | ⬜ |
 | Haptics | `@capacitor/haptics` | Optional live-ride feedback | ⏸ |
-| Geolocation (foreground) | `@capacitor/geolocation` | Live ride, near-me | ⬜ |
+| Geolocation (foreground) | `@capacitor/geolocation` | Live ride, near-me | ✅ |
 | Background geolocation | `@capacitor-community/background-geolocation` or equivalent | Lock-screen riding | ⏸ Phase 4 |
-| Preferences | `@capacitor/preferences` | Non-sensitive prefs | ⬜ |
+| Preferences | `@capacitor/preferences` | Non-sensitive prefs | ✅ |
 | Secure storage | `@capacitor-community/secure-storage` or similar | JWT | ⬜ |
 | Camera | `@capacitor/camera` | Avatar, hazards | ⬜ |
 | Filesystem / picker | `@capacitor/filesystem` + file picker | GPX upload | ⬜ |
@@ -338,7 +338,7 @@ Replace `localStorage` in [`client/src/features/auth/utils/auth-storage.js`](../
 | 0.6 | Emulator env templates + `npm run env:ios` / `env:android` (see `mobile/README.md`) | ✅ | |
 | 0.7 | npm scripts: `build`, `run:android`, `check:android`, `cap:*` | ✅ | |
 | 0.8 | Document dev API URLs for emulator vs physical device in `mobile/README.md` | ✅ | |
-| 0.9 | CI job: `mobile` build only (no store deploy yet) | ⬜ | |
+| 0.9 | CI job: `mobile` build only (no store deploy yet) | ✅ | |
 
 ### Phase 1 — Platform adapters (rewrite layer)
 
@@ -346,16 +346,16 @@ Replace `localStorage` in [`client/src/features/auth/utils/auth-storage.js`](../
 
 | ID | Task | Status | Owner |
 |----|------|--------|-------|
-| 1.1 | Define `PlatformServices` interface in `mobile/src/platform/types.ts` | ⬜ | |
-| 1.2 | Implement `storage.ts` (web fallback + native secure token) | ⬜ | |
-| 1.3 | Patch `auth-storage.js` to use injected storage (no fork — env flag or DI) | ⬜ | |
-| 1.4 | Implement `geolocation.ts` (`watchPosition`, `clearWatch`, permission status) | ⬜ | |
-| 1.5 | Refactor `useLiveRideMotionFromPositions` to accept geolocation provider | ⬜ | |
-| 1.6 | Implement `orientation.ts` + refactor `liveRideCompass.js` / permissions | ⬜ | |
+| 1.1 | Define `PlatformServices` interface in `mobile/src/platform/types.ts` | ✅ | `types.js` + JSDoc |
+| 1.2 | Implement `storage.ts` (web fallback + native secure token) | ✅ | Preferences + memory cache |
+| 1.3 | Patch `auth-storage.js` to use injected storage (no fork — env flag or DI) | ✅ | |
+| 1.4 | Implement `geolocation.ts` (`watchPosition`, `clearWatch`, permission status) | ✅ | |
+| 1.5 | Refactor `useLiveRideMotionFromPositions` to accept geolocation provider | ✅ | via `geolocation-provider.js` |
+| 1.6 | Implement `orientation.ts` + refactor `liveRideCompass.js` / permissions | ⬜ | iOS motion; web compass unchanged |
 | 1.7 | Implement `files.ts` for GPX pick; wire upload modals | ⬜ | |
 | 1.8 | Implement `camera.ts` for avatar + hazard evidence | ⬜ | |
-| 1.9 | Implement `app-lifecycle.ts` — emit resume/pause for hub hooks | ⬜ | |
-| 1.10 | Safe area CSS overrides + test on notched devices | ⬜ | |
+| 1.9 | Implement `app-lifecycle.ts` — emit resume/pause for hub hooks | ✅ | `useRideLiveHub` foreground retry |
+| 1.10 | Safe area CSS overrides + test on notched devices | 🟡 | CSS added; device QA pending |
 
 ### Phase 2 — Core product parity (routed features)
 
@@ -496,8 +496,8 @@ Existing Playwright a11y tests remain **web-only** (`client/tests/a11y`). Add De
 
 | Phase | Total tasks | Done | % |
 |-------|-------------|------|---|
-| Phase 0 | 9 | 0 | 0% |
-| Phase 1 | 10 | 0 | 0% |
+| Phase 0 | 9 | 9 | 100% |
+| Phase 1 | 10 | 7 | 70% |
 | Phase 2 | 11 | 0 | 0% |
 | Phase 3 | 6 | 0 | 0% |
 | Phase 4 | 6 | 0 | 0% |
@@ -516,4 +516,6 @@ Existing Playwright a11y tests remain **web-only** (`client/tests/a11y`). Add De
 
 ## Next action
 
-Start **Phase 0.1–0.5**: scaffold `mobile/package.json`, Capacitor config, and Vite alias to `client/src` so the existing login screen loads in the iOS simulator.
+**Phase 1 (remaining):** `files.ts` + `camera.ts` for GPX upload and avatar/hazard photos; then **Phase 2.1** — smoke-test every web-routed page on Android emulator (`npm run run:android`).
+
+Verify auth persistence: log in → force-stop app → reopen → still authenticated.

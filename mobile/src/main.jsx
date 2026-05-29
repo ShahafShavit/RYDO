@@ -12,7 +12,11 @@ import { createAppRoutes } from '@/app/router';
 
 import AppProviders from '@/app/providers/AppProviders';
 
+import { registerPlatform } from './platform/register';
+
 import '@/app/styles/index.css';
+
+import './app-overrides.css';
 
 
 
@@ -114,38 +118,60 @@ class NativeBootBoundary extends React.Component {
 
 
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+function renderApp() {
 
+  const root = ReactDOM.createRoot(document.getElementById('root'));
 
+  root.render(
 
-root.render(
+    <React.StrictMode>
 
-  <React.StrictMode>
+      <NativeBootBoundary>
 
-    <NativeBootBoundary>
+        <AppProviders>
 
-      <AppProviders>
+          <RouterProvider router={router} />
 
-        <RouterProvider router={router} />
+        </AppProviders>
 
-      </AppProviders>
+      </NativeBootBoundary>
 
-    </NativeBootBoundary>
+    </React.StrictMode>,
 
-  </React.StrictMode>,
-
-);
-
-
-
-if (Capacitor.isNativePlatform()) {
-
-  requestAnimationFrame(() => {
-
-    SplashScreen.hide().catch(() => {});
-
-  });
+  );
 
 }
 
 
+
+async function boot() {
+
+  try {
+
+    await registerPlatform();
+
+    renderApp();
+
+    if (Capacitor.isNativePlatform()) {
+
+      requestAnimationFrame(() => {
+
+        SplashScreen.hide().catch(() => {});
+
+      });
+
+    }
+
+  } catch (error) {
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+
+    root.render(<NativeBootError error={error} />);
+
+  }
+
+}
+
+
+
+boot();
