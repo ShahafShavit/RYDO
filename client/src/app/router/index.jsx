@@ -45,7 +45,7 @@ export function createAppRoutes(options = {}) {
 
   return [
     {
-      element: <PublicLayout />,
+      element: <PublicLayout nativeEntry={nativeEntry} />,
       children: [
         { path: ROUTES.home, element: homeElement },
         {

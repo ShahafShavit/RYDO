@@ -5,9 +5,27 @@ import { ROUTES } from '@/app/router/route-paths';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 
-export default function PublicLayout() {
+export default function PublicLayout({ nativeEntry = false }) {
   const location = useLocation();
-  const showBreadcrumbBar = location.pathname !== ROUTES.home;
+  const showBreadcrumbBar = !nativeEntry && location.pathname !== ROUTES.home;
+
+  if (nativeEntry) {
+    return (
+      <BreadcrumbProvider>
+        <div className="flex min-h-dvh flex-col">
+          <Suspense
+            fallback={
+              <div className="flex min-h-dvh flex-1 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-strong border-t-rydo-purple" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
+        </div>
+      </BreadcrumbProvider>
+    );
+  }
 
   return (
     <BreadcrumbProvider>

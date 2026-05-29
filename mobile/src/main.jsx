@@ -9,6 +9,7 @@ import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 
 import { createAppRoutes } from '@/app/router';
+import { ROUTES } from '@/app/router/route-paths';
 
 import AppProviders from '@/app/providers/AppProviders';
 
@@ -28,7 +29,9 @@ if (Capacitor.isNativePlatform()) {
 
 
 
-const router = createHashRouter(createAppRoutes({ nativeEntry: true }));
+const router = createHashRouter(createAppRoutes({ nativeEntry: true }), {
+  initialEntries: [ROUTES.login],
+});
 
 
 
