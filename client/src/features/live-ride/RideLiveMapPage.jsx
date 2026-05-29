@@ -337,11 +337,14 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   const mapShellReady = Boolean(token && activeBoot.canMountHiddenMap && line && routeFc);
   const resizeMap = useMapboxResize(mapRef, containerRef, mapShellReady);
 
-  const onMapLoad = useCallback(() => {
-    rideLiveLog('Map onLoad');
-    activeBoot.handleMapLoad();
-    resizeMap();
-  }, [activeBoot, resizeMap]);
+  const onMapLoad = useCallback(
+    (e) => {
+      rideLiveLog('Map onLoad');
+      activeBoot.handleMapLoad(e.target);
+      resizeMap();
+    },
+    [activeBoot, resizeMap],
+  );
 
   useEffect(() => {
     if (!ride || isLoading) return;
@@ -419,7 +422,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
           className={
             activeBoot.bootComplete
               ? 'h-full w-full'
-              : 'pointer-events-none invisible h-full w-full'
+              : 'pointer-events-none opacity-0 h-full w-full'
           }
           aria-hidden={!activeBoot.bootComplete}
         >

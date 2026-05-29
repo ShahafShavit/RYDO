@@ -171,8 +171,8 @@ export function useLiveRideBootGate({
     [moduleReady, rideReady, permissionsReady, mapSurfaceReady, hasLocation, cameraReady],
   );
 
-  const handleMapLoad = useCallback(() => {
-    const map = mapRef.current?.getMap?.();
+  const handleMapLoad = useCallback((mapFromEvent) => {
+    const map = mapFromEvent ?? mapRef.current?.getMap?.();
     if (!map) return;
 
     const markMapReady = () => {

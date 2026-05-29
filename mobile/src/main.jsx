@@ -14,6 +14,7 @@ import { ROUTES } from '@/app/router/route-paths';
 import AppProviders from '@/app/providers/AppProviders';
 
 import { registerPlatform } from './platform/register';
+import './platform/mapbox';
 
 import '@/app/styles/index.css';
 

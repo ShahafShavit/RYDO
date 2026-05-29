@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => {
         '@': clientSrc,
         react: path.resolve(__dirname, 'node_modules/react'),
         'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        'mapbox-gl$': path.resolve(__dirname, 'node_modules/mapbox-gl/dist/mapbox-gl-csp.js'),
       },
       dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom'],
     },
