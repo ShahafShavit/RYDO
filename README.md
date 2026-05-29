@@ -70,6 +70,10 @@ Open the URL Vite prints (typically [http://localhost:5173](http://localhost:517
 
 More API-only detail (local `dotnet run`, CORS notes) is in [`server/README.md`](server/README.md).
 
+### Option C — Capacitor app (Android / iOS emulator)
+
+The [`mobile/`](mobile/) package wraps the same React UI for native shells. On Windows, use the **Android emulator** (`npm run run:android` after Android Studio + JDK are configured). See [`mobile/README.md`](mobile/README.md).
+
 ## Deploy to AWS (minimal school stack)
 
 CDK app under [`infra/`](infra/): **ECR**, **ECS Fargate** (app + ephemeral SQL Server sidecar), **ALB**, **CloudFront**. Database data is **not** persisted across task restarts; the app **creates and seeds** the database on startup (same idea as local Docker).

@@ -87,7 +87,12 @@ export default defineConfig(({ command, mode }) => {
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-router')) {
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/react-router') ||
+            id.includes('framer-motion')
+          ) {
             return 'vendor-react';
           }
 
@@ -108,10 +113,6 @@ export default defineConfig(({ command, mode }) => {
 
           if (id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) {
             return 'vendor-ui';
-          }
-
-          if (id.includes('framer-motion')) {
-            return 'vendor-motion';
           }
 
           return undefined;

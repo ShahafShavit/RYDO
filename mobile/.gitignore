@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env.local
+
+# Android / iOS build artifacts (native projects are committed after cap add)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/
+
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+ios/capacitor-cordova-ios-plugins/build/
+
+.DS_Store
+*.log

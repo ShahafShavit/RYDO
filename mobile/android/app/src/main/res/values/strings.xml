@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RYDO</string>
+    <string name="title_activity_main">RYDO</string>
+    <string name="package_name">dev.rydo.app</string>
+    <string name="custom_url_scheme">dev.rydo.app</string>
+</resources>
