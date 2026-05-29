@@ -26,5 +26,5 @@ fi
 if [[ -n "$JAVA_HOME" ]]; then
   echo "JAVA_HOME=$JAVA_HOME"
 else
-  echo "JAVA_HOME not set — run: powershell -File scripts/setup-windows-env.ps1" >&2
+  echo "JAVA_HOME not set - run: powershell -File scripts/setup-windows-env.ps1 -Install" >&2
 fi

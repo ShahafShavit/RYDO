@@ -20,7 +20,8 @@ function checkJavaHome() {
   const home = process.env.JAVA_HOME;
   if (!home) {
     issues.push('JAVA_HOME is not set.');
-    hints.push('Run: powershell -File scripts/setup-windows-env.ps1  then restart the terminal.');
+    hints.push('Run: powershell -File scripts/setup-windows-env.ps1 -Install  then restart the terminal.');
+    hints.push('  Or configure only (if already installed): powershell -File scripts/setup-windows-env.ps1');
     hints.push('  Or: source scripts/android-env.sh  (Git Bash, current session only)');
     return;
   }
@@ -34,7 +35,7 @@ function checkJavaHome() {
     const major = getJavaMajor(home);
     if (major > 0 && major < MIN_JAVA_MAJOR) {
       issues.push(`Java ${major} at JAVA_HOME — Capacitor 7 Android needs Java ${MIN_JAVA_MAJOR}+.`);
-      hints.push('Run: powershell -File scripts/setup-windows-env.ps1  (uses JDK 23 on this machine)');
+      hints.push('Run: powershell -File scripts/setup-windows-env.ps1 -Install');
     }
   }
 }
@@ -43,7 +44,7 @@ function checkAndroidSdk() {
   const sdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
   if (!sdk) {
     issues.push('ANDROID_HOME / ANDROID_SDK_ROOT is not set.');
-    hints.push('Install Android Studio, then run scripts/setup-windows-env.ps1');
+    hints.push('Run: powershell -File scripts/setup-windows-env.ps1 -Install');
     return;
   }
   if (!fs.existsSync(sdk)) {

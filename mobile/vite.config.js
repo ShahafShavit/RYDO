@@ -7,6 +7,24 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientRoot = path.resolve(__dirname, '../client');
 const clientSrc = path.resolve(clientRoot, 'src');
+const mobileEntry = path.resolve(__dirname, 'src/main.jsx');
+
+/** Client src lives outside mobile/; resolve its npm imports from mobile/node_modules. */
+function resolveFromMobileNodeModules() {
+  return {
+    name: 'resolve-from-mobile-node-modules',
+    enforce: 'pre',
+    async resolveId(source, importer, options) {
+      if (!importer) return null;
+      const importerNorm = importer.replace(/\\/g, '/');
+      if (!importerNorm.includes('/client/')) return null;
+      if (source.startsWith('.') || source.startsWith('\0') || source.startsWith('/') || source.startsWith('@/')) {
+        return null;
+      }
+      return this.resolve(source, mobileEntry, { skipSelf: true, ...options });
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
@@ -17,6 +35,7 @@ export default defineConfig(({ mode }) => {
     envDir: __dirname,
     publicDir: path.resolve(clientRoot, 'public'),
     plugins: [
+      resolveFromMobileNodeModules(),
       react(),
       tailwindcss(),
       {
