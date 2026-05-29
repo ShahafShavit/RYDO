@@ -1,4 +1,5 @@
 import { SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
+import { formatSpeedFromKmh } from '@/shared/utils/distance';
 
 /** Matches server `RouteDurationSource` / API `estimatedDurationSource`. */
 export const ESTIMATED_DURATION_SOURCE = {
@@ -15,12 +16,13 @@ export const ESTIMATED_DURATION_SOURCE = {
  * - Inferred (pace): distance ÷ assumed average speed — no GPX clock.
  * - Inferred (other): fallback when we could not use timestamps or pace the same way.
  */
-export function durationSourceLabel(source) {
+/** @param {'km' | 'mi'} [unit] */
+export function durationSourceLabel(source, unit = 'km') {
   switch (source) {
     case ESTIMATED_DURATION_SOURCE.GPX_TIMESTAMPS:
       return 'Recorded — from GPX clock times on the track';
     case ESTIMATED_DURATION_SOURCE.ESTIMATED_PACE:
-      return `Inferred at ${SUGGESTED_DURATION_SPEED_KMH} km/h average (no GPX clock)`;
+      return `Inferred at ${formatSpeedFromKmh(SUGGESTED_DURATION_SPEED_KMH, unit)} average (no GPX clock)`;
     case ESTIMATED_DURATION_SOURCE.USER:
       return 'Entered manually (not derived from GPX clock)';
     case ESTIMATED_DURATION_SOURCE.ESTIMATED:

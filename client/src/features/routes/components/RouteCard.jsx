@@ -18,7 +18,7 @@ function formatDuration(minutes) {
 }
 
 export default function RouteCard({ route }) {
-  const { formatKm } = useFormatDistance();
+  const { formatKm, unit } = useFormatDistance();
   const title = route?.title || 'Untitled route';
   const terrain = formatTrailMetaLabel(route?.terrain || 'mixed');
   const duration = formatDuration(route?.estimatedDurationMinutes);
@@ -110,7 +110,7 @@ export default function RouteCard({ route }) {
               </p>
               <p
                 className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg"
-                title={duration ? durationSourceLabel(route?.estimatedDurationSource) : undefined}
+                title={duration ? durationSourceLabel(route?.estimatedDurationSource, unit) : undefined}
               >
                 {duration || '—'}
               </p>

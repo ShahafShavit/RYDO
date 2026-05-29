@@ -6,12 +6,15 @@ import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubRideModal from '@/features/rides/components/CreateClubRideModal';
 import ClubSettingsModal from '@/features/clubs/components/ClubSettingsModal';
 import ClubMemberChip from '@/features/clubs/components/ClubMemberChip';
+import ClubDetailPageBold from '@/features/clubs/components/ClubDetailPageBold';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import Card from '@/shared/components/ui/card/Card';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
+import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+
 function ridePeopleSummary(r) {
   const fromDetails = Array.isArray(r.participantDetails) ? r.participantDetails.length : 0;
   const fromParts = Array.isArray(r.participants) ? r.participants.length : 0;
@@ -72,7 +75,12 @@ export default function ClubDetailPage() {
 
   const ridesQuery = useQuery({
     queryKey: ['clubs', 'rides', id],
-    queryFn: () => clubsApi.getRides(id),
+    queryFn: async () => {
+      const data = await clubsApi.getRides(id);
+      if (data != null && typeof data === 'object' && !Array.isArray(data)) return data;
+      if (!Array.isArray(data)) return [];
+      return data.map((r) => mapRideDto(r)).filter(Boolean);
+    },
     enabled: Number.isFinite(id) && id > 0,
   });
 
@@ -182,22 +190,33 @@ export default function ClubDetailPage() {
 
   if (clubQuery.isError) {
     return (
-      <section>
-        <p className="text-red-400">Could not load this club.</p>
-      </section>
+      <>
+        <section className="hidden md:block">
+          <p className="text-red-400">Could not load this club.</p>
+        </section>
+        <div className="flex min-h-0 flex-1 flex-col md:hidden">
+          <ClubDetailPageBold isError isLoading={false} club={null} user={user} />
+        </div>
+      </>
     );
   }
 
   if (clubQuery.isLoading || !club) {
     return (
-      <section>
-        <div className="h-10 w-48 animate-pulse rounded-lg bg-surface-strong" />
-      </section>
+      <>
+        <section className="hidden md:block">
+          <div className="h-10 w-48 animate-pulse rounded-lg bg-surface-strong" />
+        </section>
+        <div className="flex min-h-0 flex-1 flex-col md:hidden">
+          <ClubDetailPageBold isLoading isError={false} club={null} user={user} />
+        </div>
+      </>
     );
   }
 
   return (
-    <section className="space-y-6">
+    <>
+      <section className="hidden space-y-6 md:block">
       <div>
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
@@ -437,6 +456,41 @@ export default function ClubDetailPage() {
           </Button>
         </div>
       ) : null}
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <ClubDetailPageBold
+          club={club}
+          user={user}
+          isLoading={false}
+          isError={false}
+          canSeeMembers={canSeeMembers}
+          sortedMembers={sortedMembers}
+          membersLoading={membersQuery.isLoading}
+          ridesLoading={ridesQuery.isLoading}
+          rideSummary={rideSummary}
+          upcomingRides={upcomingRides}
+          pastRides={pastRides}
+          inviteToken={inviteToken}
+          onInviteTokenChange={setInviteToken}
+          inviteRedeemOpen={inviteRedeemOpen}
+          onToggleInviteRedeem={() => setInviteRedeemOpen((o) => !o)}
+          onJoin={() => joinMut.mutate()}
+          joinPending={joinMut.isPending}
+          onLeave={() => leaveMut.mutate()}
+          leavePending={leaveMut.isPending}
+          onRedeemInvite={() => redeemMut.mutate()}
+          redeemPending={redeemMut.isPending}
+          redeemError={redeemMut.isError}
+          onScheduleOpen={() => setScheduleOpen(true)}
+          onSettingsOpen={() => setSettingsOpen(true)}
+          approveMut={approveMut}
+          rejectMut={rejectMut}
+          promoteMut={promoteMut}
+          demoteMut={demoteMut}
+          removeMut={removeMut}
+        />
+      </div>
 
       {club.currentUserMembership === 'admin' ? (
         <ClubSettingsModal
@@ -455,6 +509,6 @@ export default function ClubDetailPage() {
         onClose={() => setScheduleOpen(false)}
         onSuccess={invalidateClub}
       />
-    </section>
+    </>
   );
 }

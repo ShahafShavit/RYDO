@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useSavedRoutes } from '@/features/routes/hooks/useSavedRoutes';
 import { useMyRoutes } from '@/features/routes/hooks/useMyRoutes';
 import RouteCard from '@/features/routes/components/RouteCard';
+import YourRoutesPageBold from '@/features/routes/components/YourRoutesPageBold';
 import UploadRouteModal from '@/features/routes/components/UploadRouteModal';
 import Button from '@/shared/components/ui/button/Button';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
@@ -55,52 +56,71 @@ export default function YourRoutesPage() {
   ];
 
   return (
-    <section className="min-w-0 space-y-8">
-      <div>
-        <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">My Routes</h1>
-          <Button
-            variant="primary"
-            type="button"
-            size="sm"
-            className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
-            onClick={openUploadModal}
-          >
-            Upload route
-          </Button>
+    <>
+      <section className="hidden min-w-0 space-y-8 md:block">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Library</p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <h1 className="min-w-0 flex-1 text-3xl font-semibold leading-tight">My Routes</h1>
+            <Button
+              variant="primary"
+              type="button"
+              size="sm"
+              className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
+              onClick={openUploadModal}
+            >
+              Upload route
+            </Button>
+          </div>
         </div>
+
+        <BadgeNav options={tabs} value={activeTab} onChange={setActiveTab} className="max-w-100" />
+
+        {isLoading ? (
+          <div className="text-fg-muted">Loading routes...</div>
+        ) : isError ? (
+          <div className="text-red-400">Failed to load routes. Please try again later.</div>
+        ) : !currentRoutes || currentRoutes.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+            <h2 className="mb-2 text-xl text-fg">No routes found</h2>
+            <p className="mb-6 text-fg-muted">
+              {isActiveUploaded
+                ? "You haven't uploaded any routes yet."
+                : "You haven't saved any favorite routes yet."}
+            </p>
+            {isActiveUploaded ? (
+              <Button
+                variant="primary"
+                type="button"
+                size="sm"
+                className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
+                onClick={openUploadModal}
+              >
+                Upload a route
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+            {currentRoutes.map((route) => (
+              <RouteCard key={route.id} route={route} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <YourRoutesPageBold
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          routes={currentRoutes ?? []}
+          isLoading={isLoading}
+          isError={isError}
+          onUploadOpen={openUploadModal}
+        />
       </div>
 
-      <BadgeNav options={tabs} value={activeTab} onChange={setActiveTab} className="max-w-100" />
-
-      {isLoading ? (
-        <div className="text-fg-muted">Loading routes...</div>
-      ) : isError ? (
-        <div className="text-red-400">Failed to load routes. Please try again later.</div>
-      ) : !currentRoutes || currentRoutes.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-          <h2 className="mb-2 text-xl text-fg">No routes found</h2>
-          <p className="mb-6 text-fg-muted">
-            {isActiveUploaded
-              ? "You haven't uploaded any routes yet."
-              : "You haven't saved any favorite routes yet."}
-          </p>
-          {isActiveUploaded && (
-            <Button variant="primary" type="button" size="sm" className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME} onClick={openUploadModal}>
-              Upload a route
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[repeat(3,minmax(0,1fr))]">
-          {currentRoutes.map((route) => (
-            <RouteCard key={route.id} route={route} />
-          ))}
-        </div>
-      )}
-
       <UploadRouteModal isOpen={uploadModalOpen} onClose={closeUploadModal} />
-    </section>
+    </>
   );
 }

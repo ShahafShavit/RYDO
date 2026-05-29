@@ -24,7 +24,7 @@ const DIFFICULTY_OPTIONS = ['casual', 'moderate', 'hard'];
 const TERRAIN_OPTIONS = ['road', 'gravel', 'trail', 'mixed'];
 
 export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
-  const { formatKm } = useFormatDistance();
+  const { formatKm, formatElevation, formatSpeedKmh } = useFormatDistance();
   const titleId = useId();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
@@ -251,7 +251,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
                 <p className={modalMetricLabelClass}>Elevation gain</p>
-                <p className="mt-2 text-2xl font-semibold text-fg">{missingElevation ? '—' : `${stats.elevationGainM} m`}</p>
+                <p className="mt-2 text-2xl font-semibold text-fg">{missingElevation ? '—' : formatElevation(stats.elevationGainM, 0)}</p>
                 {!missingElevation ? <p className={cn('mt-1', modalFinePrintClass)}>Smoothed track, noise filtered</p> : null}
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
@@ -261,7 +261,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   {durationSuggestionSource === 'timestamps' &&
                     'Recorded — from GPX clock times (first to last point with times)'}
                   {durationSuggestionSource === 'pace' &&
-                    `Inferred at ${SUGGESTED_DURATION_SPEED_KMH} km/h average (no GPX clock)`}
+                    `Inferred at ${formatSpeedKmh(SUGGESTED_DURATION_SPEED_KMH)} average (no GPX clock)`}
                   {durationSuggestionSource === 'none' &&
                     'Inferred (no GPX clock) — default 60 min until you change it below'}
                 </p>
@@ -307,7 +307,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                     {durationSuggestionSource === 'pace' && (
                       <>
                         Inferred from track length at{' '}
-                        <span className="text-fg/90">{SUGGESTED_DURATION_SPEED_KMH} km/h</span> average — no GPX clock in
+                        <span className="text-fg/90">{formatSpeedKmh(SUGGESTED_DURATION_SPEED_KMH)}</span> average — no GPX clock in
                         the file. Adjust minutes to match how you ride.
                       </>
                     )}

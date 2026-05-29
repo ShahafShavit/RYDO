@@ -1,5 +1,6 @@
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
 import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
@@ -53,18 +54,7 @@ const routeLineLayer = {
   },
 };
 
-function formatSpeedKmh(speedMps) {
-  if (speedMps == null || !Number.isFinite(speedMps) || speedMps < 0) return '—';
-  return `${(speedMps * 3.6).toFixed(1)} km/h`;
-}
-
-function formatDistanceM(m) {
-  if (m == null || !Number.isFinite(m)) return '';
-  if (m < 1000) return `${Math.round(m)} m`;
-  return `${(m / 1000).toFixed(1)} km`;
-}
-
-function NearbyPeerRow({ peer }) {
+function NearbyPeerRow({ peer, formatShortDistance }) {
   const name = peer.displayName || `Rider ${peer.userId}`;
   return (
     <li className="flex items-center justify-between gap-2">
@@ -72,7 +62,7 @@ function NearbyPeerRow({ peer }) {
       {peer.isStale ? (
         <X className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2.5} aria-hidden />
       ) : (
-        <span className="shrink-0 tabular-nums text-fg-muted">{formatDistanceM(peer.distanceM)}</span>
+        <span className="shrink-0 tabular-nums text-fg-muted">{formatShortDistance(peer.distanceM)}</span>
       )}
     </li>
   );
@@ -157,6 +147,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   const { rideId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { formatSpeed, formatShortDistance } = useFormatDistance();
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -551,13 +542,13 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                             ·
                           </span>
                           <span className="font-semibold tabular-nums" title="Ground speed from GPS">
-                            {formatSpeedKmh(selfFix?.speedFiltered)}
+                            {formatSpeed(selfFix?.speedFiltered)}
                           </span>
                         </p>
                       </div>
                       <div className="hidden h-6 w-px shrink-0 bg-white/12 sm:block" aria-hidden />
                       <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 shrink-0 text-[#3ecfb9]/90" strokeWidth={2} aria-hidden />
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-[var(--rydo-green-bright)]/90" strokeWidth={2} aria-hidden />
                         <p className="min-w-0 truncate text-xs leading-tight text-fg">
                           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-subtle">
                             Time
@@ -610,7 +601,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                         ) : (
                           <ul className="space-y-1">
                             {nearbyListPeers.map((p) => (
-                              <NearbyPeerRow key={p.userId} peer={p} />
+                              <NearbyPeerRow key={p.userId} peer={p} formatShortDistance={formatShortDistance} />
                             ))}
                           </ul>
                         )}

@@ -10,18 +10,7 @@ import {
   useUserUploadedRoutesPreview,
 } from '@/features/users/hooks/useUserProfileActivity';
 
-function formatWhen(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(d);
-}
+import { formatProfileWhen } from '@/features/users/utils/profile-formatters';
 
 function ProfileRidePreviewCard({ ride }) {
   return (
@@ -29,7 +18,7 @@ function ProfileRidePreviewCard({ ride }) {
       <h3 className="w-full min-w-0 text-center text-lg font-semibold leading-snug">
         <TruncatedText>{ride.name}</TruncatedText>
       </h3>
-      <p className="mt-2 text-sm text-fg-muted">{formatWhen(ride.scheduledDate)}</p>
+      <p className="mt-2 text-sm text-fg-muted">{formatProfileWhen(ride.scheduledDate)}</p>
       <div className="mt-4">
         <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
           <Button variant="secondary" type="button" className="text-sm">

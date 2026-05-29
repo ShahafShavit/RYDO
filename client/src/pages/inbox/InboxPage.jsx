@@ -4,6 +4,7 @@ import { Inbox as InboxIcon } from 'lucide-react';
 import { generatePath, Link } from 'react-router-dom';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import { friendsApi } from '@/features/social/api/friends-api';
+import InboxPageBold from '@/features/social/components/InboxPageBold';
 import { inboxKeys, useInbox } from '@/features/social/hooks/useInbox';
 import { inboxSummaryKeys } from '@/features/social/hooks/useInboxSummary';
 import { relationshipKeys } from '@/features/social/hooks/useRelationship';
@@ -73,154 +74,169 @@ export default function InboxPage() {
   }, [items, queryClient]);
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-surface-strong text-fg-muted">
-            <InboxIcon className="h-5 w-5" strokeWidth={2} aria-hidden />
-          </span>
-          <div>
-            <h1 className="text-2xl font-semibold text-fg">Inbox</h1>
-            <p className="mt-1 text-sm text-fg-muted">Friend requests and club join requests.</p>
+    <>
+      <section className="hidden space-y-6 md:block">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-surface-strong text-fg-muted">
+              <InboxIcon className="h-5 w-5" strokeWidth={2} aria-hidden />
+            </span>
+            <div>
+              <h1 className="text-2xl font-semibold text-fg">Inbox</h1>
+              <p className="mt-1 text-sm text-fg-muted">Friend requests and club join requests.</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {isLoading ? <p className="text-fg-muted">Loading…</p> : null}
-      {isError ? (
-        <p className="text-sm text-red-400">{error?.message || 'Could not load inbox.'}</p>
-      ) : null}
+        {isLoading ? <p className="text-fg-muted">Loading…</p> : null}
+        {isError ? (
+          <p className="text-sm text-red-400">{error?.message || 'Could not load inbox.'}</p>
+        ) : null}
 
-      {!isLoading && !isError && items.length === 0 ? (
-        <Card className="p-8 text-center text-fg-muted">Nothing here yet.</Card>
-      ) : null}
+        {!isLoading && !isError && items.length === 0 ? (
+          <Card className="p-8 text-center text-fg-muted">Nothing here yet.</Card>
+        ) : null}
 
-      <ul className="space-y-3">
-        {items.map((row) => {
-          if (row.kind === 'friend_request' && row.friendRequest) {
-            const fr = row.friendRequest;
-            const from = fr.fromUser;
-            const pending = fr.status === 'pending' && !row.resolvedAt;
-            const profileHref = generatePath(ROUTES.userProfile, { userId: String(from.id) });
-            return (
-              <li key={row.id}>
-                <Card className="p-4">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Link to={profileHref} className="flex min-w-0 flex-1 items-center gap-3">
-                      <UserAvatar
-                        avatarUrl={from.avatarUrl}
-                        displayName={from.fullName}
-                        sizeClass="h-11 w-11"
-                        textClass="text-sm"
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium text-fg">
-                          <span className="text-fg-muted">Friend request from </span>
-                          {from.fullName || 'Member'}
-                        </p>
-                        <p className="text-xs text-fg-muted">
-                          {pending ? 'Waiting for your response.' : 'Resolved.'}
-                        </p>
-                      </div>
-                    </Link>
-                    {pending ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          className="min-w-[88px]"
-                          disabled={acceptMut.isPending || declineMut.isPending}
-                          onClick={() => acceptMut.mutate(fr.id)}
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="min-w-[88px]"
-                          disabled={acceptMut.isPending || declineMut.isPending}
-                          onClick={() => declineMut.mutate(fr.id)}
-                        >
-                          Decline
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                </Card>
-              </li>
-            );
-          }
-          if (row.kind === 'club_join_request' && row.clubJoinRequest) {
-            const cjr = row.clubJoinRequest;
-            const club = cjr.club;
-            const requester = cjr.requester;
-            const pending = !row.resolvedAt;
-            const profileHref = generatePath(ROUTES.userProfile, { userId: String(requester.id) });
-            const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
-            const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
-            return (
-              <li key={row.id}>
-                <Card className="p-4">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-1">
-                      <Link to={profileHref} className="flex min-w-0 items-center gap-3">
+        <ul className="space-y-3">
+          {items.map((row) => {
+            if (row.kind === 'friend_request' && row.friendRequest) {
+              const fr = row.friendRequest;
+              const from = fr.fromUser;
+              const pending = fr.status === 'pending' && !row.resolvedAt;
+              const profileHref = generatePath(ROUTES.userProfile, { userId: String(from.id) });
+              return (
+                <li key={row.id}>
+                  <Card className="p-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <Link to={profileHref} className="flex min-w-0 flex-1 items-center gap-3">
                         <UserAvatar
-                          avatarUrl={requester.avatarUrl}
-                          displayName={requester.fullName}
+                          avatarUrl={from.avatarUrl}
+                          displayName={from.fullName}
                           sizeClass="h-11 w-11"
                           textClass="text-sm"
                         />
-                        <span className="font-medium text-fg">{requester.fullName || 'Member'}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-fg">
+                            <span className="text-fg-muted">Friend request from </span>
+                            {from.fullName || 'Member'}
+                          </p>
+                          <p className="text-xs text-fg-muted">
+                            {pending ? 'Waiting for your response.' : 'Resolved.'}
+                          </p>
+                        </div>
                       </Link>
-                      <span className="text-fg-muted">requested to join</span>
-                      <Link
-                        to={clubHref}
-                        className="font-medium text-rydo-purple underline-offset-4 hover:underline"
-                      >
-                        {club.name}
-                      </Link>
-                      <p className="w-full text-xs text-fg-muted">
-                        {pending ? 'Approve or decline this request.' : 'Resolved.'}
-                      </p>
+                      {pending ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="primary"
+                            className="min-w-[88px]"
+                            disabled={acceptMut.isPending || declineMut.isPending}
+                            onClick={() => acceptMut.mutate(fr.id)}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="min-w-[88px]"
+                            disabled={acceptMut.isPending || declineMut.isPending}
+                            onClick={() => declineMut.mutate(fr.id)}
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
-                    {pending ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="primary"
-                          className="min-w-[88px]"
-                          disabled={clubBusy}
-                          onClick={() =>
-                            approveClubMut.mutate({ clubId: club.id, userId: requester.id })
-                          }
+                  </Card>
+                </li>
+              );
+            }
+            if (row.kind === 'club_join_request' && row.clubJoinRequest) {
+              const cjr = row.clubJoinRequest;
+              const club = cjr.club;
+              const requester = cjr.requester;
+              const pending = !row.resolvedAt;
+              const profileHref = generatePath(ROUTES.userProfile, { userId: String(requester.id) });
+              const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
+              const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
+              return (
+                <li key={row.id}>
+                  <Card className="p-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-1">
+                        <Link to={profileHref} className="flex min-w-0 items-center gap-3">
+                          <UserAvatar
+                            avatarUrl={requester.avatarUrl}
+                            displayName={requester.fullName}
+                            sizeClass="h-11 w-11"
+                            textClass="text-sm"
+                          />
+                          <span className="font-medium text-fg">{requester.fullName || 'Member'}</span>
+                        </Link>
+                        <span className="text-fg-muted">requested to join</span>
+                        <Link
+                          to={clubHref}
+                          className="font-medium text-rydo-purple underline-offset-4 hover:underline"
                         >
-                          Approve
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="min-w-[88px]"
-                          disabled={clubBusy}
-                          onClick={() =>
-                            rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
-                          }
-                        >
-                          Decline
-                        </Button>
+                          {club.name}
+                        </Link>
+                        <p className="w-full text-xs text-fg-muted">
+                          {pending ? 'Approve or decline this request.' : 'Resolved.'}
+                        </p>
                       </div>
-                    ) : null}
-                  </div>
-                </Card>
+                      {pending ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="primary"
+                            className="min-w-[88px]"
+                            disabled={clubBusy}
+                            onClick={() =>
+                              approveClubMut.mutate({ clubId: club.id, userId: requester.id })
+                            }
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="min-w-[88px]"
+                            disabled={clubBusy}
+                            onClick={() =>
+                              rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
+                            }
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </Card>
+                </li>
+              );
+            }
+            return (
+              <li key={row.id}>
+                <Card className="p-4 text-sm text-fg-muted">Unsupported item ({row.kind})</Card>
               </li>
             );
-          }
-          return (
-            <li key={row.id}>
-              <Card className="p-4 text-sm text-fg-muted">Unsupported item ({row.kind})</Card>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+          })}
+        </ul>
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <InboxPageBold
+          items={items}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          acceptMut={acceptMut}
+          declineMut={declineMut}
+          approveClubMut={approveClubMut}
+          rejectClubMut={rejectClubMut}
+        />
+      </div>
+    </>
   );
 }

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useNavigation, useParams } from 'react-router-dom';
+import { useNavigate, useNavigation, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RideEventCard from '@/features/rides/components/RideEventCard';
+import RideEventPageBold from '@/features/rides/components/RideEventPageBold';
 import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
@@ -57,34 +58,16 @@ export default function RideEventPage() {
     navigation.state === 'loading' &&
     navigation.location?.pathname === liveRideTarget;
 
-  if (isLoading) {
-    return (
-      <section className="min-w-0 space-y-6">
-        <div className="h-40 animate-pulse rounded-3xl bg-surface-strong" />
-      </section>
-    );
-  }
+  const loadError =
+    error?.status === 404
+      ? 'This ride was not found or is not visible with your account.'
+      : error?.message || 'Could not load this ride.';
 
-  if (isError || !ride) {
-    const loadError =
-      error?.status === 404
-        ? 'This ride was not found or is not visible with your account.'
-        : error?.message || 'Could not load this ride.';
-    return (
-      <section className="min-w-0 space-y-4">
-        <p className="text-red-400">{loadError}</p>
-        <Button variant="secondary" type="button" onClick={() => refetch()}>
-          Retry
-        </Button>
-      </section>
-    );
-  }
-
-  const upcoming = isRideUpcoming(ride);
-  const showEdit = Boolean(ride.viewerCanEdit && upcoming);
+  const upcoming = ride ? isRideUpcoming(ride) : false;
+  const showEdit = Boolean(ride?.viewerCanEdit && upcoming);
 
   const rideHeaderExtra =
-    user && ride.rideKind !== 'soloLog' && upcoming ? (
+    user && ride?.rideKind !== 'soloLog' && upcoming ? (
       <>
         {amParticipant && ride.routeId ? (
           <Button
@@ -114,42 +97,90 @@ export default function RideEventPage() {
       </>
     ) : null;
 
+  const handleLiveRide = liveRideTarget
+    ? () => {
+        setEnteringLive(true);
+        navigate(liveRideTarget);
+      }
+    : undefined;
+
   return (
-    <section className="min-w-0 space-y-6">
-      <RideEventCard
-        ride={ride}
-        showEdit={showEdit}
-        onEditClick={() => setEditOpen(true)}
-        headerExtra={rideHeaderExtra}
-      />
-      <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} />
-      {ride.routeId ? (
-        <div className="space-y-4">
-          <RouteMapWithElevation
-            geoJson={geoJson}
-            layout="split"
-            splitTriplePreset={upcoming ? 'mapHalf' : 'default'}
-            splitTrailing={
-              upcoming ? (
-                <RideWeatherSummary
-                  key={`${ride.id}-ride-weather`}
-                  ride={ride}
-                  linkedRoute={linkedRoute}
-                  routeLoading={routeLoading}
+    <>
+      <section className="hidden min-w-0 space-y-6 md:block">
+        {isLoading ? (
+          <div className="h-40 animate-pulse rounded-3xl bg-surface-strong" />
+        ) : isError || !ride ? (
+          <div className="space-y-4">
+            <p className="text-red-400">{loadError}</p>
+            <Button variant="secondary" type="button" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <>
+            <RideEventCard
+              ride={ride}
+              showEdit={showEdit}
+              onEditClick={() => setEditOpen(true)}
+              headerExtra={rideHeaderExtra}
+            />
+            {ride.routeId ? (
+              <div className="space-y-4">
+                <RouteMapWithElevation
+                  geoJson={geoJson}
                   layout="split"
+                  splitTriplePreset={upcoming ? 'mapHalf' : 'default'}
+                  splitTrailing={
+                    upcoming ? (
+                      <RideWeatherSummary
+                        key={`${ride.id}-ride-weather`}
+                        ride={ride}
+                        linkedRoute={linkedRoute}
+                        routeLoading={routeLoading}
+                        layout="split"
+                      />
+                    ) : null
+                  }
                 />
-              ) : null
-            }
-          />
-          <RouteMetadataPanel route={linkedRoute} />
-        </div>
-      ) : (
-        <p className="text-sm text-fg-muted">No route is linked to this event yet.</p>
-      )}
-      {!user && ride.rideKind !== 'soloLog' && upcoming ? (
-        <p className="text-sm text-fg-muted">Sign in to join this ride.</p>
-      ) : null}
-      <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />
-    </section>
+                <RouteMetadataPanel route={linkedRoute} />
+              </div>
+            ) : (
+              <p className="text-sm text-fg-muted">No route is linked to this event yet.</p>
+            )}
+            {!user && ride.rideKind !== 'soloLog' && upcoming ? (
+              <p className="text-sm text-fg-muted">Sign in to join this ride.</p>
+            ) : null}
+            <RideMembersList members={ride.participantDetails} participantCount={ride.participantCount ?? 0} />
+          </>
+        )}
+        {ride ? <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} /> : null}
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <RideEventPageBold
+          ride={ride}
+          geoJson={geoJson}
+          linkedRoute={linkedRoute}
+          routeLoading={routeLoading}
+          upcoming={upcoming}
+          showEdit={showEdit}
+          onEditClick={() => setEditOpen(true)}
+          user={user}
+          amParticipant={amParticipant}
+          onJoin={() => joinRide()}
+          onLeave={() => leaveRide()}
+          isJoining={isJoining}
+          isLeaving={isLeaving}
+          onLiveRide={amParticipant && ride?.routeId ? handleLiveRide : undefined}
+          isNavigatingToLive={isNavigatingToLive}
+          onPrefetchLive={prefetchLiveRideRoute}
+          isLoading={isLoading}
+          isError={isError || !ride}
+          errorMessage={loadError}
+          onRetry={() => refetch()}
+        />
+        {ride ? <EditRideModal open={editOpen} onClose={() => setEditOpen(false)} ride={ride} /> : null}
+      </div>
+    </>
   );
 }

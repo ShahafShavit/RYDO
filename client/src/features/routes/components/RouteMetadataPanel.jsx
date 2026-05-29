@@ -13,7 +13,7 @@ function formatDuration(minutes) {
 }
 
 export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
-  const { formatKm } = useFormatDistance();
+  const { formatKm, formatElevation, unit } = useFormatDistance();
   if (!route) return null;
 
   const items = [
@@ -23,7 +23,7 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
       <>
         <span className="block">{formatDuration(route.estimatedDurationMinutes)}</span>
         <span className="mt-1 block text-sm font-normal leading-snug text-fg-subtle">
-          {durationSourceLabel(route.estimatedDurationSource)}
+          {durationSourceLabel(route.estimatedDurationSource, unit)}
         </span>
       </>,
     ],
@@ -36,7 +36,7 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
     ],
     ['Terrain', formatTrailMetaLabel(route.terrain)],
     ['Region', route.region || '—'],
-    ['Total elevation gain', route.elevationGainM ? `${route.elevationGainM} m` : '—'],
+    ['Total elevation gain', route.elevationGainM ? formatElevation(route.elevationGainM, 0) : '—'],
     ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—'],
   ];
 

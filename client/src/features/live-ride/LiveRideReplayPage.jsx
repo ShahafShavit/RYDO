@@ -1,4 +1,5 @@
 import { ROUTES } from '@/app/router/route-paths';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
 import LiveRidePreviewTuningPanel from '@/features/live-ride/components/LiveRidePreviewTuningPanel';
@@ -68,18 +69,8 @@ function formatHeadingDeg(d) {
   return `${d.toFixed(1)}°`;
 }
 
-function formatSpeedKmh(speedMps) {
-  if (speedMps == null || !Number.isFinite(speedMps) || speedMps < 0) return '—';
-  return `${(speedMps * 3.6).toFixed(1)} km/h`;
-}
-
-function formatDistanceM(m) {
-  if (m == null || !Number.isFinite(m)) return '';
-  if (m < 1000) return `${Math.round(m)} m`;
-  return `${(m / 1000).toFixed(1)} km`;
-}
-
 export default function LiveRideReplayPage() {
+  const { formatSpeed, formatShortDistance, formatSpeedKmh } = useFormatDistance();
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -527,7 +518,7 @@ export default function LiveRideReplayPage() {
             <dl className="pointer-events-auto space-y-1.5 font-mono tabular-nums text-fg">
               <div className="flex justify-between gap-3">
                 <dt className="text-fg-muted">Speed</dt>
-                <dd>{bearingHud.speedKmh.toFixed(1)} km/h</dd>
+                <dd>{formatSpeedKmh(bearingHud.speedKmh)}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-fg-muted">w_GPS</dt>
@@ -638,7 +629,7 @@ export default function LiveRideReplayPage() {
                     ·
                   </span>
                   <span className="font-semibold tabular-nums" title="Speed from replay">
-                    {formatSpeedKmh(selfFix?.speedFiltered)}
+                    {formatSpeed(selfFix?.speedFiltered)}
                   </span>
                 </p>
               </div>
@@ -703,7 +694,7 @@ export default function LiveRideReplayPage() {
                         <li key={p.userId} className="flex justify-between gap-2">
                           <span className="truncate">{p.displayName || `Rider ${p.userId}`}</span>
                           <span className="shrink-0 tabular-nums text-fg-muted">
-                            {formatDistanceM(p.distanceM)}
+                            {formatShortDistance(p.distanceM)}
                           </span>
                         </li>
                       ))}
@@ -718,7 +709,7 @@ export default function LiveRideReplayPage() {
                         <p className="text-fg">
                           {nearbyInfo.aheadNearest.displayName || `Rider ${nearbyInfo.aheadNearest.userId}`}
                           <span className="ml-2 tabular-nums text-fg-muted">
-                            {formatDistanceM(nearbyInfo.aheadNearest.distanceM)}
+                            {formatShortDistance(nearbyInfo.aheadNearest.distanceM)}
                           </span>
                         </p>
                       ) : (
@@ -731,7 +722,7 @@ export default function LiveRideReplayPage() {
                         <p className="text-fg">
                           {nearbyInfo.behindNearest.displayName || `Rider ${nearbyInfo.behindNearest.userId}`}
                           <span className="ml-2 tabular-nums text-fg-muted">
-                            {formatDistanceM(nearbyInfo.behindNearest.distanceM)}
+                            {formatShortDistance(nearbyInfo.behindNearest.distanceM)}
                           </span>
                         </p>
                       ) : (

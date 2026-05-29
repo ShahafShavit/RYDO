@@ -10,6 +10,15 @@ export function isRideUpcoming(ride) {
   return d.getTime() >= Date.now();
 }
 
+/** Leaflet preview `{ coordinates }` from API ride DTO or normalized ride. */
+export function resolveRideMapPreview(raw) {
+  if (raw?.preview?.coordinates?.length > 1) return raw.preview;
+  if (raw?.routePreview?.coordinates?.length > 1) {
+    return { coordinates: raw.routePreview.coordinates };
+  }
+  return null;
+}
+
 /** Maps `GET /rides/:id` and ride list items from `GET /users/me/rides`. */
 export function mapRideDto(raw) {
   if (!raw) return null;
@@ -18,8 +27,7 @@ export function mapRideDto(raw) {
   const parts = Array.isArray(raw.participants) ? raw.participants : [];
   const participantCount =
     raw.participantCount != null ? Number(raw.participantCount) : details.length > 0 ? details.length : parts.length;
-  const routePreview =
-    raw.routePreview?.coordinates?.length > 1 ? { coordinates: raw.routePreview.coordinates } : null;
+  const routePreview = resolveRideMapPreview(raw);
   const createdBy = raw.createdBy
     ? {
         id: raw.createdBy.id != null ? Number(raw.createdBy.id) : null,

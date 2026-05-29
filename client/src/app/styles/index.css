@@ -17,7 +17,14 @@
   --rydo-text-subtle: rgba(220, 205, 185, 0.45);
   --rydo-purple: #7b5cff;
   --rydo-green: #21f1a8;
+  --rydo-green-bright: #21f1a8;
+  --rydo-amber: #f0b24a;
+  --rydo-danger: #ff6b6b;
   --rydo-success: #2db89e;
+  --rydo-tabbar-h: calc(56px + var(--rydo-safe-bottom));
+  /* Bold mobile screens fill the viewport above the fixed tab bar. */
+  --rydo-bold-screen-min-h: calc(100dvh - var(--rydo-tabbar-h));
+  --rydo-z-tabbar: 90;
   --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --rydo-transition-nav: 300ms var(--rydo-ease-out);
   --rydo-glow-bottom: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.18), transparent 42%);
@@ -63,6 +70,8 @@
   --rydo-safe-bottom: env(safe-area-inset-bottom, 0px);
   --rydo-safe-left: env(safe-area-inset-left, 0px);
   --rydo-safe-right: env(safe-area-inset-right, 0px);
+  /* Bold mobile screens: safe area + minimum breathing room under status bar */
+  --rydo-bold-page-top: max(1rem, calc(var(--rydo-safe-top) + 0.5rem));
 }
 
 /* Dark themes — each reads as a different “place”, not the same copper/teal with tweaks */
@@ -230,6 +239,9 @@
   --rydo-text-subtle: rgba(255, 255, 255, 0.56);
   --rydo-purple: #7b5cff;
   --rydo-green: #1ac78a;
+  --rydo-green-bright: #21f1a8;
+  --rydo-amber: #f0b24a;
+  --rydo-danger: #ff6b6b;
   --rydo-success: #2db89e;
   --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --rydo-transition-nav: 300ms var(--rydo-ease-out);
@@ -541,4 +553,280 @@ html[data-theme='dune'] .app-logo {
 
 .rydo-live-map-chrome {
   z-index: var(--rydo-z-live-chrome);
+}
+
+/* ─── Bold mobile design system (from .design/rydo-mobile.css) ─── */
+
+.rydo-display {
+  font-family: 'Headland One', serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.rydo-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rydo-text-subtle);
+}
+
+.rydo-stat-hero {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.rydo-subtle {
+  color: var(--rydo-text-subtle);
+}
+
+.rydo-tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.rydo-panel {
+  border-radius: 18px;
+  border: 1px solid var(--rydo-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.rydo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 9999px;
+  border: 1px solid var(--rydo-border);
+  background: var(--rydo-surface);
+  padding: 6px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rydo-text-muted);
+  backdrop-filter: blur(12px);
+}
+
+.rydo-pill-accent {
+  border-color: rgba(123, 92, 255, 0.4);
+  background: rgba(123, 92, 255, 0.13);
+  color: #cabfff;
+}
+
+.rydo-pill-green {
+  border-color: rgba(26, 199, 138, 0.4);
+  background: rgba(26, 199, 138, 0.12);
+  color: #8df0cd;
+}
+
+.rydo-pill-amber {
+  border-color: rgba(240, 178, 74, 0.4);
+  background: rgba(240, 178, 74, 0.12);
+  color: #f6d49a;
+}
+
+.rydo-gradient-cta {
+  border: none;
+  border-radius: 9999px;
+  color: #0d0a1f;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  cursor: pointer;
+  background: linear-gradient(95deg, var(--rydo-green-bright), var(--rydo-purple));
+  box-shadow: 0 10px 40px rgba(123, 92, 255, 0.42);
+  transition: transform 0.2s var(--rydo-ease-out), box-shadow 0.2s var(--rydo-ease-out);
+}
+
+.rydo-gradient-cta:active {
+  transform: scale(0.98);
+}
+
+.rydo-gradient-cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rydo-hero-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 15, 16, 0.3) 0%,
+    rgba(15, 15, 16, 0) 36%,
+    rgba(15, 15, 16, 0.72) 78%,
+    var(--rydo-bg) 100%
+  );
+  pointer-events: none;
+}
+
+.rydo-chiprow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 0;
+  scrollbar-width: none;
+}
+
+.rydo-chiprow::-webkit-scrollbar {
+  display: none;
+}
+
+.rydo-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--rydo-border);
+  background: var(--rydo-surface);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rydo-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s var(--rydo-ease-out), color 0.2s var(--rydo-ease-out);
+}
+
+.rydo-chip-on {
+  border: 1px solid transparent;
+  background: linear-gradient(95deg, rgba(33, 241, 168, 0.9), rgba(123, 92, 255, 0.92));
+  color: #0d0a1f;
+}
+
+.rydo-vhair {
+  width: 1px;
+  background: var(--rydo-border);
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+.rydo-actionbar {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--rydo-border);
+  background: linear-gradient(0deg, rgba(15, 15, 16, 0.92), rgba(15, 15, 16, 0.55));
+  backdrop-filter: blur(20px);
+}
+
+.rydo-bold-screen {
+  position: relative;
+  width: 100%;
+  padding-top: var(--rydo-bold-page-top);
+  font-family: 'Inter', sans-serif;
+  color: var(--rydo-text);
+  background:
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.16), transparent 42%),
+    radial-gradient(circle at 18% 0%, rgba(123, 92, 255, 0.2), transparent 34%),
+    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  isolation: isolate;
+}
+
+.rydo-bold-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+.rydo-bold-screen > * {
+  position: relative;
+  z-index: 2;
+}
+
+.rydo-bold-tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 12px calc(4px + var(--rydo-safe-bottom));
+  border-top: 1px solid var(--rydo-border);
+  background: rgba(15, 15, 16, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.rydo-bold-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--rydo-text-subtle);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  min-width: 48px;
+  text-decoration: none;
+}
+
+.rydo-bold-tab-active {
+  color: var(--rydo-text);
+}
+
+.rydo-bold-tab-active .rydo-bold-tab-icon {
+  color: var(--rydo-purple);
+}
+
+.rydo-bold-tab-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rydo-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  flex: none;
+  border-radius: 9999px;
+  border: 1px solid var(--rydo-border);
+  background: var(--rydo-surface);
+  color: var(--rydo-text);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition: background 0.2s var(--rydo-ease-out);
+}
+
+.rydo-iconbtn-lg {
+  height: 44px;
+  width: 44px;
+}
+
+.rydo-iconbtn:hover {
+  background: var(--rydo-surface-strong);
+}
+
+.rydo-hazard-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(240, 178, 74, 0.3);
+  background: rgba(240, 178, 74, 0.08);
+}
+
+.rydo-bold-glass-row {
+  border-radius: 28px;
+  border: 1px solid var(--rydo-border);
+  background: linear-gradient(165deg, rgba(255, 248, 240, 0.1), rgba(40, 35, 30, 0.06));
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgba(255, 235, 210, 0.1), 0 18px 56px rgba(0, 0, 0, 0.42);
 }

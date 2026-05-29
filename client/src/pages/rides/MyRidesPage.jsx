@@ -11,6 +11,7 @@ import { useMemberParticipatedRidesInfinite } from '@/features/rides/hooks/useMe
 import { isRideUpcoming, mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import CreatePersonalRideModal from '@/features/rides/components/CreatePersonalRideModal';
+import MyRidesPageBold from '@/features/rides/components/MyRidesPageBold';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
@@ -217,7 +218,7 @@ function PastScheduledCard({ ride }) {
 }
 
 function HistoryRideCard({ entry }) {
-  const { formatKm } = useFormatDistance();
+  const { formatKm, formatElevation } = useFormatDistance();
   const kind =
     entry.clubId != null
       ? 'club'
@@ -225,7 +226,7 @@ function HistoryRideCard({ entry }) {
         ? 'personal'
         : null;
   const dist = entry.distanceKm != null ? formatKm(Number(entry.distanceKm)) : '—';
-  const elev = entry.elevationGainM != null ? `${Math.round(Number(entry.elevationGainM))} m` : '—';
+  const elev = entry.elevationGainM != null ? formatElevation(Number(entry.elevationGainM), 0) : '—';
   const est = entry.estimatedDurationMinutes;
   const dur = entry.durationMinutes;
   let paceNote = '';
@@ -378,8 +379,28 @@ export default function MyRidesPage() {
       : 'Member rides'
     : 'My Rides';
 
+  const handleSearchChange = useCallback(
+    (v) => {
+      if (memberUserId != null) {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            if (v) next.set('q', v);
+            else next.delete('q');
+            return next;
+          },
+          { replace: true },
+        );
+      } else {
+        setLocalSearch(v);
+      }
+    },
+    [memberUserId, setSearchParams],
+  );
+
   return (
-    <section className="min-w-0 space-y-8">
+    <>
+      <section className="hidden min-w-0 space-y-8 md:block">
       <div>
         <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Rides</p>
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -409,22 +430,7 @@ export default function MyRidesPage() {
           type="search"
           placeholder="Search by name, route, or club…"
           value={search}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (memberUserId != null) {
-              setSearchParams(
-                (prev) => {
-                  const next = new URLSearchParams(prev);
-                  if (v) next.set('q', v);
-                  else next.delete('q');
-                  return next;
-                },
-                { replace: true },
-              );
-            } else {
-              setLocalSearch(v);
-            }
-          }}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full max-w-md rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-fg outline-none placeholder:text-fg-subtle focus:border-rydo-purple"
         />
       </div>
@@ -499,6 +505,25 @@ export default function MyRidesPage() {
       )}
 
       {!useMember ? <CreatePersonalRideModal open={modalOpen} onClose={() => setModalOpen(false)} /> : null}
-    </section>
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <MyRidesPageBold
+          pageTitle={pageTitle}
+          useMember={useMember}
+          search={search}
+          onSearchChange={handleSearchChange}
+          onStartRide={!useMember ? () => setModalOpen(true) : undefined}
+          upcoming={upcoming}
+          pastScheduled={pastScheduled}
+          historyRows={useMember ? [] : historyRows}
+          isLoading={isLoading}
+          isError={isError}
+          loadMoreRef={pastLoggedSentinelRef}
+          isFetchingNextPage={isFetchingNextPage}
+        />
+        {!useMember ? <CreatePersonalRideModal open={modalOpen} onClose={() => setModalOpen(false)} /> : null}
+      </div>
+    </>
   );
 }

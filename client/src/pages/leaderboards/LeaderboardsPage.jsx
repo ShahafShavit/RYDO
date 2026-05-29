@@ -5,6 +5,7 @@ import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
 import { useLeaderboards } from '@/features/leaderboards/hooks/useLeaderboards';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import LeaderboardsPageBold from '@/features/leaderboards/components/LeaderboardsPageBold';
 import {
   LEADERBOARD_BOARD_IDS,
   LEADERBOARD_BOARD_CONFIG,
@@ -16,9 +17,9 @@ import {
  * @typedef {{ rank: number, userId: number, displayName: string, avatarUrl: string | null, value: number, unit: string }} LeaderboardRow
  */
 
-function formatValue(row, formatKm, formatMeters) {
+function formatValue(row, formatKm, formatElevation) {
   if (row.unit === 'km') return formatKm(row.value, 1);
-  if (row.unit === 'm') return formatMeters(row.value, 0);
+  if (row.unit === 'm') return formatElevation(row.value, 0);
   if (row.unit === 'rides' || row.unit === 'routes') return String(Math.round(row.value));
   return String(row.value);
 }
@@ -28,10 +29,10 @@ function formatValue(row, formatKm, formatMeters) {
  *   boardId: string,
  *   rows: LeaderboardRow[],
  *   formatKm: (n: number, d?: number) => string,
- *   formatMeters: (n: number, d?: number) => string,
+ *   formatElevation: (n: number, d?: number) => string,
  * }} props
  */
-function LeaderboardColumn({ boardId, rows, formatKm, formatMeters }) {
+function LeaderboardColumn({ boardId, rows, formatKm, formatElevation }) {
   const cfg = LEADERBOARD_BOARD_CONFIG[boardId];
   const Icon = cfg.Icon;
 
@@ -72,7 +73,7 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatMeters }) {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-fg">{row.displayName}</p>
-                    <p className="text-sm text-rydo-purple">{formatValue(row, formatKm, formatMeters)}</p>
+                    <p className="text-sm text-rydo-purple">{formatValue(row, formatKm, formatElevation)}</p>
                   </div>
                 </Link>
               </li>
@@ -86,7 +87,7 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatMeters }) {
 
 export default function LeaderboardsPage() {
   const { data, isPending, isError, error } = useLeaderboards();
-  const { formatKm, formatMeters } = useFormatDistance();
+  const { formatKm, formatElevation } = useFormatDistance();
   const [searchParams] = useSearchParams();
   const boardParam = searchParams.get('board');
 
@@ -153,31 +154,37 @@ export default function LeaderboardsPage() {
   const lb = data;
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-start gap-4">
-        <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface-strong text-rydo-purple shadow-[0_0_28px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)]">
-          <Trophy className="h-6 w-6" strokeWidth={1.75} aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Community</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-fg">Leaderboards</h1>
-          <p className="mt-2 max-w-2xl text-sm text-fg-muted">
-            Top riders and route creators on RYDO — see how you stack up against the community.
-          </p>
+    <>
+      <section className="hidden space-y-6 md:block">
+        <div className="flex flex-wrap items-start gap-4">
+          <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface-strong text-rydo-purple shadow-[0_0_28px_color-mix(in_srgb,var(--rydo-purple)_22%,transparent)]">
+            <Trophy className="h-6 w-6" strokeWidth={1.75} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Community</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-fg">Leaderboards</h1>
+            <p className="mt-2 max-w-2xl text-sm text-fg-muted">
+              Top riders and route creators on RYDO — see how you stack up against the community.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:gap-7 md:grid-cols-2 md:gap-8">
-        {LEADERBOARD_BOARD_IDS.map((boardId) => (
-          <LeaderboardColumn
-            key={boardId}
-            boardId={boardId}
-            rows={lb[boardId] ?? []}
-            formatKm={formatKm}
-            formatMeters={formatMeters}
-          />
-        ))}
+        <div className="grid grid-cols-1 gap-6 sm:gap-7 md:grid-cols-2 md:gap-8">
+          {LEADERBOARD_BOARD_IDS.map((boardId) => (
+            <LeaderboardColumn
+              key={boardId}
+              boardId={boardId}
+              rows={lb[boardId] ?? []}
+              formatKm={formatKm}
+              formatElevation={formatElevation}
+            />
+          ))}
+        </div>
+      </section>
+
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        <LeaderboardsPageBold data={lb} formatKm={formatKm} formatElevation={formatElevation} />
       </div>
-    </section>
+    </>
   );
 }

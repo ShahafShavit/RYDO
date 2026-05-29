@@ -30,9 +30,13 @@ export default function RouteMapWithElevation({
   chartClassName = '',
   profile: profileProp,
   scrollWheelZoom = true,
+  mapCompactAttribution = false,
+  chartVariant = 'default',
+  chartShowHeader = true,
   layout = 'stack',
   splitTrailing = null,
   splitTriplePreset = 'default',
+  className = '',
 }) {
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
@@ -62,7 +66,7 @@ export default function RouteMapWithElevation({
         ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[3fr_2fr] md:items-stretch md:gap-4'
         : splitMapOnlyTrailing
           ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[minmax(0,3fr)_minmax(13rem,280px)] md:items-stretch md:gap-4'
-          : 'space-y-3';
+          : `space-y-3 ${className}`.trim();
 
   const mapWrapClass =
     splitThreeCol || splitWithProfile || splitMapOnlyTrailing ? 'min-h-0 min-w-0' : split ? 'min-w-0' : undefined;
@@ -75,6 +79,7 @@ export default function RouteMapWithElevation({
             geoJson={geoJson}
             className={mapClassName ?? defaultMapClass}
             scrollWheelZoom={scrollWheelZoom}
+            compactAttribution={mapCompactAttribution}
             scrubDistanceM={profileReady ? scrubDistanceM : null}
           />
         </Suspense>
@@ -83,6 +88,8 @@ export default function RouteMapWithElevation({
         <ElevationProfileChart
           profile={profile}
           fillHeight={splitWithProfile || splitThreeCol}
+          variant={chartVariant}
+          showHeader={chartShowHeader}
           className={`${splitWithProfile || splitThreeCol ? 'min-h-0 min-w-0' : ''} ${chartClassName}`.trim()}
           onScrubChange={setScrubDistanceM}
         />

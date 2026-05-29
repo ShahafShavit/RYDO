@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 /**
  * Scrub bar for GPX/KML replay: segment colors reflect speed (blue → red).
@@ -11,6 +12,7 @@ export default function LiveRideReplayTimeline({
   onScrubStart,
   disabled = false,
 }) {
+  const { formatSpeed } = useFormatDistance();
   const speeds = useMemo(() => {
     if (!fixes?.length) return { min: 0, max: 1 };
     let min = Infinity;
@@ -104,8 +106,8 @@ export default function LiveRideReplayTimeline({
         />
       </label>
       <div className="flex justify-between text-[10px] tabular-nums text-fg-subtle">
-        <span>{(speeds.min * 3.6).toFixed(0)} km/h</span>
-        <span className="text-fg-muted">{(speeds.max * 3.6).toFixed(0)} km/h</span>
+        <span>{formatSpeed(speeds.min, 0)}</span>
+        <span className="text-fg-muted">{formatSpeed(speeds.max, 0)}</span>
       </div>
     </div>
   );

@@ -5,7 +5,6 @@ import { ROUTES } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import MobileNavbar from '@/shared/components/layout/MobileNavbar';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
@@ -13,6 +12,7 @@ import { ClubChatUiProvider } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
+import BoldTabBar from '@/shared/components/bold/BoldTabBar';
 
 export default function DashboardLayout() {
   const { isAdmin } = useAuth();
@@ -26,8 +26,6 @@ export default function DashboardLayout() {
     <BreadcrumbProvider>
     <ClubChatUiProvider>
     <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
-      {!rideLiveMatch ? <MobileNavbar /> : null}
-
       {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
         <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
@@ -70,13 +68,26 @@ export default function DashboardLayout() {
       ) : null}
 
       <main
-        className={`flex-1 min-h-0 min-w-0 ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-4 md:p-8'}`}
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-0 pb-[var(--rydo-tabbar-h)] max-md:bg-[var(--rydo-bg)] md:p-8 md:pb-8'}`}
       >
-        <div className={rideLiveMatch ? 'h-full min-w-0' : 'mx-auto w-full min-w-0 max-w-6xl'}>
-          {!rideLiveMatch ? <PageBreadcrumbs variant="dashboard" /> : null}
-          <AnimatedOutlet />
+        <div
+          className={
+            rideLiveMatch
+              ? 'h-full min-w-0'
+              : 'mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col md:px-0 md:flex-none px-0'
+          }
+        >
+          {!rideLiveMatch ? (
+            <div className="hidden md:block px-0">
+              <PageBreadcrumbs variant="dashboard" />
+            </div>
+          ) : null}
+          <div className={rideLiveMatch ? 'h-full min-w-0' : 'flex min-h-0 flex-1 flex-col md:flex-none md:px-0 px-0'}>
+            <AnimatedOutlet />
+          </div>
         </div>
       </main>
+      {!rideLiveMatch ? <BoldTabBar /> : null}
       <ClubChatDock />
     </div>
     </ClubChatUiProvider>

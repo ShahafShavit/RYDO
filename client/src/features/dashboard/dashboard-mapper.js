@@ -1,4 +1,4 @@
-import { formatDistanceFromKm } from '@/shared/utils/distance';
+import { formatDistanceFromKm, formatElevationFromMeters } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
   if (raw == null || raw === '') return '—';
@@ -229,10 +229,7 @@ export function buildDashboardHome({
     ridesCount: weeklyHistory.length,
     distance: formatDistanceFromKm(weeklyDistanceKm, unit),
     duration: formatDurationMinutes(weeklyDurationMinutes),
-    elevation:
-      weeklyElevationM > 0
-        ? `${Math.round(weeklyElevationM)} m`
-        : '0 m',
+    elevation: formatElevationFromMeters(weeklyElevationM, unit),
   };
   const streakSnapshot = buildStreakSnapshot(history);
 
@@ -246,7 +243,7 @@ export function buildDashboardHome({
         difficulty: formatDifficulty(last.routeDifficulty),
         elevation:
           last.elevationGainM != null && Number.isFinite(Number(last.elevationGainM))
-            ? `${Math.round(Number(last.elevationGainM))} m`
+            ? formatElevationFromMeters(Number(last.elevationGainM), unit)
             : '—',
         completedLabel: formatLongDateTime(last.completedAt),
         rideId: last.rideId ?? null,

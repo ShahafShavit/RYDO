@@ -1,4 +1,5 @@
 import Card from '@/shared/components/ui/card/Card';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { getRouteStartLatLng } from '@/features/weather/routeStartLatLng';
 import { useRideHourForecast } from '@/features/weather/useRideHourForecast';
@@ -36,6 +37,7 @@ export default function RideWeatherSummary({
   routeLoading = false,
   layout = 'card',
 }) {
+  const { formatSpeedKmh } = useFormatDistance();
   const split = layout === 'split';
   const upcoming = isRideUpcoming(ride);
   const hasRoute = ride?.routeId != null;
@@ -170,7 +172,7 @@ export default function RideWeatherSummary({
           <p className="text-xl font-semibold tabular-nums text-fg">{temp}</p>
           <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-fg-muted">
             {popPct != null ? <span>{popPct}% rain</span> : null}
-            {windKmh != null ? <span>{windKmh} km/h</span> : null}
+            {windKmh != null ? <span>{formatSpeedKmh(windKmh, 0)}</span> : null}
           </div>
         </div>
         <OpenMeteoCredit compact />
@@ -193,7 +195,7 @@ export default function RideWeatherSummary({
           <p className="mt-1 text-2xl font-semibold text-fg">{temp}</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-fg-muted">
             {popPct != null ? <span>{popPct}% chance of rain</span> : null}
-            {windKmh != null ? <span>{windKmh} km/h wind</span> : null}
+            {windKmh != null ? <span>{formatSpeedKmh(windKmh, 0)} wind</span> : null}
           </div>
         </div>
       </div>
