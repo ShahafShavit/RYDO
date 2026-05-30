@@ -6,6 +6,16 @@ Native Android and iOS shells around the same React app as [`../client/`](../cli
 |----------|---------|
 | [**BUILD_PLAN.md**](./BUILD_PLAN.md) | Full migration plan and feature parity |
 
+### App icon
+
+Source: [`resources/icon.svg`](./resources/icon.svg) (bicycle wheel mark) → [`resources/icon.png`](./resources/icon.png). Regenerate Android launcher + splash assets after changing the SVG:
+
+```bash
+npm run icons:generate
+```
+
+Then rebuild (`npm run run:android` or Android Studio). iOS: add the platform (`npm run cap:add:ios`), then run `npx capacitor-assets generate --ios` with the same `resources/icon.png`.
+
 ---
 
 ## Run on Android emulator (Windows / macOS / Linux)

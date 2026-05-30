@@ -25,7 +25,9 @@
     "env:shell": "bash scripts/android-env.sh",
     "check:android": "node scripts/check-android-prereqs.mjs",
     "run:android": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs",
-    "run:android:dotnet": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs --dotnet"
+    "run:android:dotnet": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs --dotnet",
+    "icons:render": "node scripts/render-icon.mjs",
+    "icons:generate": "npm run icons:render && capacitor-assets generate --android --iconBackgroundColor \"#0f0f10\" --iconBackgroundColorDark \"#0f0f10\""
   },
   "dependencies": {
     "@capacitor-community/safe-area": "^7.0.0",
@@ -61,6 +63,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.2.0",
     "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-react": "^6.0.1",
