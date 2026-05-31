@@ -12,7 +12,10 @@ const MAX_PULL = 160;
 /** Treat tiny scroll offsets as "at top" (sub-pixel / rubber-band). */
 const SCROLL_TOP_TOLERANCE = 2;
 
-const BoldScrollArea = forwardRef(function BoldScrollArea({ className, children, ...props }, ref) {
+const BoldScrollArea = forwardRef(function BoldScrollArea(
+  { className, insetTabBar = true, children, ...props },
+  ref,
+) {
   const queryClient = useQueryClient();
   const scrollRef = useRef(null);
   const touchStartY = useRef(0);
@@ -130,7 +133,7 @@ const BoldScrollArea = forwardRef(function BoldScrollArea({ className, children,
       ) : null}
       <div
         ref={scrollRef}
-        className={cn(className)}
+        className={cn(insetTabBar && 'rydo-bold-scroll-viewport', className)}
         style={
           env.isNativeApp && pullDistance > 0 && !refreshing
             ? { transform: `translateY(${pullDistance}px)` }

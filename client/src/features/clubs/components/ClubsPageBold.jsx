@@ -65,7 +65,7 @@ export default function ClubsPageBold({
         ) : clubsCount === 0 ? (
           <p className="rydo-subtle px-5 pt-4 text-sm">No clubs yet.</p>
         ) : (
-          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3.5">
             {showEmptySearch ? (
               <p className="rydo-subtle text-sm">No clubs match &ldquo;{search.trim()}&rdquo;.</p>
             ) : (

@@ -86,7 +86,7 @@ export default function YourRoutesPageBold({
             ) : null}
           </div>
         ) : (
-          <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pt-3.5">
             <Eyebrow className="mb-2.5 ml-0.5">
               {isUploaded ? 'Uploaded routes' : 'Saved favorites'} · {routes.length}
             </Eyebrow>

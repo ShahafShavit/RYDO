@@ -109,7 +109,10 @@ export default function ClubChatListBold({
         </div>
       </div>
 
-      <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-[max(1rem,var(--rydo-safe-bottom))] pt-1">
+      <BoldScrollArea
+        insetTabBar={false}
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-[max(1rem,var(--rydo-safe-bottom))] pt-1"
+      >
         {isLoading ? (
           <p className="rydo-subtle px-3 py-4 text-sm">Loading…</p>
         ) : filtered.length === 0 ? (

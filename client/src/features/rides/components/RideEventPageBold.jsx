@@ -196,7 +196,7 @@ export default function RideEventPageBold({
           ) : null}
         </div>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-3 pt-0">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pt-0">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-2">
               {upcoming ? (

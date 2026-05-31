@@ -34,7 +34,7 @@ export default function LeaderboardsPageBold({
           </span>
         </header>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-3">
           {isLoading ? (
             <div className="h-40 animate-pulse rounded-2xl bg-surface-strong" />
           ) : isError ? (

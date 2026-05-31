@@ -232,7 +232,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
           ) : null}
         </header>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">
           <div className="rydo-panel px-4 py-3">
             <Eyebrow className="mb-2.5 block">Lifetime</Eyebrow>
             {statsLoading ? (

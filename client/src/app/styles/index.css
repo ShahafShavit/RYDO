@@ -888,6 +888,13 @@ html[data-theme='dune'] .app-logo {
   min-height: 0;
 }
 
+/* Scroll inset for fixed bottom tab bar — lives on the scroll viewport, not layout shell padding. */
+@media (max-width: 767px) {
+  .rydo-bold-scroll-viewport {
+    padding-bottom: max(1rem, var(--rydo-tabbar-h));
+  }
+}
+
 .rydo-ptr-indicator {
   position: absolute;
   top: 0;

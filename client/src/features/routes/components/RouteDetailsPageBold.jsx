@@ -159,7 +159,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-4 pt-1">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pt-1">
 
           <div className="min-w-0">
 

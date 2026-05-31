@@ -3,10 +3,12 @@ import { useOutlet, useLocation, useNavigation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { LiveRideBootModuleFallback } from '@/features/live-ride/components/LiveRideBootOverlay';
+import { env } from '@/shared/config/env';
 
 const MotionDiv = motion.div;
 
 const RIDE_LIVE_MAP_PATH = /^\/ride\/[^/]+\/live$/;
+const EASE = [0.25, 0.1, 0.25, 1];
 
 function RouteTransitionFallback() {
   return (
@@ -25,6 +27,9 @@ function RouteTransitionFallback() {
  * Single `useOutlet()` + keyed motion (not multiple `<Outlet />`), so exit/enter animations
  * see the correct route elements. Prefetch (see layouts) keeps lazy chunks warm so transitions
  * aren’t skipped behind a long network wait.
+ *
+ * Native (Capacitor): instant route swap — no AnimatePresence.
+ * Web: sequential fade/slide via AnimatePresence mode="wait".
  */
 export default function AnimatedOutlet() {
   const outlet = useOutlet();
@@ -37,10 +42,10 @@ export default function AnimatedOutlet() {
   const routeKey = location.pathname;
   const isLoadingRoute = navigation.state === 'loading';
   const isRideLiveMap = RIDE_LIVE_MAP_PATH.test(routeKey);
+  const skipMotion = reducedMotion || isRideLiveMap || env.isNativeApp;
 
   const duration = reducedMotion ? 0.1 : 0.22;
-  const ease = [0.25, 0.1, 0.25, 1];
-  const skipMotion = reducedMotion || isRideLiveMap;
+  const outletShellClass = 'flex min-h-0 min-w-0 flex-1 flex-col max-md:h-full';
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col max-md:h-full">
@@ -51,23 +56,27 @@ export default function AnimatedOutlet() {
         />
       ) : null}
 
-      {isRideLiveMap ? (
-        <div className="min-h-0 min-w-0">
-          <Suspense fallback={<LiveRideBootModuleFallback />}>{outlet}</Suspense>
+      {skipMotion ? (
+        <div className={outletShellClass}>
+          <Suspense
+            fallback={isRideLiveMap ? <LiveRideBootModuleFallback /> : <RouteTransitionFallback />}
+          >
+            {outlet}
+          </Suspense>
         </div>
       ) : (
-      <AnimatePresence mode="wait" initial={false}>
-        <MotionDiv
-          key={routeKey}
-          initial={skipMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-          animate={skipMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-          exit={skipMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-          transition={{ duration, ease }}
-          className="flex min-h-0 min-w-0 flex-1 flex-col max-md:h-full"
-        >
-          <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
-        </MotionDiv>
-      </AnimatePresence>
+        <AnimatePresence mode="wait" initial={false}>
+          <MotionDiv
+            key={routeKey}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration, ease: EASE }}
+            className={outletShellClass}
+          >
+            <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
+          </MotionDiv>
+        </AnimatePresence>
       )}
     </div>
   );

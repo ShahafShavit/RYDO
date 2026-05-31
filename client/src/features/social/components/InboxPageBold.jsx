@@ -121,7 +121,7 @@ export default function InboxPageBold({
           </div>
         </header>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-3">
           {isLoading ? (
             <>
               <div className="h-28 animate-pulse rounded-[28px] bg-surface-strong/60" aria-hidden />

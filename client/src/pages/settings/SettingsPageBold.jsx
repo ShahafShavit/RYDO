@@ -46,7 +46,7 @@ export default function SettingsPageBold({ activeTab, onTabChange }) {
           ))}
         </nav>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-4">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4">
           <SettingsTabContent activeTab={activeTab} variant="bold" />
 
           <div className="mt-auto border-t border-border pt-4">

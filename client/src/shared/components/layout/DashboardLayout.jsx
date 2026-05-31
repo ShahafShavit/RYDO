@@ -68,13 +68,13 @@ function DashboardLayoutBody() {
       ) : null}
 
       <main
-        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : `overflow-y-auto p-0 md:p-8 md:pb-8 ${showMobileTabBar ? 'pb-[var(--rydo-tabbar-h)]' : 'pb-0'}`}`}
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : 'max-md:overflow-hidden md:overflow-y-auto p-0 md:p-8 md:pb-8'}`}
       >
         <div
           className={
             rideLiveMatch
               ? 'h-full min-w-0'
-              : 'mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col md:px-0 md:flex-none px-0'
+              : 'mx-auto flex w-full min-w-0 max-w-6xl min-h-0 flex-1 flex-col max-md:overflow-hidden md:px-0 md:flex-none px-0'
           }
         >
           {!rideLiveMatch ? (
@@ -82,7 +82,7 @@ function DashboardLayoutBody() {
               <PageBreadcrumbs variant="dashboard" />
             </div>
           ) : null}
-          <div className={rideLiveMatch ? 'h-full min-w-0' : 'flex min-h-0 flex-1 flex-col md:flex-none md:px-0 px-0 max-md:h-full'}>
+          <div className={rideLiveMatch ? 'h-full min-w-0' : 'flex min-h-0 flex-1 flex-col max-md:h-full max-md:overflow-hidden md:flex-none md:px-0 px-0'}>
             <AnimatedOutlet />
           </div>
         </div>

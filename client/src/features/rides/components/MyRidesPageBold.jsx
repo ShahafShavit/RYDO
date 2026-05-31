@@ -107,7 +107,7 @@ export default function MyRidesPageBold({
         {isLoading ? (
           <div className="mx-5 mt-4 h-24 animate-pulse rounded-[28px] bg-surface-strong" />
         ) : (
-          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3.5">
             {showUpcoming ? (
               <section>
                 <Eyebrow className="mb-2.5 ml-0.5">
