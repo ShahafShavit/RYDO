@@ -77,7 +77,10 @@ public class RidesController(RydoDbContext db) : ControllerBase
                 title: "Invalid max participants",
                 detail: "Cannot set max below current roster size.");
 
-        g.Name = body.Name.Trim();
+        if (RydoTextLimits.ValidateRideName(body.Name, out var normalizedName) is { } nameErr)
+            return Problem(statusCode: 400, detail: nameErr);
+
+        g.Name = normalizedName;
         g.Description = body.Description?.Trim() ?? "";
         g.ScheduledDate = body.ScheduledDate.ToUniversalTime();
         g.RouteId = body.RouteId;

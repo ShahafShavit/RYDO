@@ -160,7 +160,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-4 pt-1">
 
-          <div>
+          <div className="min-w-0">
 
             <div className="mb-2.5 flex flex-wrap gap-2">
 
@@ -190,7 +190,9 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
             </div>
 
-            <DisplayTitle size="lg">{route.title || 'Untitled'}</DisplayTitle>
+            <DisplayTitle size="lg" truncate="mobile" title={route.title || 'Untitled'}>
+              {route.title || 'Untitled'}
+            </DisplayTitle>
 
             <div className="mt-2.5 flex items-center gap-2">
 

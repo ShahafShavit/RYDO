@@ -10,6 +10,7 @@ import {
 } from '@/features/leaderboards/leaderboard-boards';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
@@ -310,7 +311,9 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-fg">{route.title || 'Route'}</p>
+                      <TruncatedText className="text-sm font-semibold text-fg">
+                        {route.title || 'Route'}
+                      </TruncatedText>
                       <p className="rydo-subtle text-[11px]">
                         {route.distanceKm != null ? formatKm(route.distanceKm) : '—'}
                         {route.elevationGainM != null ? ` · ${formatElevation(route.elevationGainM, 0)}` : ''}
@@ -353,9 +356,9 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-fg">
+                      <TruncatedText className="text-sm font-semibold text-fg">
                         {ride.name || ride.routeName || 'Ride'}
-                      </p>
+                      </TruncatedText>
                       <p className="rydo-subtle text-[11px]">{formatProfileWhen(ride.scheduledDate)}</p>
                     </div>
                   </Link>

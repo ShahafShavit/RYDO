@@ -65,7 +65,7 @@ export default function RouteCardBold({ route, className }) {
             </span>
           ) : null}
         </div>
-        <DisplayTitle as="div" size="sm" className="mt-1.5 truncate text-lg">
+        <DisplayTitle as="div" size="sm" truncate className="mt-1.5 text-lg">
           {title}
         </DisplayTitle>
         {route?.region ? (

@@ -9,6 +9,7 @@ import Input from '@/shared/components/ui/input/Input';
 import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
+import { defaultRideNameFromRoute, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 
 function defaultScheduledLocal() {
   const d = new Date(Date.now() + 86400000);
@@ -23,7 +24,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
   const [mode, setMode] = useState('personal');
   const [scheduleBanner, setScheduleBanner] = useState(null);
   const [clubId, setClubId] = useState('');
-  const [name, setName] = useState(() => (routeTitle ? `${routeTitle} — ride` : ''));
+  const [name, setName] = useState(() => (routeTitle ? defaultRideNameFromRoute(routeTitle) : ''));
   const [description, setDescription] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('20');
   const [scheduledLocal, setScheduledLocal] = useState(defaultScheduledLocal);
@@ -118,7 +119,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
             </p>
           ) : null}
           <FormField label="Ride name">
-            <Input name="name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input name="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={MAX_RIDE_NAME_LENGTH} />
           </FormField>
           <FormField label="Description">
             <Input name="description" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -183,7 +184,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
               clubName={defaultClubName}
               embedded
               fixedRouteId={rid}
-              defaultName={routeTitle ? `${routeTitle} — club ride` : ''}
+              defaultName={routeTitle ? defaultRideNameFromRoute(routeTitle, ' — club ride') : ''}
               onSuccess={() => {
                 setClubId('');
                 setScheduleBanner('Club ride scheduled. Members can join from the ride page or My rides.');

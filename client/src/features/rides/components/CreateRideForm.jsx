@@ -7,6 +7,7 @@ import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives'
 import { cn } from '@/shared/lib/cn';
 import { useCreateRide } from '@/features/rides/hooks/useCreateRide';
 import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
+import { clampRideName, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 
 const emptyFields = (defaults = {}) => ({
   name: defaults.name ?? '',
@@ -29,7 +30,7 @@ export default function CreateRideForm({
   fixedRouteId,
   defaultName,
 }) {
-  const [form, setForm] = useState(() => emptyFields({ routeId: fixedRouteId, name: defaultName }));
+  const [form, setForm] = useState(() => emptyFields({ routeId: fixedRouteId, name: defaultName ? clampRideName(defaultName) : '' }));
   const { createRide, isPending } = useCreateRide();
   const { routes, isLoading: routesLoading } = useRoutesList({ take: 120 });
 
@@ -55,7 +56,7 @@ export default function CreateRideForm({
       maxParticipants: Number(form.maxParticipants || 20),
       scheduleForWholeClub: Boolean(form.scheduleForWholeClub),
     });
-    setForm(emptyFields({ routeId: fixedRouteId, name: defaultName }));
+    setForm(emptyFields({ routeId: fixedRouteId, name: defaultName ? clampRideName(defaultName) : '' }));
     onSuccess?.();
   };
 
@@ -67,7 +68,7 @@ export default function CreateRideForm({
         </p>
       ) : null}
       <FormField label="Ride name">
-        <Input name="name" value={form.name} onChange={handleChange} placeholder="Morning Flow Crew" required />
+        <Input name="name" value={form.name} onChange={handleChange} placeholder="Morning Flow Crew" required maxLength={MAX_RIDE_NAME_LENGTH} />
       </FormField>
       <FormField label="Description">
         <Input name="description" value={form.description} onChange={handleChange} placeholder="Pace, meeting spot, notes" />

@@ -346,10 +346,13 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (uid == null) return Unauthorized();
         if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct)) return NotFound();
 
+        if (RydoTextLimits.ValidateRideName(body.Name, out var normalizedName) is { } nameErr)
+            return Problem(statusCode: 400, detail: nameErr);
+
         var g = new Ride
         {
             Kind = RideKind.Scheduled,
-            Name = body.Name.Trim(),
+            Name = normalizedName,
             Description = body.Description?.Trim() ?? "",
             ScheduledDate = body.ScheduledDate.ToUniversalTime(),
             RouteId = body.RouteId,

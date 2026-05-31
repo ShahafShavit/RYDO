@@ -7,6 +7,7 @@ import Input from '@/shared/components/ui/input/Input';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import { cn } from '@/shared/lib/cn';
+import { MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 
 function toDatetimeLocalValue(iso) {
   if (!iso) return '';
@@ -65,7 +66,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <FormField label="Name">
-            <Input id="pr-name" value={name} onChange={(ev) => setName(ev.target.value)} required />
+            <Input id="pr-name" value={name} onChange={(ev) => setName(ev.target.value)} required maxLength={MAX_RIDE_NAME_LENGTH} />
           </FormField>
           <FormField label="Description">
             <textarea

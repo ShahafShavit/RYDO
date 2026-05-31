@@ -11,6 +11,7 @@ import { cn } from '@/shared/lib/cn';
  *   title?: string,
  *   dir?: 'auto' | 'ltr' | 'rtl',
  *   lineClamp?: 1 | 2,
+ *   mobileOnly?: boolean,
  * }} props
  */
 export default function TruncatedText({
@@ -20,20 +21,26 @@ export default function TruncatedText({
   title,
   dir = 'auto',
   lineClamp = 1,
+  mobileOnly = false,
   ...props
 }) {
   const textTitle =
     title ?? (typeof children === 'string' || typeof children === 'number' ? String(children) : undefined);
 
+  const clampClass = (() => {
+    if (mobileOnly) {
+      return lineClamp === 2
+        ? 'max-md:line-clamp-2 max-md:break-words md:overflow-visible md:whitespace-normal md:line-clamp-none'
+        : 'max-md:truncate md:overflow-visible md:whitespace-normal md:text-clip';
+    }
+    return lineClamp === 2 ? 'line-clamp-2 break-words' : 'truncate';
+  })();
+
   return (
     <Component
       title={textTitle}
       dir={dir}
-      className={cn(
-        'block w-full min-w-0 overflow-hidden',
-        lineClamp === 2 ? 'line-clamp-2 break-words' : 'truncate',
-        className
-      )}
+      className={cn('block w-full min-w-0 overflow-hidden', clampClass, className)}
       {...props}
     >
       {children}

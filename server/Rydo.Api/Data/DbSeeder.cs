@@ -844,7 +844,8 @@ public static class DbSeeder
 
             list.Add(new RouteEntity
             {
-                Title = string.IsNullOrWhiteSpace(row.Title) ? $"Groopy {row.Pid}" : row.Title,
+                Title = RydoTextLimits.TrimAndClampRouteTitle(
+                    string.IsNullOrWhiteSpace(row.Title) ? $"Groopy {row.Pid}" : row.Title),
                 Description = row.Description ?? "",
                 Terrain = string.IsNullOrWhiteSpace(row.Terrain) ? "mixed" : row.Terrain!,
                 Difficulty = string.IsNullOrWhiteSpace(row.Difficulty) ? "moderate" : row.Difficulty!,
@@ -1290,7 +1291,7 @@ public static class DbSeeder
             var rg = new Ride
             {
                 Kind = RideKind.Scheduled,
-                Name = names[i],
+                Name = RydoTextLimits.TrimAndClampRideName(names[i]),
                 Description = $"Open group ride — {route.Region ?? "mixed terrain"}. Respect traffic rules.",
                 ScheduledDate = scheduled,
                 RouteId = route.Id,
@@ -1774,7 +1775,7 @@ public static class DbSeeder
                 soloRides.Add(new Ride
                 {
                     Kind = RideKind.SoloLog,
-                    Name = $"{route.Title} — logged",
+                    Name = RydoTextLimits.TrimAndClampRideName($"{route.Title} — logged"),
                     Description = "Solo ride log.",
                     ScheduledDate = completedAt,
                     RouteId = route.Id,

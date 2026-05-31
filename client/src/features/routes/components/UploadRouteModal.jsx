@@ -12,6 +12,7 @@ import {
   modalMetricLabelClass,
 } from '@/shared/components/ui/modal/ModalPrimitives';
 import { cn } from '@/shared/lib/cn';
+import { MAX_ROUTE_TITLE_LENGTH } from '@/shared/constants/text-limits';
 import { useUploadRoute } from '@/features/routes/hooks/useUploadRoute';
 import { routesApi } from '@/features/routes/api/routesApi';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
@@ -285,6 +286,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="e.g., Oak Ridge Loop"
                   required
+                  maxLength={MAX_ROUTE_TITLE_LENGTH}
                 />
               </FormField>
 

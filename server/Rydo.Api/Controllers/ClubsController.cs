@@ -693,10 +693,13 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             m => m.ClubId == id && m.UserId == uid && m.MembershipStatus == ClubMembershipStatus.Active, ct);
         if (!canLink) return Forbid();
 
+        if (RydoTextLimits.ValidateRideName(body.Name, out var normalizedName) is { } nameErr)
+            return Problem(statusCode: 400, detail: nameErr);
+
         var g = new Ride
         {
             Kind = RideKind.Scheduled,
-            Name = body.Name,
+            Name = normalizedName,
             Description = body.Description ?? "",
             ScheduledDate = body.ScheduledDate.ToUniversalTime(),
             RouteId = body.RouteId,

@@ -257,6 +257,9 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         };
         if (string.IsNullOrWhiteSpace(route.Title))
             return Problem(statusCode: 400, detail: "title is required.");
+        if (RydoTextLimits.ValidateRouteTitle(route.Title, out var normalizedTitle) is { } titleErr)
+            return Problem(statusCode: 400, detail: titleErr);
+        route.Title = normalizedTitle;
 
         db.Routes.Add(route);
         await db.SaveChangesAsync(ct);

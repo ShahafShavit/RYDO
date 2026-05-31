@@ -1,5 +1,5 @@
 /* @import url('https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap'); */
-@import url('https://fonts.googleapis.com/css2?family=Headland+One&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 @import "tailwindcss";
 
 /* Capacitor builds from mobile/ — scan shared client UI (paths relative to this file). */
@@ -558,9 +558,9 @@ html[data-theme='dune'] .app-logo {
 /* ─── Bold mobile design system (from .design/rydo-mobile.css) ─── */
 
 .rydo-display {
-  font-family: 'Headland One', serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .rydo-eyebrow {
@@ -747,7 +747,6 @@ html[data-theme='dune'] .app-logo {
 }
 
 .rydo-bold-tabbar {
-  display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 10px 12px calc(4px + var(--rydo-safe-bottom));

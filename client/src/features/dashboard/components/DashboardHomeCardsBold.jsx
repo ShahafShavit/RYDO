@@ -152,7 +152,7 @@ export default function DashboardHomeCardsBold() {
               </div>
               <div className="min-w-0 flex-1">
                 <Eyebrow>Last ride · {home.lastRide.completedLabel || 'Recent'}</Eyebrow>
-                <DisplayTitle as="div" size="sm" className="mt-1 truncate text-lg">
+                <DisplayTitle as="div" size="sm" truncate title={home.lastRide.routeName} className="mt-1 text-lg">
                   {home.lastRide.routeName}
                 </DisplayTitle>
                 <div className="mt-2 flex gap-3.5">
@@ -187,7 +187,9 @@ export default function DashboardHomeCardsBold() {
               <Eyebrow>Next group RYDO</Eyebrow>
               {upcoming ? (
                 <>
-                  <p className="mt-1.5 flex-1 text-sm font-bold leading-snug">{upcoming.routeName}</p>
+                  <TruncatedText className="mt-1.5 flex-1 text-sm font-bold leading-snug">
+                    {upcoming.routeName}
+                  </TruncatedText>
                   <div className="mt-2 flex items-center gap-2">
                     <UserAvatar
                       avatarUrl={upcoming.clubAvatarUrl}

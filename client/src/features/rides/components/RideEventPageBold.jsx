@@ -195,7 +195,7 @@ export default function RideEventPageBold({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-3 pt-0">
-          <div>
+          <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-2">
               {upcoming ? (
                 <span className="rydo-pill rydo-pill-green px-2.5 py-0.5 text-[11px] font-bold">
@@ -221,7 +221,9 @@ export default function RideEventPageBold({
                 </span>
               ) : null}
             </div>
-            <DisplayTitle size="lg">{ride.name}</DisplayTitle>
+            <DisplayTitle size="lg" truncate="mobile" title={ride.name}>
+              {ride.name}
+            </DisplayTitle>
             <p className="rydo-subtle mt-1.5 text-[13px]">{formatRideDateTime(whenIso)}</p>
           </div>
 
@@ -309,7 +311,7 @@ export default function RideEventPageBold({
             >
               <div className="flex min-w-0 flex-1 flex-col">
                 <Eyebrow className="text-[10px]">Linked route</Eyebrow>
-                <DisplayTitle as="div" size="sm" className="mt-1 truncate text-base">
+                <DisplayTitle as="div" size="sm" truncate title={linkedRoute?.title || `Route #${ride.routeId}`} className="mt-1 text-base">
                   {linkedRoute?.title || `Route #${ride.routeId}`}
                 </DisplayTitle>
                 {linkedRoute?.terrain ? (

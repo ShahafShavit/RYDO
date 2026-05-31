@@ -34,7 +34,7 @@ export default function BoldTabBar({ className }) {
   return (
     <nav
       className={cn(
-        'rydo-bold-tabbar fixed inset-x-0 bottom-0 z-(--rydo-z-tabbar) md:hidden',
+        'rydo-bold-tabbar fixed inset-x-0 bottom-0 z-(--rydo-z-tabbar) flex md:hidden',
         className,
       )}
       aria-label="Main"

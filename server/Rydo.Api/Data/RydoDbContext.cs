@@ -39,6 +39,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         builder.Entity<RouteEntity>(e =>
         {
             e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRoutes).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Title).HasMaxLength(RydoTextLimits.RouteTitleMaxLength);
         });
 
         builder.Entity<HazardEntity>(e =>
@@ -51,6 +52,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Club).WithMany(c => c.Rides).HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.CreatedBy).WithMany(u => u.CreatedRides).HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Name).HasMaxLength(RydoTextLimits.RideNameMaxLength);
         });
 
         builder.Entity<CyclingClub>(e =>

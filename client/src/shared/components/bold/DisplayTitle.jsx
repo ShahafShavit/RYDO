@@ -1,3 +1,4 @@
+import TruncatedText from '@/shared/components/ui/TruncatedText';
 import { cn } from '@/shared/lib/cn';
 
 const sizes = {
@@ -8,9 +9,46 @@ const sizes = {
   hero: 'text-[64px] leading-[0.9] tracking-[-0.03em]',
 };
 
-export default function DisplayTitle({ as: Tag = 'h1', size = 'md', className, children, ...props }) {
+/**
+ * @param {{
+ *   as?: keyof JSX.IntrinsicElements,
+ *   size?: keyof typeof sizes,
+ *   truncate?: boolean | 'mobile',
+ *   lineClamp?: 1 | 2,
+ *   title?: string,
+ *   className?: string,
+ *   children: import('react').ReactNode,
+ * }} props
+ */
+export default function DisplayTitle({
+  as: Tag = 'h1',
+  size = 'md',
+  truncate,
+  lineClamp = 1,
+  title,
+  className,
+  children,
+  ...props
+}) {
+  const displayClass = cn('rydo-display m-0 text-fg', sizes[size], !truncate && 'text-balance', className);
+
+  if (truncate) {
+    return (
+      <TruncatedText
+        as={Tag}
+        lineClamp={lineClamp}
+        mobileOnly={truncate === 'mobile'}
+        title={title}
+        className={displayClass}
+        {...props}
+      >
+        {children}
+      </TruncatedText>
+    );
+  }
+
   return (
-    <Tag className={cn('rydo-display m-0 text-balance text-fg', sizes[size], className)} {...props}>
+    <Tag className={displayClass} {...props}>
       {children}
     </Tag>
   );

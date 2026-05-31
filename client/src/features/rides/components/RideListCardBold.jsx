@@ -86,7 +86,7 @@ export default function RideListCardBold({
             <span className="rydo-pill px-2 py-0.5 text-[10px] font-semibold">Personal</span>
           ) : null}
         </div>
-        <DisplayTitle as="div" size="sm" className="mt-1.5 truncate text-lg">
+        <DisplayTitle as="div" size="sm" truncate className="mt-1.5 text-lg">
           {title}
         </DisplayTitle>
         <Eyebrow className="mt-1 text-[10px]">{formatWhen(when)}</Eyebrow>
