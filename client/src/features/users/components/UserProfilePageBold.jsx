@@ -11,12 +11,13 @@ import {
 import { resolveLeaderboardsBackPath } from '@/features/leaderboards/leaderboard-utils';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
-import TruncatedText from '@/shared/components/ui/TruncatedText';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
-import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
+import RouteCardBold from '@/features/routes/components/RouteCardBold';
+import RideListCardBold from '@/features/rides/components/RideListCardBold';
+import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import UserFriendsListModal from '@/features/social/components/UserFriendsListModal';
@@ -26,7 +27,6 @@ import {
   useUserParticipatedRidesPreview,
   useUserUploadedRoutesPreview,
 } from '@/features/users/hooks/useUserProfileActivity';
-import { formatProfileWhen } from '@/features/users/utils/profile-formatters';
 import { buildQueryString } from '@/shared/api/api-helpers';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
@@ -310,7 +310,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
           ) : null}
 
           {showRoutes ? (
-            <section className="flex flex-col gap-2">
+            <section className="flex flex-col gap-2.5">
               <div className="flex items-end justify-between gap-3">
                 <Eyebrow className="ml-0.5">Uploaded routes</Eyebrow>
                 {routesTotal > 2 ? (
@@ -325,28 +325,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
                 <p className="rydo-subtle px-1 text-sm">No routes uploaded yet.</p>
               ) : (
                 routeItems.map((route) => (
-                  <Link
-                    key={route.id}
-                    to={ROUTES.routeDetails.replace(':routeId', String(route.id))}
-                    className="rydo-panel flex items-stretch gap-2.5 p-1.5 no-underline"
-                  >
-                    <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[10px] border border-border">
-                      <CompactRouteMapPreview
-                        preview={route.preview}
-                        compactPlaceholder
-                        className="h-full w-full overflow-hidden rounded-none border-0 bg-surface"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <TruncatedText className="text-sm font-semibold text-fg">
-                        {route.title || 'Route'}
-                      </TruncatedText>
-                      <p className="rydo-subtle text-[11px]">
-                        {route.distanceKm != null ? formatKm(route.distanceKm) : '—'}
-                        {route.elevationGainM != null ? ` · ${formatElevation(route.elevationGainM, 0)}` : ''}
-                      </p>
-                    </div>
-                  </Link>
+                  <RouteCardBold key={route.id} route={route} />
                 ))
               )}
             </section>
@@ -355,7 +334,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
           )}
 
           {showRides ? (
-            <section className="flex flex-col gap-2">
+            <section className="flex flex-col gap-2.5">
               <div className="flex items-end justify-between gap-3">
                 <Eyebrow className="ml-0.5">Rides</Eyebrow>
                 {ridesTotal > 2 ? (
@@ -370,25 +349,11 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
                 <p className="rydo-subtle px-1 text-sm">No rides to show yet.</p>
               ) : (
                 rideItems.map((ride) => (
-                  <Link
+                  <RideListCardBold
                     key={ride.id}
-                    to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}
-                    className="rydo-panel flex items-stretch gap-2.5 p-1.5 no-underline"
-                  >
-                    <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[10px] border border-border">
-                      <CompactRouteMapPreview
-                        preview={ride.preview}
-                        compactPlaceholder
-                        className="h-full w-full overflow-hidden rounded-none border-0 bg-surface"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <TruncatedText className="text-sm font-semibold text-fg">
-                        {ride.name || ride.routeName || 'Ride'}
-                      </TruncatedText>
-                      <p className="rydo-subtle text-[11px]">{formatProfileWhen(ride.scheduledDate)}</p>
-                    </div>
-                  </Link>
+                    variant={isRideUpcoming(ride) ? 'upcoming' : 'past'}
+                    ride={ride}
+                  />
                 ))
               )}
             </section>

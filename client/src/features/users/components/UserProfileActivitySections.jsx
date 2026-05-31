@@ -1,34 +1,13 @@
 import { Link } from 'react-router-dom';
-import Card from '@/shared/components/ui/card/Card';
-import Button from '@/shared/components/ui/button/Button';
 import { ROUTES } from '@/app/router/route-paths';
 import { buildQueryString } from '@/shared/api/api-helpers';
 import RouteCard from '@/features/routes/components/RouteCard';
-import TruncatedText from '@/shared/components/ui/TruncatedText';
+import RideListCardBold from '@/features/rides/components/RideListCardBold';
+import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import {
   useUserParticipatedRidesPreview,
   useUserUploadedRoutesPreview,
 } from '@/features/users/hooks/useUserProfileActivity';
-
-import { formatProfileWhen } from '@/features/users/utils/profile-formatters';
-
-function ProfileRidePreviewCard({ ride }) {
-  return (
-    <Card className="flex min-w-0 flex-col">
-      <h3 className="w-full min-w-0 text-center text-lg font-semibold leading-snug">
-        <TruncatedText>{ride.name}</TruncatedText>
-      </h3>
-      <p className="mt-2 text-sm text-fg-muted">{formatProfileWhen(ride.scheduledDate)}</p>
-      <div className="mt-4">
-        <Link to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}>
-          <Button variant="secondary" type="button" className="text-sm">
-            View ride
-          </Button>
-        </Link>
-      </div>
-    </Card>
-  );
-}
 
 /**
  * Uploaded routes + participated rides preview with deep links to Explore routes and My rides.
@@ -118,9 +97,13 @@ export function UserProfileActivitySections({ handle, profile, isOwn }) {
         ) : rideItems.length === 0 ? (
           <p className="text-sm text-fg-muted">No rides to show yet.</p>
         ) : (
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
+          <div className="flex flex-col gap-2.5">
             {rideItems.map((ride) => (
-              <ProfileRidePreviewCard key={ride.id} ride={ride} />
+              <RideListCardBold
+                key={ride.id}
+                variant={isRideUpcoming(ride) ? 'upcoming' : 'past'}
+                ride={ride}
+              />
             ))}
           </div>
         )}
