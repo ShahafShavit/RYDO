@@ -50,7 +50,7 @@ export default function RideWeatherSummary({
   const ll = linkedRoute ? getRouteStartLatLng(linkedRoute) : null;
 
   const shellClass = split
-    ? 'flex h-full min-h-[12rem] flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:min-h-0'
+    ? 'flex shrink-0 flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:h-full md:min-h-[12rem]'
     : '';
 
   if (routeLoading || !linkedRoute) {
@@ -121,7 +121,7 @@ export default function RideWeatherSummary({
       </>
     );
     if (split) {
-      return <div className={`${shellClass} min-h-0`}>{inner}</div>;
+      return <div className={`${shellClass} md:min-h-0`}>{inner}</div>;
     }
     return <Card>{inner}</Card>;
   }
@@ -138,7 +138,7 @@ export default function RideWeatherSummary({
       </>
     );
     if (split) {
-      return <div className={`${shellClass} min-h-0`}>{inner}</div>;
+      return <div className={`${shellClass} md:min-h-0`}>{inner}</div>;
     }
     return <Card>{inner}</Card>;
   }
@@ -157,7 +157,7 @@ export default function RideWeatherSummary({
 
   if (split) {
     return (
-      <div className={`${shellClass} min-h-0`}>
+      <div className={shellClass}>
         <div className="shrink-0">
           <h3 className="text-sm font-semibold text-fg">Weather</h3>
           <p className="text-[11px] text-fg-muted">At ride start (UTC hour)</p>

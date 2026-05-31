@@ -115,7 +115,7 @@ export default function ElevationProfileChart({
   return (
     <div
       className={cn(
-        embed ? 'min-w-0' : 'rounded-2xl border border-border bg-surface p-4',
+        embed ? 'min-w-0 shrink-0' : 'rounded-2xl border border-border bg-surface p-4',
         fillHeight && 'flex h-full min-h-0 flex-col',
         className,
       )}

@@ -4,7 +4,7 @@ import Eyebrow from '@/shared/components/bold/Eyebrow';
 const RouteMapWithElevation = lazy(() => import('@/features/routes/components/RouteMapWithElevation'));
 
 const BOLD_MAP_CLASS =
-  'h-52 w-full overflow-hidden rounded-2xl border border-border bg-surface';
+  'h-52 w-full shrink-0 overflow-hidden rounded-2xl border border-border bg-surface';
 
 /**
  * Mobile Bold: stacked route map + elevation chart with scrub sync.
@@ -19,7 +19,7 @@ export default function BoldRouteMapElevation({
   if (!geoJson?.features?.length) return null;
 
   return (
-    <div className={className}>
+    <div className={`shrink-0 ${className}`.trim()}>
       <div className="mb-2 flex items-end justify-between gap-2">
         <Eyebrow>{eyebrow}</Eyebrow>
         {headerExtra}

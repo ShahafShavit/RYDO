@@ -157,7 +157,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pt-1">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pt-1 [&>*]:shrink-0">
 
           <div className="min-w-0">
 
@@ -279,7 +279,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-          <div className="rydo-panel overflow-hidden px-3 py-3">
+          <div className="rydo-panel shrink-0 overflow-hidden px-3 py-3">
 
             <BoldRouteMapElevation
 
@@ -309,7 +309,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-        <div className="flex shrink-0 items-center gap-3 border-t border-border/60 px-5 py-3.5">
+        <div className="relative z-[3] flex shrink-0 items-center gap-3 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
 
           <div className="shrink-0">
 

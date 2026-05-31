@@ -94,7 +94,7 @@ export default function RouteWeatherPanel({ route, isRouteLoading = false, layou
   if (isRouteLoading || !route) {
     if (!split) return null;
     return (
-      <div className="flex h-full min-h-[12rem] flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:min-h-0">
+      <div className="flex shrink-0 flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:h-full md:min-h-[12rem]">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-fg">Weather</p>
           <div className="flex gap-1">
@@ -112,7 +112,7 @@ export default function RouteWeatherPanel({ route, isRouteLoading = false, layou
   }
 
   const shellClass = split
-    ? 'flex h-full min-h-[12rem] flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:min-h-0'
+    ? 'flex shrink-0 flex-col rounded-3xl border border-border bg-surface p-3 backdrop-blur-xl md:h-full md:min-h-[12rem]'
     : '';
 
   if (!ll) {
@@ -220,7 +220,7 @@ export default function RouteWeatherPanel({ route, isRouteLoading = false, layou
 
   if (split) {
     return (
-      <div className={`${shellClass} min-h-0`}>
+      <div className={`${shellClass} md:min-h-0`}>
         {headerRow}
         <div className="mt-2 flex min-h-0 flex-1 flex-col">{gallery}</div>
         <OpenMeteoCredit compact />

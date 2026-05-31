@@ -66,7 +66,7 @@ export default function RouteMapWithElevation({
         ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[3fr_2fr] md:items-stretch md:gap-4'
         : splitMapOnlyTrailing
           ? 'flex flex-col gap-3 md:grid md:min-h-[280px] md:grid-cols-[minmax(0,3fr)_minmax(13rem,280px)] md:items-stretch md:gap-4'
-          : `space-y-3 ${className}`.trim();
+          : `shrink-0 space-y-3 ${className}`.trim();
 
   const mapWrapClass =
     splitThreeCol || splitWithProfile || splitMapOnlyTrailing ? 'min-h-0 min-w-0' : split ? 'min-w-0' : undefined;
