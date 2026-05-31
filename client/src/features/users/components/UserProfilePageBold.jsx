@@ -1,9 +1,9 @@
 import { useMemo, useCallback, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { userProfilePath, formatHandleDisplay } from '@/shared/lib/user-paths';
-import { ArrowLeft, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
+import { ArrowLeft, Bell, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
-import { boldMeOverflowItems, isBoldMeNavActive } from '@/shared/config/bold-navigation';
+import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
 import {
   LEADERBOARD_BOARD_CONFIG,
   leaderboardBadgeChipClass,
@@ -68,6 +68,8 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
   const leaderboardsBackTo = resolveLeaderboardsBackPath(location.state);
   const [copied, setCopied] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const { data: inboxSummary } = useInboxSummary();
+  const unreadInbox = inboxSummary?.unreadCount ?? 0;
 
   const name = profile?.fullName?.trim() || 'Member';
   const handleLabel = formatHandleDisplay(profile?.handle || handle);
@@ -165,6 +167,27 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
               />
             ) : null}
             <div className="min-w-0 flex-1" />
+            {isOwn ? (
+              <Link
+                to={ROUTES.inbox}
+                className="rydo-iconbtn relative"
+                aria-label={
+                  unreadInbox > 0
+                    ? `Notifications, ${unreadInbox > 99 ? '99+' : unreadInbox} unread`
+                    : 'Notifications'
+                }
+              >
+                <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
+                {unreadInbox > 0 ? (
+                  <span
+                    className="absolute -right-1 -top-1 flex min-h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-rydo-purple px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-[var(--rydo-bg)]"
+                    aria-hidden
+                  >
+                    {unreadInbox > 99 ? '99+' : unreadInbox}
+                  </span>
+                ) : null}
+              </Link>
+            ) : null}
             <IconButton
               icon={copied ? Check : Share2}
               aria-label={copied ? 'Link copied' : 'Share profile'}
@@ -209,27 +232,6 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
             </div>
           </div>
 
-          {isOwn ? (
-            <nav className="rydo-chiprow mt-4 w-full" aria-label="Profile shortcuts">
-              {boldMeOverflowItems.map((item) => {
-                const active = isBoldMeNavActive(location.pathname, item.to);
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={cn(
-                      'rydo-chip min-w-0 flex-1 justify-center px-2 py-2 text-center text-[12px] leading-tight no-underline sm:px-3 sm:text-[13px]',
-                      active
-                        ? 'border-rydo-purple/35 bg-rydo-purple/10 text-fg shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_10%,transparent)]'
-                        : 'text-fg-muted hover:border-border-strong hover:bg-surface-strong hover:text-fg',
-                    )}
-                  >
-                    <span className="block truncate">{item.label}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-          ) : null}
         </header>
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-3">

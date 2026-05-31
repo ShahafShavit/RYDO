@@ -15,16 +15,6 @@ export function getBoldTabItems(userHandle) {
   ];
 }
 
-/** Secondary destinations on the Me profile quick-nav (settings is in the profile header). */
-export const boldMeOverflowItems = [
-  { label: 'Inbox', to: ROUTES.inbox },
-];
-
-/** Whether a profile quick-nav chip should show as active for the current path. */
-export function isBoldMeNavActive(pathname, to) {
-  return pathname === to || pathname.startsWith(`${to}/`);
-}
-
 /** Returns active tab key from current pathname + chat open state. */
 export function resolveBoldActiveTab({ pathname, chatOpen, userHandle }) {
   if (chatOpen) return 'chat';
