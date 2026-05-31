@@ -142,7 +142,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
   return (
 
-    <BoldScreen className="min-h-[100dvh] md:min-h-0">
+    <BoldScreen>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 

@@ -25,7 +25,7 @@ function DashboardLayoutBody() {
   }, []);
 
   return (
-    <div className="rydo-app-shell h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
+    <div className="rydo-app-shell h-full max-md:min-h-0 md:h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
         <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
@@ -82,7 +82,7 @@ function DashboardLayoutBody() {
               <PageBreadcrumbs variant="dashboard" />
             </div>
           ) : null}
-          <div className={rideLiveMatch ? 'h-full min-w-0' : 'flex min-h-0 flex-1 flex-col md:flex-none md:px-0 px-0'}>
+          <div className={rideLiveMatch ? 'h-full min-w-0' : 'flex min-h-0 flex-1 flex-col md:flex-none md:px-0 px-0 max-md:h-full'}>
             <AnimatedOutlet />
           </div>
         </div>

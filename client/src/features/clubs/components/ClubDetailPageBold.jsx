@@ -101,7 +101,7 @@ export default function ClubDetailPageBold({
   }
 
   return (
-    <BoldScreen className="min-h-[100dvh] md:min-h-0">
+    <BoldScreen>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-3 px-5 pb-1 pt-1">
           <IconButton icon={ArrowLeft} size="lg" aria-label="Back to clubs" onClick={() => navigate(ROUTES.clubs)} />

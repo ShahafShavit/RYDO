@@ -9,6 +9,16 @@
  * padding does not affect position:fixed. Use .rydo-safe-top on viewport chrome.
  */
 
+html.capacitor-native,
+html.capacitor-native body,
+html.capacitor-native #root {
+  height: 100%;
+}
+
+html.capacitor-native body {
+  background-attachment: scroll;
+}
+
 html.capacitor-native .rydo-safe-fixed-panel {
   padding-bottom: var(--rydo-safe-bottom);
   box-sizing: border-box;

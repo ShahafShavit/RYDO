@@ -22,8 +22,6 @@
   --rydo-danger: #ff6b6b;
   --rydo-success: #2db89e;
   --rydo-tabbar-h: calc(56px + var(--rydo-safe-bottom));
-  /* Bold mobile screens fill the viewport above the fixed tab bar. */
-  --rydo-bold-screen-min-h: calc(100dvh - var(--rydo-tabbar-h));
   --rydo-z-tabbar: 90;
   --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --rydo-transition-nav: 300ms var(--rydo-ease-out);
@@ -749,6 +747,16 @@ html[data-theme='dune'] .app-logo {
 
 /* Mobile dashboard — gradient fixed to viewport, not scroll height. */
 @media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+
   .rydo-app-shell {
     background: transparent;
   }

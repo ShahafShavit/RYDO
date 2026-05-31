@@ -9,7 +9,7 @@ export default function DashboardPage() {
         <DashboardHeader />
         <DashboardHomeCards />
       </section>
-      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col md:hidden">
         <DashboardHomeCardsBold />
       </div>
     </>

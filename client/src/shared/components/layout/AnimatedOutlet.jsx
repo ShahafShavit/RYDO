@@ -43,7 +43,7 @@ export default function AnimatedOutlet() {
   const skipMotion = reducedMotion || isRideLiveMap;
 
   return (
-    <div className="relative min-h-0 min-w-0">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col max-md:h-full">
       {isLoadingRoute ? (
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-20 h-0.5 rounded-full bg-rydo-purple/35 animate-pulse"
@@ -63,7 +63,7 @@ export default function AnimatedOutlet() {
           animate={skipMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
           exit={skipMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
           transition={{ duration, ease }}
-          className="min-h-0 min-w-0"
+          className="flex min-h-0 min-w-0 flex-1 flex-col max-md:h-full"
         >
           <Suspense fallback={<RouteTransitionFallback />}>{outlet}</Suspense>
         </MotionDiv>
