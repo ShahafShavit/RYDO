@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
+import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
@@ -155,7 +156,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
         <div className="mt-6 rounded-2xl border border-border bg-surface p-4 text-sm text-fg-muted">
           <p>You need to join a club before scheduling a club ride.</p>
           <Link
-            to={isBoldMobile ? ROUTES.routes : ROUTES.clubs}
+            to={EXPLORE_PATHS.clubs}
             className="mt-3 inline-block text-rydo-purple hover:underline"
           >
             {isBoldMobile ? 'Find clubs in Explore' : 'Browse clubs'}

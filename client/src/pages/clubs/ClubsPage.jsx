@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubModal from '@/features/clubs/components/CreateClubModal';
 import ClubListMembershipBadge from '@/features/clubs/components/ClubListMembershipBadge';
@@ -166,7 +167,7 @@ export default function ClubsPage() {
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <Navigate to={ROUTES.routes} replace />
+        <Navigate to={EXPLORE_PATHS.clubs} replace />
       </div>
 
       <CreateClubModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />

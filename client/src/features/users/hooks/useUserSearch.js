@@ -8,8 +8,11 @@ export const userSearchKeys = {
 
 /**
  * @param {string} debouncedQuery trimmed query; search runs when length >= 2
+ * @param {number} [take]
+ * @param {{ enabled?: boolean }} [options]
  */
-export function useUserSearch(debouncedQuery, take = 20) {
+export function useUserSearch(debouncedQuery, take = 20, options = {}) {
+  const { enabled: enabledOption = true } = options;
   const q = (debouncedQuery || '').trim();
   return useQuery({
     queryKey: userSearchKeys.query(q),
@@ -17,6 +20,6 @@ export function useUserSearch(debouncedQuery, take = 20) {
       const data = await usersApi.search({ q, take });
       return Array.isArray(data?.items) ? data.items : [];
     },
-    enabled: q.length >= 2,
+    enabled: enabledOption && q.length >= 2,
   });
 }

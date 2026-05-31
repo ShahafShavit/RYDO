@@ -8,8 +8,10 @@ const PAGE_SIZE = 18;
 /**
  * Server-side filtered + paginated route list for Explore (/routes).
  * @param {{ search?: string, terrain?: string, difficulty?: string, distance?: string, sort?: string, nearLat?: number | null, nearLng?: number | null, nearMaxKm?: number | null, createdByUserId?: number | null }} filters
+ * @param {{ enabled?: boolean }} [options]
  */
-export function useRoutesExploreInfinite(filters) {
+export function useRoutesExploreInfinite(filters, options = {}) {
+  const { enabled = true } = options;
   const { search, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm, createdByUserId } =
     filters;
   const q = (search || '').trim() || undefined;
@@ -24,6 +26,7 @@ export function useRoutesExploreInfinite(filters) {
       : undefined;
 
   return useInfiniteQuery({
+    enabled,
     queryKey: [
       ...routeKeys.lists(),
       'explore',

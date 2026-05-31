@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, UsersRound } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
@@ -18,7 +19,7 @@ export default function DashboardClubsSection({ groups = [] }) {
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <Eyebrow>Your clubs · {groups.length}</Eyebrow>
         <Link
-          to={ROUTES.routes}
+          to={EXPLORE_PATHS.clubs}
           className="rydo-subtle inline-flex items-center gap-0.5 text-[11px] font-semibold text-rydo-purple no-underline"
         >
           Explore
@@ -31,7 +32,7 @@ export default function DashboardClubsSection({ groups = [] }) {
           <UsersRound className="h-5 w-5 shrink-0 text-fg-subtle" aria-hidden />
           <p className="rydo-subtle text-sm">
             Join a club in{' '}
-            <Link to={ROUTES.routes} className="font-semibold text-rydo-purple no-underline">
+            <Link to={EXPLORE_PATHS.clubs} className="font-semibold text-rydo-purple no-underline">
               Explore
             </Link>
           </p>

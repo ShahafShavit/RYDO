@@ -4,6 +4,7 @@ import Card from '@/shared/components/ui/card/Card';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { ROUTES } from '@/app/router/route-paths';
+import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
@@ -199,7 +200,7 @@ function DashboardGroupsCard({ groups, className = '' }) {
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm uppercase tracking-[0.16em] text-fg-subtle">YOUR RYDO CLUBS</p>
         <Link
-          to={ROUTES.clubs}
+          to={EXPLORE_PATHS.clubs}
           className="inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-rydo-purple transition hover:bg-rydo-purple/10 hover:opacity-90"
           aria-label="Browse clubs"
           title="Browse clubs"
