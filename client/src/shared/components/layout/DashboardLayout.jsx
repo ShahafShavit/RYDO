@@ -16,8 +16,10 @@ import RideChatPanel from '@/features/ride-chat/components/RideChatPanel';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 import BoldTabBar from '@/shared/components/bold/BoldTabBar';
+import { useLevelUpConfetti } from '@/features/gamification/hooks/useLevelUpConfetti';
 
 function DashboardLayoutBody() {
+  useLevelUpConfetti();
   const { isAdmin } = useAuth();
   const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
   const { chatOpen } = useClubChatUi();

@@ -98,11 +98,16 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(userId, ct);
         var stats = await lifetimeStats.GetAsync(userId, ct);
+        var level = await db.UserGamificationProfiles.AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.Level)
+            .FirstOrDefaultAsync(ct);
+        if (level < 1) level = 1;
 
         if (viewerId == userId)
         {
             var roles = await users.GetRolesAsync(subject);
-            return Ok(UserProfileResponse.Full(subject, roles, pref, badges, stats));
+            return Ok(UserProfileResponse.Full(subject, roles, pref, badges, stats, level));
         }
 
         var showLifetimeStats = pref?.PublicLifetimeStatsOnProfile ?? true;
@@ -110,7 +115,8 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             subject,
             pref,
             badges,
-            showLifetimeStats ? stats : null));
+            showLifetimeStats ? stats : null,
+            level));
     }
 
     [HttpGet("{handle}/routes")]

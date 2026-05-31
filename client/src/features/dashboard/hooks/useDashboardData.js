@@ -5,7 +5,7 @@ import { usePreferences } from '@/features/account/hooks/useAccount';
 import { buildDashboardHome } from '@/features/dashboard/dashboard-mapper';
 import { historyApi } from '@/features/history/api/history-api';
 import { ridesApi } from '@/features/rides/api/rides-api';
-import { challengesApi } from '@/features/challenges/api/challenges-api';
+import { gamificationApi } from '@/features/gamification/api/gamification-api';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 
 export function useDashboardData() {
@@ -33,14 +33,14 @@ export function useDashboardData() {
         enabled: userId != null,
       },
       {
-        queryKey: ['challenges', scopedKey],
-        queryFn: () => challengesApi.getChallenges(),
+        queryKey: ['gamification', 'me', scopedKey],
+        queryFn: () => gamificationApi.getMe(),
         enabled: userId != null,
       },
     ],
   });
 
-  const [historyQuery, ridesQuery, clubsQuery, challengesQuery] = homeQueries;
+  const [historyQuery, ridesQuery, clubsQuery, gamificationQuery] = homeQueries;
 
   const home = useMemo(
     () =>
@@ -48,10 +48,10 @@ export function useDashboardData() {
         historyRaw: historyQuery.data,
         rideGroupsRaw: ridesQuery.data,
         clubsRaw: clubsQuery.data,
-        challengesRaw: challengesQuery.data,
+        gamificationRaw: gamificationQuery.data,
         distanceUnit,
       }),
-    [historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data, distanceUnit],
+    [historyQuery.data, ridesQuery.data, clubsQuery.data, gamificationQuery.data, distanceUnit],
   );
 
   const homeLoading = homeQueries.some((q) => q.isPending);

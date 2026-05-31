@@ -2,9 +2,11 @@ import ChallengeCard from '@/features/challenges/components/ChallengeCard';
 import ProgressRing from '@/features/challenges/components/ProgressRing';
 import AchievementList from '@/features/challenges/components/AchievementList';
 import { useChallenges } from '@/features/challenges/hooks/useChallenges';
+import { useGamificationChallenges } from '@/features/gamification/hooks/useGamification';
 
 export default function ChallengesPage() {
   const { challenges } = useChallenges();
+  const { data: gamification } = useGamificationChallenges();
 
   return (
     <section className="space-y-6">
@@ -14,7 +16,7 @@ export default function ChallengesPage() {
       </div>
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <ProgressRing />
-        <AchievementList />
+        <AchievementList achievements={gamification?.achievements} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         {challenges.map((challenge) => <ChallengeCard key={challenge.id} challenge={challenge} />)}

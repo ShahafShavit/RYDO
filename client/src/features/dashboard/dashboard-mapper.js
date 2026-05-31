@@ -1,5 +1,4 @@
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
-import { RIDES_PER_LEVEL } from '@/shared/constants/gamification';
 import { formatDistanceFromKm, formatElevationFromMeters } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
@@ -35,7 +34,7 @@ function formatLongDateTime(iso) {
  *   historyRaw: unknown,
  *   rideGroupsRaw: unknown,
  *   clubsRaw: unknown,
- *   challengesRaw: unknown,
+ *   gamificationRaw: unknown,
  *   distanceUnit?: 'km' | 'mi',
  * }} input
  */
@@ -139,7 +138,7 @@ export function buildDashboardHome({
   historyRaw,
   rideGroupsRaw,
   clubsRaw,
-  challengesRaw,
+  gamificationRaw,
   distanceUnit = 'km',
 }) {
   const unit = distanceUnit === 'mi' ? 'mi' : 'km';
@@ -163,31 +162,41 @@ export function buildDashboardHome({
     avatarUrl: typeof c.avatarUrl === 'string' && c.avatarUrl.trim() ? c.avatarUrl.trim() : null,
   }));
 
-  const chList = Array.isArray(challengesRaw) ? challengesRaw : [];
-  const challenge = chList.find((c) => c.isActive !== false) || chList[0];
+  const g = gamificationRaw && typeof gamificationRaw === 'object' ? gamificationRaw : {};
+  const events =
+    g.activeEvents && typeof g.activeEvents === 'object' ? g.activeEvents : {};
+  const currentLevel = Math.max(1, Number(g.level) || 1);
+  const progress = Number(g.levelProgressPercent) || 0;
+  const xpToNext = Number(g.xpToNextLevel) || 0;
+  const featuredCard =
+    events.defaultFeaturedCard ?? events.pinned ?? g.defaultFeaturedCard ?? null;
+  const greeting = events.greeting ?? g.greeting;
+  let eventGreeting = null;
+  if (greeting) {
+    if (greeting.kind === 'modifier') {
+      eventGreeting = `${greeting.title} · +${greeting.bonusPercent}% XP`;
+    } else if (greeting.title) {
+      const end = greeting.endDate ? new Date(greeting.endDate).getTime() : NaN;
+      const days = Number.isFinite(end) ? Math.max(0, Math.ceil((end - Date.now()) / 86400000)) : null;
+      eventGreeting = days != null ? `${greeting.title} · ${days} days left` : greeting.title;
+    }
+  }
 
   let awards = {
     title: 'Challenges',
     description: 'Complete rides to earn awards',
-    percentage: 0,
+    percentage: progress,
   };
-  if (challenge) {
-    const target = Number(challenge.targetValue);
-    const current = Number(challenge.currentValue);
-    const pct =
-      target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  if (featuredCard?.kind === 'quest') {
     awards = {
-      title: 'Challenge',
-      description: challenge.title || challenge.description || 'Active challenge',
-      percentage: pct,
+      title: 'Quest',
+      description: featuredCard.title || 'Active quest',
+      percentage: featuredCard.progressPercent ?? 0,
     };
   }
 
   const count = historyTotal;
-  const currentLevel = Math.max(1, 1 + Math.floor(count / RIDES_PER_LEVEL));
-  const within = count % RIDES_PER_LEVEL;
-  const progress = count === 0 ? 0 : Math.round((within / RIDES_PER_LEVEL) * 100);
-  const ridesToNext = within === 0 && count > 0 ? RIDES_PER_LEVEL : RIDES_PER_LEVEL - within;
+  const ridesToNext = xpToNext;
   const weekStartMs = startOfCurrentWeekMs();
   const weeklyHistory = history.filter((item) => {
     const ts = new Date(item.completedAt).getTime();
@@ -278,10 +287,14 @@ export function buildDashboardHome({
       currentLevel,
       progress,
       nextLevelLabel:
-        count === 0
-          ? `Complete ${RIDES_PER_LEVEL} rides to reach level 2`
-          : `${ridesToNext} more ride${ridesToNext === 1 ? '' : 's'} to level ${currentLevel + 1}`,
+        xpToNext > 0
+          ? `${xpToNext} XP to level ${currentLevel + 1}`
+          : `Level ${currentLevel}`,
     },
+    featuredCard,
+    pinnedChallengeInstanceId:
+      g.pinnedChallengeInstanceId != null ? Number(g.pinnedChallengeInstanceId) : null,
+    eventGreeting,
     lastRide,
     weeklySnapshot,
     streakSnapshot,

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Map,
   Route as RoutePathIcon,
+  Sparkles,
   Users,
   UsersRound,
 } from 'lucide-react';
@@ -31,4 +32,5 @@ export const adminNavigation = [
   { label: 'Admin', to: ROUTES.admin, Icon: LayoutDashboard },
   { label: 'Users', to: ROUTES.adminUsers, Icon: Users },
   { label: 'Routes', to: ROUTES.adminRoutes, Icon: Map },
+  { label: 'Challenges', to: ROUTES.adminChallenges, Icon: Sparkles },
 ];

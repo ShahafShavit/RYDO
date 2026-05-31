@@ -1,15 +1,23 @@
 import Card from '@/shared/components/ui/card/Card';
-import { useChallengeProgress } from '@/features/challenges/hooks/useChallengeProgress';
+import ProgressRingViz from '@/shared/components/bold/viz/ProgressRing';
+import { useGamificationMe } from '@/features/gamification/hooks/useGamification';
 
 export default function ProgressRing() {
-  const { completion } = useChallengeProgress();
+  const { data, isLoading } = useGamificationMe();
+  const progress = ((data?.levelProgressPercent ?? 0) / 100);
+  const level = data?.level ?? 1;
 
   return (
     <Card className="grid place-items-center text-center">
-      <div className="grid h-36 w-36 place-items-center rounded-full border border-rydo-purple/35 bg-rydo-purple/10 text-3xl font-semibold shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--rydo-text)_12%,transparent)]">
-        {completion}%
-      </div>
-      <p className="mt-5 text-fg-muted">Challenge completion</p>
+      {isLoading ? (
+        <div className="h-36 w-36 animate-pulse rounded-full bg-surface-strong" />
+      ) : (
+        <ProgressRingViz value={progress} size={144} strokeWidth={8}>
+          <span className="text-3xl font-semibold">{level}</span>
+        </ProgressRingViz>
+      )}
+      <p className="mt-5 text-fg-muted">Level progress</p>
+      <p className="rydo-subtle mt-1 text-xs">{data?.totalXp ?? 0} XP total</p>
     </Card>
   );
 }

@@ -20,6 +20,7 @@ const TAB_EMPTY = {
   friends: 'No friend requests yet.',
   rides: 'No ride invites or club ride updates yet.',
   club: 'No club join requests yet.',
+  activity: 'Level-ups and quest completions will show up here.',
 };
 
 export default function InboxPage() {
@@ -98,6 +99,7 @@ export default function InboxPage() {
       friends: summary?.friendUnread ?? 0,
       rides: summary?.rideUnread ?? 0,
       club: summary?.clubUnread ?? 0,
+      activity: summary?.activityUnread ?? 0,
     }),
     [summary],
   );
@@ -298,6 +300,62 @@ export default function InboxPage() {
       );
     }
 
+    if (row.kind === 'quest_complete' && row.gamification) {
+      const href = row.gamification.href || '/challenges#quests';
+      return (
+        <li key={row.id}>
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-medium text-fg">Quest complete</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  {row.gamification.title || 'You completed a timed quest'}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  if (!row.readAt) markReadMut.mutate(row.id);
+                  navigate(href);
+                }}
+              >
+                View challenges
+              </Button>
+            </div>
+          </Card>
+        </li>
+      );
+    }
+
+    if (row.kind === 'level_up' && row.gamification) {
+      const href = row.gamification.href || '/challenges';
+      return (
+        <li key={row.id}>
+          <Card className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-medium text-fg">Level up</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  You reached level {row.gamification.level ?? '—'}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  if (!row.readAt) markReadMut.mutate(row.id);
+                  navigate(href);
+                }}
+              >
+                View progress
+              </Button>
+            </div>
+          </Card>
+        </li>
+      );
+    }
+
     if (row.kind === 'club_ride_announced' && row.clubRideAnnounced) {
       const ann = row.clubRideAnnounced;
       const ride = ann.ride;
@@ -351,7 +409,9 @@ export default function InboxPage() {
             </span>
             <div>
               <h1 className="text-2xl font-semibold text-fg">Inbox</h1>
-              <p className="mt-1 text-sm text-fg-muted">Friends, ride invites, and club requests.</p>
+              <p className="mt-1 text-sm text-fg-muted">
+                Friends, rides, club requests, and your activity.
+              </p>
             </div>
           </div>
         </div>

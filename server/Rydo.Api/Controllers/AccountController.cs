@@ -30,7 +30,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
         var stats = await lifetimeStats.GetAsync(u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats));
+        var level = await GetLevelAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats, level));
     }
 
     public record ProfileUpdate(
@@ -105,7 +106,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
         var stats = await lifetimeStats.GetAsync(u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats));
+        var level = await GetLevelAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats, level));
     }
 
     [HttpPost("avatar/upload")]
@@ -242,5 +244,14 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(s, out var id) ? id : null;
+    }
+
+    private async Task<int> GetLevelAsync(int userId, CancellationToken ct)
+    {
+        var level = await db.UserGamificationProfiles.AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.Level)
+            .FirstOrDefaultAsync(ct);
+        return level < 1 ? 1 : level;
     }
 }

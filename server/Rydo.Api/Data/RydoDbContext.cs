@@ -14,7 +14,11 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<Ride> Rides => Set<Ride>();
     public DbSet<RideParticipant> RideParticipants => Set<RideParticipant>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
-    public DbSet<ChallengeEntity> Challenges => Set<ChallengeEntity>();
+    public DbSet<ChallengeDefinition> ChallengeDefinitions => Set<ChallengeDefinition>();
+    public DbSet<ChallengeInstance> ChallengeInstances => Set<ChallengeInstance>();
+    public DbSet<UserGamificationProfile> UserGamificationProfiles => Set<UserGamificationProfile>();
+    public DbSet<XpLedgerEntry> XpLedgerEntries => Set<XpLedgerEntry>();
+    public DbSet<UserChallengeProgress> UserChallengeProgress => Set<UserChallengeProgress>();
     public DbSet<HistoryEntry> HistoryEntries => Set<HistoryEntry>();
     public DbSet<CyclingClub> CyclingClubs => Set<CyclingClub>();
     public DbSet<ClubMember> ClubMembers => Set<ClubMember>();
@@ -131,6 +135,50 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.UserId, x.RideId }).IsUnique();
+        });
+
+        builder.Entity<ChallengeDefinition>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.Description).HasMaxLength(2000);
+            e.Property(x => x.Unit).HasMaxLength(32);
+            e.Property(x => x.LeaderboardBoardId).HasMaxLength(64);
+        });
+
+        builder.Entity<ChallengeInstance>(e =>
+        {
+            e.HasOne(x => x.ChallengeDefinition).WithMany().HasForeignKey(x => x.ChallengeDefinitionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.Description).HasMaxLength(2000);
+            e.Property(x => x.Unit).HasMaxLength(32);
+        });
+
+        builder.Entity<UserGamificationProfile>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.HasOne(x => x.User).WithOne().HasForeignKey<UserGamificationProfile>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.PinnedChallengeInstance).WithMany().HasForeignKey(x => x.PinnedChallengeInstanceId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<XpLedgerEntry>(e =>
+        {
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.UserId, x.SourceType, x.SourceId }).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+        });
+
+        builder.Entity<UserChallengeProgress>(e =>
+        {
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ChallengeDefinition).WithMany().HasForeignKey(x => x.ChallengeDefinitionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ChallengeInstance).WithMany().HasForeignKey(x => x.ChallengeInstanceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.UserId, x.ChallengeDefinitionId, x.ChallengeInstanceId });
         });
 
         builder.Entity<FriendRequest>(e =>
@@ -168,6 +216,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             // Restrict: SQL Server disallows two CASCADE paths from InboxItems → AspNetUsers (Recipient + requester).
             // AdminController deletes rows where ClubJoinRequesterUserId == userId before removing the user.
             e.HasOne(x => x.ClubJoinRequester).WithMany().HasForeignKey(x => x.ClubJoinRequesterUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ChallengeInstance).WithMany().HasForeignKey(x => x.ChallengeInstanceId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.RecipientUserId, x.ResolvedAt });
             e.HasIndex(x => new { x.RecipientUserId, x.ReadAt });
             e.HasIndex(x => new { x.ClubId, x.ClubJoinRequesterUserId, x.ResolvedAt });

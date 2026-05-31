@@ -19,4 +19,8 @@ public class HistoryEntry
     /// <summary>Ride this completion belongs to (scheduled event or solo log).</summary>
     public int RideId { get; set; }
     public Ride? Ride { get; set; }
+
+    public DateTime? MaterializedAt { get; set; }
+    /// <summary>See <see cref="HistorySourceKind"/>.</summary>
+    public string HistorySource { get; set; } = HistorySourceKind.Materialized;
 }

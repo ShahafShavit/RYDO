@@ -295,6 +295,13 @@ public class RidesController(RydoDbContext db) : ControllerBase
         var p = await db.RideParticipants.FirstOrDefaultAsync(x => x.RideId == rideId && x.UserId == uid, ct);
         if (p == null) return NotFound();
 
+        if (await db.HistoryEntries.AnyAsync(h => h.UserId == uid && h.RideId == rideId, ct))
+            return Problem(statusCode: 409, title: "Cannot leave", detail: "Already in your history.");
+
+        var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == rideId, ct);
+        if (ride != null && ride.Kind != RideKind.SoloLog && !RideEventWindow.IsOpen(ride))
+            return Problem(statusCode: 409, title: "Cannot leave", detail: "Event window closed.");
+
         var remaining = await db.RideParticipants.CountAsync(x => x.RideId == rideId, ct);
         if (remaining <= 1)
             return Problem(

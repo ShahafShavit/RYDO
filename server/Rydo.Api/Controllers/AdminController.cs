@@ -18,11 +18,31 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
     public async Task<IActionResult> Summary(CancellationToken ct)
     {
         var liveHazards = await db.Hazards.CountAsync(h => h.Status == "active", ct);
+        var now = DateTime.UtcNow;
+        var activeQuests = await db.ChallengeInstances.CountAsync(i =>
+            i.Kind == ChallengeKind.Quest
+            && i.Status == ChallengeInstanceStatus.Published
+            && i.IsActive
+            && i.StartDate <= now
+            && i.EndDate >= now, ct);
+        var activeModifiers = await db.ChallengeInstances.CountAsync(i =>
+            i.Kind == ChallengeKind.Modifier
+            && i.Status == ChallengeInstanceStatus.Published
+            && i.IsActive
+            && i.StartDate <= now
+            && i.EndDate >= now, ct);
+        var weekStart = now.AddDays(-7);
+        var questCompletionsThisWeek = await db.UserChallengeProgress.CountAsync(p =>
+            p.CompletedAt >= weekStart && p.ChallengeInstanceId != null, ct);
+
         return Ok(new
         {
             totalUsers = await db.Users.CountAsync(ct),
             totalRoutes = await db.Routes.CountAsync(ct),
             liveHazards,
+            activeQuests,
+            activeModifiers,
+            questCompletionsThisWeek,
         });
     }
 

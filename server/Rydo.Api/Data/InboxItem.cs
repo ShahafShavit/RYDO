@@ -27,6 +27,12 @@ public class InboxItem
     public int? ClubJoinRequesterUserId { get; set; }
     public ApplicationUser? ClubJoinRequester { get; set; }
 
+    public int? ChallengeInstanceId { get; set; }
+    public ChallengeInstance? ChallengeInstance { get; set; }
+
+    /// <summary>When <see cref="Kind"/> is <see cref="InboxItemKind.LevelUp"/>.</summary>
+    public int? GamificationLevel { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
     public DateTime? ResolvedAt { get; set; }

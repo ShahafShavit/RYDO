@@ -798,6 +798,90 @@ html[data-theme='dune'] .app-logo {
   color: #0d0a1f;
 }
 
+/* Inbox — equal-width underline tabs; unread count inline beside label. */
+.rydo-inbox-tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid var(--rydo-border);
+}
+
+.rydo-inbox-tab {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 4px 12px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--rydo-text-muted);
+  cursor: pointer;
+  transition:
+    color 0.2s var(--rydo-ease-out),
+    border-color 0.2s var(--rydo-ease-out);
+}
+
+.rydo-inbox-tab:hover:not(.rydo-inbox-tab-on) {
+  color: var(--rydo-text);
+}
+
+.rydo-inbox-tab-on {
+  color: var(--rydo-text);
+  border-bottom-color: var(--rydo-purple);
+}
+
+.rydo-inbox-tab-inner {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.rydo-inbox-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rydo-inbox-tab-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  min-width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--rydo-accent, #7b5cff);
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .rydo-inbox-tab {
+    padding: 12px 8px 14px;
+    font-size: 13px;
+  }
+
+  .rydo-inbox-tab-badge {
+    min-width: 1.125rem;
+    height: 1.125rem;
+    font-size: 10px;
+  }
+}
+
 .rydo-vhair {
   width: 1px;
   background: var(--rydo-border);

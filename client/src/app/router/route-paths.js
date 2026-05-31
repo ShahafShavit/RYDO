@@ -9,6 +9,7 @@ export const ROUTES = {
   // User routes
   dashboard: '/dashboard',
   leaderboards: '/leaderboards',
+  challenges: '/challenges',
   routes: '/routes',
   routeDetails: '/routes/:routeId',
   myRoutes: '/my-routes',
@@ -27,6 +28,7 @@ export const ROUTES = {
   adminUsers: '/admin/users',
   adminRoutes: '/admin/routes',
   adminHazards: '/admin/hazards',
+  adminChallenges: '/admin/challenges',
 
   // Live Ride (Mapbox simulator; public for desktop QA)
   live: '/live',

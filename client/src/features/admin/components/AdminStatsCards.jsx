@@ -9,6 +9,9 @@ export default function AdminStatsCards() {
     ['Users', data?.totalUsers],
     ['Routes', data?.totalRoutes],
     ['Live hazards', data?.liveHazards],
+    ['Active quests', data?.activeQuests],
+    ['Active modifiers', data?.activeModifiers],
+    ['Quest completions (7d)', data?.questCompletionsThisWeek],
   ];
 
   if (isLoading) {
@@ -24,7 +27,7 @@ export default function AdminStatsCards() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {items.map(([label, value]) => (
         <Card key={label}>
           <p className="text-sm text-fg-subtle">{label}</p>

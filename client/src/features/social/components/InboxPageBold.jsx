@@ -16,6 +16,7 @@ const TAB_EMPTY = {
   friends: 'Friend requests will show up here.',
   rides: 'Ride invites and new club rides will show up here.',
   club: 'Club join requests will show up here.',
+  activity: 'Level-ups and quest completions will show up here.',
 };
 
 function InboxRequestCard({
@@ -150,6 +151,7 @@ export default function InboxPageBold({
       return row.rideInvite.status === 'pending';
     }
     if (row.kind === 'club_ride_announced') return !row.readAt;
+    if (row.kind === 'quest_complete' || row.kind === 'level_up') return !row.readAt;
     return false;
   });
 
@@ -316,6 +318,51 @@ export default function InboxPageBold({
                       onSingleAction={() => {
                         if (!row.readAt) markReadMut.mutate(row.id);
                         navigate(rideHref);
+                      }}
+                    />
+                  );
+                }
+
+                if (row.kind === 'quest_complete' && row.gamification) {
+                  const href = row.gamification.href || '/challenges#quests';
+                  return (
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={null}
+                      displayName={row.gamification.title || 'Quest complete'}
+                      pill="Quest"
+                      pillVariant="accent"
+                      description="You completed a timed quest"
+                      profileHref={null}
+                      pending={!row.readAt}
+                      singleAction
+                      singleActionLabel="View challenges"
+                      busy={markReadMut.isPending}
+                      onSingleAction={() => {
+                        if (!row.readAt) markReadMut.mutate(row.id);
+                        navigate(href);
+                      }}
+                    />
+                  );
+                }
+
+                if (row.kind === 'level_up' && row.gamification) {
+                  return (
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={null}
+                      displayName={`Level ${row.gamification.level ?? ''}`}
+                      pill="Level up"
+                      pillVariant="green"
+                      description="You reached a new RYDO level"
+                      profileHref={null}
+                      pending={!row.readAt}
+                      singleAction
+                      singleActionLabel="View progress"
+                      busy={markReadMut.isPending}
+                      onSingleAction={() => {
+                        if (!row.readAt) markReadMut.mutate(row.id);
+                        navigate(row.gamification.href || '/challenges');
                       }}
                     />
                   );

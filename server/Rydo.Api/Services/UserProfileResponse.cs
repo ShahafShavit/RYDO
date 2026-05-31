@@ -26,7 +26,8 @@ public static class UserProfileResponse
         IList<string> roles,
         UserPreference? pref,
         IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges,
-        UserLifetimeStatsDto lifetimeStats)
+        UserLifetimeStatsDto lifetimeStats,
+        int level = 1)
     {
         var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
         return new
@@ -61,6 +62,7 @@ public static class UserProfileResponse
             },
             leaderboardBadges = SerializeBadges(leaderboardBadges),
             lifetimeStats = SerializeLifetimeStats(lifetimeStats),
+            level,
         };
     }
 
@@ -69,7 +71,8 @@ public static class UserProfileResponse
         ApplicationUser u,
         UserPreference? pref,
         IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges,
-        UserLifetimeStatsDto? lifetimeStats)
+        UserLifetimeStatsDto? lifetimeStats,
+        int level = 1)
     {
         return new
         {
@@ -90,6 +93,7 @@ public static class UserProfileResponse
             publicFriendsListOnProfile = pref?.PublicFriendsListOnProfile ?? true,
             leaderboardBadges = SerializeBadges(leaderboardBadges),
             lifetimeStats = SerializeLifetimeStats(lifetimeStats),
+            level,
         };
     }
 }

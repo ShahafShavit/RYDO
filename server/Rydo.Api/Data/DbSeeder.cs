@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Rydo.Api.Services;
 
 namespace Rydo.Api.Data;
 
@@ -142,7 +143,7 @@ public static class DbSeeder
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
 
-            await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, det);
+            await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routes, rideGroups, personalRideGroups, userIds, det);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
             return;
@@ -153,7 +154,7 @@ public static class DbSeeder
         var routesFromDb = await db.Routes.AsNoTracking().ToListAsync();
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
-        await SeedActivityHistoryAndMetadataAsync(db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
+        await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
         await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
@@ -817,6 +818,7 @@ public static class DbSeeder
     }
 
     private static async Task SeedActivityHistoryAndMetadataAsync(
+        IServiceProvider services,
         RydoDbContext db,
         IReadOnlyList<RouteEntity> routes,
         List<Ride> rideGroups,
@@ -843,8 +845,7 @@ public static class DbSeeder
         EnsureAllUsersHaveFutureClubRideParticipation(db, rideGroups, userIds, clubsByUser, partIndex);
         EnsureVariedClubRideParticipations(db, rideGroups, userIds, clubsByUser, partIndex, det);
 
-        if (!await db.Challenges.AnyAsync())
-            db.Challenges.AddRange(SeedChallenges(det));
+        GamificationSeeder.SeedDefinitionsAndInstances(db);
 
         if (!await db.UserPreferences.AnyAsync())
             SeedUserPreferences(db, userIds);
@@ -862,6 +863,8 @@ public static class DbSeeder
 
         await SeedHistoryAsync(db, routes.ToList(), userIds, personalRideGroups, rideGroups, partIndex, det);
         await db.SaveChangesAsync();
+
+        await GamificationSeeder.MaterializePastRidesAndGamificationAsync(services);
 
         await ValidateSeedDataCoherenceAsync(db);
     }
@@ -1915,69 +1918,6 @@ public static class DbSeeder
         }
     }
 
-    private static List<ChallengeEntity> SeedChallenges(DeterministicSeed det)
-    {
-        var now = DateTime.UtcNow;
-        return new List<ChallengeEntity>
-        {
-            new()
-            {
-                Title = "Spring Vertical Challenge",
-                Description = "Accumulate 5,000 m elevation before summer.",
-                TargetValue = 5000,
-                CurrentValue = 3200 + det.Int(0, Profile.ChallengeElevationProgressBonusMax, SeedGraph.Salt.ChallengeProgress, 0, 0),
-                Unit = "meters",
-                StartDate = now.AddMonths(-2),
-                EndDate = now.AddMonths(2),
-                IsActive = true,
-            },
-            new()
-            {
-                Title = "Coastal Distance Month",
-                Description = "Ride 400 km on coastal routes this month.",
-                TargetValue = 400,
-                CurrentValue = 210 + det.Int(0, Profile.ChallengeDistanceProgressBonusMax, SeedGraph.Salt.ChallengeProgress, 1, 0),
-                Unit = "km",
-                StartDate = now.AddDays(-20),
-                EndDate = now.AddDays(10),
-                IsActive = true,
-            },
-            new()
-            {
-                Title = "Commuter Streak",
-                Description = "12 commute days in 30 days.",
-                TargetValue = 12,
-                CurrentValue = 7,
-                Unit = "days",
-                StartDate = now.AddDays(-25),
-                EndDate = now.AddDays(5),
-                IsActive = true,
-            },
-            new()
-            {
-                Title = "Group Ride Social",
-                Description = "Join 6 organized group rides.",
-                TargetValue = 6,
-                CurrentValue = 4,
-                Unit = "rides",
-                StartDate = now.AddMonths(-1),
-                EndDate = now.AddMonths(1),
-                IsActive = true,
-            },
-            new()
-            {
-                Title = "Winter Base (archived)",
-                Description = "Legacy winter endurance target.",
-                TargetValue = 800,
-                CurrentValue = 800,
-                Unit = "km",
-                StartDate = now.AddMonths(-6),
-                EndDate = now.AddMonths(-3),
-                IsActive = false,
-            },
-        };
-    }
-
     private static async Task SeedHistoryAsync(
         RydoDbContext db,
         List<RouteEntity> routes,
@@ -2064,65 +2004,13 @@ public static class DbSeeder
                 DistanceKm = m.Sparse ? null : Math.Round(m.Route.DistanceKm * distFactor, 1),
                 ElevationGainM = m.Sparse ? null : Math.Round(m.Route.ElevationGainM * elevFactor, 1),
                 RideId = ride.Id,
+                MaterializedAt = m.CompletedAt,
+                HistorySource = HistorySourceKind.Seed,
             });
         }
 
-        var now = DateTime.UtcNow;
-        foreach (var g in personalRideGroups.Where(x => x.ScheduledDate < now && x.RouteId.HasValue).OrderBy(x => x.Id))
-        {
-            var route = routes.First(r => r.Id == g.RouteId!.Value);
-            var participantIds = partIndex.GetUserIdsOnRideOrdered(g.Id);
-
-            for (var pi = 0; pi < participantIds.Count; pi++)
-            {
-                var uid = participantIds[pi];
-                var dur = Math.Max(Profile.SoloMinDurationMinutes, route.EstimatedDurationMinutes + pi % Profile.HistoryDurationJitterModulo - Profile.HistoryDurationJitterCenter);
-                var distFactor = 0.94 + pi % Profile.HistoryDistanceFactorModulo * 0.01;
-                var elevFactor = 0.92 + pi % Profile.HistoryElevationFactorModulo * 0.01;
-                db.HistoryEntries.Add(new HistoryEntry
-                {
-                    UserId = uid,
-                    RouteId = route.Id,
-                    RouteTitle = route.Title,
-                    CompletedAt = g.ScheduledDate.AddHours(Profile.HistoryStartHourOffset) + TimeSpan.FromMinutes(pi * Profile.HistoryParticipantMinuteStep),
-                    DurationMinutes = dur,
-                    DistanceKm = Math.Round(route.DistanceKm * distFactor, 1),
-                    ElevationGainM = Math.Round(route.ElevationGainM * elevFactor, 1),
-                    RideId = g.Id,
-                });
-            }
-        }
-
-        // Past club rides: same stats semantics as personal group rides (one history row per participant).
-        foreach (var g in allRideGroups
-                     .Where(x => x.ClubId != null
-                         && x.Kind != RideKind.SoloLog
-                         && x.ScheduledDate < now
-                         && x.RouteId.HasValue)
-                     .OrderBy(x => x.Id))
-        {
-            var route = routes.First(r => r.Id == g.RouteId!.Value);
-            var participantIds = partIndex.GetUserIdsOnRideOrdered(g.Id);
-
-            for (var pi = 0; pi < participantIds.Count; pi++)
-            {
-                var uid = participantIds[pi];
-                var dur = Math.Max(Profile.SoloMinDurationMinutes, route.EstimatedDurationMinutes + pi % Profile.HistoryDurationJitterModulo - Profile.HistoryDurationJitterCenter);
-                var distFactor = 0.94 + pi % Profile.HistoryDistanceFactorModulo * 0.01;
-                var elevFactor = 0.92 + pi % Profile.HistoryElevationFactorModulo * 0.01;
-                db.HistoryEntries.Add(new HistoryEntry
-                {
-                    UserId = uid,
-                    RouteId = route.Id,
-                    RouteTitle = route.Title,
-                    CompletedAt = g.ScheduledDate.AddHours(Profile.HistoryStartHourOffset) + TimeSpan.FromMinutes(pi * Profile.HistoryParticipantMinuteStep),
-                    DurationMinutes = dur,
-                    DistanceKm = Math.Round(route.DistanceKm * distFactor, 1),
-                    ElevationGainM = Math.Round(route.ElevationGainM * elevFactor, 1),
-                    RideId = g.Id,
-                });
-            }
-        }
+        // Past scheduled rides (personal + club): history + XP via HistoryMaterializationService after seed
+        // (see GamificationSeeder.MaterializePastRidesAndGamificationAsync). Solo logs stay direct seed rows only.
     }
 
     private static async Task ValidateSeedDataCoherenceAsync(RydoDbContext db, CancellationToken ct = default)

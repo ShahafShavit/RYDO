@@ -15,6 +15,7 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 import DashboardClubsSection from '@/features/dashboard/components/DashboardClubsSection';
+import DashboardFeaturedChallengeCard from '@/features/dashboard/components/DashboardFeaturedChallengeCard';
 import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
 import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
 import { helpTooltip } from '@/shared/content/help-tooltips';
@@ -55,8 +56,20 @@ export default function DashboardHomeCardsBold() {
               <br />
               {firstName}
             </DisplayTitle>
+            {home.eventGreeting ? (
+              <Eyebrow className="mt-1.5 text-[var(--rydo-amber)]">{home.eventGreeting}</Eyebrow>
+            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to={ROUTES.challenges}
+              className="relative flex shrink-0 flex-col items-center"
+              aria-label={`Level ${home.level.currentLevel}, view challenges`}
+            >
+              <ProgressRing value={levelProgress} size={40} strokeWidth={4}>
+                <span className="rydo-tnum text-[13px] font-bold leading-none">{home.level.currentLevel}</span>
+              </ProgressRing>
+            </Link>
             <Link
               to={ROUTES.leaderboards}
               className="rydo-iconbtn text-[var(--rydo-amber)]"
@@ -105,27 +118,10 @@ export default function DashboardHomeCardsBold() {
         ) : null}
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-3">
-          {/* Level hero — ring is the only level progress indicator */}
-          <div className="rydo-bold-glass-row flex items-center gap-4 p-4">
-            <div className="flex shrink-0 flex-col items-center gap-1.5">
-              <ProgressRing value={levelProgress} size={84} strokeWidth={6}>
-                <span className="rydo-stat-hero text-[32px] leading-none text-fg">
-                  {home.level.currentLevel}
-                </span>
-              </ProgressRing>
-              <LabelWithHelp hint={helpTooltip('level')} topic="Level">
-                <Eyebrow className="text-[9px]">Level</Eyebrow>
-              </LabelWithHelp>
-            </div>
-            <div className="min-w-0 flex-1">
-              <LabelWithHelp hint={helpTooltip('challenge')} topic={home.awards.title}>
-                <Eyebrow>{home.awards.title}</Eyebrow>
-              </LabelWithHelp>
-              <p className="mt-1.5 text-[15px] font-bold leading-snug">
-                <TruncatedText lineClamp={2}>{home.level.nextLevelLabel}</TruncatedText>
-              </p>
-            </div>
-          </div>
+          <DashboardFeaturedChallengeCard
+            card={home.featuredCard}
+            pinnedChallengeInstanceId={home.pinnedChallengeInstanceId}
+          />
 
           {/* Weekly ribbon */}
           <div className="rydo-panel px-4 py-3">
@@ -145,23 +141,24 @@ export default function DashboardHomeCardsBold() {
             />
           </div>
 
-          {/* Streak + upcoming */}
-          <div className="flex gap-2.5">
-            <div className="rydo-panel w-[106px] shrink-0 px-3.5 py-3">
+          {/* Streak + upcoming — ~2:3 width so streak label has room */}
+          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2.5">
+            <div className="rydo-panel flex min-w-0 flex-col px-3.5 py-3">
               <Flame className="h-[18px] w-[18px] text-[var(--rydo-amber)]" fill="rgba(240,178,74,0.25)" aria-hidden />
-              <div className="rydo-stat-hero mt-2 text-[26px] text-fg">
+              <div className="rydo-stat-hero mt-2 text-[28px] leading-none text-fg">
                 {home.streakSnapshot.currentStreak}
-                <span className="rydo-subtle ml-0.5 text-[13px] font-bold">wk</span>
+                <span className="rydo-subtle ml-0.5 text-[14px] font-bold">wk</span>
               </div>
-              <Eyebrow className="mt-1 inline-flex items-center gap-0.5 text-[9px]">
-                Streak · best {home.streakSnapshot.longestStreak}
+              <Eyebrow className="mt-2 text-[9px] tracking-wide">Streak</Eyebrow>
+              <div className="mt-1 inline-flex items-center gap-0.5">
+                <Eyebrow className="text-[9px] text-fg-muted">· Best {home.streakSnapshot.longestStreak}</Eyebrow>
                 <InfoTooltip content={helpTooltip('streak')} topic="Streak" />
-              </Eyebrow>
+              </div>
             </div>
             {upcoming ? (
               <Link
                 to={ROUTES.rideEvent.replace(':rideId', String(upcoming.id))}
-                className="rydo-panel flex min-w-0 flex-1 items-stretch gap-2.5 p-2.5 transition hover:border-border-strong"
+                className="rydo-panel flex min-w-0 items-stretch gap-2.5 p-2.5 transition hover:border-border-strong"
               >
                 <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[13px] border border-border">
                   <CompactRouteMapPreview
@@ -194,7 +191,7 @@ export default function DashboardHomeCardsBold() {
                 <ChevronRight className="h-[18px] w-[18px] shrink-0 self-center text-fg-subtle" aria-hidden />
               </Link>
             ) : (
-              <div className="rydo-panel flex min-w-0 flex-1 flex-col px-3.5 py-3">
+              <div className="rydo-panel flex min-w-0 flex-col px-3.5 py-3">
                 <Eyebrow>Next RYDO</Eyebrow>
                 <p className="rydo-subtle mt-2 text-sm">No upcoming rides</p>
               </div>

@@ -11,14 +11,19 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/history")]
 [Authorize]
-public class HistoryController(RydoDbContext db) : ControllerBase
+public class HistoryController(RydoDbContext db, IHistoryMaterializationService materialization) : ControllerBase
 {
     private const int MaxHistoryTake = 100;
 
     [HttpGet]
-    public IActionResult List([FromQuery] int skip = 0, [FromQuery] int take = 20, [FromQuery] string? q = null)
+    public async Task<IActionResult> List(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? q = null,
+        CancellationToken ct = default)
     {
         var uid = ClaimsUserId.FromPrincipal(User);
+        await materialization.MaterializeEligibleForUserAsync(uid, ct);
         take = Math.Clamp(take, 1, MaxHistoryTake);
         if (skip < 0) skip = 0;
 

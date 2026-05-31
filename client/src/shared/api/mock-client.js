@@ -232,6 +232,7 @@ const INBOX_TAB_KINDS = {
   friends: ['friend_request'],
   rides: ['ride_invite', 'club_ride_announced'],
   club: ['club_join_request'],
+  activity: ['quest_complete', 'level_up'],
 };
 
 function mockPushClubRideAnnounced(ride, creatorId) {
@@ -282,6 +283,8 @@ function mockMapInboxRow(r) {
     clubJoinRequest: r.kind === 'club_join_request' ? r.clubJoinRequest ?? null : null,
     rideInvite: r.kind === 'ride_invite' ? r.rideInvite ?? null : null,
     clubRideAnnounced: r.kind === 'club_ride_announced' ? r.clubRideAnnounced ?? null : null,
+    gamification:
+      r.kind === 'quest_complete' || r.kind === 'level_up' ? r.gamification ?? null : null,
   };
 }
 
@@ -1544,6 +1547,7 @@ export async function mockRequest(path, options = {}) {
       friendUnread: unread.filter((r) => r.kind === 'friend_request').length,
       rideUnread: unread.filter((r) => r.kind === 'ride_invite' || r.kind === 'club_ride_announced').length,
       clubUnread: unread.filter((r) => r.kind === 'club_join_request').length,
+      activityUnread: unread.filter((r) => r.kind === 'quest_complete' || r.kind === 'level_up').length,
     };
   }
 
@@ -1551,7 +1555,11 @@ export async function mockRequest(path, options = {}) {
     const tab = searchParams.get('tab');
     const kinds = tab ? INBOX_TAB_KINDS[tab] : null;
     if (tab && !kinds) {
-      throw new ApiError({ message: 'tab must be friends, rides, or club.', status: 400, code: 'bad_request' });
+      throw new ApiError({
+        message: 'tab must be friends, rides, club, or activity.',
+        status: 400,
+        code: 'bad_request',
+      });
     }
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     let rows = mockInboxStore.filter((r) => r.recipientUserId === profile.id);

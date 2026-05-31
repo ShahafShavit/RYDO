@@ -89,6 +89,13 @@ export const API_ENDPOINTS = {
   challenges: {
     list: `${P}/challenges`,
   },
+  gamification: {
+    me: `${P}/gamification/me`,
+    myChallenges: `${P}/gamification/me/challenges`,
+    xpRecent: `${P}/gamification/xp-recent`,
+    pinnedChallenge: `${P}/gamification/me/pinned-challenge`,
+    acknowledgeLevel: `${P}/gamification/me/acknowledge-level`,
+  },
   history: {
     list: `${P}/history`,
   },
@@ -101,6 +108,11 @@ export const API_ENDPOINTS = {
     deleteRoute: (routeId) => `${P}/admin/routes/${routeId}`,
     hazards: `${P}/admin/hazards`,
     updateHazardStatus: (hazardId) => `${P}/admin/hazards/${hazardId}/status`,
+    challengeTemplates: `${P}/admin/challenges/templates`,
+    challengeInstances: `${P}/admin/challenges/instances`,
+    challengeInstance: (id) => `${P}/admin/challenges/instances/${id}`,
+    challengeInstanceProgress: (id) => `${P}/admin/challenges/instances/${id}/progress`,
+    challengeTemplate: (id) => `${P}/admin/challenges/templates/${id}`,
   },
   account: {
     changePassword: `${P}/account/password`,

@@ -293,6 +293,7 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         "friends" => [InboxItemKind.FriendRequest],
         "rides" => [InboxItemKind.RideInvite, InboxItemKind.ClubRideAnnounced],
         "club" => [InboxItemKind.ClubJoinRequest],
+        "activity" => [InboxItemKind.QuestComplete, InboxItemKind.LevelUp],
         _ => [],
     };
 
@@ -319,8 +320,10 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         var rideUnread = await baseQ.CountAsync(i =>
             i.Kind == InboxItemKind.RideInvite || i.Kind == InboxItemKind.ClubRideAnnounced, ct);
         var clubUnread = await baseQ.CountAsync(i => i.Kind == InboxItemKind.ClubJoinRequest, ct);
+        var activityUnread = await baseQ.CountAsync(i =>
+            i.Kind == InboxItemKind.QuestComplete || i.Kind == InboxItemKind.LevelUp, ct);
 
-        return Ok(new { unreadCount, friendUnread, rideUnread, clubUnread });
+        return Ok(new { unreadCount, friendUnread, rideUnread, clubUnread, activityUnread });
     }
 
     [HttpGet("me/inbox")]
@@ -343,6 +346,7 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
             .Include(i => i.Ride)!.ThenInclude(r => r!.CreatedBy)
             .Include(i => i.Club)
             .Include(i => i.ClubJoinRequester)
+            .Include(i => i.ChallengeInstance)
             .Where(i => i.RecipientUserId == viewerId)
             .OrderByDescending(i => i.CreatedAt)
             .AsQueryable();
@@ -351,7 +355,7 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         {
             var kinds = InboxKindsForTab(tab);
             if (kinds.Length == 0)
-                return Problem(statusCode: 400, detail: "tab must be friends, rides, or club.");
+                return Problem(statusCode: 400, detail: "tab must be friends, rides, club, or activity.");
             q = q.Where(i => kinds.Contains(i.Kind));
         }
 
@@ -446,6 +450,50 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                         ride = RideInboxSummary(i.Ride),
                         club = new { id = i.Club.Id, name = i.Club.Name },
                         createdBy = i.Ride.CreatedBy != null ? UserSummary(i.Ride.CreatedBy) : null,
+                    },
+                    gamification = (object?)null,
+                });
+            }
+            else if (i.Kind == InboxItemKind.QuestComplete)
+            {
+                items.Add(new
+                {
+                    id = i.Id,
+                    kind = i.Kind,
+                    createdAt,
+                    readAt,
+                    resolvedAt,
+                    friendRequest = (object?)null,
+                    clubJoinRequest = (object?)null,
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = (object?)null,
+                    gamification = new
+                    {
+                        type = "quest_complete",
+                        challengeInstanceId = i.ChallengeInstanceId,
+                        title = i.ChallengeInstance?.Title ?? "Quest complete",
+                        href = "/challenges#quests",
+                    },
+                });
+            }
+            else if (i.Kind == InboxItemKind.LevelUp)
+            {
+                items.Add(new
+                {
+                    id = i.Id,
+                    kind = i.Kind,
+                    createdAt,
+                    readAt,
+                    resolvedAt,
+                    friendRequest = (object?)null,
+                    clubJoinRequest = (object?)null,
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = (object?)null,
+                    gamification = new
+                    {
+                        type = "level_up",
+                        level = i.GamificationLevel,
+                        href = "/challenges",
                     },
                 });
             }

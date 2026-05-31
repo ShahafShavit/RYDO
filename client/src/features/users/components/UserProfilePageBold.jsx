@@ -34,7 +34,6 @@ import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
 import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
 import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
 import { helpTooltip } from '@/shared/content/help-tooltips';
-import { RIDES_PER_LEVEL } from '@/shared/constants/gamification';
 
 function formatMemberSince(iso) {
   if (!iso) return null;
@@ -113,13 +112,14 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
   const lifetime = useMemo(() => {
     const routesCount = routesTotal;
     const stats = showLifetimeStats ? profile?.lifetimeStats : null;
+    const apiLevel = profile?.level != null && profile.level >= 1 ? profile.level : null;
     if (!stats) {
       return {
         totalKm: null,
         totalElev: null,
         totalRides: null,
         totalRoutes: routesCount,
-        level: null,
+        level: apiLevel,
       };
     }
     const completedRides = stats.completedRides ?? 0;
@@ -128,9 +128,9 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
       totalElev: stats.totalElevationGainM,
       totalRides: completedRides,
       totalRoutes: routesCount,
-      level: Math.max(1, 1 + Math.floor(completedRides / RIDES_PER_LEVEL)),
+      level: apiLevel,
     };
-  }, [showLifetimeStats, profile?.lifetimeStats, routesTotal]);
+  }, [showLifetimeStats, profile?.lifetimeStats, profile?.level, routesTotal]);
 
   const statsLoading = routesLoading || (showRides && ridesLoading);
 

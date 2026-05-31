@@ -23,6 +23,8 @@ builder.Services.AddScoped<ClubChatMessageDtoFactory>();
 builder.Services.AddSingleton<RideChatMessageDtoFactory>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IUserLifetimeStatsService, UserLifetimeStatsService>();
+builder.Services.AddScoped<IGamificationService, GamificationService>();
+builder.Services.AddScoped<IHistoryMaterializationService, HistoryMaterializationService>();
 builder.Services.AddScoped<IUserHandleService, UserHandleService>();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
@@ -129,6 +131,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
 builder.Services.AddHostedService<ClubChatSimulatorBackgroundService>();
+builder.Services.AddHostedService<HistoryMaterializationBackgroundService>();
 
 var app = builder.Build();
 
