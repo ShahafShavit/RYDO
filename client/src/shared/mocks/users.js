@@ -13,6 +13,7 @@ const defaultPrivacy = () => ({
 export const MOCK_USERS = [
     {
         id: 1,
+        handle: 'johncyclist',
         username: 'johncyclist',
         email: 'john@example.com',
         firstName: 'John',
@@ -28,6 +29,7 @@ export const MOCK_USERS = [
     },
     {
         id: 2,
+        handle: 'sarahadmin',
         username: 'sarahadmin',
         email: 'sarah@example.com',
         firstName: 'Sarah',
@@ -43,6 +45,7 @@ export const MOCK_USERS = [
     },
     {
         id: 3,
+        handle: 'miketrainer',
         username: 'miketrainer',
         email: 'mike@example.com',
         firstName: 'Mike',

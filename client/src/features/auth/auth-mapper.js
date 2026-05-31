@@ -11,6 +11,7 @@ export function normalizeUser(rawUser = {}) {
 
   return {
     id: Number(rawUser.id ?? rawUser.userId ?? 0),
+    handle: rawUser.handle ?? '',
     fullName,
     firstName: rawUser.firstName ?? '',
     lastName: rawUser.lastName ?? '',

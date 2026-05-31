@@ -1,12 +1,17 @@
 import { apiClient } from '@/shared/api/api-client';
 import { API_ENDPOINTS } from '@/shared/api/api-endpoints';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export const usersApi = {
-  getProfile: (userId) => apiClient.get(API_ENDPOINTS.users.profile(userId)),
+  checkHandleAvailable: (handle) =>
+    apiClient.get(API_ENDPOINTS.users.handleAvailable, {
+      query: { handle: normalizeHandle(handle) },
+    }),
 
-  /** Paginated routes uploaded by the user (same shape as explore list). */
-  getUserRoutes: (userId, params = {}) =>
-    apiClient.get(API_ENDPOINTS.users.userRoutes(userId), {
+  getProfile: (handle) => apiClient.get(API_ENDPOINTS.users.profile(normalizeHandle(handle))),
+
+  getUserRoutes: (handle, params = {}) =>
+    apiClient.get(API_ENDPOINTS.users.userRoutes(normalizeHandle(handle)), {
       query: {
         skip: params.skip,
         take: params.take,
@@ -14,9 +19,8 @@ export const usersApi = {
       },
     }),
 
-  /** Paginated rides the user participates in (public visibility rules). */
-  getUserRides: (userId, params = {}) =>
-    apiClient.get(API_ENDPOINTS.users.userRides(userId), {
+  getUserRides: (handle, params = {}) =>
+    apiClient.get(API_ENDPOINTS.users.userRides(normalizeHandle(handle)), {
       query: {
         skip: params.skip,
         take: params.take,

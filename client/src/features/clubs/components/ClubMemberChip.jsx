@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { Link, generatePath } from 'react-router-dom';
+import { generatePath, Link } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { ROUTES } from '@/app/router/route-paths';
 import { cn } from '@/shared/lib/cn';
 import UserAvatar from '@/shared/components/user/UserAvatar';
@@ -52,7 +53,7 @@ export default function ClubMemberChip({
       )}
     >
       <Link
-        to={generatePath(ROUTES.userProfile, { userId: String(member.userId) })}
+        to={userProfilePath(member.handle)}
         className="flex min-w-0 flex-1 items-center gap-2 hover:text-fg"
       >
         <UserAvatar

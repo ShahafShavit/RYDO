@@ -15,6 +15,7 @@ import MyRidesPageBold from '@/features/rides/components/MyRidesPageBold';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 /** First screenful of upcoming cards before "Show more". */
@@ -303,28 +304,28 @@ function HistoryRideCard({ entry }) {
 export default function MyRidesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const memberRaw = searchParams.get('member');
-  const memberUserId = useMemo(() => {
+  const memberHandle = useMemo(() => {
     if (memberRaw == null || memberRaw === '') return null;
-    const n = Number(memberRaw);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    const h = normalizeHandle(memberRaw);
+    return h || null;
   }, [memberRaw]);
 
   const qFromUrl = searchParams.get('q') || '';
   const [localSearch, setLocalSearch] = useState(() => searchParams.get('q') || '');
-  const search = memberUserId != null ? qFromUrl : localSearch;
+  const search = memberHandle != null ? qFromUrl : localSearch;
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: memberProfile } = useUserProfile(memberUserId != null ? String(memberUserId) : undefined);
+  const { data: memberProfile } = useUserProfile(memberHandle ?? undefined);
 
-  const myPanel = useMyRidesPanel(memberUserId == null ? search : '', {
-    enabled: memberUserId == null,
+  const myPanel = useMyRidesPanel(memberHandle == null ? search : '', {
+    enabled: memberHandle == null,
   });
   const memberInfinite = useMemberParticipatedRidesInfinite(
-    memberUserId != null ? memberUserId : 0,
-    memberUserId != null ? search : '',
+    memberHandle ?? '',
+    memberHandle != null ? search : '',
   );
 
-  const useMember = memberUserId != null;
+  const useMember = memberHandle != null;
   const {
     upcoming: upcomingRaw,
     pastScheduled: pastRaw,
@@ -381,7 +382,7 @@ export default function MyRidesPage() {
 
   const handleSearchChange = useCallback(
     (v) => {
-      if (memberUserId != null) {
+      if (memberHandle != null) {
         setSearchParams(
           (prev) => {
             const next = new URLSearchParams(prev);
@@ -395,7 +396,7 @@ export default function MyRidesPage() {
         setLocalSearch(v);
       }
     },
-    [memberUserId, setSearchParams],
+    [memberHandle, setSearchParams],
   );
 
   return (

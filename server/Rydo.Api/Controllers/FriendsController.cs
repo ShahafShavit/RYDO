@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> users) : ControllerBase
+public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> users, IUserHandleService handles) : ControllerBase
 {
     private int? CurrentUserId()
     {
@@ -27,21 +27,24 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
     private object UserSummary(ApplicationUser u) => new
     {
         id = u.Id,
+        handle = u.Handle,
         fullName = DisplayName(u),
         avatarUrl = UserPublicFields.RosterAvatarUrl(u),
     };
 
-    [HttpPost("{userId:int}/friend-request")]
-    public async Task<IActionResult> SendFriendRequest(int userId, CancellationToken ct)
+    [HttpPost("{handle}/friend-request")]
+    public async Task<IActionResult> SendFriendRequest(string handle, CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
-        if (viewerId == userId)
-            return Problem(statusCode: 400, detail: "Cannot send a friend request to yourself.");
 
-        var target = await users.FindByIdAsync(userId.ToString());
+        var target = await handles.ResolveUserAsync(handle, ct);
         if (target == null)
             return NotFound();
+
+        var userId = target.Id;
+        if (viewerId == userId)
+            return Problem(statusCode: 400, detail: "Cannot send a friend request to yourself.");
 
         var (lo, hi) = CanonicalPair(viewerId, userId);
         if (await db.Friendships.AsNoTracking().AnyAsync(f => f.UserIdLower == lo && f.UserIdHigher == hi, ct))
@@ -99,11 +102,15 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         return Ok(new { requestId = fr.Id, status = "pending" });
     }
 
-    [HttpDelete("me/friend-requests/outgoing/{targetUserId:int}")]
-    public async Task<IActionResult> CancelOutgoingFriendRequest(int targetUserId, CancellationToken ct)
+    [HttpDelete("me/friend-requests/outgoing/{targetHandle}")]
+    public async Task<IActionResult> CancelOutgoingFriendRequest(string targetHandle, CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
+
+        var targetUserId = await handles.ResolveUserIdAsync(targetHandle, ct);
+        if (targetUserId == null)
+            return NotFound();
 
         var fr = await db.FriendRequests
             .FirstOrDefaultAsync(f => f.FromUserId == viewerId && f.ToUserId == targetUserId && f.Status == FriendRequestStatus.Pending, ct);
@@ -115,7 +122,7 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         fr.RespondedAt = now;
 
         await db.InboxItems
-            .Where(i => i.FriendRequestId == fr.Id && i.RecipientUserId == targetUserId)
+            .Where(i => i.FriendRequestId == fr.Id && i.RecipientUserId == targetUserId.Value)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.ResolvedAt, now), ct);
 
         await db.SaveChangesAsync(ct);
@@ -186,11 +193,17 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         return NoContent();
     }
 
-    [HttpGet("{userId:int}/friends")]
-    public async Task<IActionResult> ListFriends(int userId, CancellationToken ct)
+    [HttpGet("{handle}/friends")]
+    public async Task<IActionResult> ListFriends(string handle, CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
+
+        var subject = await handles.ResolveUserAsync(handle, ct);
+        if (subject == null)
+            return NotFound();
+
+        var userId = subject.Id;
 
         var subjectPref = await db.UserPreferences.AsNoTracking()
             .FirstOrDefaultAsync(x => x.UserId == userId, ct);
@@ -244,16 +257,19 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         return Ok(new { items });
     }
 
-    [HttpGet("{userId:int}/relationship")]
-    public async Task<IActionResult> GetRelationship(int userId, CancellationToken ct)
+    [HttpGet("{handle}/relationship")]
+    public async Task<IActionResult> GetRelationship(string handle, CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
+
+        var subject = await handles.ResolveUserAsync(handle, ct);
+        if (subject == null)
+            return NotFound();
+
+        var userId = subject.Id;
         if (viewerId == userId)
             return Ok(new { status = "self" });
-
-        if (!await users.Users.AsNoTracking().AnyAsync(u => u.Id == userId, ct))
-            return NotFound();
 
         var (lo, hi) = CanonicalPair(viewerId, userId);
         if (await db.Friendships.AsNoTracking().AnyAsync(f => f.UserIdLower == lo && f.UserIdHigher == hi, ct))

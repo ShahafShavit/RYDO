@@ -1,5 +1,5 @@
-import { Link, generatePath } from 'react-router-dom';
-import { ROUTES } from '@/app/router/route-paths';
+import { Link } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import Card from '@/shared/components/ui/card/Card';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 
@@ -20,7 +20,7 @@ export default function RideMembersList({ members = [], participantCount = 0 }) 
         {members.map((member) => (
           <Link
             key={member.userId}
-            to={generatePath(ROUTES.userProfile, { userId: String(member.userId) })}
+            to={userProfilePath(member.handle)}
             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm text-fg-muted transition hover:border-border-strong hover:text-fg"
           >
             <UserAvatar

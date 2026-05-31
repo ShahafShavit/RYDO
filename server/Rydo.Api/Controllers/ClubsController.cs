@@ -37,6 +37,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
     private static object MemberDto(ClubMember m) => new
     {
         userId = m.UserId,
+        handle = m.User?.Handle ?? "",
         displayName = DisplayName(m.User),
         avatarUrl = UserPublicFields.RosterAvatarUrl(m.User),
         email = m.User?.Email ?? "",

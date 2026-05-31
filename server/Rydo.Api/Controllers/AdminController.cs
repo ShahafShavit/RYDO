@@ -42,6 +42,7 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             items.Add(new
             {
                 id = u.Id,
+                handle = u.Handle,
                 fullName = $"{u.FirstName} {u.LastName}".Trim(),
                 email = u.Email,
                 role,

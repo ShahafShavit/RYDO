@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Inbox as InboxIcon } from 'lucide-react';
 import { generatePath, Link } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import { friendsApi } from '@/features/social/api/friends-api';
 import InboxPageBold from '@/features/social/components/InboxPageBold';
@@ -103,7 +104,7 @@ export default function InboxPage() {
               const fr = row.friendRequest;
               const from = fr.fromUser;
               const pending = fr.status === 'pending' && !row.resolvedAt;
-              const profileHref = generatePath(ROUTES.userProfile, { userId: String(from.id) });
+              const profileHref = userProfilePath(from.handle);
               return (
                 <li key={row.id}>
                   <Card className="p-4">
@@ -157,7 +158,7 @@ export default function InboxPage() {
               const club = cjr.club;
               const requester = cjr.requester;
               const pending = !row.resolvedAt;
-              const profileHref = generatePath(ROUTES.userProfile, { userId: String(requester.id) });
+              const profileHref = userProfilePath(requester.handle);
               const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
               const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
               return (

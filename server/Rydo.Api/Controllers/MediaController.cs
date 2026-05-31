@@ -9,14 +9,17 @@ namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/media")]
-public class MediaController(RydoDbContext db) : ControllerBase
+public class MediaController(RydoDbContext db, IUserHandleService handles) : ControllerBase
 {
-    [HttpGet("users/{userId:int}/avatar")]
+    [HttpGet("users/{handle}/avatar")]
     [AllowAnonymous]
-    public async Task<IActionResult> UserAvatar(int userId, CancellationToken ct)
+    public async Task<IActionResult> UserAvatar(string handle, CancellationToken ct)
     {
+        var normalized = handles.Normalize(handle);
+        if (normalized == null) return NotFound();
+
         var u = await db.Users.AsNoTracking()
-            .Where(x => x.Id == userId)
+            .Where(x => x.Handle == normalized)
             .Select(x => new { x.AvatarImageBytes, x.AvatarImageContentType })
             .FirstOrDefaultAsync(ct);
         if (u?.AvatarImageBytes is not { Length: > 0 })

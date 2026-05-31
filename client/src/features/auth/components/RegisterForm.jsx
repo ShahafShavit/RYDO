@@ -7,11 +7,12 @@ import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 import Card from '@/shared/components/ui/card/Card';
 import FormField from '@/shared/components/ui/form-field/FormField';
+import { validateHandle, normalizeHandleInput } from '@/features/users/utils/handle-validation';
 
 export default function RegisterForm() {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', handle: '', email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -23,9 +24,22 @@ export default function RegisterForm() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError(null);
+
+    const handleErr = validateHandle(form.handle);
+    if (handleErr) {
+      setError(handleErr);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const user = await register(form.firstName, form.lastName, form.email, form.password);
+      const user = await register(
+        form.firstName,
+        form.lastName,
+        normalizeHandleInput(form.handle),
+        form.email,
+        form.password,
+      );
       navigate(user.role === ROLES.ADMIN ? ROUTES.admin : ROUTES.dashboard);
     } catch (err) {
       setError(err?.message || 'Registration failed');
@@ -47,6 +61,18 @@ export default function RegisterForm() {
 
         <FormField label="Last name">
           <Input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Enter your last name" required />
+        </FormField>
+
+        <FormField label="Handle">
+          <Input
+            name="handle"
+            value={form.handle}
+            onChange={handleChange}
+            placeholder="johncyclist"
+            autoComplete="username"
+            required
+          />
+          <p className="mt-1 text-xs text-fg-muted">Your public profile URL: /users/yourhandle</p>
         </FormField>
 
         <FormField label="Email">

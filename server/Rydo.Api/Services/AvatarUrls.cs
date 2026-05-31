@@ -4,7 +4,9 @@ namespace Rydo.Api.Services;
 
 public static class AvatarUrls
 {
-    public static string UserUploaded(int userId) => $"/api/media/users/{userId}/avatar";
+    public static string UserUploaded(string handle) => $"/api/media/users/{handle}/avatar";
+
+    public static string UserUploaded(ApplicationUser u) => UserUploaded(u.Handle);
 
     public static string ClubUploaded(int clubId) => $"/api/media/clubs/{clubId}/avatar";
 
@@ -16,10 +18,22 @@ public static class AvatarUrls
     }
 
     /// <summary>Client may echo the canonical uploaded-avatar path when saving without changing the image.</summary>
+    public static bool MatchesUserUploadedPath(string t, ApplicationUser u)
+    {
+        var trimmed = t.Trim();
+        var canonical = UserUploaded(u);
+        if (string.Equals(trimmed, canonical, StringComparison.OrdinalIgnoreCase)) return true;
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uUri)
+            && string.Equals(uUri.AbsolutePath, canonical, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    /// <summary>Legacy numeric avatar paths from before handles (ignored for new uploads).</summary>
     public static bool MatchesUserUploadedPath(string t, int userId)
     {
         var trimmed = t.Trim();
-        var canonical = UserUploaded(userId);
+        var canonical = $"/api/media/users/{userId}/avatar";
         if (string.Equals(trimmed, canonical, StringComparison.OrdinalIgnoreCase)) return true;
         if (Uri.TryCreate(trimmed, UriKind.Absolute, out var u)
             && string.Equals(u.AbsolutePath, canonical, StringComparison.OrdinalIgnoreCase))
@@ -43,7 +57,7 @@ public static class AvatarUrls
     {
         if (u == null) return null;
         if (u.AvatarImageBytes is { Length: > 0 })
-            return UserUploaded(u.Id);
+            return UserUploaded(u);
         return string.IsNullOrWhiteSpace(u.AvatarUrl) ? null : u.AvatarUrl.Trim();
     }
 

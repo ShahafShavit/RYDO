@@ -1,4 +1,5 @@
 import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 function normalizeDifficulty(value) {
   const difficulty = String(value || '').toLowerCase();
@@ -96,6 +97,7 @@ export function normalizeRoute(rawRoute = {}) {
           : rawRoute.createdById != null
             ? Number(rawRoute.createdById)
             : null,
+      handle: rawRoute.createdBy?.handle ? normalizeHandle(rawRoute.createdBy.handle) : '',
       fullName: creatorName,
       avatarUrl: rawRoute.createdBy?.avatarUrl?.trim() || null,
     },
@@ -117,6 +119,7 @@ export function normalizeRouteRiders(raw) {
     totalCount: Number(raw.totalCount ?? visible.length ?? 0) || 0,
     visibleRiders: visible.map((r) => ({
       userId: Number(r.userId ?? r.id ?? 0),
+      handle: r.handle ? normalizeHandle(r.handle) : '',
       fullName: String(r.fullName || r.displayName || '').trim() || 'Rider',
       avatarUrl: r.avatarUrl?.trim() || null,
     })),

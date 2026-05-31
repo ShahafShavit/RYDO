@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { dashboardNavigation, adminNavigation } from '@/shared/config/navigation';
 import { ROUTES } from '@/app/router/route-paths';
+import { myProfilePath } from '@/shared/lib/user-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -124,7 +125,7 @@ export default function MobileNavbar({ isAdminLayout }) {
                             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
                                 {user?.id ? (
                                     <NavLink
-                                        to={generatePath(ROUTES.userProfile, { userId: String(user.id) })}
+                                        to={myProfilePath(user)}
                                         onClick={() => setIsOpen(false)}
                                         className={({ isActive }) =>
                                             `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive

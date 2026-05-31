@@ -4,6 +4,7 @@ import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
@@ -45,7 +46,7 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
             <div className="flex shrink-0 items-center gap-2">
               {organizer?.id != null ? (
                 <Link
-                  to={ROUTES.userProfile.replace(':userId', String(organizer.id))}
+                  to={userProfilePath(organizer.handle)}
                   className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
                 >
                   <UserAvatar
@@ -83,7 +84,7 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
                 {organizer?.id != null ? (
                   <TruncatedText
                     as={Link}
-                    to={ROUTES.userProfile.replace(':userId', String(organizer.id))}
+                    to={userProfilePath(organizer.handle)}
                     className="min-w-0 flex-1 font-medium text-fg underline-offset-2 hover:text-rydo-purple hover:underline"
                   >
                     {organizer.fullName}

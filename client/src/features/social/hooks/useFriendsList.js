@@ -1,17 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { friendsApi } from '../api/friends-api';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export const friendsListKeys = {
   all: ['social', 'friends'],
-  list: (userId) => [...friendsListKeys.all, Number(userId)],
+  list: (handle) => [...friendsListKeys.all, normalizeHandle(handle)],
 };
 
-export function useFriendsList(userId, options = {}) {
+export function useFriendsList(handle, options = {}) {
   const { enabled = true } = options;
-  const id = Number(userId);
+  const h = normalizeHandle(handle);
   return useQuery({
-    queryKey: friendsListKeys.list(id),
-    queryFn: () => friendsApi.getFriends(id),
-    enabled: enabled && Number.isFinite(id) && id > 0,
+    queryKey: friendsListKeys.list(h),
+    queryFn: () => friendsApi.getFriends(h),
+    enabled: enabled && h.length > 0,
   });
 }

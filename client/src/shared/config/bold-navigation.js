@@ -1,12 +1,10 @@
 import { Bike, Compass, Home, MessageCircle, User } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { myProfilePath, userProfilePath } from '@/shared/lib/user-paths';
 
 /** Primary bottom tabs (mobile Bold). Chat is an action tab, not a route. */
-export function getBoldTabItems(userId) {
-  const meTo =
-    userId != null
-      ? ROUTES.userProfile.replace(':userId', String(userId))
-      : ROUTES.settings;
+export function getBoldTabItems(userHandle) {
+  const meTo = myProfilePath(userHandle);
 
   return [
     { key: 'home', label: 'Home', to: ROUTES.dashboard, Icon: Home },
@@ -28,13 +26,13 @@ export function isBoldMeNavActive(pathname, to) {
 }
 
 /** Returns active tab key from current pathname + chat open state. */
-export function resolveBoldActiveTab({ pathname, chatOpen, userId }) {
+export function resolveBoldActiveTab({ pathname, chatOpen, userHandle }) {
   if (chatOpen) return 'chat';
   if (pathname.startsWith(ROUTES.dashboard)) return 'home';
   if (pathname.startsWith(ROUTES.routes)) return 'explore';
   if (pathname === ROUTES.myRoutes || pathname.startsWith('/your-routes')) return 'explore';
   if (pathname.startsWith(ROUTES.myRides) || pathname.includes('/ride/')) return 'ride';
-  if (userId != null && pathname === ROUTES.userProfile.replace(':userId', String(userId))) {
+  if (userHandle && pathname === userProfilePath(userHandle)) {
     return 'me';
   }
   if (pathname.startsWith('/users/')) return 'me';

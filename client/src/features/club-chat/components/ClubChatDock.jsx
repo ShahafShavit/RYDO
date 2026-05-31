@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MessageCircle, Users, X } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreferences } from '@/features/account/hooks/useAccount';
@@ -350,10 +351,9 @@ export default function ClubChatDock() {
                       ) : null}
                       {messages.map((m) => {
                         const isMine = Number(m.authorUserId) === Number(user?.id);
-                        const authorId = m.authorUserId;
                         const profileTo =
-                          authorId != null && authorId !== ''
-                            ? generatePath(ROUTES.userProfile, { userId: String(authorId) })
+                          m.authorHandle
+                            ? userProfilePath(m.authorHandle)
                             : null;
                         return (
                           <ClubChatMessageBubble

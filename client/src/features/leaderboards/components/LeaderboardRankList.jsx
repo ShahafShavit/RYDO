@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { leaderboardRankRowClass } from '@/features/leaderboards/leaderboard-boards';
 import { formatLeaderboardValue } from '@/features/leaderboards/leaderboard-format';
 import { leaderboardProfileLinkState } from '@/features/leaderboards/leaderboard-utils';
@@ -32,7 +33,7 @@ export default function LeaderboardRankList({
         return (
           <Link
             key={`${row.userId}-${row.rank}`}
-            to={ROUTES.userProfile.replace(':userId', String(row.userId))}
+            to={userProfilePath(row.handle)}
             state={leaderboardProfileLinkState(boardId)}
             className={cn(
               'rydo-panel flex items-center gap-3 px-3.5 py-2.5 no-underline transition active:opacity-80',

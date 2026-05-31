@@ -15,30 +15,31 @@ import { UserProfileActivitySections } from '@/features/users/components/UserPro
 import { UserProfileFriendsSection } from '@/features/users/components/UserProfileFriendsSection';
 import UserProfilePageBold from '@/features/users/components/UserProfilePageBold';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export default function UserProfilePage() {
-  const { userId } = useParams();
-  const id = Number(userId);
+  const { handle: handleParam } = useParams();
+  const handle = normalizeHandle(handleParam);
   const { user: current } = useAuth();
-  const isOwn = current?.id === id;
+  const isOwn = Boolean(current?.handle && handle && current.handle === handle);
   const queryClient = useQueryClient();
-  const { data: profile, isLoading, isError, error } = useUserProfile(userId);
-  const { data: relationship, isLoading: relLoading } = useRelationship(userId, { enabled: !isOwn });
+  const { data: profile, isLoading, isError, error } = useUserProfile(handle);
+  const { data: relationship, isLoading: relLoading } = useRelationship(handle, { enabled: !isOwn });
 
   usePageBreadcrumbDetail(profile?.fullName);
 
   const sendMut = useMutation({
-    mutationFn: () => friendsApi.sendFriendRequest(id),
+    mutationFn: () => friendsApi.sendFriendRequest(handle),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(handle) });
       queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
     },
   });
 
   const cancelMut = useMutation({
-    mutationFn: () => friendsApi.cancelOutgoingFriendRequest(id),
+    mutationFn: () => friendsApi.cancelOutgoingFriendRequest(handle),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(handle) });
       queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
     },
   });
@@ -46,7 +47,7 @@ export default function UserProfilePage() {
   const acceptMut = useMutation({
     mutationFn: (requestId) => friendsApi.acceptFriendRequest(requestId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(handle) });
       queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxKeys.all });
@@ -56,14 +57,14 @@ export default function UserProfilePage() {
   const declineMut = useMutation({
     mutationFn: (requestId) => friendsApi.declineFriendRequest(requestId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(handle) });
       queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxKeys.all });
     },
   });
 
-  if (!Number.isFinite(id) || id <= 0) {
+  if (!handle) {
     return (
       <section className="space-y-4">
         <h1 className="text-2xl font-semibold text-fg">Invalid profile</h1>
@@ -174,22 +175,22 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        <UserProfilePublicCard profile={profile} userId={userId} />
+        <UserProfilePublicCard profile={profile} handle={handle} />
 
         <UserProfileFriendsSection
-          userId={id}
+          handle={handle}
           isOwn={isOwn}
           publicFriendsListOnProfile={publicFriendsListOnProfile}
           relationshipStatus={relationship?.status}
         />
 
-        <UserProfileActivitySections userId={userId} profile={profile} isOwn={isOwn} />
+        <UserProfileActivitySections handle={handle} profile={profile} isOwn={isOwn} />
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
         <UserProfilePageBold
           profile={profile}
-          userId={userId}
+          handle={handle}
           isOwn={isOwn}
           relationshipStatus={relationship?.status}
         />

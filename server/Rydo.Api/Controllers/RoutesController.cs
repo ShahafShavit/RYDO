@@ -9,7 +9,7 @@ namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/routes")]
-public class RoutesController(RydoDbContext db) : ControllerBase
+public class RoutesController(RydoDbContext db, IUserHandleService handles) : ControllerBase
 {
     private const int MaxRouteListTake = 200;
 
@@ -20,6 +20,7 @@ public class RoutesController(RydoDbContext db) : ControllerBase
         [FromQuery] int take = 20,
         [FromQuery] string? q = null,
         [FromQuery] int? createdByUserId = null,
+        [FromQuery] string? createdByHandle = null,
         [FromQuery] string? terrain = null,
         [FromQuery] string? difficulty = null,
         [FromQuery] string? distance = null,
@@ -31,6 +32,14 @@ public class RoutesController(RydoDbContext db) : ControllerBase
     {
         take = Math.Clamp(take, 1, MaxRouteListTake);
         if (skip < 0) skip = 0;
+
+        if (createdByHandle is { Length: > 0 })
+        {
+            var resolvedId = await handles.ResolveUserIdAsync(createdByHandle, ct);
+            if (resolvedId == null)
+                return Ok(new { items = Array.Empty<object>(), total = 0, skip, take });
+            createdByUserId = resolvedId;
+        }
 
         if (createdByUserId is int cb && cb > 0 && !await MayListRoutesUploadedByUserAsync(cb, ct))
             return Ok(new { items = Array.Empty<object>(), total = 0, skip, take });
@@ -59,7 +68,8 @@ public class RoutesController(RydoDbContext db) : ControllerBase
                 r.Title.Contains(term)
                 || (r.CreatedBy != null && r.CreatedBy.UserName != null && r.CreatedBy.UserName.Contains(term))
                 || (r.CreatedBy != null && r.CreatedBy.FirstName != null && r.CreatedBy.FirstName.Contains(term))
-                || (r.CreatedBy != null && r.CreatedBy.LastName != null && r.CreatedBy.LastName.Contains(term)));
+                || (r.CreatedBy != null && r.CreatedBy.LastName != null && r.CreatedBy.LastName.Contains(term))
+                || (r.CreatedBy != null && r.CreatedBy.Handle != null && r.CreatedBy.Handle.Contains(term.ToLowerInvariant())));
         }
 
         if (!string.IsNullOrWhiteSpace(terrain) && !string.Equals(terrain, "all", StringComparison.OrdinalIgnoreCase))

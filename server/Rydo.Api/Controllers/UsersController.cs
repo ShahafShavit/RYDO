@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class UsersController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats) : ControllerBase
+public class UsersController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats, IUserHandleService handles) : ControllerBase
 {
     private const int MaxUpcomingMyRides = 4;
     private const int MaxPastMyRidesTake = 100;
@@ -22,6 +22,17 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
     {
         var s = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return int.TryParse(s, out var id) ? id : null;
+    }
+
+    [HttpGet("handle-available")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HandleAvailable([FromQuery] string? handle, CancellationToken ct = default)
+    {
+        var normalized = handles.Normalize(handle);
+        if (handles.Validate(normalized) is { } err)
+            return Ok(new { available = false, reason = err });
+        var available = await handles.IsAvailableAsync(normalized!, excludeUserId: null, ct);
+        return Ok(new { available, reason = available ? (string?)null : "That handle is already taken." });
     }
 
     [HttpGet("search")]
@@ -47,11 +58,12 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         foreach (var token in tokens)
         {
-            var t = token;
+            var t = token.StartsWith('@') ? token[1..] : token;
             queryable = queryable.Where(u =>
                 (u.FirstName != null && u.FirstName.Contains(t))
                 || (u.LastName != null && u.LastName.Contains(t))
-                || (u.Email != null && u.Email.Contains(t)));
+                || (u.Email != null && u.Email.Contains(t))
+                || (u.Handle != null && u.Handle.Contains(t.ToLowerInvariant())));
         }
 
         var rows = await queryable
@@ -64,6 +76,7 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         var items = rows.Select(u => new
         {
             id = u.Id,
+            handle = u.Handle,
             fullName = $"{u.FirstName} {u.LastName}".Trim(),
             avatarUrl = UserPublicFields.RosterAvatarUrl(u),
         }).ToList();
@@ -71,16 +84,17 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         return Ok(new { items });
     }
 
-    [HttpGet("{userId:int}/profile")]
-    public async Task<IActionResult> GetUserProfile(int userId, CancellationToken ct)
+    [HttpGet("{handle}/profile")]
+    public async Task<IActionResult> GetUserProfile(string handle, CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
 
-        var subject = await users.FindByIdAsync(userId.ToString());
+        var subject = await handles.ResolveUserAsync(handle, ct);
         if (subject == null)
             return NotFound();
 
+        var userId = subject.Id;
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(userId, ct);
         var stats = await lifetimeStats.GetAsync(userId, ct);
@@ -99,9 +113,9 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
             showLifetimeStats ? stats : null));
     }
 
-    [HttpGet("{userId:int}/routes")]
+    [HttpGet("{handle}/routes")]
     public async Task<IActionResult> GetUserRoutes(
-        int userId,
+        string handle,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 20,
         [FromQuery] string? q = null,
@@ -110,8 +124,11 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (CurrentUserId() is null)
             return Unauthorized();
 
-        if (!await users.Users.AsNoTracking().AnyAsync(u => u.Id == userId, ct))
+        var subject = await handles.ResolveUserAsync(handle, ct);
+        if (subject == null)
             return NotFound();
+
+        var userId = subject.Id;
 
         take = Math.Clamp(take, 1, MaxUserRoutesTake);
         if (skip < 0) skip = 0;
@@ -154,9 +171,9 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
     }
 
-    [HttpGet("{userId:int}/rides")]
+    [HttpGet("{handle}/rides")]
     public async Task<IActionResult> GetUserParticipatedRides(
-        int userId,
+        string handle,
         [FromQuery] string? q = null,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 20,
@@ -165,8 +182,11 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
 
-        if (!await users.Users.AsNoTracking().AnyAsync(u => u.Id == userId, ct))
+        var subject = await handles.ResolveUserAsync(handle, ct);
+        if (subject == null)
             return NotFound();
+
+        var userId = subject.Id;
 
         take = Math.Clamp(take, 1, MaxUserParticipatedRidesTake);
         if (skip < 0) skip = 0;

@@ -4,6 +4,9 @@ namespace Rydo.Api.Data;
 
 public class ApplicationUser : IdentityUser<int>
 {
+    /// <summary>Unique public identifier (lowercase). Used in profile URLs and search.</summary>
+    public string Handle { get; set; } = "";
+
     public string FirstName { get; set; } = "";
     public string LastName { get; set; } = "";
     public DateTime CreatedAt { get; set; }

@@ -1,19 +1,21 @@
 import { apiClient } from '@/shared/api/api-client';
 import { API_ENDPOINTS } from '@/shared/api/api-endpoints';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export const friendsApi = {
-  sendFriendRequest: (userId) => apiClient.post(API_ENDPOINTS.users.friendRequest(userId), {}),
+  sendFriendRequest: (handle) =>
+    apiClient.post(API_ENDPOINTS.users.friendRequest(normalizeHandle(handle)), {}),
 
-  cancelOutgoingFriendRequest: (targetUserId) =>
-    apiClient.delete(API_ENDPOINTS.users.cancelOutgoingFriendRequest(targetUserId)),
+  cancelOutgoingFriendRequest: (targetHandle) =>
+    apiClient.delete(API_ENDPOINTS.users.cancelOutgoingFriendRequest(normalizeHandle(targetHandle))),
 
   acceptFriendRequest: (requestId) => apiClient.post(API_ENDPOINTS.users.acceptFriendRequest(requestId), {}),
 
   declineFriendRequest: (requestId) => apiClient.post(API_ENDPOINTS.users.declineFriendRequest(requestId), {}),
 
-  getFriends: (userId) => apiClient.get(API_ENDPOINTS.users.friends(userId)),
+  getFriends: (handle) => apiClient.get(API_ENDPOINTS.users.friends(normalizeHandle(handle))),
 
-  getRelationship: (userId) => apiClient.get(API_ENDPOINTS.users.relationship(userId)),
+  getRelationship: (handle) => apiClient.get(API_ENDPOINTS.users.relationship(normalizeHandle(handle))),
 
   getInbox: (params = {}) =>
     apiClient.get(API_ENDPOINTS.users.inbox, {

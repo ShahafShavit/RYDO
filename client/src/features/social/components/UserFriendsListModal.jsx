@@ -7,7 +7,7 @@ import { cn } from '@/shared/lib/cn';
  * @param {object} props
  * @param {boolean} props.open
  * @param {() => void} props.onClose
- * @param {number} props.userId
+ * @param {string} props.handle
  * @param {boolean} props.isOwn
  * @param {string} [props.displayName]
  * @param {boolean} props.publicFriendsListOnProfile
@@ -15,7 +15,7 @@ import { cn } from '@/shared/lib/cn';
 export default function UserFriendsListModal({
   open,
   onClose,
-  userId,
+  handle,
   isOwn,
   displayName,
   publicFriendsListOnProfile,
@@ -43,7 +43,7 @@ export default function UserFriendsListModal({
               friends see it.
             </p>
           ) : null}
-          <UserFriendsListContent userId={userId} enabled={open} variant="modal" />
+          <UserFriendsListContent handle={handle} enabled={open} variant="modal" />
         </div>
       </ModalPanel>
     </AnimatedModal>

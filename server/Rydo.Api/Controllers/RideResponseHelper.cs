@@ -101,6 +101,7 @@ internal static class RideResponseHelper
         var createdBy = new
         {
             id = g.CreatedByUserId,
+            handle = g.CreatedBy?.Handle ?? "",
             fullName = DisplayName(g.CreatedBy),
             avatarUrl = UserPublicFields.RosterAvatarUrl(g.CreatedBy),
         };
@@ -149,6 +150,7 @@ internal static class RideResponseHelper
                 .Select(p => new
                 {
                     userId = p.UserId,
+                    handle = p.User?.Handle ?? "",
                     displayName = DisplayName(p.User),
                     avatarUrl = UserPublicFields.RosterAvatarUrl(p.User),
                 })

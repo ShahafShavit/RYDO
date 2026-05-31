@@ -64,6 +64,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         builder.Entity<ApplicationUser>(e =>
         {
             e.Property(x => x.AvatarImageBytes).HasMaxLength(524_288);
+            e.Property(x => x.Handle).HasMaxLength(30).IsRequired();
+            e.HasIndex(x => x.Handle).IsUnique();
         });
 
         builder.Entity<ClubMember>(e =>

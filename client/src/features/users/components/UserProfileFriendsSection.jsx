@@ -5,18 +5,17 @@ import Card from '@/shared/components/ui/card/Card';
 
 /**
  * @param {object} props
- * @param {number} props.userId
+ * @param {string} props.handle
  * @param {boolean} props.isOwn
  * @param {boolean} props.publicFriendsListOnProfile — when false, only non-owners are blocked from seeing the list
  * @param {string | undefined} props.relationshipStatus
  */
 export function UserProfileFriendsSection({
-  userId,
+  handle,
   isOwn,
   publicFriendsListOnProfile,
   relationshipStatus,
 }) {
-  const id = Number(userId);
 
   if (!isOwn && publicFriendsListOnProfile === false) {
     return (
@@ -54,8 +53,8 @@ export function UserProfileFriendsSection({
         ) : null}
       </div>
       <UserFriendsListContent
-        userId={userId}
-        enabled={Number.isFinite(id) && id > 0}
+        handle={handle}
+        enabled={Boolean(handle)}
       />
     </section>
   );

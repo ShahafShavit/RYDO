@@ -3,20 +3,21 @@ import { normalizePaginatedResult } from '@/shared/api/api-helpers';
 import { usersApi } from '@/features/users/api/usersApi';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import { userProfileActivityKeys } from '@/features/users/hooks/useUserProfileActivity';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 const PAGE_SIZE = 8;
 
 /**
  * Paginated rides for {@link usersApi.getUserRides} (member’s public participated rides).
  */
-export function useMemberParticipatedRidesInfinite(userId, search) {
+export function useMemberParticipatedRidesInfinite(handle, search) {
   const q = (search || '').trim() || undefined;
-  const id = Number(userId);
+  const h = normalizeHandle(handle);
 
   return useInfiniteQuery({
-    queryKey: [...userProfileActivityKeys.rides(id), 'infinite', q],
+    queryKey: [...userProfileActivityKeys.rides(h), 'infinite', q],
     queryFn: async ({ pageParam = 0 }) => {
-      const raw = await usersApi.getUserRides(id, {
+      const raw = await usersApi.getUserRides(h, {
         skip: pageParam,
         take: PAGE_SIZE,
         ...(q ? { q } : {}),
@@ -29,6 +30,6 @@ export function useMemberParticipatedRidesInfinite(userId, search) {
       if (nextSkip >= lastPage.total || lastPage.items.length === 0) return undefined;
       return nextSkip;
     },
-    enabled: Number.isFinite(id) && id > 0,
+    enabled: h.length > 0,
   });
 }

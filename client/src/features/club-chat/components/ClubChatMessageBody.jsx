@@ -1,5 +1,6 @@
 import { Link, generatePath } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { segmentMessageBody } from '@/features/club-chat/utils/segmentMessageBody';
 
 const mentionClass = {
@@ -32,14 +33,18 @@ export default function ClubChatMessageBody({ body, mentions, mine = false }) {
         const label = seg.label || `${k} ${id}`;
         const cls = mentionClass[k]?.[variant] ?? 'text-fg-muted font-semibold';
         if (k === 'user') {
+          const profileTo = userProfilePath(seg.handle);
+          if (profileTo) {
+            return (
+              <Link key={i} to={profileTo} className={cls}>
+                @{label}
+              </Link>
+            );
+          }
           return (
-            <Link
-              key={i}
-              to={generatePath(ROUTES.userProfile, { userId: String(id) })}
-              className={cls}
-            >
+            <span key={i} className={cls}>
               @{label}
-            </Link>
+            </span>
           );
         }
         if (k === 'route') {

@@ -2,17 +2,18 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { normalizePaginatedResult } from '@/shared/api/api-helpers';
 import { routeKeys, routesApi } from '@/features/routes/api/routesApi';
 import { normalizeRoute } from '@/features/routes/route-mapper';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 const PAGE_SIZE = 18;
 
 /**
  * Server-side filtered + paginated route list for Explore (/routes).
- * @param {{ search?: string, terrain?: string, difficulty?: string, distance?: string, sort?: string, nearLat?: number | null, nearLng?: number | null, nearMaxKm?: number | null, createdByUserId?: number | null }} filters
+ * @param {{ search?: string, terrain?: string, difficulty?: string, distance?: string, sort?: string, nearLat?: number | null, nearLng?: number | null, nearMaxKm?: number | null, createdByHandle?: string | null }} filters
  * @param {{ enabled?: boolean }} [options]
  */
 export function useRoutesExploreInfinite(filters, options = {}) {
   const { enabled = true } = options;
-  const { search, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm, createdByUserId } =
+  const { search, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm, createdByHandle } =
     filters;
   const q = (search || '').trim() || undefined;
   const useNear =
@@ -20,24 +21,21 @@ export function useRoutesExploreInfinite(filters, options = {}) {
     typeof nearLng === 'number' &&
     !Number.isNaN(nearLat) &&
     !Number.isNaN(nearLng);
-  const creatorId =
-    typeof createdByUserId === 'number' && !Number.isNaN(createdByUserId) && createdByUserId > 0
-      ? createdByUserId
-      : undefined;
+  const creatorHandle = createdByHandle ? normalizeHandle(createdByHandle) : '';
 
   return useInfiniteQuery({
     enabled,
     queryKey: [
       ...routeKeys.lists(),
       'explore',
-      { q, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm, createdByUserId: creatorId },
+      { q, terrain, difficulty, distance, sort, nearLat, nearLng, nearMaxKm, createdByHandle: creatorHandle || null },
     ],
     queryFn: async ({ pageParam = 0 }) => {
       const raw = await routesApi.list({
         skip: pageParam,
         take: PAGE_SIZE,
         ...(q ? { q } : {}),
-        ...(creatorId != null ? { createdByUserId: creatorId } : {}),
+        ...(creatorHandle ? { createdByHandle: creatorHandle } : {}),
         ...(terrain && terrain !== 'all' ? { terrain } : {}),
         ...(difficulty && difficulty !== 'all' ? { difficulty } : {}),
         ...(distance && distance !== 'all' ? { distance } : {}),

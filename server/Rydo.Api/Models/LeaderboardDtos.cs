@@ -1,6 +1,6 @@
 namespace Rydo.Api.Models;
 
-public record LeaderboardRowDto(int Rank, int UserId, string DisplayName, string? AvatarUrl, double Value, string Unit);
+public record LeaderboardRowDto(int Rank, int UserId, string Handle, string DisplayName, string? AvatarUrl, double Value, string Unit);
 
 public record LeaderboardsResponseDto(
     IReadOnlyList<LeaderboardRowDto> HorizonChasers,

@@ -41,19 +41,18 @@ function activityVisibility(profile, isOwn, key) {
   return profile?.privacy?.publicParticipatedRidesOnProfile ?? profile?.publicParticipatedRidesOnProfile ?? true;
 }
 
-export function UserProfileActivitySections({ userId, profile, isOwn }) {
-  const id = Number(userId);
+export function UserProfileActivitySections({ handle, profile, isOwn }) {
   const showRoutes = activityVisibility(profile, isOwn, 'routes');
   const showRides = activityVisibility(profile, isOwn, 'rides');
-  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(userId, {
+  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(handle, {
     enabled: showRoutes,
   });
-  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(userId, {
+  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(handle, {
     enabled: showRides,
   });
 
-  const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: id })}`;
-  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: id })}`;
+  const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: handle })}`;
+  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: handle })}`;
 
   const routeItems = routesPage?.items ?? [];
   const rideItems = ridesPage?.items?.filter(Boolean) ?? [];

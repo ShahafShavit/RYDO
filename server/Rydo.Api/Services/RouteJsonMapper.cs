@@ -4,7 +4,7 @@ using Rydo.Api.Data;
 
 namespace Rydo.Api.Services;
 
-public readonly record struct RouteRiderVisible(int UserId, string FullName, string? AvatarUrl);
+public readonly record struct RouteRiderVisible(int UserId, string Handle, string FullName, string? AvatarUrl);
 
 public readonly record struct RouteRidersInfo(int TotalCount, IReadOnlyList<RouteRiderVisible> Visible);
 
@@ -45,6 +45,7 @@ public static class RouteJsonMapper
         var visible = users
             .Select(u => new RouteRiderVisible(
                 u.Id,
+                u.Handle,
                 $"{u.FirstName} {u.LastName}".Trim(),
                 UserPublicFields.RosterAvatarUrl(u)))
             .ToList();
@@ -146,6 +147,7 @@ public static class RouteJsonMapper
             createdBy = new
             {
                 id = creator?.Id ?? r.CreatedByUserId,
+                handle = creator?.Handle ?? "",
                 fullName = creator != null ? $"{creator.FirstName} {creator.LastName}".Trim() : "Unknown",
                 avatarUrl = UserPublicFields.RosterAvatarUrl(creator),
             },
@@ -156,7 +158,7 @@ public static class RouteJsonMapper
             routeRiders = new
             {
                 totalCount = rr.TotalCount,
-                visibleRiders = rr.Visible.Select(v => new { userId = v.UserId, fullName = v.FullName, avatarUrl = v.AvatarUrl }).ToList(),
+                visibleRiders = rr.Visible.Select(v => new { userId = v.UserId, handle = v.Handle, fullName = v.FullName, avatarUrl = v.AvatarUrl }).ToList(),
             },
         };
     }

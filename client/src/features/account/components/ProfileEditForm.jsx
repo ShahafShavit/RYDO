@@ -3,6 +3,7 @@ import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
 import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
 import { useProfile, useUpdateProfile } from '../hooks/useAccount';
+import { validateHandle, normalizeHandleInput } from '@/features/users/utils/handle-validation';
 import { normalizeAccountProfile } from '../account-mapper';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
@@ -41,6 +42,7 @@ export function ProfileEditForm() {
       : {
           firstName: '',
           lastName: '',
+          handle: '',
           email: '',
           bio: '',
           location: '',
@@ -82,8 +84,15 @@ export function ProfileEditForm() {
     setSuccessMsg('');
     const cur = draft || profile;
     if (!cur?.privacy) return;
+    const handleErr = validateHandle(cur.handle);
+    if (handleErr) {
+      setSuccessMsg('');
+      console.error(handleErr);
+      return;
+    }
     try {
       const payload = {
+        handle: normalizeHandleInput(cur.handle),
         firstName: (cur.firstName || '').trim(),
         lastName: (cur.lastName || '').trim(),
         email: (cur.email || '').trim(),
@@ -103,6 +112,7 @@ export function ProfileEditForm() {
       const normalized = normalizeAccountProfile(raw);
       updateUser({
         id: normalized.id,
+        handle: normalized.handle,
         fullName: normalized.fullName,
         firstName: normalized.firstName,
         lastName: normalized.lastName,
@@ -143,6 +153,15 @@ export function ProfileEditForm() {
             value={formData.lastName ?? ''}
             onChange={handleChange}
             autoComplete="family-name"
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
+          />
+        </FormField>
+        <FormField label="Handle">
+          <input
+            name="handle"
+            value={formData.handle ?? ''}
+            onChange={handleChange}
+            autoComplete="username"
             className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-fg placeholder:text-fg-subtle focus:border-rydo-purple focus:outline-none focus:ring-1 focus:ring-rydo-purple"
           />
         </FormField>

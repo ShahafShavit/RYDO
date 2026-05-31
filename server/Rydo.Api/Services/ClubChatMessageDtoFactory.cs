@@ -32,15 +32,31 @@ public sealed class ClubChatMessageDtoFactory(RydoDbContext db)
                     foreach (var x in raw)
                     {
                         var kind = (x.Kind ?? "").ToLowerInvariant();
-                        var label = kind switch
+                        string label;
+                        string? userHandle = null;
+                        switch (kind)
                         {
-                            "user" => await db.Users.AsNoTracking().Where(u => u.Id == x.Id).Select(u => DisplayName(u)).FirstOrDefaultAsync(ct) ?? $"User {x.Id}",
-                            "route" => await db.Routes.AsNoTracking().Where(r => r.Id == x.Id).Select(r => r.Title).FirstOrDefaultAsync(ct) ?? $"Route {x.Id}",
-                            "ride" => await db.Rides.AsNoTracking().Where(r => r.Id == x.Id)
-                                .Select(r => r.Name + " · " + r.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-dd")).FirstOrDefaultAsync(ct) ?? $"Ride {x.Id}",
-                            _ => $"#{x.Id}",
-                        };
-                        mentionObjs.Add(new { kind, id = x.Id, label });
+                            case "user":
+                            {
+                                var u = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == x.Id, ct);
+                                label = u != null ? DisplayName(u) : $"User {x.Id}";
+                                userHandle = u?.Handle;
+                                break;
+                            }
+                            case "route":
+                                label = await db.Routes.AsNoTracking().Where(r => r.Id == x.Id).Select(r => r.Title).FirstOrDefaultAsync(ct) ?? $"Route {x.Id}";
+                                break;
+                            case "ride":
+                                label = await db.Rides.AsNoTracking().Where(r => r.Id == x.Id)
+                                    .Select(r => r.Name + " · " + r.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-dd")).FirstOrDefaultAsync(ct) ?? $"Ride {x.Id}";
+                                break;
+                            default:
+                                label = $"#{x.Id}";
+                                break;
+                        }
+                        mentionObjs.Add(userHandle != null
+                            ? new { kind, id = x.Id, label, handle = userHandle }
+                            : new { kind, id = x.Id, label });
                     }
                 }
             }
@@ -56,6 +72,7 @@ public sealed class ClubChatMessageDtoFactory(RydoDbContext db)
             clubId = m.ClubId,
             clubNameHint = clubNameHint,
             authorUserId = m.AuthorUserId,
+            authorHandle = m.Author?.Handle ?? "",
             authorDisplayName = authorName,
             authorAvatarUrl = UserPublicFields.RosterAvatarUrl(m.Author),
             body = m.Body,

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
-import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
@@ -43,11 +43,11 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
   return (
     <Card>
       <h3 className="text-lg font-semibold">Route metadata</h3>
-      {showUploadedBy && route.createdBy?.id != null && route.createdBy?.fullName ? (
+      {showUploadedBy && route.createdBy?.handle && route.createdBy?.fullName ? (
         <p className="mt-3 text-sm text-fg-muted">
           Uploaded by{' '}
           <Link
-            to={ROUTES.userProfile.replace(':userId', String(route.createdBy.id))}
+            to={userProfilePath(route.createdBy.handle)}
             className="font-medium text-rydo-purple hover:underline"
           >
             {route.createdBy.fullName}

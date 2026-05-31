@@ -1,4 +1,5 @@
 import { Link, generatePath } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { ROUTES } from '@/app/router/route-paths';
 import Card from '@/shared/components/ui/card/Card';
 import { useAdminUsers } from '@/features/admin/hooks/useAdminUsers';
@@ -32,7 +33,7 @@ export default function UsersTable() {
               <tr key={user.id} className="border-t border-border">
                 <td className="px-4 py-3">
                   <Link
-                    to={generatePath(ROUTES.userProfile, { userId: String(user.id) })}
+                    to={userProfilePath(user.handle)}
                     className="inline-flex items-center gap-2 text-fg/90 hover:text-fg hover:underline"
                   >
                     <UserAvatar displayName={user.fullName} sizeClass="h-8 w-8" />

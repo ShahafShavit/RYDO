@@ -74,6 +74,7 @@ export function normalizeUserPublicProfile(payload = {}) {
   const nameParts = [fn, ln].filter((x) => x != null && String(x).trim() !== '');
   return {
     id: Number(payload.id ?? 0),
+    handle: payload.handle ?? '',
     fullName: nameParts.length ? nameParts.join(' ') : 'Member',
     firstName: fn ?? '',
     lastName: ln ?? '',

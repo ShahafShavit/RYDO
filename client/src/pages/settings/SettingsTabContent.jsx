@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Card from '@/shared/components/ui/card/Card';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import { ChangePasswordForm } from '@/features/account/components/ChangePasswordForm';
@@ -7,14 +8,14 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import { UserProfilePublicCard } from '@/features/users/components/UserProfilePublicCard';
 import { projectProfileAsSeenByOthers } from '@/features/account/account-mapper';
-import { useMemo } from 'react';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 import { cn } from '@/shared/lib/cn';
 
 function ProfileTabPublicPreview({ bold }) {
   const { user } = useAuth();
-  const userId = user?.id != null ? String(user.id) : '';
+  const handle = user?.handle ? normalizeHandle(user.handle) : '';
 
-  const { data: profile, isLoading, isError } = useUserProfile(userId || undefined);
+  const { data: profile, isLoading, isError } = useUserProfile(handle || undefined);
 
   const cardProfile = useMemo(
     () => (profile ? projectProfileAsSeenByOthers(profile) : null),
@@ -26,7 +27,7 @@ function ProfileTabPublicPreview({ bold }) {
   if (!user) {
     return <p className={statusClass}>Sign in to manage your profile.</p>;
   }
-  if (!userId) {
+  if (!handle) {
     return null;
   }
   if (isLoading) {
@@ -39,7 +40,7 @@ function ProfileTabPublicPreview({ bold }) {
   return (
     <UserProfilePublicCard
       profile={cardProfile}
-      userId={userId}
+      handle={handle}
       ownerEmptyHint="You have not shared any public profile details yet. Turn on visibility under Edit details, and choose what to show in Preferences below."
       className={bold ? '!border-0 !bg-transparent !p-0 shadow-none' : undefined}
     />

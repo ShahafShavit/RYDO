@@ -22,6 +22,7 @@ builder.Services.Configure<DemoRideLiveBotsOptions>(
 builder.Services.AddScoped<ClubChatMessageDtoFactory>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IUserLifetimeStatsService, UserLifetimeStatsService>();
+builder.Services.AddScoped<IUserHandleService, UserHandleService>();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
 builder.Services.AddSingleton<RideLiveBotOrchestrator>();

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link, generatePath, useNavigate } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import {
   ArrowLeft,
   Bike,
@@ -233,7 +234,7 @@ export default function RideEventPageBold({
               <div className="flex shrink-0 items-center -space-x-2">
                 {organizer?.id != null ? (
                   <Link
-                    to={generatePath(ROUTES.userProfile, { userId: String(organizer.id) })}
+                    to={userProfilePath(organizer.handle)}
                     className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
                   >
                     <UserAvatar
@@ -271,7 +272,7 @@ export default function RideEventPageBold({
                 <Eyebrow className="text-[10px]">Organized by</Eyebrow>
                 {organizer?.id != null ? (
                   <Link
-                    to={generatePath(ROUTES.userProfile, { userId: String(organizer.id) })}
+                    to={userProfilePath(organizer.handle)}
                     className="mt-0.5 block truncate text-sm font-semibold text-fg no-underline"
                   >
                     {organizer.fullName}
@@ -366,7 +367,7 @@ export default function RideEventPageBold({
                 {members.map((member) => (
                   <Link
                     key={member.userId}
-                    to={generatePath(ROUTES.userProfile, { userId: String(member.userId) })}
+                    to={userProfilePath(member.handle)}
                     className="inline-flex items-center gap-2 rounded-full border border-border bg-black/20 px-3 py-1.5 text-sm text-fg-muted no-underline transition hover:border-border-strong hover:text-fg"
                   >
                     <UserAvatar

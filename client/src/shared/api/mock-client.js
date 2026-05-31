@@ -72,6 +72,7 @@ function buildMockLeaderboardsResponse() {
         return {
           rank: i + 1,
           userId,
+          handle: mockHandle(u),
           displayName: displayName || `User #${userId}`,
           avatarUrl: u?.avatarUrl ?? null,
           value,
@@ -138,6 +139,7 @@ function toFullProfile(p) {
   };
   return {
     id: p.id,
+    handle: mockHandle(p),
     firstName: p.firstName,
     lastName: p.lastName,
     email: p.email,
@@ -159,6 +161,7 @@ function toPublicProfileView(u) {
   const showLifetimeStats = privacy.publicLifetimeStatsOnProfile !== false;
   return {
     id: u.id,
+    handle: mockHandle(u),
     isSelf: false,
     firstName: privacy.publicFirstName ? u.firstName : null,
     lastName: privacy.publicLastName ? u.lastName : null,
@@ -198,6 +201,22 @@ let preferences = {
 let mockInboxSeq = 1;
 const mockInboxStore = [];
 
+function mockHandle(u) {
+  return String(u?.handle || u?.username || '')
+    .replace(/^@/, '')
+    .trim()
+    .toLowerCase();
+}
+
+function findUserByHandle(handle) {
+  const h = String(handle || '')
+    .replace(/^@/, '')
+    .trim()
+    .toLowerCase();
+  if (!h) return undefined;
+  return users.find((u) => mockHandle(u) === h);
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -205,6 +224,7 @@ function sleep(ms) {
 function toAuthUser(user) {
   return {
     id: user.id,
+    handle: mockHandle(user),
     fullName: user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || 'Unknown user',
     email: user.email,
     avatarUrl: user.avatarUrl?.trim() || null,
@@ -276,6 +296,7 @@ function createRouteFromUpload(data) {
     warnings: Array.isArray(data.warnings) ? data.warnings : [],
     createdBy: {
       id: profile.id,
+      handle: mockHandle(profile),
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl?.trim() || null,
     },
@@ -307,6 +328,7 @@ function buildMockRouteRiders(routeId) {
     const u = users.find((x) => x.id === uid);
     return {
       userId: uid,
+      handle: mockHandle(u),
       fullName: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`,
       avatarUrl: mockRosterAvatarUrl(u),
     };
@@ -336,13 +358,14 @@ function findRoute(routeId) {
     createdBy = match
       ? {
           id: match.id,
+          handle: mockHandle(match),
           fullName: [match.firstName, match.lastName].filter(Boolean).join(' '),
           avatarUrl: mockRosterAvatarUrl(match),
         }
       : { id: null, fullName: createdBy, avatarUrl: null };
   } else if (createdBy && typeof createdBy === 'object' && createdBy.id != null) {
     const u = users.find((x) => x.id === Number(createdBy.id));
-    createdBy = { ...createdBy, avatarUrl: mockRosterAvatarUrl(u) };
+    createdBy = { ...createdBy, handle: mockHandle(u), avatarUrl: mockRosterAvatarUrl(u) };
   }
 
   return {
@@ -376,7 +399,7 @@ function participantDetailsFromIds(ids) {
   return list.map((uid) => {
     const u = users.find((x) => x.id === Number(uid));
     const displayName = u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : `User ${uid}`;
-    return { userId: Number(uid), displayName, avatarUrl: u ? mockRosterAvatarUrl(u) : undefined };
+    return { userId: Number(uid), handle: mockHandle(u), displayName, avatarUrl: u ? mockRosterAvatarUrl(u) : undefined };
   });
 }
 
@@ -399,6 +422,7 @@ function enrichRideCreatedBy(raw) {
     (u ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() : '');
   return {
     id,
+    handle: mockHandle(u),
     fullName,
     avatarUrl: mockRosterAvatarUrl(u),
   };
@@ -466,12 +490,21 @@ export async function mockRequest(path, options = {}) {
       throw new ApiError({ message: 'User already exists', status: 409, code: 'user_exists' });
     }
 
+    const handle = String(body.handle || '')
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
+    if (users.some((item) => mockHandle(item) === handle)) {
+      throw new ApiError({ message: 'That handle is already taken.', status: 409, code: 'handle_taken' });
+    }
+
     const nextId = Math.max(...users.map((item) => item.id), 0) + 1;
     const firstName = (body.firstName || '').trim();
     const lastName = (body.lastName || '').trim();
     const user = {
       id: nextId,
-      username: body.email.split('@')[0],
+      handle,
+      username: handle,
       email: body.email,
       firstName,
       lastName,
@@ -515,13 +548,17 @@ export async function mockRequest(path, options = {}) {
     const nearLatRaw = searchParams.get('nearLat');
     const nearLngRaw = searchParams.get('nearLng');
     const maxKmRaw = searchParams.get('maxKm');
-    const createdByRaw = searchParams.get('createdByUserId');
-    const createdByUserId =
-      createdByRaw != null && createdByRaw !== '' ? Number(createdByRaw) : NaN;
+    const createdByHandle = (searchParams.get('createdByHandle') || searchParams.get('createdBy') || '')
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
 
     let list = [...routes];
-    if (!Number.isNaN(createdByUserId) && createdByUserId > 0) {
-      list = list.filter((r) => Number(r.createdBy?.id) === createdByUserId);
+    if (createdByHandle) {
+      const creator = findUserByHandle(createdByHandle);
+      list = creator
+        ? list.filter((r) => Number(r.createdBy?.id) === creator.id)
+        : [];
     }
     if (q) {
       list = list.filter((r) => {
@@ -728,7 +765,10 @@ export async function mockRequest(path, options = {}) {
         const fn = (u.firstName || '').toLowerCase();
         const ln = (u.lastName || '').toLowerCase();
         const em = (u.email || '').toLowerCase();
-        return tokens.every((tok) => fn.includes(tok) || ln.includes(tok) || em.includes(tok));
+        const h = mockHandle(u);
+        return tokens.every(
+          (tok) => fn.includes(tok) || ln.includes(tok) || em.includes(tok) || h.includes(tok.replace(/^@/, '')),
+        );
       })
       .sort((a, b) => {
         const c = (a.lastName || '').localeCompare(b.lastName || '');
@@ -741,18 +781,29 @@ export async function mockRequest(path, options = {}) {
     return {
       items: matches.map((u) => ({
         id: u.id,
+        handle: mockHandle(u),
         fullName: [u.firstName, u.lastName].filter(Boolean).join(' ').trim(),
         avatarUrl: mockRosterAvatarUrl(u) ?? null,
       })),
     };
   }
 
-  const userRoutesMatch = pathname.match(/^\/api\/users\/(\d+)\/routes$/);
+  if (pathname === '/api/users/handle-available' && method === 'GET') {
+    const handle = (searchParams.get('handle') || '').replace(/^@/, '').trim().toLowerCase();
+    if (!handle || handle.length < 3) {
+      return { available: false, reason: 'Handle must be at least 3 characters.' };
+    }
+    const taken = users.some((u) => mockHandle(u) === handle);
+    return { available: !taken, reason: taken ? 'That handle is already taken.' : null };
+  }
+
+  const userRoutesMatch = pathname.match(/^\/api\/users\/([a-z0-9_]+)\/routes$/);
   if (userRoutesMatch && method === 'GET') {
-    const uid = Number(userRoutesMatch[1]);
-    if (!users.find((u) => u.id === uid)) {
+    const subject = findUserByHandle(userRoutesMatch[1]);
+    if (!subject) {
       throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
     }
+    const uid = subject.id;
     const q = (searchParams.get('q') || '').trim().toLowerCase();
     let list = routes.filter((r) => Number(r.createdBy?.id) === uid);
     if (q) {
@@ -776,12 +827,13 @@ export async function mockRequest(path, options = {}) {
     };
   }
 
-  const userRidesMatch = pathname.match(/^\/api\/users\/(\d+)\/rides$/);
+  const userRidesMatch = pathname.match(/^\/api\/users\/([a-z0-9_]+)\/rides$/);
   if (userRidesMatch && method === 'GET') {
-    const subjectUid = Number(userRidesMatch[1]);
-    if (!users.find((u) => u.id === subjectUid)) {
+    const subject = findUserByHandle(userRidesMatch[1]);
+    if (!subject) {
       throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
     }
+    const subjectUid = subject.id;
     const q = (searchParams.get('q') || '').trim().toLowerCase();
     const now = Date.now();
     let list = rides.filter((r) => Array.isArray(r.participants) && r.participants.includes(subjectUid));
@@ -810,17 +862,16 @@ export async function mockRequest(path, options = {}) {
     return { items, total: paged.total, skip: paged.skip, take: paged.take };
   }
 
-  const userProfileMatch = pathname.match(/^\/api\/users\/(\d+)\/profile$/);
+  const userProfileMatch = pathname.match(/^\/api\/users\/([a-z0-9_]+)\/profile$/);
   if (userProfileMatch && method === 'GET') {
-    const uid = Number(userProfileMatch[1]);
-    if (uid === profile.id) {
-      return toFullProfile(profile);
-    }
-    const other = users.find((u) => u.id === uid);
-    if (!other) {
+    const subject = findUserByHandle(userProfileMatch[1]);
+    if (!subject) {
       throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
     }
-    return toPublicProfileView(other);
+    if (subject.id === profile.id) {
+      return toFullProfile(profile);
+    }
+    return toPublicProfileView(subject);
   }
 
   if (pathname === '/api/account/profile' && method === 'GET') {
@@ -845,6 +896,7 @@ export async function mockRequest(path, options = {}) {
     }
     profile = {
       ...profile,
+      handle: body.handle != null ? String(body.handle).replace(/^@/, '').trim().toLowerCase() : mockHandle(profile),
       firstName: body.firstName ?? profile.firstName,
       lastName: body.lastName ?? profile.lastName,
       email: body.email ?? profile.email,

@@ -5,6 +5,7 @@ import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { ROUTES } from '@/app/router/route-paths';
+import { myProfilePath } from '@/shared/lib/user-paths';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
@@ -80,7 +81,7 @@ export default function DashboardHomeCardsBold() {
               ) : null}
             </Link>
             <Link
-              to={ROUTES.userProfile.replace(':userId', String(user?.id ?? ''))}
+              to={myProfilePath(user)}
               aria-label="Your profile"
             >
               <UserAvatar

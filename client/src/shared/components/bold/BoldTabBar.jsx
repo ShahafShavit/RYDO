@@ -15,11 +15,11 @@ export default function BoldTabBar({ className }) {
   const { chatOpen, closeChat, toggleChat } = useClubChatUi();
   const { totalUnread } = useClubChatUnread();
 
-  const tabs = getBoldTabItems(user?.id);
+  const tabs = getBoldTabItems(user?.handle);
   const activeKey = resolveBoldActiveTab({
     pathname: location.pathname,
     chatOpen,
-    userId: user?.id,
+    userHandle: user?.handle,
   });
 
   const handleTabClick = (tab) => {

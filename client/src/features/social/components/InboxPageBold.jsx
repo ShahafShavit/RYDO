@@ -1,4 +1,5 @@
 import { generatePath, Link, useNavigate } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { ArrowLeft, Inbox as InboxIcon } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
@@ -156,7 +157,7 @@ export default function InboxPageBold({
                   const fr = row.friendRequest;
                   const from = fr.fromUser;
                   const pending = fr.status === 'pending' && !row.resolvedAt;
-                  const profileHref = generatePath(ROUTES.userProfile, { userId: String(from.id) });
+                  const profileHref = userProfilePath(from.handle);
                   return (
                     <InboxRequestCard
                       key={row.id}
@@ -179,9 +180,7 @@ export default function InboxPageBold({
                   const club = cjr.club;
                   const requester = cjr.requester;
                   const pending = !row.resolvedAt;
-                  const profileHref = generatePath(ROUTES.userProfile, {
-                    userId: String(requester.id),
-                  });
+                  const profileHref = userProfilePath(requester.handle);
                   const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
                   return (
                     <InboxRequestCard

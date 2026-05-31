@@ -9,6 +9,9 @@ import { getStoredUser, setStoredUser, clearStoredUser, getStoredToken, setStore
 import { queryClient } from '@/app/query-client';
 import { clearPersistedQueryCache } from '@/app/query-persist';
 import { apiClient } from '@/shared/api/api-client';
+import { accountApi } from '@/features/account/api/account-api';
+import { normalizeAccountProfile } from '@/features/account/account-mapper';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export const AuthContext = createContext(null);
 
@@ -17,6 +20,7 @@ function createDevUser() {
 
   return {
     id: 999,
+    handle: role === ROLES.ADMIN ? 'devadmin' : 'devrider',
     fullName: role === ROLES.ADMIN ? 'Development Admin' : 'Development Rider',
     email: role === ROLES.ADMIN ? 'admin@rydo.dev' : 'rider@rydo.dev',
     role,
@@ -80,8 +84,45 @@ export function AuthProvider({ children }) {
     return () => apiClient.setUnauthorizedHandler(null);
   }, [clearSession]);
 
-  const register = useCallback(async (firstName, lastName, email, password) => {
-    const session = normalizeAuthResponse(await authApi.register({ firstName, lastName, email, password }));
+  const updateUser = useCallback((partial) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...partial };
+      setStoredUser(next);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!initialSession.token || !user?.id) return;
+    if (normalizeHandle(user?.handle)) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = normalizeAccountProfile(await accountApi.getProfile());
+        if (cancelled || !normalizeHandle(profile.handle)) return;
+        updateUser({
+          handle: profile.handle,
+          avatarUrl: profile.avatarUrl ?? user.avatarUrl,
+          firstName: profile.firstName || user.firstName,
+          lastName: profile.lastName || user.lastName,
+          fullName: profile.fullName || user.fullName,
+        });
+      } catch {
+        // Stale token or offline — profile link falls back to settings until next login.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSession.token, updateUser, user?.avatarUrl, user?.firstName, user?.fullName, user?.handle, user?.id, user?.lastName]);
+
+  const register = useCallback(async (firstName, lastName, handle, email, password) => {
+    const session = normalizeAuthResponse(
+      await authApi.register({ firstName, lastName, handle, email, password }),
+    );
     applySession(session.user, session.token);
     return session.user;
   }, [applySession]);
@@ -95,15 +136,6 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     clearSession(true);
   }, [clearSession]);
-
-  const updateUser = useCallback((partial) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...partial };
-      setStoredUser(next);
-      return next;
-    });
-  }, []);
 
   const value = useMemo(
     () => ({

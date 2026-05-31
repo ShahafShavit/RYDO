@@ -31,6 +31,7 @@ export function mapRideDto(raw) {
   const createdBy = raw.createdBy
     ? {
         id: raw.createdBy.id != null ? Number(raw.createdBy.id) : null,
+        handle: raw.createdBy.handle ? String(raw.createdBy.handle).replace(/^@/, '').toLowerCase() : '',
         fullName: String(raw.createdBy.fullName || '').trim(),
         avatarUrl:
           typeof raw.createdBy.avatarUrl === 'string' && raw.createdBy.avatarUrl.trim()

@@ -176,7 +176,7 @@ public class LeaderboardService(RydoDbContext db) : ILeaderboardService
                 displayName = $"User #{uid}";
 
             var avatar = AvatarUrls.ResolveUserDisplay(u);
-            list.Add(new LeaderboardRowDto(i + 1, uid, displayName, avatar, val, unit));
+            list.Add(new LeaderboardRowDto(i + 1, uid, u?.Handle ?? "", displayName, avatar, val, unit));
         }
 
         return list;

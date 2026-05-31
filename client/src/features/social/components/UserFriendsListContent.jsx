@@ -1,5 +1,5 @@
-import { generatePath, Link } from 'react-router-dom';
-import { ROUTES } from '@/app/router/route-paths';
+import { Link } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { useFriendsList } from '@/features/social/hooks/useFriendsList';
 import { ApiError } from '@/shared/api/api-errors';
 import Card from '@/shared/components/ui/card/Card';
@@ -8,14 +8,13 @@ import { cn } from '@/shared/lib/cn';
 
 /**
  * @param {object} props
- * @param {number} props.userId
+ * @param {string} props.handle
  * @param {boolean} props.enabled
  * @param {'default' | 'modal'} [props.variant]
  */
-export function UserFriendsListContent({ userId, enabled, variant = 'default' }) {
-  const id = Number(userId);
-  const { data, isLoading, isError, error } = useFriendsList(userId, {
-    enabled: enabled && Number.isFinite(id) && id > 0,
+export function UserFriendsListContent({ handle, enabled, variant = 'default' }) {
+  const { data, isLoading, isError, error } = useFriendsList(handle, {
+    enabled: enabled && Boolean(handle),
   });
 
   const items = data?.items ?? [];
@@ -44,25 +43,39 @@ export function UserFriendsListContent({ userId, enabled, variant = 'default' })
 
   return (
     <ul className={cn('grid gap-2', !isModal && 'sm:grid-cols-2')}>
-      {items.map((m) => (
-        <li key={m.id}>
-          <Link
-            to={generatePath(ROUTES.userProfile, { userId: String(m.id) })}
-            className={cn(
-              'flex items-center gap-3 rounded-2xl border border-border bg-surface/80 p-3 transition hover:border-rydo-purple/35',
-              isModal && 'bg-surface',
+      {items.map((m) => {
+        const profileTo = userProfilePath(m.handle);
+        const rowClass = cn(
+          'flex items-center gap-3 rounded-2xl border border-border bg-surface/80 p-3 transition hover:border-rydo-purple/35',
+          isModal && 'bg-surface',
+        );
+
+        return (
+          <li key={m.id}>
+            {profileTo ? (
+              <Link to={profileTo} className={rowClass}>
+                <UserAvatar
+                  avatarUrl={m.avatarUrl}
+                  displayName={m.fullName}
+                  sizeClass="h-10 w-10"
+                  textClass="text-sm"
+                />
+                <span className="min-w-0 truncate font-medium text-fg">{m.fullName || 'Member'}</span>
+              </Link>
+            ) : (
+              <div className={rowClass}>
+                <UserAvatar
+                  avatarUrl={m.avatarUrl}
+                  displayName={m.fullName}
+                  sizeClass="h-10 w-10"
+                  textClass="text-sm"
+                />
+                <span className="min-w-0 truncate font-medium text-fg">{m.fullName || 'Member'}</span>
+              </div>
             )}
-          >
-            <UserAvatar
-              avatarUrl={m.avatarUrl}
-              displayName={m.fullName}
-              sizeClass="h-10 w-10"
-              textClass="text-sm"
-            />
-            <span className="min-w-0 truncate font-medium text-fg">{m.fullName || 'Member'}</span>
-          </Link>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

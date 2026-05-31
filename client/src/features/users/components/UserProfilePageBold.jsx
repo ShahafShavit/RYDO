@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useState } from 'react';
-import { generatePath, Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { userProfilePath, formatHandleDisplay } from '@/shared/lib/user-paths';
 import { ArrowLeft, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { boldMeOverflowItems, isBoldMeNavActive } from '@/shared/config/bold-navigation';
@@ -60,17 +61,16 @@ function statValue(value, formatter) {
   return formatter ? formatter(value) : String(value);
 }
 
-export default function UserProfilePageBold({ profile, userId, isOwn, relationshipStatus }) {
+export default function UserProfilePageBold({ profile, handle, isOwn, relationshipStatus }) {
   const { formatKm, formatElevation } = useFormatDistance();
   const location = useLocation();
   const navigate = useNavigate();
   const leaderboardsBackTo = resolveLeaderboardsBackPath(location.state);
-  const id = Number(userId);
   const [copied, setCopied] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
 
   const name = profile?.fullName?.trim() || 'Member';
-  const handle = profile?.email ? `@${String(profile.email).split('@')[0]}` : '';
+  const handleLabel = formatHandleDisplay(profile?.handle || handle);
   const memberSince = formatMemberSince(profile?.createdAt);
   const badges = profile?.leaderboardBadges ?? [];
 
@@ -80,10 +80,10 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
     ? (profile?.privacy?.publicFriendsListOnProfile ?? true)
     : (profile?.publicFriendsListOnProfile ?? true);
 
-  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(userId, {
+  const { data: routesPage, isLoading: routesLoading } = useUserUploadedRoutesPreview(handle, {
     enabled: showRoutes,
   });
-  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(userId, {
+  const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(handle, {
     enabled: showRides,
   });
   const canViewFriends = canViewUserFriendsList({
@@ -93,7 +93,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
   });
   const relationshipReady = isOwn || relationshipStatus != null;
 
-  const { data: friendsData } = useFriendsList(userId, {
+  const { data: friendsData } = useFriendsList(handle, {
     enabled: canViewFriends && relationshipReady,
   });
 
@@ -130,14 +130,14 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
   const statsLoading = routesLoading || (showRides && ridesLoading);
 
   const shareUrl = useMemo(() => {
-    const path = generatePath(ROUTES.userProfile, { userId: String(userId ?? '') });
+    const path = userProfilePath(handle);
     if (typeof window === 'undefined') return path;
     try {
       return new URL(path, window.location.origin).href;
     } catch {
       return path;
     }
-  }, [userId]);
+  }, [handle]);
 
   const copyShareLink = useCallback(async () => {
     try {
@@ -149,8 +149,8 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
     }
   }, [shareUrl]);
 
-  const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: id })}`;
-  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: id })}`;
+  const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: handle })}`;
+  const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: handle })}`;
 
   return (
     <BoldScreen>
@@ -188,7 +188,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
             <div className="min-w-0 flex-1">
               <DisplayTitle size="sm">{name}</DisplayTitle>
               <p className="rydo-subtle mt-1 text-[13px]">
-                {handle}
+                {handleLabel}
                 {lifetime.level != null ? ` · Lvl ${lifetime.level}` : ''}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -395,7 +395,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn, relationsh
       <UserFriendsListModal
         open={friendsOpen}
         onClose={() => setFriendsOpen(false)}
-        userId={id}
+        handle={handle}
         isOwn={isOwn}
         displayName={name}
         publicFriendsListOnProfile={publicFriendsListOnProfile}

@@ -1,4 +1,5 @@
 import { ROUTES } from '@/app/router/route-paths';
+import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export const EXPLORE_SCOPES = ['all', 'routes', 'clubs', 'people'];
 export const EXPLORE_SCOPE_TABS = [
@@ -12,7 +13,7 @@ export const EXPLORE_SEARCH_PLACEHOLDERS = {
   all: 'Search routes, clubs, or people…',
   routes: 'Search routes…',
   clubs: 'Search clubs…',
-  people: 'Search people by name…',
+  people: 'Search people by name or handle…',
 };
 
 /** @param {string | null | undefined} raw */
@@ -51,11 +52,11 @@ export function defaultExploreFilters() {
     nearLat: null,
     nearLng: null,
     nearMaxKm: null,
-    createdByUserId: null,
+    createdByHandle: null,
   };
 }
 
-/** Reset only route advanced dimensions; preserve search and createdByUserId. */
+/** Reset only route advanced dimensions; preserve search and createdByHandle. */
 export function clearRouteAdvancedFilters(filters) {
   return {
     ...filters,
@@ -70,11 +71,11 @@ export function clearRouteAdvancedFilters(filters) {
 }
 
 /** @param {URLSearchParams | import('react-router-dom').URLSearchParams} searchParams */
-export function parseCreatedByUserIdFromSearchParams(searchParams) {
+export function parseCreatedByHandleFromSearchParams(searchParams) {
   const raw = searchParams.get('createdBy');
   if (raw == null || raw === '') return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const handle = normalizeHandle(raw);
+  return handle || null;
 }
 
 /**

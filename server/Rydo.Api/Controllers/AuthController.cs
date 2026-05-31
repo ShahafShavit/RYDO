@@ -8,10 +8,10 @@ namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(UserManager<ApplicationUser> users, JwtTokenService jwt) : ControllerBase
+public class AuthController(UserManager<ApplicationUser> users, JwtTokenService jwt, IUserHandleService handles) : ControllerBase
 {
     public record LoginRequest(string Email, string Password);
-    public record RegisterRequest(string FirstName, string LastName, string Email, string Password);
+    public record RegisterRequest(string FirstName, string LastName, string Handle, string Email, string Password);
 
     [HttpPost("login")]
     [AllowAnonymous]
@@ -28,13 +28,20 @@ public class AuthController(UserManager<ApplicationUser> users, JwtTokenService 
 
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest body)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest body, CancellationToken ct)
     {
+        var normalized = handles.Normalize(body.Handle);
+        if (handles.Validate(normalized) is { } err)
+            return Problem(statusCode: 400, detail: err);
+        if (!await handles.IsAvailableAsync(normalized!, excludeUserId: null, ct))
+            return Problem(statusCode: 409, detail: "That handle is already taken.");
+
         var user = new ApplicationUser
         {
             UserName = body.Email,
             Email = body.Email,
             EmailConfirmed = true,
+            Handle = normalized!,
             FirstName = body.FirstName,
             LastName = body.LastName,
             CreatedAt = DateTime.UtcNow,
@@ -58,6 +65,7 @@ public class AuthController(UserManager<ApplicationUser> users, JwtTokenService 
             user = new
             {
                 id = user.Id,
+                handle = user.Handle,
                 firstName = user.FirstName,
                 lastName = user.LastName,
                 email = user.Email,

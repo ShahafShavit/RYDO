@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { ModalHeader, ModalPanel, modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import { cn } from '@/shared/lib/cn';
-import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 
 function initialsFromName(name) {
   const parts = String(name || '')
@@ -14,11 +14,11 @@ function initialsFromName(name) {
   return '?';
 }
 
-export function RouteRiderRow({ userId, fullName, avatarUrl }) {
+export function RouteRiderRow({ handle, fullName, avatarUrl }) {
   return (
     <li>
       <Link
-        to={ROUTES.userProfile.replace(':userId', String(userId))}
+        to={userProfilePath(handle)}
         className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-surface"
       >
         {avatarUrl ? (
@@ -76,7 +76,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
             filtered.map((r) => (
               <RouteRiderRow
                 key={r.userId}
-                userId={r.userId}
+                handle={r.handle}
                 fullName={r.fullName}
                 avatarUrl={r.avatarUrl}
               />

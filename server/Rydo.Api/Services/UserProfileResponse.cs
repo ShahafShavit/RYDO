@@ -32,6 +32,7 @@ public static class UserProfileResponse
         return new
         {
             id = u.Id,
+            handle = u.Handle,
             firstName = u.FirstName,
             lastName = u.LastName,
             email = u.Email,
@@ -73,6 +74,7 @@ public static class UserProfileResponse
         return new
         {
             id = u.Id,
+            handle = u.Handle,
             isSelf = false,
             firstName = u.PublicFirstName ? u.FirstName : null,
             lastName = u.PublicLastName ? u.LastName : null,

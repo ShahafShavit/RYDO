@@ -4,7 +4,7 @@ import { User, Settings, LogOut, Inbox } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/app/router/route-paths';
-import { generatePath } from 'react-router-dom';
+import { myProfilePath } from '@/shared/lib/user-paths';
 import { cn } from '@/shared/lib/cn';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
@@ -77,7 +77,7 @@ export default function UserProfileDropdown() {
                             role="menuitem"
                             onClick={() => {
                                 setIsOpen(false);
-                                if (user?.id) navigate(generatePath(ROUTES.userProfile, { userId: String(user.id) }));
+                                navigate(myProfilePath(user));
                             }}
                             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-fg/90 transition-colors hover:bg-surface-strong hover:text-fg"
                         >

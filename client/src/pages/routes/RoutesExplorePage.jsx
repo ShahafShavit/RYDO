@@ -30,7 +30,7 @@ import { cn } from '@/shared/lib/cn';
 import {
   clearRouteAdvancedFilters,
   defaultExploreFilters,
-  parseCreatedByUserIdFromSearchParams,
+    parseCreatedByHandleFromSearchParams,
   parseScopeFromSearchParams,
   scopeShowsPeopleQuery,
   scopeShowsRouteFilters,
@@ -140,13 +140,13 @@ export default function RoutesExplorePage() {
   const [appliedUrlSyncKey, setAppliedUrlSyncKey] = useState('');
   if (urlSyncKey !== appliedUrlSyncKey) {
     setAppliedUrlSyncKey(urlSyncKey);
-    const createdByUserId = parseCreatedByUserIdFromSearchParams(searchParams);
+    const createdByHandle = parseCreatedByHandleFromSearchParams(searchParams);
     const urlScope = parseScopeFromSearchParams(searchParams);
-    setScope(createdByUserId != null ? 'routes' : urlScope);
+    setScope(createdByHandle != null ? 'routes' : urlScope);
     setFilters((f) => ({
       ...f,
       search: searchParams.get('q') ?? '',
-      createdByUserId,
+      createdByHandle,
     }));
   }
 

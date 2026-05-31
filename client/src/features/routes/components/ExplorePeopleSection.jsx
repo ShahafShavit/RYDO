@@ -1,7 +1,7 @@
-import { Link, generatePath } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import UserAvatar from '@/shared/components/user/UserAvatar';
-import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath, formatHandleDisplay } from '@/shared/lib/user-paths';
 import { cn } from '@/shared/lib/cn';
 
 export default function ExplorePeopleSection({
@@ -23,7 +23,7 @@ export default function ExplorePeopleSection({
       <section className={cn(className)} aria-label="People">
         <Eyebrow className="mb-2.5">People</Eyebrow>
         <p className={variant === 'mobile' ? 'rydo-subtle text-sm' : 'text-sm text-fg-muted'}>
-          Type at least 2 characters to search members by name.
+          Type at least 2 characters to search members by name or handle.
         </p>
       </section>
     );
@@ -63,11 +63,16 @@ export default function ExplorePeopleSection({
               peopleItems.map((row) => (
                 <li key={row.id}>
                   <Link
-                    to={generatePath(ROUTES.userProfile, { userId: String(row.id) })}
+                    to={userProfilePath(row.handle)}
                     className="flex items-center gap-3 rounded-2xl border border-border bg-surface-strong px-4 py-3 transition hover:border-border-strong"
                   >
                     <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
-                    <span className="font-medium text-fg/90">{row.fullName || `User ${row.id}`}</span>
+                    <div className="min-w-0">
+                      <span className="block font-medium text-fg/90">{row.fullName || `User ${row.id}`}</span>
+                      {row.handle ? (
+                        <span className="block truncate text-sm text-fg-muted">{formatHandleDisplay(row.handle)}</span>
+                      ) : null}
+                    </div>
                   </Link>
                 </li>
               ))
@@ -93,11 +98,16 @@ export default function ExplorePeopleSection({
             peopleItems.map((row) => (
               <Link
                 key={row.id}
-                to={generatePath(ROUTES.userProfile, { userId: String(row.id) })}
+                to={userProfilePath(row.handle)}
                 className="rydo-bold-glass-row flex items-center gap-3 p-3 no-underline transition active:opacity-80"
               >
                 <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
-                <span className="truncate font-semibold text-fg">{row.fullName || `User ${row.id}`}</span>
+                <div className="min-w-0">
+                  <span className="block truncate font-semibold text-fg">{row.fullName || `User ${row.id}`}</span>
+                  {row.handle ? (
+                    <span className="block truncate text-xs text-fg-muted">{formatHandleDisplay(row.handle)}</span>
+                  ) : null}
+                </div>
               </Link>
             ))
           )}

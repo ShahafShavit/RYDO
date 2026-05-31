@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/account")]
 [Authorize]
-public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats) : ControllerBase
+public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats, IUserHandleService handles) : ControllerBase
 {
     private static readonly HashSet<string> AllowedColorSchemes =
     [
@@ -34,6 +34,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
     }
 
     public record ProfileUpdate(
+        string Handle,
         string FirstName,
         string LastName,
         string Email,
@@ -54,6 +55,14 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
     {
         var u = await GetUserAsync(ct);
         if (u == null) return Unauthorized();
+
+        var normalizedHandle = handles.Normalize(body.Handle);
+        if (handles.Validate(normalizedHandle) is { } handleErr)
+            return Problem(statusCode: 400, detail: handleErr);
+        if (!await handles.IsAvailableAsync(normalizedHandle!, u.Id, ct))
+            return Problem(statusCode: 409, detail: "That handle is already taken.");
+        u.Handle = normalizedHandle!;
+
         u.FirstName = body.FirstName;
         u.LastName = body.LastName;
         u.Bio = string.IsNullOrWhiteSpace(body.Bio) ? null : body.Bio.Trim();
@@ -66,7 +75,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
                 u.AvatarImageBytes = null;
                 u.AvatarImageContentType = null;
             }
-            else if (AvatarUrls.MatchesUserUploadedPath(t, u.Id) && u.AvatarImageBytes is { Length: > 0 })
+            else if (AvatarUrls.MatchesUserUploadedPath(t, u) && u.AvatarImageBytes is { Length: > 0 })
             {
                 /* keep uploaded avatar */
             }
@@ -125,7 +134,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         u.AvatarUrl = null;
         await users.UpdateAsync(u);
 
-        return Ok(new { avatarUrl = AvatarUrls.UserUploaded(u.Id) });
+        return Ok(new { avatarUrl = AvatarUrls.UserUploaded(u) });
     }
 
     [HttpGet("preferences")]

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
@@ -16,7 +16,7 @@ export default function RouteDetailsHeader({ route, children }) {
   if (!route) return null;
 
   const cb = route.createdBy;
-  const showUploader = cb?.id != null && cb?.fullName;
+  const showUploader = cb?.handle && cb?.fullName;
 
   return (
     <div className="relative z-(--rydo-z-route-header) min-w-0 space-y-4">
@@ -29,7 +29,7 @@ export default function RouteDetailsHeader({ route, children }) {
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             {showUploader ? (
               <Link
-                to={ROUTES.userProfile.replace(':userId', String(cb.id))}
+                to={userProfilePath(cb.handle)}
                 className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-border bg-surface py-1 pl-1 pr-3 text-sm text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
               >
                 {cb.avatarUrl ? (

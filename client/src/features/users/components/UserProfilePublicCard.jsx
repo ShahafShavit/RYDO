@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
-import { generatePath, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { QRCode } from 'react-qr-code';
 import { MapPin, Mail, Calendar, Bike, Link2, Check } from 'lucide-react';
 import { formatBikeTypeLabel } from '@/features/account/utils/bikeTypeLabel';
@@ -51,18 +52,18 @@ function formatMemberSince(iso) {
  * Public profile card (avatar, about, contact rows, share QR) — same on /users/:id and settings preview.
  * @param {string} [ownerEmptyHint] — when the viewer is the profile owner and fields are empty; default mentions settings.
  */
-export function UserProfilePublicCard({ profile, userId, className, ownerEmptyHint }) {
+export function UserProfilePublicCard({ profile, handle, className, ownerEmptyHint }) {
   const [copied, setCopied] = useState(false);
 
   const shareUrl = useMemo(() => {
-    const path = generatePath(ROUTES.userProfile, { userId: String(userId ?? '') });
+    const path = userProfilePath(handle || profile?.handle);
     if (typeof window === 'undefined') return path;
     try {
       return new URL(path, window.location.origin).href;
     } catch {
       return path;
     }
-  }, [userId]);
+  }, [handle, profile?.handle]);
 
   const copyShareLink = useCallback(async () => {
     try {

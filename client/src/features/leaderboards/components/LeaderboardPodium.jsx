@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { LB_RING, formatLeaderboardValue } from '@/features/leaderboards/leaderboard-format';
 import { leaderboardProfileLinkState } from '@/features/leaderboards/leaderboard-utils';
@@ -9,7 +10,7 @@ function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, boardI
   const ring = LB_RING[row.rank];
   const isMe = currentUserId != null && Number(row.userId) === Number(currentUserId);
   const label = isMe ? 'You' : (row.displayName || '').split(' ')[0];
-  const profileTo = ROUTES.userProfile.replace(':userId', String(row.userId));
+  const profileTo = userProfilePath(row.handle);
 
   const avatarSize = compact
     ? row.rank === 1

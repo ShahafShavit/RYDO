@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 import { useLeaderboards } from '@/features/leaderboards/hooks/useLeaderboards';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import LeaderboardsPageBold from '@/features/leaderboards/components/LeaderboardsPageBold';
@@ -58,7 +59,7 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatElevation }) {
             return (
               <li key={`${row.userId}-${row.rank}`}>
                 <Link
-                  to={ROUTES.userProfile.replace(':userId', String(row.userId))}
+                  to={userProfilePath(row.handle)}
                   className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition hover:border-border-strong ${accent || 'border-border bg-surface'}`}
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rydo-purple/20 text-sm font-semibold text-fg">
