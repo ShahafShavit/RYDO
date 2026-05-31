@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, generatePath } from 'react-router-dom';
 
 import { ArrowLeft, Bike, Clock, Mountain, Route as RouteIcon, Share2, AlertTriangle } from 'lucide-react';
+
+import { ROUTES } from '@/app/router/route-paths';
 
 import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 
@@ -37,31 +39,27 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 
 import { cn } from '@/shared/lib/cn';
 
-
+import { useShare } from '@/shared/hooks/useShare';
+import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
 
 function formatDuration(minutes) {
-
   if (!minutes && minutes !== 0) return '—';
-
   const h = Math.floor(minutes / 60);
-
   const m = minutes % 60;
-
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
-
 }
 
-
-
 export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
-
   const navigate = useNavigate();
-
   const { formatKm, formatElevation, labels } = useFormatDistance();
-
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-
+  const sharePath =
+    route?.id != null ? generatePath(ROUTES.routeDetails, { routeId: String(route.id) }) : null;
+  const { share, modalProps } = useShare({
+    path: sharePath,
+    title: route?.title || 'Route',
+  });
 
   const profile = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
 
@@ -153,7 +151,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
           <div className="flex-1" />
 
-          <IconButton icon={Share2} size="lg" aria-label="Share" onClick={() => {}} />
+          <IconButton icon={Share2} size="lg" aria-label="Share" onClick={share} />
 
         </div>
 
@@ -355,6 +353,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
       ) : null}
 
+      <ShareSheetModal {...modalProps} title="Share route" />
     </BoldScreen>
 
   );

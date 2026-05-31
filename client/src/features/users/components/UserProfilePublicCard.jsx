@@ -1,4 +1,3 @@
-import { useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { userProfilePath } from '@/shared/lib/user-paths';
 import { QRCode } from 'react-qr-code';
@@ -11,6 +10,7 @@ import {
 } from '@/features/leaderboards/leaderboard-boards';
 import { cn } from '@/shared/lib/cn';
 import Card from '@/shared/components/ui/card/Card';
+import { useShare } from '@/shared/hooks/useShare';
 
 function getDisplayName(profile) {
   const full = profile?.fullName?.trim();
@@ -53,27 +53,14 @@ function formatMemberSince(iso) {
  * @param {string} [ownerEmptyHint] — when the viewer is the profile owner and fields are empty; default mentions settings.
  */
 export function UserProfilePublicCard({ profile, handle, className, ownerEmptyHint }) {
-  const [copied, setCopied] = useState(false);
+  const displayName = getDisplayName(profile);
+  const shareHandle = handle || profile?.handle;
 
-  const shareUrl = useMemo(() => {
-    const path = userProfilePath(handle || profile?.handle);
-    if (typeof window === 'undefined') return path;
-    try {
-      return new URL(path, window.location.origin).href;
-    } catch {
-      return path;
-    }
-  }, [handle, profile?.handle]);
-
-  const copyShareLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }, [shareUrl]);
+  const { url: shareUrl, copied, copyAndShare } = useShare({
+    path: userProfilePath(shareHandle),
+    title: displayName,
+    text: `Check out ${displayName} on RYDO`,
+  });
 
   const showEmail = profile.email != null && String(profile.email).trim() !== '';
   const showBio = profile.bio != null && String(profile.bio).trim() !== '';
@@ -84,7 +71,6 @@ export function UserProfilePublicCard({ profile, handle, className, ownerEmptyHi
   const bikeLabel = showBike ? formatBikeTypeLabel(profile.defaultBikeType) : '';
   const avatar = profile.avatarUrl?.trim() || null;
   const initials = getProfileInitials(profile);
-  const displayName = getDisplayName(profile);
   const hasDetails = showLocation || showEmail || showCreated || showBike;
 
   return (
@@ -196,12 +182,12 @@ export function UserProfilePublicCard({ profile, handle, className, ownerEmptyHi
           <h2 className="text-[15px] font-semibold tracking-tight text-fg">Share profile</h2>
           <div className="mt-5">
             <div className="rounded-2xl bg-[var(--rydo-bg)] p-3.5 shadow-md shadow-black/25">
-              <QRCode value={shareUrl} size={144} level="M" />
+              {shareUrl ? <QRCode value={shareUrl} size={144} level="M" /> : null}
             </div>
           </div>
           <button
             type="button"
-            onClick={copyShareLink}
+            onClick={copyAndShare}
             className="mt-5 inline-flex w-full max-w-[220px] items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-fg/90 transition hover:border-border-strong hover:bg-surface-strong"
           >
             {copied ? <Check className="h-4 w-4 text-emerald-400" aria-hidden /> : <Link2 className="h-4 w-4 text-fg-muted" aria-hidden />}

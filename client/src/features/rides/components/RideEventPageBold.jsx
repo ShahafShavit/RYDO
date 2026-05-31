@@ -10,6 +10,7 @@ import {
   Mountain,
   Pencil,
   Route as RouteIcon,
+  Share2,
   Users,
 } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
@@ -27,6 +28,8 @@ import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
+import { useShare } from '@/shared/hooks/useShare';
+import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
 
 import BoldRouteMapElevation from '@/features/routes/components/BoldRouteMapElevation';
 
@@ -97,6 +100,13 @@ export default function RideEventPageBold({
 }) {
   const navigate = useNavigate();
   const { formatKm, formatElevation } = useFormatDistance();
+
+  const sharePath =
+    ride?.id != null ? generatePath(ROUTES.rideEvent, { rideId: String(ride.id) }) : null;
+  const { share, modalProps } = useShare({
+    path: sharePath,
+    title: ride?.name || 'Ride',
+  });
 
   const profile = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
 
@@ -191,6 +201,7 @@ export default function RideEventPageBold({
         <div className="flex items-center gap-2 px-5 pb-1 pt-1">
           <IconButton icon={ArrowLeft} size="lg" aria-label="Back" onClick={() => navigate(-1)} />
           <div className="flex-1" />
+          <IconButton icon={Share2} size="lg" aria-label="Share ride" onClick={share} />
           {showEdit ? (
             <IconButton icon={Pencil} size="lg" aria-label="Edit ride" onClick={onEditClick} />
           ) : null}
@@ -426,6 +437,7 @@ export default function RideEventPageBold({
           </div>
         ) : null}
       </div>
+      <ShareSheetModal {...modalProps} title="Share ride" />
     </BoldScreen>
   );
 }

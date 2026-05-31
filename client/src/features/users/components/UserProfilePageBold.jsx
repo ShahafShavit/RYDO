@@ -1,7 +1,7 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { userProfilePath, formatHandleDisplay } from '@/shared/lib/user-paths';
-import { ArrowLeft, Bell, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
+import { ArrowLeft, Bell, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
 import {
@@ -29,6 +29,8 @@ import {
 import { formatProfileWhen } from '@/features/users/utils/profile-formatters';
 import { buildQueryString } from '@/shared/api/api-helpers';
 import { cn } from '@/shared/lib/cn';
+import { useShare } from '@/shared/hooks/useShare';
+import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
 
 const RIDES_PER_LEVEL = 5;
 
@@ -66,7 +68,6 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
   const location = useLocation();
   const navigate = useNavigate();
   const leaderboardsBackTo = resolveLeaderboardsBackPath(location.state);
-  const [copied, setCopied] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const { data: inboxSummary } = useInboxSummary();
   const unreadInbox = inboxSummary?.unreadCount ?? 0;
@@ -131,25 +132,11 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
 
   const statsLoading = routesLoading || (showRides && ridesLoading);
 
-  const shareUrl = useMemo(() => {
-    const path = userProfilePath(handle);
-    if (typeof window === 'undefined') return path;
-    try {
-      return new URL(path, window.location.origin).href;
-    } catch {
-      return path;
-    }
-  }, [handle]);
-
-  const copyShareLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }, [shareUrl]);
+  const { share, modalProps } = useShare({
+    path: userProfilePath(handle),
+    title: name,
+    text: `Check out ${name} on RYDO`,
+  });
 
   const routesMoreHref = `${ROUTES.routes}${buildQueryString({ createdBy: handle })}`;
   const ridesMoreHref = `${ROUTES.myRides}${buildQueryString({ member: handle })}`;
@@ -189,9 +176,9 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
               </Link>
             ) : null}
             <IconButton
-              icon={copied ? Check : Share2}
-              aria-label={copied ? 'Link copied' : 'Share profile'}
-              onClick={copyShareLink}
+              icon={Share2}
+              aria-label="Share profile"
+              onClick={share}
             />
             {isOwn ? (
               <Link to={`${ROUTES.settings}?tab=profile`} aria-label="Settings">
@@ -402,6 +389,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
         displayName={name}
         publicFriendsListOnProfile={publicFriendsListOnProfile}
       />
+      <ShareSheetModal {...modalProps} title="Share profile" />
     </BoldScreen>
   );
 }

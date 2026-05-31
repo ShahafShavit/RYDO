@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { generatePath, useParams } from 'react-router-dom';
+import { ROUTES } from '@/app/router/route-paths';
 import RouteDetailsHeader from '@/features/routes/components/RouteDetailsHeader';
 import RouteDetailsPageBold from '@/features/routes/components/RouteDetailsPageBold';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
@@ -12,6 +13,7 @@ import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+import ShareButton from '@/shared/components/share/ShareButton';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
@@ -25,10 +27,19 @@ export default function RouteDetailsPage() {
     [route],
   );
 
+  const sharePath =
+    route?.id != null ? generatePath(ROUTES.routeDetails, { routeId: String(route.id) }) : null;
+
   return (
     <>
       <section className="hidden min-w-0 space-y-6 md:block">
         <RouteDetailsHeader route={route}>
+          <ShareButton
+            path={sharePath}
+            title={route?.title || 'Route'}
+            modalTitle="Share route"
+            className="shrink-0"
+          />
           <SavedRouteButton routeId={route?.id} />
           {route?.id ? (
             <Button type="button" variant="neon" onClick={() => setScheduleOpen(true)}>

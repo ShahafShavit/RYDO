@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useNavigation, useParams } from 'react-router-dom';
+import { generatePath, useNavigate, useNavigation, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RideEventCard from '@/features/rides/components/RideEventCard';
 import RideEventPageBold from '@/features/rides/components/RideEventPageBold';
@@ -15,6 +15,7 @@ import Button from '@/shared/components/ui/button/Button';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+import ShareButton from '@/shared/components/share/ShareButton';
 
 function prefetchLiveRideRoute() {
   import('@/features/live-ride/LiveRideRoute').catch(() => {});
@@ -66,8 +67,18 @@ export default function RideEventPage() {
   const upcoming = ride ? isRideUpcoming(ride) : false;
   const showEdit = Boolean(ride?.viewerCanEdit && upcoming);
 
-  const rideHeaderExtra =
-    user && ride?.rideKind !== 'soloLog' && upcoming ? (
+  const sharePath =
+    ride?.id != null ? generatePath(ROUTES.rideEvent, { rideId: String(ride.id) }) : null;
+
+  const rideHeaderExtra = (
+    <>
+      <ShareButton
+        path={sharePath}
+        title={ride?.name || 'Ride'}
+        modalTitle="Share ride"
+        className="shrink-0"
+      />
+      {user && ride?.rideKind !== 'soloLog' && upcoming ? (
       <>
         {amParticipant && ride.routeId ? (
           <Button
@@ -95,7 +106,9 @@ export default function RideEventPage() {
           </Button>
         )}
       </>
-    ) : null;
+      ) : null}
+    </>
+  );
 
   const handleLiveRide = liveRideTarget
     ? () => {

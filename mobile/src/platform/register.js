@@ -4,9 +4,11 @@ import { setPlatformStorage } from '@/features/auth/utils/auth-storage';
 import { setQueryCacheStorage } from '@/app/query-cache-storage';
 import { setGeolocationProvider } from '@/shared/platform/geolocation-provider';
 import { setPermissionsProvider } from '@/shared/platform/permissions-provider';
+import { setShareProvider } from '@/shared/platform/share-provider';
 import { createStorage, initNativeStorage } from './storage';
 import { createGeolocation } from './geolocation';
 import { createPermissionsProvider } from './permissions';
+import { shareProvider } from './share';
 import { appLifecycle } from './app-lifecycle';
 import { initSystemBars } from './system-bars';
 
@@ -26,6 +28,9 @@ export async function registerPlatform() {
   setPlatformStorage(storage);
   setGeolocationProvider(geolocation);
   setPermissionsProvider(permissions);
+  if (isNative) {
+    setShareProvider(shareProvider);
+  }
 
   if (isNative) {
     setQueryCacheStorage({
