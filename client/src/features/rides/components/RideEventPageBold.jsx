@@ -31,7 +31,6 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
-import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 
 import BoldRouteMapElevation from '@/features/routes/components/BoldRouteMapElevation';
 
@@ -105,7 +104,6 @@ export default function RideEventPageBold({
 }) {
   const navigate = useNavigate();
   const { formatKm, formatElevation } = useFormatDistance();
-  const { openRideChat } = useRideChatUi();
 
   const sharePath =
     ride?.id != null ? generatePath(ROUTES.rideEvent, { rideId: String(ride.id) }) : null;
@@ -414,7 +412,13 @@ export default function RideEventPageBold({
 
         {showRideChat && !showAttendance ? (
           <div className="relative z-[3] flex shrink-0 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
-            <SecondaryAction className="flex-1" aria-label="Ride chat" onClick={() => openRideChat(ride.id)}>
+            <SecondaryAction
+              className="flex-1"
+              aria-label="Ride chat"
+              onClick={() =>
+                navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+              }
+            >
               <MessageCircle className="mr-2 h-4 w-4 inline" aria-hidden />
               View ride chat
             </SecondaryAction>
@@ -427,7 +431,9 @@ export default function RideEventPageBold({
               <SecondaryAction
                 className="shrink-0 px-3"
                 aria-label="Ride chat"
-                onClick={() => openRideChat(ride.id)}
+                onClick={() =>
+                  navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+                }
               >
                 <MessageCircle className="h-4 w-4" aria-hidden />
               </SecondaryAction>

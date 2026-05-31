@@ -5,44 +5,75 @@ import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { usePreferences } from '@/features/account/hooks/useAccount';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
-import ClubChatListBold from '@/features/club-chat/components/ClubChatListBold';
+import ChatListBold from '@/features/club-chat/components/ChatListBold';
 import ClubChatThread from '@/features/club-chat/components/ClubChatThread';
+import RideChatThread from '@/features/ride-chat/components/RideChatThread';
+import { rideChatApi } from '@/features/ride-chat/api/ride-chat-api';
 
 export default function ClubChatPage() {
   const { user } = useAuth();
   const { data: preferences } = usePreferences();
   const navigate = useNavigate();
-  const { clubId: clubIdParam } = useParams();
+  const params = useParams();
+  const clubIdParam = params.clubId;
+  const rideIdParam = params.rideId;
 
   const threadClubId = useMemo(() => {
-    if (!clubIdParam) return null;
+    if (!clubIdParam || rideIdParam) return null;
     const n = Number(clubIdParam);
     return Number.isFinite(n) ? n : null;
-  }, [clubIdParam]);
+  }, [clubIdParam, rideIdParam]);
+
+  const threadRideId = useMemo(() => {
+    if (!rideIdParam) return null;
+    const n = Number(rideIdParam);
+    return Number.isFinite(n) ? n : null;
+  }, [rideIdParam]);
 
   useEffect(() => {
-    if (clubIdParam && threadClubId == null) {
+    if (clubIdParam && threadClubId == null && !rideIdParam) {
       navigate(ROUTES.chat, { replace: true });
     }
-  }, [clubIdParam, threadClubId, navigate]);
+  }, [clubIdParam, threadClubId, rideIdParam, navigate]);
 
-  const summaryQuery = useQuery({
+  useEffect(() => {
+    if (rideIdParam && threadRideId == null) {
+      navigate(ROUTES.chat, { replace: true });
+    }
+  }, [rideIdParam, threadRideId, navigate]);
+
+  const clubSummaryQuery = useQuery({
     queryKey: ['clubChat', 'summary'],
     queryFn: () => clubChatApi.getSummary(),
     enabled: !!user?.id,
     staleTime: 15_000,
   });
 
-  const summary = useMemo(() => summaryQuery.data || [], [summaryQuery.data]);
+  const rideSummaryQuery = useQuery({
+    queryKey: ['rideChat', 'summary'],
+    queryFn: () => rideChatApi.getSummary(),
+    enabled: !!user?.id,
+    staleTime: 15_000,
+  });
+
+  const clubSummary = useMemo(() => clubSummaryQuery.data || [], [clubSummaryQuery.data]);
+  const rideSummary = useMemo(() => rideSummaryQuery.data || [], [rideSummaryQuery.data]);
 
   const activeClub = useMemo(() => {
     if (!threadClubId) return null;
-    return summary.find((s) => s.clubId === threadClubId) ?? null;
-  }, [threadClubId, summary]);
+    return clubSummary.find((s) => s.clubId === threadClubId) ?? null;
+  }, [threadClubId, clubSummary]);
 
   const handleSelectClub = useCallback(
     (row) => {
       navigate(generatePath(ROUTES.chatThread, { clubId: String(row.clubId) }));
+    },
+    [navigate],
+  );
+
+  const handleSelectRide = useCallback(
+    (row) => {
+      navigate(generatePath(ROUTES.chatRideThread, { rideId: String(row.rideId) }));
     },
     [navigate],
   );
@@ -63,19 +94,25 @@ export default function ClubChatPage() {
 
   if (!user?.id) return null;
 
+  const isLoading = clubSummaryQuery.isLoading || rideSummaryQuery.isLoading;
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col font-[Inter,sans-serif] text-fg">
-      {threadClubId ? (
+      {threadRideId ? (
+        <RideChatThread rideId={threadRideId} onBack={handleBack} />
+      ) : threadClubId ? (
         <ClubChatThread
           clubId={threadClubId}
           activeClub={activeClub}
           onBack={handleBack}
         />
       ) : (
-        <ClubChatListBold
-          summary={summary}
-          isLoading={summaryQuery.isLoading}
+        <ChatListBold
+          clubSummary={clubSummary}
+          rideSummary={rideSummary}
+          isLoading={isLoading}
           onSelectClub={handleSelectClub}
+          onSelectRide={handleSelectRide}
           insetTabBar
         />
       )}

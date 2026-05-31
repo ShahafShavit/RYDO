@@ -18,6 +18,7 @@ export const ROUTES = {
   findPeople: '/find-people',
   inbox: '/inbox',
   chat: '/chat',
+  chatRideThread: '/chat/ride/:rideId',
   chatThread: '/chat/:clubId',
   userProfile: '/users/:handle',
   rideEvent: '/ride/:rideId',

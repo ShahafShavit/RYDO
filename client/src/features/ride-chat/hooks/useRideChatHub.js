@@ -15,6 +15,7 @@ export function useRideChatHub(rideId, enabled) {
       if (rideId != null) {
         queryClient.invalidateQueries({ queryKey: ['rideChat', 'messages', rideId] });
       }
+      queryClient.invalidateQueries({ queryKey: ['rideChat', 'summary'] });
     },
     [queryClient, rideId],
   );

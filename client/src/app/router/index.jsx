@@ -87,6 +87,7 @@ export function createAppRoutes(options = {}) {
             { path: ROUTES.settings, element: <SettingsPage /> },
             { path: ROUTES.inbox, element: <InboxPage /> },
             { path: ROUTES.chat, element: <ClubChatPage /> },
+            { path: ROUTES.chatRideThread, element: <ClubChatPage /> },
             { path: ROUTES.chatThread, element: <ClubChatPage /> },
             { path: ROUTES.findPeople, element: <Navigate to={ROUTES.routes} replace /> },
             { path: ROUTES.userProfile, element: <UserProfilePage /> },

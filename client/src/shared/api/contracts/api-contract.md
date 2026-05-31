@@ -373,6 +373,16 @@ Body: `{ "lastReadMessageId": 1 }` or `{ "markLatest": true }`. Returns `204`.
 
 SignalR hub: `/hubs/ride-chat` — `JoinRide(rideId)` → `ReceiveMessage` events (same message shape as HTTP).
 
+### `GET /users/me/ride-chat/summary` (authenticated)
+Array of ride chat conversations for the Chat tab. One row per non–solo-log ride the user has joined (including rides with no messages yet).
+
+Each item: `{ rideId, rideName, clubId, clubName, unreadCount, lastMessagePreview, lastMessageAt, scheduledDate, readOnly }`.
+
+- `lastMessagePreview` — truncated server-side (120 chars); null if no messages.
+- `lastMessageAt` — ISO UTC of latest message, or null.
+- `readOnly` — `true` when ride chat is outside the 48h writable window (`RideEventWindow`).
+- Sorted by latest message time descending; rides without messages sort by `ScheduledDate`.
+
 ### `POST /rides/:rideId/join` / `POST /rides/:rideId/leave` (authenticated)
 Join or leave the ride roster. Join requires an **active** membership in the ride’s club when the ride is linked to a club (`leave` returns `204 No Content`).
 

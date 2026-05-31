@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
     inbox: `${P}/users/me/inbox`,
     inboxSummary: `${P}/users/me/inbox/summary`,
     markInboxRead: (inboxItemId) => `${P}/users/me/inbox/${inboxItemId}/read`,
+    rideChatSummary: `${P}/users/me/ride-chat/summary`,
   },
   rides: {
     details: (rideId) => `${P}/rides/${rideId}`,

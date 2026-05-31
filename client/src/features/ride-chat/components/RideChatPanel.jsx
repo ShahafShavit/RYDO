@@ -62,6 +62,7 @@ export default function RideChatPanel() {
     mutationFn: (payload) => rideChatApi.postMessage(rideId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rideChat', 'messages', rideId] });
+      queryClient.invalidateQueries({ queryKey: ['rideChat', 'summary'] });
     },
   });
 
@@ -76,10 +77,13 @@ export default function RideChatPanel() {
   useEffect(() => {
     if (!rideId || !open || !messagesQuery.isSuccess) return undefined;
     const t = window.setTimeout(() => {
-      rideChatApi.postRead(rideId, { markLatest: true }).catch(() => {});
+      rideChatApi
+        .postRead(rideId, { markLatest: true })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['rideChat', 'summary'] }))
+        .catch(() => {});
     }, 400);
     return () => window.clearTimeout(t);
-  }, [rideId, open, messagesQuery.isSuccess, messages.length]);
+  }, [rideId, open, messagesQuery.isSuccess, messages.length, queryClient]);
 
   useEffect(() => {
     if (!open) return undefined;

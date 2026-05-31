@@ -1680,6 +1680,46 @@ export async function mockRequest(path, options = {}) {
     return [];
   }
 
+  if (pathname === '/api/users/me/ride-chat/summary' && method === 'GET') {
+    const uid = profile.id;
+    const rows = rides
+      .filter(
+        (r) =>
+          r.rideKind !== 'soloLog' &&
+          Array.isArray(r.participants) &&
+          r.participants.includes(uid),
+      )
+      .map((r) => {
+        const msgs = mockRideChatStore
+          .filter((m) => m.rideId === r.id)
+          .sort((a, b) => a.id - b.id);
+        const last = msgs.length ? msgs[msgs.length - 1] : null;
+        const lastReadId = null;
+        const unread = msgs.filter(
+          (m) => m.authorUserId !== uid && (lastReadId == null || m.id > lastReadId),
+        ).length;
+        const w = mockRideEventWindow(r);
+        const preview = last
+          ? (last.body.length > 120 ? `${last.body.slice(0, 120)}…` : last.body)
+          : null;
+        return {
+          rideId: r.id,
+          rideName: r.name,
+          clubId: r.clubId ?? null,
+          clubName: r.clubName ?? null,
+          unreadCount: unread,
+          lastMessagePreview: preview,
+          lastMessageAt: last?.sentAt ?? null,
+          scheduledDate: r.scheduledDate ?? null,
+          readOnly: w.chatReadOnly,
+          sortAt: last?.sentAt ?? r.scheduledDate,
+        };
+      })
+      .sort((a, b) => new Date(b.sortAt) - new Date(a.sortAt))
+      .map(({ sortAt, ...row }) => row);
+    return rows;
+  }
+
   {
     const m = pathname.match(/^\/api\/rides\/(\d+)\/chat\/(messages|read)$/);
     if (m) {

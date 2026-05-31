@@ -17,7 +17,6 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import ShareButton from '@/shared/components/share/ShareButton';
-import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 import { MessageCircle } from 'lucide-react';
 
 function prefetchLiveRideRoute() {
@@ -31,7 +30,6 @@ export default function RideEventPage() {
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [enteringLive, setEnteringLive] = useState(false);
-  const { openRideChat } = useRideChatUi();
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
 
   usePageBreadcrumbDetail(ride?.name);
@@ -92,7 +90,9 @@ export default function RideEventPage() {
             variant="secondary"
             className="shrink-0"
             aria-label="Ride chat"
-            onClick={() => openRideChat(ride.id)}
+            onClick={() =>
+              navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+            }
           >
             <MessageCircle className="h-4 w-4" aria-hidden />
             Chat
