@@ -1,8 +1,11 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
 import UserAvatar from '@/shared/components/user/UserAvatar';
+import IconButton from '@/shared/components/bold/IconButton';
 import { Map, Calendar } from 'lucide-react';
+import { cn } from '@/shared/lib/cn';
 
 function flatMentionables(data) {
   if (!data) return [];
@@ -10,6 +13,24 @@ function flatMentionables(data) {
   const r = (data.routes || []).map((x) => ({ ...x, kind: x.kind || 'route' }));
   const ri = (data.rides || []).map((x) => ({ ...x, kind: x.kind || 'ride' }));
   return [...u, ...r, ...ri];
+}
+
+function SendIcon() {
+  return (
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#0d0a1f"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" />
+    </svg>
+  );
 }
 
 export default function ClubChatComposer({ clubId, disabled, onSend }) {
@@ -144,13 +165,18 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [picker]);
 
+  const canSend = !disabled && text.trim().length > 0;
+
   return (
-    <form onSubmit={handleSubmit} className="relative border-t border-border p-3 bg-black/20">
+    <form
+      onSubmit={handleSubmit}
+      className="relative flex items-center gap-2 border-t border-border bg-black/25 px-3.5 py-3"
+    >
       {picker && choices.length > 0 ? (
         <ul
           ref={listRef}
           id={listboxId}
-          className="absolute bottom-full left-3 right-3 mb-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] shadow-xl z-10"
+          className="absolute bottom-full left-3.5 right-3.5 z-10 mb-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-[var(--rydo-bg-deep)] shadow-xl"
           role="listbox"
           aria-label="Mentions"
         >
@@ -160,9 +186,10 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
                 type="button"
                 role="option"
                 aria-selected={i === highlightIndex}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-white/10 ${
-                  i === highlightIndex ? 'bg-white/12 ring-1 ring-inset ring-rydo-purple/40' : ''
-                }`}
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg hover:bg-white/10',
+                  i === highlightIndex && 'bg-white/12 ring-1 ring-inset ring-rydo-purple/40',
+                )}
                 onMouseEnter={() => setHighlightIndex(i)}
                 onMouseDown={(ev) => {
                   ev.preventDefault();
@@ -189,14 +216,23 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
           ))}
         </ul>
       ) : null}
+
+      <IconButton
+        icon={Plus}
+        size="lg"
+        className="!h-[42px] !w-[42px] shrink-0 opacity-50"
+        aria-label="Attachments (coming soon)"
+        disabled
+      />
+
       <label className="sr-only" htmlFor="club-chat-input">
-        Message
+        Message the club
       </label>
-      <div className="flex items-stretch gap-2">
+      <div className="flex min-h-[44px] min-w-0 flex-1 items-center rounded-full border border-border bg-black/30 px-3.5">
         <textarea
           id="club-chat-input"
           ref={taRef}
-          rows={3}
+          rows={1}
           value={text}
           onChange={handleChange}
           onKeyDown={handleComposerKeyDown}
@@ -206,16 +242,22 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
           aria-autocomplete={mentionListOpen ? 'list' : undefined}
           aria-controls={mentionListOpen ? listboxId : undefined}
           aria-expanded={mentionListOpen}
-          className="min-h-0 min-w-0 flex-1 resize-none rounded-xl border border-border bg-black/30 px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-rydo-purple/40"
+          className="max-h-24 min-h-0 min-w-0 flex-1 resize-none border-0 bg-transparent py-2 text-[13.5px] leading-snug text-fg placeholder:text-fg-subtle outline-none"
         />
-        <button
-          type="submit"
-          disabled={disabled || !text.trim()}
-          className="flex shrink-0 items-center justify-center rounded-xl bg-rydo-purple px-4 text-sm font-medium text-white disabled:opacity-40"
-        >
-          Send
-        </button>
       </div>
+
+      <button
+        type="submit"
+        disabled={!canSend}
+        aria-label="Send message"
+        className={cn(
+          'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-0 text-[#0d0a1f] transition-opacity',
+          'bg-gradient-to-br from-rydo-green-bright to-rydo-purple shadow-[0_6px_22px_rgba(123,92,255,0.42)]',
+          !canSend && 'cursor-not-allowed opacity-40',
+        )}
+      >
+        <SendIcon />
+      </button>
     </form>
   );
 }

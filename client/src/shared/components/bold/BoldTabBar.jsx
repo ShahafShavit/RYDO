@@ -50,7 +50,7 @@ export default function BoldTabBar({ className }) {
             <span className="rydo-bold-tab-icon">
               <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.9} aria-hidden />
               {showBadge ? (
-                <span className="absolute -top-1.5 -right-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                <span className="rydo-unread-pip" aria-hidden>
                   {totalUnread > 99 ? '99+' : totalUnread}
                 </span>
               ) : null}

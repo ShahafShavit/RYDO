@@ -1,5 +1,5 @@
 import { generatePath, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Inbox as InboxIcon, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, Inbox as InboxIcon } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
@@ -9,45 +9,77 @@ import BoldScreen from '@/shared/components/bold/BoldScreen';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
-function InboxItemShell({ icon: Icon, children, pending, className }) {
-  return (
-    <div
-      className={cn(
-        'rydo-bold-glass-row flex flex-col gap-3 p-3.5',
-        pending && 'border-rydo-purple/35',
-        className,
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface-strong text-fg-muted">
-          <Icon className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
-    </div>
-  );
-}
+function InboxRequestCard({
+  avatarUrl,
+  displayName,
+  kind,
+  description,
+  profileHref,
+  acceptLabel,
+  onAccept,
+  onDecline,
+  busy,
+  pending,
+}) {
+  const isClub = kind === 'club';
 
-function ActionRow({ acceptLabel, onAccept, onDecline, busy }) {
   return (
-    <div className="flex gap-2 pl-[52px]">
-      <GradientCTA
-        type="button"
-        heightClass="h-9"
-        className="min-w-0 flex-1 px-3 text-xs"
-        disabled={busy}
-        onClick={onAccept}
-      >
-        {acceptLabel}
-      </GradientCTA>
-      <button
-        type="button"
-        className="rydo-chip h-9 min-w-0 flex-1 px-3 text-xs font-semibold"
-        disabled={busy}
-        onClick={onDecline}
-      >
-        Decline
-      </button>
+    <div className="rydo-bold-glass-row flex flex-col gap-3 p-3.5">
+      <div className="flex items-center gap-3">
+        <Link
+          to={profileHref}
+          className={cn(
+            'shrink-0 rounded-full no-underline',
+            isClub
+              ? 'shadow-[0_0_0_2px_rgba(26,199,138,0.4)]'
+              : 'shadow-[0_0_0_2px_rgba(123,92,255,0.4)]',
+          )}
+        >
+          <UserAvatar
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            sizeClass="h-11 w-11"
+            textClass="text-sm"
+          />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link to={profileHref} className="text-[14.5px] font-bold leading-tight text-fg no-underline">
+            {displayName}
+          </Link>
+          <p className="rydo-subtle mt-0.5 text-xs leading-snug">
+            <span
+              className={cn(
+                'rydo-pill mr-1.5 !py-0.5 !px-2 !text-[10px] !font-semibold',
+                isClub ? 'rydo-pill-green' : 'rydo-pill-accent',
+              )}
+            >
+              {isClub ? 'Club' : 'Friend'}
+            </span>
+            {description}
+          </p>
+        </div>
+      </div>
+      {pending ? (
+        <div className="flex gap-2">
+          <GradientCTA
+            type="button"
+            heightClass="h-10"
+            className="min-w-0 flex-1 text-[13.5px]"
+            disabled={busy}
+            onClick={onAccept}
+          >
+            {acceptLabel}
+          </GradientCTA>
+          <button
+            type="button"
+            className="rydo-chip h-10 min-w-0 flex-1 text-[13.5px] font-bold text-fg"
+            disabled={busy}
+            onClick={onDecline}
+          >
+            Decline
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -66,18 +98,23 @@ export default function InboxPageBold({
   const friendBusy = acceptMut.isPending || declineMut.isPending;
   const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
 
+  const pendingItems = items.filter((row) => {
+    if (row.resolvedAt) return false;
+    if (row.kind === 'friend_request' && row.friendRequest) {
+      return row.friendRequest.status === 'pending';
+    }
+    if (row.kind === 'club_join_request') return true;
+    return false;
+  });
+
   return (
     <BoldScreen>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-center gap-3 px-5 pb-1 pt-1">
-          <IconButton
-            icon={ArrowLeft}
-            aria-label="Back"
-            onClick={() => navigate(-1)}
-          />
+          <IconButton icon={ArrowLeft} aria-label="Back" onClick={() => navigate(-1)} />
           <div className="min-w-0 flex-1">
             <Eyebrow>Notifications</Eyebrow>
-            <DisplayTitle as="div" size="sm" className="mt-0.5 text-xl">
+            <DisplayTitle as="div" size="sm" className="mt-0.5">
               Inbox
             </DisplayTitle>
           </div>
@@ -101,8 +138,16 @@ export default function InboxPageBold({
             <div className="rydo-panel flex flex-col items-center gap-2 px-6 py-10 text-center">
               <InboxIcon className="h-8 w-8 text-fg-subtle" strokeWidth={1.75} aria-hidden />
               <p className="text-sm font-semibold text-fg">Nothing here yet</p>
-              <p className="rydo-subtle text-xs">Friend requests and club join requests will show up here.</p>
+              <p className="rydo-subtle text-xs">
+                Friend requests and club join requests will show up here.
+              </p>
             </div>
+          ) : null}
+
+          {!isLoading && !isError && pendingItems.length > 0 ? (
+            <Eyebrow className="ml-0.5">
+              {pendingItems.length} pending request{pendingItems.length === 1 ? '' : 's'}
+            </Eyebrow>
           ) : null}
 
           {!isLoading && !isError
@@ -113,34 +158,19 @@ export default function InboxPageBold({
                   const pending = fr.status === 'pending' && !row.resolvedAt;
                   const profileHref = generatePath(ROUTES.userProfile, { userId: String(from.id) });
                   return (
-                    <div key={row.id} className="flex flex-col gap-2">
-                      <InboxItemShell icon={UserPlus} pending={pending}>
-                        <Link to={profileHref} className="flex items-center gap-3 no-underline">
-                          <UserAvatar
-                            avatarUrl={from.avatarUrl}
-                            displayName={from.fullName}
-                            sizeClass="h-11 w-11"
-                            textClass="text-sm"
-                          />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-fg">
-                              {from.fullName || 'Member'}
-                            </p>
-                            <p className="rydo-subtle text-[11px]">
-                              {pending ? 'Sent you a friend request' : 'Friend request resolved'}
-                            </p>
-                          </div>
-                        </Link>
-                      </InboxItemShell>
-                      {pending ? (
-                        <ActionRow
-                          acceptLabel="Accept"
-                          busy={friendBusy}
-                          onAccept={() => acceptMut.mutate(fr.id)}
-                          onDecline={() => declineMut.mutate(fr.id)}
-                        />
-                      ) : null}
-                    </div>
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={from.avatarUrl}
+                      displayName={from.fullName || 'Member'}
+                      kind="friend"
+                      description="Wants to be friends"
+                      profileHref={profileHref}
+                      pending={pending}
+                      acceptLabel="Accept"
+                      busy={friendBusy}
+                      onAccept={() => acceptMut.mutate(fr.id)}
+                      onDecline={() => declineMut.mutate(fr.id)}
+                    />
                   );
                 }
 
@@ -149,57 +179,42 @@ export default function InboxPageBold({
                   const club = cjr.club;
                   const requester = cjr.requester;
                   const pending = !row.resolvedAt;
-                  const profileHref = generatePath(ROUTES.userProfile, { userId: String(requester.id) });
+                  const profileHref = generatePath(ROUTES.userProfile, {
+                    userId: String(requester.id),
+                  });
                   const clubHref = generatePath(ROUTES.clubDetails, { clubId: String(club.id) });
                   return (
-                    <div key={row.id} className="flex flex-col gap-2">
-                      <InboxItemShell icon={Users} pending={pending}>
-                        <div className="flex items-center gap-3">
-                          <Link to={profileHref} className="shrink-0 no-underline">
-                            <UserAvatar
-                              avatarUrl={requester.avatarUrl}
-                              displayName={requester.fullName}
-                              sizeClass="h-11 w-11"
-                              textClass="text-sm"
-                            />
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={requester.avatarUrl}
+                      displayName={requester.fullName || 'Member'}
+                      kind="club"
+                      description={
+                        <>
+                          requested to join{' '}
+                          <Link to={clubHref} className="font-semibold text-fg no-underline">
+                            {club.name}
                           </Link>
-                          <div className="min-w-0 text-sm leading-snug">
-                            <Link to={profileHref} className="font-semibold text-fg no-underline">
-                              {requester.fullName || 'Member'}
-                            </Link>
-                            <span className="rydo-subtle"> requested to join </span>
-                            <Link
-                              to={clubHref}
-                              className="font-semibold text-rydo-purple no-underline"
-                            >
-                              {club.name}
-                            </Link>
-                            <p className="rydo-subtle mt-1 text-[11px]">
-                              {pending ? 'Approve or decline this request' : 'Join request resolved'}
-                            </p>
-                          </div>
-                        </div>
-                      </InboxItemShell>
-                      {pending ? (
-                        <ActionRow
-                          acceptLabel="Approve"
-                          busy={clubBusy}
-                          onAccept={() =>
-                            approveClubMut.mutate({ clubId: club.id, userId: requester.id })
-                          }
-                          onDecline={() =>
-                            rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
-                          }
-                        />
-                      ) : null}
-                    </div>
+                        </>
+                      }
+                      profileHref={profileHref}
+                      pending={pending}
+                      acceptLabel="Approve"
+                      busy={clubBusy}
+                      onAccept={() =>
+                        approveClubMut.mutate({ clubId: club.id, userId: requester.id })
+                      }
+                      onDecline={() =>
+                        rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
+                      }
+                    />
                   );
                 }
 
                 return (
-                  <InboxItemShell key={row.id} icon={InboxIcon} pending={false}>
+                  <div key={row.id} className="rydo-bold-glass-row p-3.5">
                     <p className="rydo-subtle text-sm">Unsupported item ({row.kind})</p>
-                  </InboxItemShell>
+                  </div>
                 );
               })
             : null}

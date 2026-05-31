@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, generatePath, useMatch } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-
-const MotionDiv = motion.div;
-import { MessageCircle, X, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Users, X } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -15,25 +13,16 @@ import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import { useClubChatHub } from '@/features/club-chat/hooks/useClubChatHub';
 import { inboxKeys } from '@/features/social/hooks/useInbox';
 import { inboxSummaryKeys } from '@/features/social/hooks/useInboxSummary';
-import ClubChatMessageBody from '@/features/club-chat/components/ClubChatMessageBody';
+import ClubChatListBold from '@/features/club-chat/components/ClubChatListBold';
+import ClubChatMessageBubble from '@/features/club-chat/components/ClubChatMessageBubble';
 import ClubChatComposer from '@/features/club-chat/components/ClubChatComposer';
+import DisplayTitle from '@/shared/components/bold/DisplayTitle';
+import IconButton from '@/shared/components/bold/IconButton';
 import UserAvatar from '@/shared/components/user/UserAvatar';
+import { isSameCalendarDay } from '@/features/club-chat/utils/formatChatTime';
 import { cn } from '@/shared/lib/cn';
 
-function formatPreviewTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
-  if (sameDay) {
-    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  }
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+const MotionDiv = motion.div;
 
 export default function ClubChatDock() {
   const { user } = useAuth();
@@ -101,7 +90,7 @@ export default function ClubChatDock() {
         /* ignore */
       }
     },
-    [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId, setChatOpen]
+    [user?.id, preferences?.notificationsEnabled, liveChatScoped, liveScopedClubId, setChatOpen],
   );
 
   const clubJoinNotifyHandler = useCallback(
@@ -131,7 +120,7 @@ export default function ClubChatDock() {
         /* ignore */
       }
     },
-    [preferences?.notificationsEnabled, queryClient]
+    [preferences?.notificationsEnabled, queryClient],
   );
 
   useClubChatHub(summary, !!user?.id && !env.isMockApi, {
@@ -220,10 +209,24 @@ export default function ClubChatDock() {
       if (!threadClubId) return;
       await sendMutation.mutateAsync({ clubId: threadClubId, payload });
     },
-    [threadClubId, sendMutation]
+    [threadClubId, sendMutation],
   );
 
   const closeDock = useCallback(() => setChatOpen(false), [setChatOpen]);
+
+  const showTodayPill = useMemo(() => {
+    const today = new Date();
+    return messages.some((m) => m.sentAt && isSameCalendarDay(new Date(m.sentAt), today));
+  }, [messages]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   if (!user?.id) return null;
 
@@ -237,11 +240,11 @@ export default function ClubChatDock() {
           type="button"
           aria-label="Open club chat"
           onClick={() => toggleChat()}
-          className="fixed z-(--rydo-z-chat-fab) hidden h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95 bottom-[max(1rem,var(--rydo-safe-bottom))] right-[max(1rem,var(--rydo-safe-right))] md:flex md:bottom-8 md:right-8"
+          className="fixed z-(--rydo-z-chat-fab) hidden h-14 w-14 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-rydo-green-bright to-rydo-purple text-[#0d0a1f] shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 active:scale-95 bottom-[max(1rem,var(--rydo-safe-bottom))] right-[max(1rem,var(--rydo-safe-right))] md:flex md:bottom-8 md:right-8"
         >
-          <MessageCircle className="h-7 w-7" aria-hidden />
+          <MessageCircle className="h-7 w-7" strokeWidth={2.2} aria-hidden />
           {totalUnread > 0 ? (
-            <span className="absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+            <span className="rydo-unread-pip rydo-unread-pip-lg" aria-hidden>
               {totalUnread > 99 ? '99+' : totalUnread}
             </span>
           ) : null}
@@ -255,195 +258,117 @@ export default function ClubChatDock() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.18 }}
-            className="rydo-safe-fixed-panel fixed z-(--rydo-z-chat-panel) flex flex-col border border-border bg-[var(--rydo-bg-deep)] shadow-2xl bottom-[var(--rydo-tabbar-h)] h-[calc(100dvh-var(--rydo-tabbar-h))] inset-x-0 w-full rounded-t-2xl md:bottom-24 md:right-8 md:h-[min(560px,calc(100vh-8rem))] md:w-[400px] md:inset-x-auto md:rounded-2xl"
+            className={cn(
+              'fixed z-(--rydo-z-chat-panel) flex flex-col overflow-hidden',
+              'inset-0 border-0 bg-[var(--rydo-bg-deep)] font-[Inter,sans-serif] text-fg',
+              'md:inset-auto md:bottom-24 md:right-8 md:h-[min(560px,calc(100vh-8rem))] md:w-[400px]',
+              'md:rounded-2xl md:border md:border-border md:shadow-2xl',
+            )}
+            dir="ltr"
           >
-            <header className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-3 sm:px-4">
-              {threadClubId ? (
-                <>
+            {!threadClubId ? (
+              <ClubChatListBold
+                summary={summary}
+                isLoading={summaryQuery.isLoading}
+                onSelectClub={openClubThread}
+                onClose={() => setChatOpen(false)}
+              />
+            ) : (
+              <>
+                <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-3.5 pb-3 pt-[var(--rydo-bold-page-top)] sm:px-4">
                   {!liveChatScoped ? (
-                    <button
-                      type="button"
-                      aria-label="Show all clubs in chat"
-                      className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface hover:text-fg"
-                      onClick={() => {
-                        setClubId(null);
-                      }}
-                    >
-                      <ChevronLeft className="h-5 w-5" aria-hidden />
-                    </button>
+                    <IconButton
+                      icon={ArrowLeft}
+                      aria-label="Back to conversations"
+                      onClick={() => setClubId(null)}
+                    />
                   ) : null}
                   <Link
                     to={clubPagePath}
                     onClick={closeDock}
-                    className="shrink-0 rounded-full outline-none ring-offset-2 ring-offset-[var(--rydo-bg-deep)] focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                    className="shrink-0 rounded-full shadow-[0_0_0_2px_rgba(123,92,255,0.4)] outline-none ring-offset-2 ring-offset-[var(--rydo-bg-deep)] focus-visible:ring-2 focus-visible:ring-rydo-purple"
                     aria-label={`View ${activeClub?.clubName || 'club'} page`}
                   >
                     <UserAvatar
                       avatarUrl={activeClub?.clubAvatarUrl}
                       displayName={activeClub?.clubName || 'Club'}
-                      sizeClass="h-9 w-9"
-                      textClass="text-xs"
-                      className="shrink-0"
+                      sizeClass="h-[38px] w-[38px]"
+                      textClass="text-sm"
                     />
                   </Link>
-                  <Link
-                    to={clubPagePath}
-                    onClick={closeDock}
-                    className="min-w-0 flex-1 truncate text-sm font-semibold text-fg hover:underline outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--rydo-bg-deep)]"
-                  >
-                    <h2 className="truncate">{activeClub?.clubName || 'Chat'}</h2>
-                  </Link>
-                </>
-              ) : (
-                <h2 className="flex-1 text-sm font-semibold text-fg pl-1">Club chat</h2>
-              )}
-              <button
-                type="button"
-                aria-label="Close chat"
-                className="shrink-0 rounded-lg p-2 text-fg-muted hover:bg-surface"
-                onClick={() => setChatOpen(false)}
-              >
-                <X className="h-5 w-5" aria-hidden />
-              </button>
-            </header>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to={clubPagePath}
+                      onClick={closeDock}
+                      className="block min-w-0 no-underline outline-none rounded-sm focus-visible:ring-2 focus-visible:ring-rydo-purple"
+                    >
+                      <DisplayTitle as="div" size="sm" className="truncate text-base leading-tight">
+                        {activeClub?.clubName || 'Chat'}
+                      </DisplayTitle>
+                    </Link>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-fg-subtle">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-rydo-green-bright shadow-[0_0_8px_var(--rydo-green-bright)]"
+                        aria-hidden
+                      />
+                      <span>Club group chat</span>
+                    </div>
+                  </div>
+                  {clubPagePath ? (
+                    <Link
+                      to={clubPagePath}
+                      onClick={closeDock}
+                      className="rydo-iconbtn shrink-0"
+                      aria-label="View club"
+                    >
+                      <Users className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
+                    </Link>
+                  ) : (
+                    <IconButton icon={Users} aria-label="View club" disabled />
+                  )}
+                  <IconButton
+                    icon={X}
+                    aria-label="Close chat"
+                    onClick={() => setChatOpen(false)}
+                  />
+                </header>
 
-            {!threadClubId ? (
-              <ul className="flex-1 overflow-y-auto p-2">
-                {summaryQuery.isLoading ? (
-                  <li className="px-3 py-4 text-sm text-fg-muted">Loading…</li>
-                ) : summary.length === 0 ? (
-                  <li className="px-3 py-4 text-sm text-fg-muted">Join a club to use chat.</li>
-                ) : (
-                  summary.map((row) => (
-                    <li key={row.clubId}>
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-surface transition-colors"
-                        onClick={() => openClubThread(row)}
-                      >
-                        <UserAvatar
-                          avatarUrl={row.clubAvatarUrl}
-                          displayName={row.clubName || 'Club'}
-                          sizeClass="h-11 w-11"
-                          textClass="text-sm"
-                          className="shrink-0 mt-0.5"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-0 flex-1 truncate font-medium text-fg">{row.clubName}</span>
-                            {row.lastMessageAt ? (
-                              <span className="shrink-0 text-[10px] text-fg-subtle tabular-nums">
-                                {formatPreviewTime(row.lastMessageAt)}
-                              </span>
-                            ) : null}
-                          </div>
-                          {row.lastMessagePreview ? (
-                            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-fg-muted">
-                              {row.lastMessagePreview}
-                            </p>
-                          ) : (
-                            <p className="mt-0.5 text-xs italic text-fg-subtle">No messages yet</p>
-                          )}
-                        </div>
-                        {row.unreadCount > 0 ? (
-                          <span className="mt-1 shrink-0 rounded-full bg-rydo-purple/25 px-2 py-0.5 text-xs font-semibold text-rydo-purple">
-                            {row.unreadCount > 99 ? '99+' : row.unreadCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            ) : (
-              <>
                 <div
                   ref={messagesScrollRef}
-                  className="flex-1 space-y-3 overflow-y-auto p-3"
+                  className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3.5 py-3.5"
                 >
                   {messagesQuery.isLoading ? (
-                    <p className="text-sm text-fg-muted">Loading messages…</p>
+                    <p className="rydo-subtle text-sm">Loading messages…</p>
                   ) : (
-                    messages.map((m) => {
-                      const isMine = Number(m.authorUserId) === Number(user?.id);
-                      const authorId = m.authorUserId;
-                      const profileTo =
-                        authorId != null && authorId !== ''
-                          ? generatePath(ROUTES.userProfile, { userId: String(authorId) })
-                          : null;
-                      const avatarEl = (
-                        <UserAvatar
-                          avatarUrl={m.authorAvatarUrl}
-                          displayName={m.authorDisplayName || 'Member'}
-                          sizeClass="h-7 w-7"
-                          textClass="text-[9px]"
-                          className="shrink-0"
-                        />
-                      );
-                      const nameLabel = isMine ? 'You' : m.authorDisplayName;
-                      return (
-                        <div
-                          key={m.id}
-                          className={cn('flex w-full', isMine ? 'justify-end' : 'justify-start')}
-                        >
-                          <div
-                            className={cn(
-                              'flex max-w-[min(92%,20rem)] items-end gap-2',
-                              isMine ? 'flex-row-reverse' : 'flex-row'
-                            )}
-                          >
-                            {profileTo ? (
-                              <Link
-                                to={profileTo}
-                                onClick={closeDock}
-                                className="shrink-0 rounded-full outline-none ring-offset-2 ring-offset-[var(--rydo-bg-deep)] focus-visible:ring-2 focus-visible:ring-rydo-purple"
-                                aria-label={`View ${m.authorDisplayName || 'member'} profile`}
-                              >
-                                {avatarEl}
-                              </Link>
-                            ) : (
-                              avatarEl
-                            )}
-                            <article
-                              className={cn(
-                                'min-w-0 flex-1 rounded-2xl border px-3 py-2',
-                                isMine
-                                  ? 'border-rydo-purple/45 bg-rydo-purple/18 text-fg'
-                                  : 'border-border/70 bg-black/20 text-fg'
-                              )}
-                            >
-                              <p
-                                className={cn(
-                                  'text-xs font-medium',
-                                  isMine ? 'text-rydo-purple/95' : 'text-fg-muted'
-                                )}
-                              >
-                                {profileTo ? (
-                                  <Link
-                                    to={profileTo}
-                                    onClick={closeDock}
-                                    className={cn(
-                                      'rounded-sm hover:underline outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--rydo-bg-deep)]',
-                                      isMine ? 'text-rydo-purple/95' : 'text-fg-muted'
-                                    )}
-                                  >
-                                    {nameLabel}
-                                  </Link>
-                                ) : (
-                                  nameLabel
-                                )}
-                                <span className="ml-2 text-[10px] opacity-70">
-                                  {m.sentAt ? new Date(m.sentAt).toLocaleString() : ''}
-                                </span>
-                              </p>
-                              <ClubChatMessageBody body={m.body} mentions={m.mentions} />
-                            </article>
-                          </div>
+                    <>
+                      {showTodayPill ? (
+                        <div className="flex justify-center">
+                          <span className="rydo-eyebrow rounded-full border border-border bg-black/30 px-3 py-0.5 text-[9.5px]">
+                            Today
+                          </span>
                         </div>
-                      );
-                    })
+                      ) : null}
+                      {messages.map((m) => {
+                        const isMine = Number(m.authorUserId) === Number(user?.id);
+                        const authorId = m.authorUserId;
+                        const profileTo =
+                          authorId != null && authorId !== ''
+                            ? generatePath(ROUTES.userProfile, { userId: String(authorId) })
+                            : null;
+                        return (
+                          <ClubChatMessageBubble
+                            key={m.id}
+                            message={m}
+                            isMine={isMine}
+                            profileTo={profileTo}
+                            onProfileClick={closeDock}
+                          />
+                        );
+                      })}
+                    </>
                   )}
                 </div>
+
                 <ClubChatComposer
                   clubId={threadClubId}
                   disabled={sendMutation.isPending}

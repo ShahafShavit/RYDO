@@ -51,7 +51,7 @@
   --rydo-z-dropdown: 60;
   --rydo-z-tool-panel: 65;
   --rydo-z-chat-fab: 100;
-  --rydo-z-chat-panel: 101;
+  --rydo-z-chat-panel: 110;
   --rydo-z-mobile-menu-backdrop: 115;
   --rydo-z-mobile-menu: 120;
   --rydo-z-live-blocking: 200;
@@ -852,6 +852,48 @@ html[data-theme='dune'] .app-logo {
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
+}
+
+/* Crisp unread count — avoid tab bar backdrop-filter softening the badge */
+.rydo-unread-pip {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  z-index: 2;
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 9999px;
+  border: 2px solid var(--rydo-bg-deep);
+  background: linear-gradient(135deg, var(--rydo-green-bright), var(--rydo-purple));
+  color: #0d0a1f;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: none;
+  filter: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rydo-unread-pip-lg {
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+
+.rydo-unread-pip-inline {
+  position: static;
+  top: auto;
+  right: auto;
+  flex: none;
 }
 
 .rydo-iconbtn {
@@ -895,4 +937,17 @@ html[data-theme='dune'] .app-logo {
   background: linear-gradient(165deg, rgba(255, 248, 240, 0.1), rgba(40, 35, 30, 0.06));
   backdrop-filter: blur(16px);
   box-shadow: inset 0 1px 0 rgba(255, 235, 210, 0.1), 0 18px 56px rgba(0, 0, 0, 0.42);
+}
+
+@keyframes rydoTyping {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
 }

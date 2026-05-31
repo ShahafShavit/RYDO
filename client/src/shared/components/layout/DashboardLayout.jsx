@@ -8,23 +8,23 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
-import { ClubChatUiProvider } from '@/features/club-chat/club-chat-ui-context';
+import { ClubChatUiProvider, useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 import BoldTabBar from '@/shared/components/bold/BoldTabBar';
 
-export default function DashboardLayout() {
+function DashboardLayoutBody() {
   const { isAdmin } = useAuth();
   const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
+  const { chatOpen } = useClubChatUi();
+  const showMobileTabBar = !rideLiveMatch && !chatOpen;
 
   useEffect(() => {
     prefetchDashboardRoutes();
   }, []);
 
   return (
-    <BreadcrumbProvider>
-    <ClubChatUiProvider>
     <div className="rydo-app-shell h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
@@ -68,7 +68,7 @@ export default function DashboardLayout() {
       ) : null}
 
       <main
-        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-0 pb-[var(--rydo-tabbar-h)] md:p-8 md:pb-8'}`}
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : `overflow-y-auto p-0 md:p-8 md:pb-8 ${showMobileTabBar ? 'pb-[var(--rydo-tabbar-h)]' : 'pb-0'}`}`}
       >
         <div
           className={
@@ -87,10 +87,18 @@ export default function DashboardLayout() {
           </div>
         </div>
       </main>
-      {!rideLiveMatch ? <BoldTabBar /> : null}
+      {showMobileTabBar ? <BoldTabBar /> : null}
       <ClubChatDock />
     </div>
-    </ClubChatUiProvider>
+  );
+}
+
+export default function DashboardLayout() {
+  return (
+    <BreadcrumbProvider>
+      <ClubChatUiProvider>
+        <DashboardLayoutBody />
+      </ClubChatUiProvider>
     </BreadcrumbProvider>
   );
 }
