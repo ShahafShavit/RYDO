@@ -3,14 +3,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { env } from '@/shared/config/env';
 import { cn } from '@/shared/lib/cn';
 
-const PULL_THRESHOLD = 72;
-const MAX_PULL = 120;
+/** Visual pull distance required before refresh fires on release. */
+const PULL_THRESHOLD = 120;
+/** Finger travel before pull-to-refresh takes over normal scrolling. */
+const PULL_ACTIVATION = 36;
+const PULL_RESISTANCE = 0.35;
+const MAX_PULL = 160;
+/** Treat tiny scroll offsets as "at top" (sub-pixel / rubber-band). */
+const SCROLL_TOP_TOLERANCE = 2;
 
 const BoldScrollArea = forwardRef(function BoldScrollArea({ className, children, ...props }, ref) {
   const queryClient = useQueryClient();
   const scrollRef = useRef(null);
   const touchStartY = useRef(0);
   const pulling = useRef(false);
+  const pullCommitted = useRef(false);
   const pullDistanceRef = useRef(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,19 +46,24 @@ const BoldScrollArea = forwardRef(function BoldScrollArea({ className, children,
     const el = scrollRef.current;
     if (!el) return undefined;
 
+    const isAtScrollTop = () => el.scrollTop <= SCROLL_TOP_TOLERANCE;
+
     const onTouchStart = (event) => {
-      if (refreshing || el.scrollTop > 0) {
+      if (refreshing || !isAtScrollTop()) {
         pulling.current = false;
+        pullCommitted.current = false;
         return;
       }
       touchStartY.current = event.touches[0]?.clientY ?? 0;
       pulling.current = true;
+      pullCommitted.current = false;
     };
 
     const onTouchMove = (event) => {
-      if (!pulling.current || refreshing || el.scrollTop > 0) {
-        if (el.scrollTop > 0) {
+      if (!pulling.current || refreshing || !isAtScrollTop()) {
+        if (!isAtScrollTop()) {
           pulling.current = false;
+          pullCommitted.current = false;
           setPull(0);
         }
         return;
@@ -60,23 +72,32 @@ const BoldScrollArea = forwardRef(function BoldScrollArea({ className, children,
       const currentY = event.touches[0]?.clientY ?? touchStartY.current;
       const delta = currentY - touchStartY.current;
       if (delta <= 0) {
+        pullCommitted.current = false;
         setPull(0);
         return;
       }
 
+      if (delta < PULL_ACTIVATION) {
+        return;
+      }
+
+      pullCommitted.current = true;
       event.preventDefault();
-      setPull(Math.min(delta * 0.45, MAX_PULL));
+      const resisted = (delta - PULL_ACTIVATION) * PULL_RESISTANCE;
+      setPull(Math.min(resisted, MAX_PULL));
     };
 
     const onTouchEnd = () => {
       if (!pulling.current) return;
       pulling.current = false;
 
-      if (pullDistanceRef.current >= PULL_THRESHOLD && !refreshing) {
+      if (pullCommitted.current && pullDistanceRef.current >= PULL_THRESHOLD && !refreshing) {
+        pullCommitted.current = false;
         void runRefresh();
         return;
       }
 
+      pullCommitted.current = false;
       setPull(0);
     };
 
