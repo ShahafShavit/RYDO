@@ -267,6 +267,7 @@ export function buildDashboardHome({
       clubName,
       clubAvatarUrl: clubId != null ? clubAvatarUrlRaw : null,
       isPersonal: clubId == null,
+      preview: ride.preview ?? null,
     };
   });
 

@@ -62,10 +62,10 @@ function buildMockLeaderboardsResponse() {
     if (uid == null) continue;
     pubRoutes.set(uid, (pubRoutes.get(uid) ?? 0) + 1);
   }
-  const top5 = (map, unit) =>
+  const top10 = (map, unit) =>
     [...map.entries()]
       .sort((a, b) => b[1] - a[1] || a[0] - b[0])
-      .slice(0, 5)
+      .slice(0, 10)
       .map(([userId, value], i) => {
         const u = userById.get(userId);
         const displayName = u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : `User #${userId}`;
@@ -79,10 +79,10 @@ function buildMockLeaderboardsResponse() {
         };
       });
   return {
-    horizonChasers: top5(dist, 'km'),
-    saddleJunkies: top5(rideCount, 'rides'),
-    summitSeekers: top5(elev, 'm'),
-    trailblazers: top5(pubRoutes, 'routes'),
+    horizonChasers: top10(dist, 'km'),
+    saddleJunkies: top10(rideCount, 'rides'),
+    summitSeekers: top10(elev, 'm'),
+    trailblazers: top10(pubRoutes, 'routes'),
   };
 }
 

@@ -6,6 +6,7 @@ import {
 } from '@/features/leaderboards/leaderboard-boards';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import LeaderboardBoardPanel from '@/features/leaderboards/components/LeaderboardBoardPanel';
+import { useLeaderboardConfetti } from '@/features/leaderboards/hooks/useLeaderboardConfetti';
 import { cn } from '@/shared/lib/cn';
 
 export default function LeaderboardBoardPager({
@@ -17,22 +18,43 @@ export default function LeaderboardBoardPager({
   compact = false,
   maxListRows,
   className,
+  showYourStanding = false,
 }) {
   const scrollerRef = useRef(null);
   const panelRefs = useRef([]);
+  const programmaticScrollRef = useRef(false);
+  const scrollReleaseTimerRef = useRef(null);
   const [activeBoard, setActiveBoard] = useState(() => {
     if (isValidLeaderboardBoardId(initialBoardId)) return initialBoardId;
     return LEADERBOARD_BOARD_IDS[2] ?? LEADERBOARD_BOARD_IDS[0];
   });
 
-  const scrollToBoard = useCallback((boardId) => {
-    const idx = LEADERBOARD_BOARD_IDS.indexOf(boardId);
-    if (idx < 0 || !scrollerRef.current) return;
-    const panel = panelRefs.current[idx];
-    if (!panel) return;
-    scrollerRef.current.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
-    setActiveBoard(boardId);
+  const releaseProgrammaticScroll = useCallback(() => {
+    programmaticScrollRef.current = false;
+    if (scrollReleaseTimerRef.current) {
+      window.clearTimeout(scrollReleaseTimerRef.current);
+      scrollReleaseTimerRef.current = null;
+    }
   }, []);
+
+  const scrollToBoard = useCallback(
+    (boardId) => {
+      const idx = LEADERBOARD_BOARD_IDS.indexOf(boardId);
+      if (idx < 0 || !scrollerRef.current) return;
+      const panel = panelRefs.current[idx];
+      if (!panel) return;
+
+      programmaticScrollRef.current = true;
+      setActiveBoard(boardId);
+      scrollerRef.current.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
+
+      if (scrollReleaseTimerRef.current) {
+        window.clearTimeout(scrollReleaseTimerRef.current);
+      }
+      scrollReleaseTimerRef.current = window.setTimeout(releaseProgrammaticScroll, 500);
+    },
+    [releaseProgrammaticScroll],
+  );
 
   useEffect(() => {
     if (!isValidLeaderboardBoardId(initialBoardId)) return;
@@ -43,8 +65,17 @@ export default function LeaderboardBoardPager({
     const root = scrollerRef.current;
     if (!root) return undefined;
 
+    const onScrollEnd = () => {
+      if (programmaticScrollRef.current) {
+        releaseProgrammaticScroll();
+      }
+    };
+    root.addEventListener('scrollend', onScrollEnd);
+
     const observer = new IntersectionObserver(
       (entries) => {
+        if (programmaticScrollRef.current) return;
+
         let best = null;
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
@@ -62,8 +93,19 @@ export default function LeaderboardBoardPager({
     for (const el of panelRefs.current) {
       if (el) observer.observe(el);
     }
-    return () => observer.disconnect();
-  }, [data]);
+    return () => {
+      root.removeEventListener('scrollend', onScrollEnd);
+      observer.disconnect();
+      releaseProgrammaticScroll();
+    };
+  }, [data, releaseProgrammaticScroll]);
+
+  useLeaderboardConfetti({
+    enabled: showYourStanding,
+    data,
+    currentUserId,
+    activeBoard,
+  });
 
   const activeCfg = LEADERBOARD_BOARD_CONFIG[activeBoard];
 
@@ -101,6 +143,7 @@ export default function LeaderboardBoardPager({
               compact={compact}
               maxListRows={maxListRows}
               showTitle={false}
+              showYourStanding={showYourStanding}
             />
           </div>
         ))}

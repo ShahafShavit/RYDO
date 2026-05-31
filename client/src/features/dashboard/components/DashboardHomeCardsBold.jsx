@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bell, Bike, ChevronRight, Flame, Mountain, Route as RouteIcon } from 'lucide-react';
+import { Bell, Bike, ChevronRight, Flame, Mountain, Route as RouteIcon, Trophy } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useDashboardData } from '@/features/dashboard/hooks/useDashboardData';
 import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
@@ -13,7 +13,6 @@ import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
-import DashboardLeaderboardsSection from '@/features/dashboard/components/DashboardLeaderboardsSection';
 import DashboardClubsSection from '@/features/dashboard/components/DashboardClubsSection';
 
 function greetingForHour(h) {
@@ -54,6 +53,13 @@ export default function DashboardHomeCardsBold() {
             </DisplayTitle>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to={ROUTES.leaderboards}
+              className="rydo-iconbtn text-[var(--rydo-amber)]"
+              aria-label="Leaderboards"
+            >
+              <Trophy className="h-[18px] w-[18px]" strokeWidth={2} />
+            </Link>
             <Link
               to={ROUTES.inbox}
               className="rydo-iconbtn relative"
@@ -131,40 +137,6 @@ export default function DashboardHomeCardsBold() {
             />
           </div>
 
-          {/* Last ride */}
-          {home.lastRide.rideId != null ? (
-            <Link
-              to={ROUTES.rideEvent.replace(':rideId', String(home.lastRide.rideId))}
-              className="rydo-bold-glass-row flex items-stretch gap-3 p-2.5 transition hover:border-border-strong"
-            >
-              <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[13px] border border-border">
-                <CompactRouteMapPreview
-                  preview={home.lastRide.preview}
-                  compactPlaceholder
-                  className="h-full w-full overflow-hidden rounded-none border-0 bg-surface"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <Eyebrow>Last ride · {home.lastRide.completedLabel || 'Recent'}</Eyebrow>
-                <DisplayTitle as="div" size="sm" truncate title={home.lastRide.routeName} className="mt-1 text-lg">
-                  {home.lastRide.routeName}
-                </DisplayTitle>
-                <div className="mt-2 flex gap-3.5">
-                  <span className="rydo-tnum rydo-subtle text-xs">
-                    <b className="text-fg">{home.lastRide.distance}</b>
-                  </span>
-                  <span className="rydo-tnum rydo-subtle text-xs">
-                    <b className="text-fg">{home.lastRide.duration}</b>
-                  </span>
-                  <span className="rydo-tnum rydo-subtle text-xs">
-                    <b className="text-fg">{home.lastRide.elevation}</b>
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className="h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />
-            </Link>
-          ) : null}
-
           {/* Streak + upcoming */}
           <div className="flex gap-2.5">
             <div className="rydo-panel w-[106px] shrink-0 px-3.5 py-3">
@@ -180,8 +152,15 @@ export default function DashboardHomeCardsBold() {
             {upcoming ? (
               <Link
                 to={ROUTES.rideEvent.replace(':rideId', String(upcoming.id))}
-                className="rydo-panel flex min-w-0 flex-1 items-stretch gap-2 px-3.5 py-3 transition hover:border-border-strong"
+                className="rydo-panel flex min-w-0 flex-1 items-stretch gap-2.5 p-2.5 transition hover:border-border-strong"
               >
+                <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[13px] border border-border">
+                  <CompactRouteMapPreview
+                    preview={upcoming.preview}
+                    compactPlaceholder
+                    className="h-full w-full overflow-hidden rounded-none border-0 bg-surface"
+                  />
+                </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <Eyebrow>Next RYDO</Eyebrow>
                   <TruncatedText className="mt-1.5 flex-1 text-sm font-bold leading-snug">
@@ -215,7 +194,38 @@ export default function DashboardHomeCardsBold() {
 
           <DashboardClubsSection groups={home.groups} />
 
-          <DashboardLeaderboardsSection />
+          {home.lastRide.rideId != null ? (
+            <Link
+              to={ROUTES.rideEvent.replace(':rideId', String(home.lastRide.rideId))}
+              className="rydo-bold-glass-row flex items-stretch gap-3 p-2.5 transition hover:border-border-strong"
+            >
+              <div className="w-[72px] min-h-14 shrink-0 self-stretch overflow-hidden rounded-[13px] border border-border">
+                <CompactRouteMapPreview
+                  preview={home.lastRide.preview}
+                  compactPlaceholder
+                  className="h-full w-full overflow-hidden rounded-none border-0 bg-surface"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Eyebrow>Last ride · {home.lastRide.completedLabel || 'Recent'}</Eyebrow>
+                <DisplayTitle as="div" size="sm" truncate title={home.lastRide.routeName} className="mt-1 text-lg">
+                  {home.lastRide.routeName}
+                </DisplayTitle>
+                <div className="mt-2 flex gap-3.5">
+                  <span className="rydo-tnum rydo-subtle text-xs">
+                    <b className="text-fg">{home.lastRide.distance}</b>
+                  </span>
+                  <span className="rydo-tnum rydo-subtle text-xs">
+                    <b className="text-fg">{home.lastRide.duration}</b>
+                  </span>
+                  <span className="rydo-tnum rydo-subtle text-xs">
+                    <b className="text-fg">{home.lastRide.elevation}</b>
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />
+            </Link>
+          ) : null}
         </BoldScrollArea>
       </div>
     </BoldScreen>

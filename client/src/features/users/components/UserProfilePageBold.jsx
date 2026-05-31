@@ -1,12 +1,13 @@
 import { useMemo, useCallback, useState } from 'react';
-import { generatePath, Link, NavLink, useLocation } from 'react-router-dom';
-import { Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
+import { generatePath, Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { boldMeOverflowItems, isBoldMeNavActive } from '@/shared/config/bold-navigation';
 import {
   LEADERBOARD_BOARD_CONFIG,
   leaderboardBadgeChipClass,
 } from '@/features/leaderboards/leaderboard-boards';
+import { resolveLeaderboardsBackPath } from '@/features/leaderboards/leaderboard-utils';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
@@ -59,7 +60,9 @@ function statValue(value, formatter) {
 
 export default function UserProfilePageBold({ profile, userId, isOwn }) {
   const { formatKm, formatElevation } = useFormatDistance();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const leaderboardsBackTo = resolveLeaderboardsBackPath(location.state);
   const id = Number(userId);
   const [copied, setCopied] = useState(false);
 
@@ -142,7 +145,15 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
     <BoldScreen>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="px-5 pt-2">
-          <div className="mb-3 flex justify-end gap-2">
+          <div className="mb-3 flex items-center gap-2">
+            {leaderboardsBackTo ? (
+              <IconButton
+                icon={ArrowLeft}
+                aria-label="Back to leaderboards"
+                onClick={() => navigate(leaderboardsBackTo)}
+              />
+            ) : null}
+            <div className="min-w-0 flex-1" />
             <IconButton
               icon={copied ? Check : Share2}
               aria-label={copied ? 'Link copied' : 'Share profile'}
@@ -183,7 +194,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
           {isOwn ? (
             <nav className="rydo-chiprow mt-4 w-full" aria-label="Profile shortcuts">
               {boldMeOverflowItems.map((item) => {
-                const active = isBoldMeNavActive(pathname, item.to);
+                const active = isBoldMeNavActive(location.pathname, item.to);
                 return (
                   <NavLink
                     key={item.to}

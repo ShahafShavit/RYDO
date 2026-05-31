@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { LB_RING, formatLeaderboardValue } from '@/features/leaderboards/leaderboard-format';
+import { leaderboardProfileLinkState } from '@/features/leaderboards/leaderboard-utils';
 import { cn } from '@/shared/lib/cn';
 
-function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, compact = false }) {
+function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, boardId, compact = false }) {
   const ring = LB_RING[row.rank];
   const isMe = currentUserId != null && Number(row.userId) === Number(currentUserId);
   const label = isMe ? 'You' : (row.displayName || '').split(' ')[0];
@@ -28,6 +29,7 @@ function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, compac
   return (
     <Link
       to={profileTo}
+      state={leaderboardProfileLinkState(boardId)}
       className={cn(
         'flex flex-col items-center gap-2 rounded-2xl px-1 py-1 no-underline transition active:opacity-80',
         'min-w-[88px] touch-manipulation',
@@ -66,7 +68,14 @@ function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, compac
   );
 }
 
-export default function LeaderboardPodium({ rows, formatKm, formatElevation, currentUserId, compact = false }) {
+export default function LeaderboardPodium({
+  rows,
+  formatKm,
+  formatElevation,
+  currentUserId,
+  boardId,
+  compact = false,
+}) {
   const top3 = rows.slice(0, 3);
   if (top3.length < 3) return null;
 
@@ -78,6 +87,7 @@ export default function LeaderboardPodium({ rows, formatKm, formatElevation, cur
         formatKm={formatKm}
         formatElevation={formatElevation}
         currentUserId={currentUserId}
+        boardId={boardId}
         compact={compact}
       />
       <PodiumCol
@@ -86,6 +96,7 @@ export default function LeaderboardPodium({ rows, formatKm, formatElevation, cur
         formatKm={formatKm}
         formatElevation={formatElevation}
         currentUserId={currentUserId}
+        boardId={boardId}
         compact={compact}
       />
       <PodiumCol
@@ -94,6 +105,7 @@ export default function LeaderboardPodium({ rows, formatKm, formatElevation, cur
         formatKm={formatKm}
         formatElevation={formatElevation}
         currentUserId={currentUserId}
+        boardId={boardId}
         compact={compact}
       />
     </div>

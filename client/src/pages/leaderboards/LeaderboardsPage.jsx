@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
 import { useLeaderboards } from '@/features/leaderboards/hooks/useLeaderboards';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import LeaderboardsPageBold from '@/features/leaderboards/components/LeaderboardsPageBold';
 import {
   LEADERBOARD_BOARD_IDS,
   LEADERBOARD_BOARD_CONFIG,
@@ -84,14 +85,18 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatElevation }) {
   );
 }
 
-function MobileLeaderboardsRedirect() {
-  const [searchParams] = useSearchParams();
-  const boardParam = searchParams.get('board');
-  const to =
-    boardParam && isValidLeaderboardBoardId(boardParam)
-      ? `${ROUTES.dashboard}?board=${encodeURIComponent(boardParam)}`
-      : ROUTES.dashboard;
-  return <Navigate to={to} replace />;
+function MobileLeaderboardsPage({ data, formatKm, formatElevation, initialBoardId, isLoading, isError, error }) {
+  return (
+    <LeaderboardsPageBold
+      data={data}
+      formatKm={formatKm}
+      formatElevation={formatElevation}
+      initialBoardId={initialBoardId}
+      isLoading={isLoading}
+      isError={isError}
+      error={error}
+    />
+  );
 }
 
 export default function LeaderboardsPage() {
@@ -99,6 +104,7 @@ export default function LeaderboardsPage() {
   const { formatKm, formatElevation } = useFormatDistance();
   const [searchParams] = useSearchParams();
   const boardParam = searchParams.get('board');
+  const initialBoardId = isValidLeaderboardBoardId(boardParam) ? boardParam : undefined;
 
   useEffect(() => {
     if (!data || !boardParam || !isValidLeaderboardBoardId(boardParam)) return undefined;
@@ -132,30 +138,45 @@ export default function LeaderboardsPage() {
   if (isPending) {
     const bar = 'h-4 rounded bg-surface-strong animate-pulse';
     return (
-      <section className="space-y-6">
-        <div className={`${bar} h-5 w-40`} />
-        <div className="grid grid-cols-1 gap-6 sm:gap-7 md:grid-cols-2 md:gap-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <div className={`${bar} w-48`} />
-              <div className={`${bar} mt-3 h-8 w-3/4`} />
-              <div className="mt-5 space-y-3">
-                {[1, 2, 3].map((j) => (
-                  <div key={j} className={`${bar} h-14 w-full`} />
-                ))}
-              </div>
-            </Card>
-          ))}
+      <>
+        <section className="hidden space-y-6 md:block">
+          <div className={`${bar} h-5 w-40`} />
+          <div className="grid grid-cols-1 gap-6 sm:gap-7 md:grid-cols-2 md:gap-8">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <div className={`${bar} w-48`} />
+                <div className={`${bar} mt-3 h-8 w-3/4`} />
+                <div className="mt-5 space-y-3">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className={`${bar} h-14 w-full`} />
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+        <div className="flex min-h-0 flex-1 flex-col md:hidden">
+          <MobileLeaderboardsPage isLoading formatKm={formatKm} formatElevation={formatElevation} />
         </div>
-      </section>
+      </>
     );
   }
 
   if (isError) {
     return (
-      <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-        {error?.message || 'Could not load leaderboards.'}
-      </p>
+      <>
+        <p className="hidden rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 md:block">
+          {error?.message || 'Could not load leaderboards.'}
+        </p>
+        <div className="flex min-h-0 flex-1 flex-col md:hidden">
+          <MobileLeaderboardsPage
+            isError
+            error={error}
+            formatKm={formatKm}
+            formatElevation={formatElevation}
+          />
+        </div>
+      </>
     );
   }
 
@@ -192,7 +213,12 @@ export default function LeaderboardsPage() {
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <MobileLeaderboardsRedirect />
+        <MobileLeaderboardsPage
+          data={lb}
+          formatKm={formatKm}
+          formatElevation={formatElevation}
+          initialBoardId={initialBoardId}
+        />
       </div>
     </>
   );

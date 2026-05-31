@@ -1,7 +1,9 @@
 import { LEADERBOARD_BOARD_CONFIG } from '@/features/leaderboards/leaderboard-boards';
+import { findUserLeaderboardRow } from '@/features/leaderboards/leaderboard-utils';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import LeaderboardPodium from '@/features/leaderboards/components/LeaderboardPodium';
 import LeaderboardRankList from '@/features/leaderboards/components/LeaderboardRankList';
+import LeaderboardYourStanding from '@/features/leaderboards/components/LeaderboardYourStanding';
 
 export default function LeaderboardBoardPanel({
   boardId,
@@ -12,8 +14,11 @@ export default function LeaderboardBoardPanel({
   compact = false,
   maxListRows,
   showTitle = true,
+  showYourStanding = false,
 }) {
   const cfg = LEADERBOARD_BOARD_CONFIG[boardId];
+  const userRow = findUserLeaderboardRow(rows, currentUserId);
+  const leaderRow = rows[0] ?? null;
 
   return (
     <div className="flex min-w-0 flex-col">
@@ -28,6 +33,7 @@ export default function LeaderboardBoardPanel({
         formatKm={formatKm}
         formatElevation={formatElevation}
         currentUserId={currentUserId}
+        boardId={boardId}
         compact={compact}
       />
       <LeaderboardRankList
@@ -35,9 +41,20 @@ export default function LeaderboardBoardPanel({
         formatKm={formatKm}
         formatElevation={formatElevation}
         currentUserId={currentUserId}
+        boardId={boardId}
         maxRows={maxListRows}
         className={compact ? 'mt-2' : 'mt-3'}
       />
+      {showYourStanding ? (
+        <LeaderboardYourStanding
+          row={userRow}
+          leaderRow={leaderRow}
+          formatKm={formatKm}
+          formatElevation={formatElevation}
+          boardTitle={cfg?.title}
+          className="mt-3"
+        />
+      ) : null}
     </div>
   );
 }

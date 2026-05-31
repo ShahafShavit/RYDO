@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { leaderboardRankRowClass } from '@/features/leaderboards/leaderboard-boards';
 import { formatLeaderboardValue } from '@/features/leaderboards/leaderboard-format';
+import { leaderboardProfileLinkState } from '@/features/leaderboards/leaderboard-utils';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -10,6 +11,7 @@ export default function LeaderboardRankList({
   formatKm,
   formatElevation,
   currentUserId,
+  boardId,
   maxRows,
   className,
 }) {
@@ -31,6 +33,7 @@ export default function LeaderboardRankList({
           <Link
             key={`${row.userId}-${row.rank}`}
             to={ROUTES.userProfile.replace(':userId', String(row.userId))}
+            state={leaderboardProfileLinkState(boardId)}
             className={cn(
               'rydo-panel flex items-center gap-3 px-3.5 py-2.5 no-underline transition active:opacity-80',
               isMe &&
