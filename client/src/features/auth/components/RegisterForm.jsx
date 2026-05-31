@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROLES } from '@/shared/constants/roles';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
+import PasswordInput from '@/shared/components/ui/input/PasswordInput';
 import Card from '@/shared/components/ui/card/Card';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import { validateHandle, normalizeHandleInput } from '@/features/users/utils/handle-validation';
@@ -80,7 +81,7 @@ export default function RegisterForm() {
         </FormField>
 
         <FormField label="Password">
-          <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Create a password" required />
+          <PasswordInput name="password" value={form.password} onChange={handleChange} placeholder="Create a password" autoComplete="new-password" required />
         </FormField>
 
         <Button type="submit" variant="neon" className="w-full" disabled={isLoading}>{isLoading ? 'Creating…' : 'Create account'}</Button>
