@@ -37,11 +37,15 @@ const TimelapsePage = lazy(() => import('@/features/timelapse/TimelapsePage'));
 
 /**
  * @param {{ nativeEntry?: boolean }} [options]
- * nativeEntry: skip marketing landing → login (Capacitor app)
+ * nativeEntry: skip marketing landing → dashboard (Capacitor app; unauthenticated users hit ProtectedRoute → login)
  */
 export function createAppRoutes(options = {}) {
   const { nativeEntry = false } = options;
-  const homeElement = nativeEntry ? <Navigate to={ROUTES.login} replace /> : <LandingPage />;
+  const homeElement = nativeEntry ? (
+    <Navigate to={ROUTES.dashboard} replace />
+  ) : (
+    <LandingPage />
+  );
 
   return [
     {

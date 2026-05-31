@@ -8,6 +8,7 @@ import RideMembersList from '@/features/rides/components/RideMembersList';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
+import { rideEventWindow, isRideInProgress } from '@/features/rides/utils/rideEventWindow';
 import { useRideAttendance } from '@/features/rides/hooks/useRideAttendance';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -16,6 +17,8 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import ShareButton from '@/shared/components/share/ShareButton';
+import { useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import { MessageCircle } from 'lucide-react';
 
 function prefetchLiveRideRoute() {
   import('@/features/live-ride/LiveRideRoute').catch(() => {});
@@ -28,6 +31,7 @@ export default function RideEventPage() {
   const { user } = useAuth();
   const [editOpen, setEditOpen] = useState(false);
   const [enteringLive, setEnteringLive] = useState(false);
+  const { openRideChat } = useRideChatUi();
   const { ride, isLoading, isError, error, refetch } = useRideEvent(rideId);
 
   usePageBreadcrumbDetail(ride?.name);
@@ -65,7 +69,11 @@ export default function RideEventPage() {
       : error?.message || 'Could not load this ride.';
 
   const upcoming = ride ? isRideUpcoming(ride) : false;
-  const showEdit = Boolean(ride?.viewerCanEdit && upcoming);
+  const eventWindow = ride ? rideEventWindow(ride) : null;
+  const liveAvailable = Boolean(eventWindow?.liveAvailable);
+  const eventOpen = Boolean(eventWindow?.isOpen);
+  const inProgress = ride ? isRideInProgress(ride) : false;
+  const showEdit = Boolean(ride?.viewerCanEdit);
 
   const sharePath =
     ride?.id != null ? generatePath(ROUTES.rideEvent, { rideId: String(ride.id) }) : null;
@@ -78,9 +86,21 @@ export default function RideEventPage() {
         modalTitle="Share ride"
         className="shrink-0"
       />
-      {user && ride?.rideKind !== 'soloLog' && upcoming ? (
+      {amParticipant && ride?.rideKind !== 'soloLog' ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0"
+            aria-label="Ride chat"
+            onClick={() => openRideChat(ride.id)}
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden />
+            Chat
+          </Button>
+        ) : null}
+      {user && ride?.rideKind !== 'soloLog' && eventOpen ? (
       <>
-        {amParticipant && ride.routeId ? (
+        {amParticipant && ride.routeId && liveAvailable ? (
           <Button
             type="button"
             variant="neon"
@@ -110,12 +130,13 @@ export default function RideEventPage() {
     </>
   );
 
-  const handleLiveRide = liveRideTarget
-    ? () => {
-        setEnteringLive(true);
-        navigate(liveRideTarget);
-      }
-    : undefined;
+  const handleLiveRide =
+    liveRideTarget && liveAvailable
+      ? () => {
+          setEnteringLive(true);
+          navigate(liveRideTarget);
+        }
+      : undefined;
 
   return (
     <>
@@ -176,6 +197,9 @@ export default function RideEventPage() {
           linkedRoute={linkedRoute}
           routeLoading={routeLoading}
           upcoming={upcoming}
+          inProgress={inProgress}
+          eventOpen={eventOpen}
+          liveAvailable={liveAvailable}
           showEdit={showEdit}
           onEditClick={() => setEditOpen(true)}
           user={user}
@@ -184,7 +208,7 @@ export default function RideEventPage() {
           onLeave={() => leaveRide()}
           isJoining={isJoining}
           isLeaving={isLeaving}
-          onLiveRide={amParticipant && ride?.routeId ? handleLiveRide : undefined}
+          onLiveRide={amParticipant && ride?.routeId && liveAvailable ? handleLiveRide : undefined}
           isNavigatingToLive={isNavigatingToLive}
           onPrefetchLive={prefetchLiveRideRoute}
           isLoading={isLoading}

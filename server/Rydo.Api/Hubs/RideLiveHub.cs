@@ -325,7 +325,7 @@ public class RideLiveHub(
     private static async Task<bool> MayJoinLiveAsync(RydoDbContext db, int rideId, int userId, CancellationToken ct)
     {
         var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == rideId, ct);
-        if (ride == null || ride.RouteId == null || ride.Kind == RideKind.SoloLog)
+        if (ride == null || !RideEventWindow.LiveAvailable(ride))
             return false;
         return await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == userId, ct);
     }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { adminNavigation } from '@/shared/config/navigation';
-import { ROUTES } from '@/app/router/route-paths';
+import { ROUTES, getAppHomeRoute } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import MobileNavbar from '@/shared/components/layout/MobileNavbar';
@@ -22,7 +22,7 @@ export default function AdminLayout() {
       <MobileNavbar isAdminLayout />
 
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0 z-10">
-        <Link to={ROUTES.home} className="mb-8 inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <Link to={getAppHomeRoute()} className="mb-8 inline-flex items-center gap-3 hover:opacity-80 transition-opacity">
           <span className="h-3 w-3 rounded-full bg-rydo-purple shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-purple)_75%,transparent)]" />
           <AppLogo />
         </Link>

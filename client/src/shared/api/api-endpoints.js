@@ -51,6 +51,9 @@ export const API_ENDPOINTS = {
     sendInvites: (rideId) => `${P}/rides/${rideId}/invites`,
     acceptInvite: (rideId, inviteId) => `${P}/rides/${rideId}/invites/${inviteId}/accept`,
     declineInvite: (rideId, inviteId) => `${P}/rides/${rideId}/invites/${inviteId}/decline`,
+    chatMessages: (rideId) => `${P}/rides/${rideId}/chat/messages`,
+    chatSend: (rideId) => `${P}/rides/${rideId}/chat/messages`,
+    chatRead: (rideId) => `${P}/rides/${rideId}/chat/read`,
   },
   clubs: {
     list: `${P}/clubs`,

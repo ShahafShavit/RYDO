@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { ROUTES } from '@/app/router/route-paths';
+import { getAppHomeRoute } from '@/app/router/route-paths';
 
 export default function NotFoundPage() {
   return (
@@ -10,7 +10,7 @@ export default function NotFoundPage() {
           <ol className="flex flex-wrap items-center gap-1.5 text-sm text-fg-subtle">
             <li>
               <Link
-                to={ROUTES.home}
+                to={getAppHomeRoute()}
                 className="text-fg-subtle transition hover:text-fg/90 underline-offset-4 hover:underline"
               >
                 Home

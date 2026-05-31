@@ -1,8 +1,8 @@
 import { ROUTES } from '@/app/router/route-paths';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
-import { clubChatApi } from '@/features/club-chat/api/club-chat-api';
-import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
+import { rideEventWindow } from '@/features/rides/utils/rideEventWindow';
+import { RideChatFab } from '@/features/ride-chat/components/RideChatPanel';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import LiveRideBootOverlay from '@/features/live-ride/components/LiveRideBootOverlay';
 import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
@@ -16,11 +16,10 @@ import { subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompa
 import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
-import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
+import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { env } from '@/shared/config/env';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
-import { useQuery } from '@tanstack/react-query';
 import { featureCollection } from '@turf/helpers';
 import {
   CheckCircle2,
@@ -30,7 +29,6 @@ import {
   Crosshair,
   Gauge,
   Loader2,
-  MessageCircle,
   Users,
   X,
   XCircle,
@@ -158,26 +156,6 @@ export default function RideLiveMapPage({ moduleReady = true }) {
 
   usePageBreadcrumbDetail(ride?.name);
 
-  const { openChat } = useClubChatUi();
-
-  const summaryQuery = useQuery({
-    queryKey: ['clubChat', 'summary'],
-    queryFn: () => clubChatApi.getSummary(),
-    enabled: !!user?.id && !env.isMockApi,
-    staleTime: 15_000,
-  });
-
-  const chatUnread = useMemo(() => {
-    const rows = summaryQuery.data || [];
-    if (ride?.clubId != null && String(ride.clubId) !== '') {
-      const id = Number(ride.clubId);
-      if (Number.isFinite(id)) {
-        return rows.find((s) => s.clubId === id)?.unreadCount ?? 0;
-      }
-    }
-    return rows.reduce((a, r) => a + (r.unreadCount || 0), 0);
-  }, [summaryQuery.data, ride?.clubId]);
-
   const myUserId = user?.id != null ? Number(user.id) : null;
 
   const amParticipant = useMemo(() => {
@@ -191,8 +169,9 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     return false;
   }, [myUserId, ride]);
 
-  const upcoming = ride ? isRideUpcoming(ride) : false;
-  const hubEnabled = Boolean(user && amParticipant && upcoming && ride?.routeId);
+  const eventWindow = ride ? rideEventWindow(ride) : null;
+  const liveAvailable = Boolean(eventWindow?.liveAvailable);
+  const hubEnabled = Boolean(user && amParticipant && liveAvailable && ride?.routeId);
 
   const trackGeoJson = useMemo(
     () => buildRoutePreviewFeatureCollection(ride?.preview ?? null),
@@ -347,10 +326,10 @@ export default function RideLiveMapPage({ moduleReady = true }) {
       navigate(ROUTES.rideEvent.replace(':rideId', String(rideId)), { replace: true });
       return;
     }
-    if (!amParticipant || !upcoming) {
+    if (!amParticipant || !liveAvailable) {
       navigate(ROUTES.rideEvent.replace(':rideId', String(rideId)), { replace: true });
     }
-  }, [ride, isLoading, user, rideId, navigate, amParticipant, upcoming]);
+  }, [ride, isLoading, user, rideId, navigate, amParticipant, liveAvailable]);
 
   const selfLatForNearby = puckDisplay?.lat ?? selfFix?.lat;
   const selfLngForNearby = puckDisplay?.lng ?? selfFix?.lng;
@@ -511,21 +490,12 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                         Center on me
                       </button>
                     ) : null}
-                    {user && !env.isMockApi ? (
-                      <button
-                        type="button"
-                        aria-label="Open club chat"
-                        onClick={() => openChat()}
-                        className="absolute top-1/4 flex h-13 w-13 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-rydo-purple text-white shadow-lg shadow-rydo-purple/30 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:scale-105 hover:border-white/25 hover:shadow-xl hover:shadow-rydo-purple/40 active:scale-95"
+                    {user && amParticipant && !env.isMockApi ? (
+                      <RideChatFab
+                        rideId={rideId}
+                        className="absolute top-1/4 -translate-y-1/2"
                         style={{ right: 'max(1rem, var(--rydo-safe-right))' }}
-                      >
-                        <MessageCircle className="h-5 w-5" aria-hidden />
-                        {chatUnread > 0 ? (
-                          <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
-                            {chatUnread > 99 ? '99+' : chatUnread}
-                          </span>
-                        ) : null}
-                      </button>
+                      />
                     ) : null}
                   </div>
                 ) : null}

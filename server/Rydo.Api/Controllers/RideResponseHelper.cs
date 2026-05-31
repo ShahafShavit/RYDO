@@ -32,7 +32,7 @@ internal static class RideResponseHelper
         CancellationToken ct)
     {
         if (g.Kind == RideKind.SoloLog) return false;
-        if (g.ScheduledDate < DateTime.UtcNow) return false;
+        if (!RideEventWindow.CanEdit(g)) return false;
         if (g.ClubId == null) return g.CreatedByUserId == viewerUserId;
         if (g.CreatedByUserId == viewerUserId) return true;
         return await db.ClubMembers.AnyAsync(
@@ -54,9 +54,8 @@ internal static class RideResponseHelper
         var map = new Dictionary<int, bool>();
         if (groups.Count == 0) return map;
 
-        var now = DateTime.UtcNow;
         var clubIdsNeedingAdminCheck = groups
-            .Where(g => g.Kind != RideKind.SoloLog && g.ScheduledDate >= now && g.ClubId is int && g.CreatedByUserId != viewerUserId)
+            .Where(g => g.Kind != RideKind.SoloLog && RideEventWindow.CanEdit(g) && g.ClubId is int && g.CreatedByUserId != viewerUserId)
             .Select(g => g.ClubId!.Value)
             .Distinct()
             .ToList();
@@ -77,7 +76,7 @@ internal static class RideResponseHelper
         foreach (var g in groups)
         {
             bool can;
-            if (g.Kind == RideKind.SoloLog || g.ScheduledDate < now)
+            if (g.Kind == RideKind.SoloLog || !RideEventWindow.CanEdit(g))
                 can = false;
             else if (g.ClubId == null)
                 can = g.CreatedByUserId == viewerUserId;
@@ -108,6 +107,7 @@ internal static class RideResponseHelper
 
         var rideKind = g.Kind == RideKind.SoloLog ? "soloLog" : "scheduled";
         string? clubAvatarUrl = AvatarUrls.ResolveClubDisplay(g.Club);
+        object? rideEventWindow = g.Kind == RideKind.SoloLog ? null : RideEventWindow.ToPayload(g);
 
         if (!includeRoster)
         {
@@ -130,6 +130,7 @@ internal static class RideResponseHelper
                 clubAvatarUrl,
                 createdBy,
                 viewerCanEdit,
+                rideEventWindow,
             };
         }
 
@@ -161,6 +162,7 @@ internal static class RideResponseHelper
             clubAvatarUrl,
             createdBy,
             viewerCanEdit,
+            rideEventWindow,
         };
     }
 

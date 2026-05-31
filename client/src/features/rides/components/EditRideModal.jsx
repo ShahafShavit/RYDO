@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import RoutePickerField, { routeDisplayFromRide } from '@/features/routes/components/RoutePickerField';
 import { useUpdateRide } from '@/features/rides/hooks/useUpdateRide';
+import { rideEventWindow } from '@/features/rides/utils/rideEventWindow';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
@@ -33,6 +34,9 @@ function EditRideForm({ ride, onClose }) {
     toDatetimeLocalValue(ride.scheduledDate || ride.time),
   );
 
+  const windowMeta = rideEventWindow(ride);
+  const scheduledDateLocked = !windowMeta.canEditScheduledDate;
+
   const handleRouteChange = (id, route) => {
     setRouteId(id);
     setRouteDisplay(route);
@@ -41,7 +45,9 @@ function EditRideForm({ ride, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const scheduledDate = new Date(scheduledLocal);
+    const scheduledDate = scheduledDateLocked
+      ? new Date(ride.scheduledDate || ride.time)
+      : new Date(scheduledLocal);
     if (Number.isNaN(scheduledDate.getTime())) return;
     const rid = routeId != null ? Number(routeId) : null;
     updateRide(
@@ -104,7 +110,13 @@ function EditRideForm({ ride, onClose }) {
             value={scheduledLocal}
             onChange={(ev) => setScheduledLocal(ev.target.value)}
             required
+            disabled={scheduledDateLocked}
           />
+          {scheduledDateLocked ? (
+            <p className="mt-1.5 text-xs text-fg-subtle">
+              Start time can&apos;t be changed after the ride begins.
+            </p>
+          ) : null}
         </FormField>
         <FormField label="Max participants">
           <Input

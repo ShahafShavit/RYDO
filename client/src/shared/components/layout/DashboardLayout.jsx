@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Link, useMatch } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
-import { ROUTES } from '@/app/router/route-paths';
+import { ROUTES, getAppHomeRoute } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
 import Button from '@/shared/components/ui/button/Button';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -10,6 +10,8 @@ import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDash
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 import { ClubChatUiProvider, useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
+import { RideChatUiProvider, useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import RideChatPanel from '@/features/ride-chat/components/RideChatPanel';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';
 import BoldTabBar from '@/shared/components/bold/BoldTabBar';
@@ -18,7 +20,8 @@ function DashboardLayoutBody() {
   const { isAdmin } = useAuth();
   const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
   const { chatOpen } = useClubChatUi();
-  const showMobileTabBar = !rideLiveMatch && !chatOpen;
+  const { rideChatOpen } = useRideChatUi();
+  const showMobileTabBar = !rideLiveMatch && !chatOpen && !rideChatOpen;
 
   useEffect(() => {
     prefetchDashboardRoutes();
@@ -28,7 +31,7 @@ function DashboardLayoutBody() {
     <div className="rydo-app-shell h-full max-md:min-h-0 md:h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
-        <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
+        <Link to={getAppHomeRoute()} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
           <span className="h-3 w-3 rounded-full bg-rydo-green shadow-[0_0_18px_color-mix(in_srgb,var(--rydo-green)_65%,transparent)]" />
           <AppLogo />
         </Link>
@@ -89,6 +92,7 @@ function DashboardLayoutBody() {
       </main>
       {showMobileTabBar ? <BoldTabBar /> : null}
       <ClubChatDock />
+      <RideChatPanel />
     </div>
   );
 }
@@ -97,7 +101,9 @@ export default function DashboardLayout() {
   return (
     <BreadcrumbProvider>
       <ClubChatUiProvider>
-        <DashboardLayoutBody />
+        <RideChatUiProvider>
+          <DashboardLayoutBody />
+        </RideChatUiProvider>
       </ClubChatUiProvider>
     </BreadcrumbProvider>
   );

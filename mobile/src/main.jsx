@@ -31,7 +31,7 @@ if (Capacitor.isNativePlatform()) {
 
 
 const router = createHashRouter(createAppRoutes({ nativeEntry: true }), {
-  initialEntries: [ROUTES.login],
+  initialEntries: [ROUTES.dashboard],
 });
 
 

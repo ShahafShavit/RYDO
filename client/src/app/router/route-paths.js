@@ -1,3 +1,5 @@
+import { env } from '@/shared/config/env';
+
 // MVP-only route definitions (aligned with project.md)
 export const ROUTES = {
   home: '/',
@@ -33,3 +35,8 @@ export const ROUTES = {
   // Fallback
   notFound: '/not-found',
 };
+
+/** Web marketing home (`/`); signed-in app home on Capacitor (`/dashboard`). */
+export function getAppHomeRoute() {
+  return env.isNativeApp ? ROUTES.dashboard : ROUTES.home;
+}

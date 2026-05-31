@@ -287,7 +287,24 @@ If the ride belongs to a **private** club and the viewer is **not** an active me
 
 `createdBy` identifies the user who scheduled the ride (`id`, display `fullName`, and optional `avatarUrl` using the same roster rules as ride participant rows).
 
-`viewerCanEdit` is `true` when the authenticated viewer may edit this ride: the scheduled time is still in the future, and the viewer is either the ride creator (personal or club ride), or an **active club admin** for a club-linked ride. Anonymous requests receive `viewerCanEdit: false`.
+`viewerCanEdit` is `true` when the authenticated viewer may edit this ride: the ride is still within its **48-hour event window** (from scheduled start), and the viewer is either the ride creator (personal or club ride), or an **active club admin** for a club-linked ride. Anonymous requests receive `viewerCanEdit: false`.
+
+Scheduled rides include **`rideEventWindow`** (null for `soloLog`):
+
+```json
+"rideEventWindow": {
+  "closesAt": "2026-06-17T08:00:00.000Z",
+  "hasStarted": false,
+  "liveAvailable": true,
+  "chatReadOnly": false,
+  "canEditScheduledDate": true
+}
+```
+
+- **`closesAt`**: `scheduledDate + 48 hours` (UTC).
+- **`liveAvailable`**: scheduled ride with a linked route, still within the window.
+- **`chatReadOnly`**: `true` after the window closes (chat history remains readable).
+- **`canEditScheduledDate`**: `false` once `hasStarted` is `true`.
 
 When roster is hidden, `participantDetails` and `participants` are omitted or null; `participantCount` is always present.
 
@@ -306,7 +323,7 @@ Creates a scheduled ride for that club. The caller must be an **active** club me
 If `scheduleForWholeClub` is `true`, the caller must be a **club admin**; the server adds **active** club members as ride participants up to `maxParticipants` (after adding the creator). That bulk-invite behavior applies at **create** time only; updating a ride does not re-invite the whole club.
 
 ### `PATCH /rides/:rideId` (authenticated)
-Updates an **upcoming** scheduled ride. The caller must be allowed to edit (`viewerCanEdit` would be `true` for them on `GET`). Past rides cannot be updated (`403 Forbidden`). Body (same fields as create, without `scheduleForWholeClub`):
+Updates a scheduled ride while the **48-hour event window** is open. The caller must be allowed to edit (`viewerCanEdit` would be `true` for them on `GET`). After the window closes → `403 Forbidden`. **`scheduledDate` cannot be changed after the ride has started** (`400` with problem details). Body (same fields as create, without `scheduleForWholeClub`):
 
 ```json
 {
@@ -319,6 +336,42 @@ Updates an **upcoming** scheduled ride. The caller must be allowed to edit (`vie
 ```
 
 `routeId` may be `null` to clear the linked route. `maxParticipants` must be **greater than or equal to** the current number of participants; otherwise `400` with problem details. Unknown `routeId` → `404`. Response is the **ride JSON shape** (including `viewerCanEdit: true` for the editor).
+
+### Ride chat (participants only)
+
+All endpoints require authentication. Caller must be on the ride roster (`403` otherwise). Not available for `soloLog` rides.
+
+#### `GET /rides/:rideId/chat/messages?beforeMessageId=&fromMessageId=&take=`
+Returns:
+
+```json
+{
+  "messages": [
+    {
+      "id": 1,
+      "rideId": 5,
+      "authorUserId": 2,
+      "authorHandle": "jane",
+      "authorDisplayName": "Jane Smith",
+      "authorAvatarUrl": null,
+      "body": "Meet at the café",
+      "sentAt": "2026-06-15T07:45:00.000Z"
+    }
+  ],
+  "readOnly": false,
+  "closesAt": "2026-06-17T08:00:00.000Z"
+}
+```
+
+Pagination matches club chat (`beforeMessageId` / `fromMessageId` / `take`). After `closesAt`, `readOnly` is `true` and `POST` is rejected.
+
+#### `POST /rides/:rideId/chat/messages`
+Body: `{ "body": "string" }`. Returns the new message object. `403` when read-only.
+
+#### `POST /rides/:rideId/chat/read`
+Body: `{ "lastReadMessageId": 1 }` or `{ "markLatest": true }`. Returns `204`.
+
+SignalR hub: `/hubs/ride-chat` — `JoinRide(rideId)` → `ReceiveMessage` events (same message shape as HTTP).
 
 ### `POST /rides/:rideId/join` / `POST /rides/:rideId/leave` (authenticated)
 Join or leave the ride roster. Join requires an **active** membership in the ride’s club when the ride is linked to a club (`leave` returns `204 No Content`).

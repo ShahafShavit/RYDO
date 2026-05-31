@@ -67,6 +67,16 @@ public class RidesController(RydoDbContext db) : ControllerBase
         if (!await RideResponseHelper.ViewerCanEditRideAsync(db, g, uid.Value, ct))
             return Forbid();
 
+        if (!RideEventWindow.IsOpen(g))
+            return Forbid();
+
+        if (RideEventWindow.HasStarted(g))
+        {
+            var newDate = body.ScheduledDate.ToUniversalTime();
+            if (newDate != g.ScheduledDate.ToUniversalTime())
+                return Problem(statusCode: 400, title: "Cannot change scheduled start after the ride has started");
+        }
+
         if (body.RouteId is int rid && !await db.Routes.AnyAsync(r => r.Id == rid, ct))
             return NotFound();
 

@@ -21,6 +21,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<ClubInvite> ClubInvites => Set<ClubInvite>();
     public DbSet<ClubChatMessage> ClubChatMessages => Set<ClubChatMessage>();
     public DbSet<ClubChatReadState> ClubChatReadStates => Set<ClubChatReadState>();
+    public DbSet<RideChatMessage> RideChatMessages => Set<RideChatMessage>();
+    public DbSet<RideChatReadState> RideChatReadStates => Set<RideChatReadState>();
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<InboxItem> InboxItems => Set<InboxItem>();
@@ -94,6 +96,20 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasKey(x => new { x.ClubId, x.UserId });
             e.HasOne(x => x.Club).WithMany().HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RideChatMessage>(e =>
+        {
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.RideId, x.Id });
+        });
+
+        builder.Entity<RideChatReadState>(e =>
+        {
+            e.HasKey(x => new { x.RideId, x.UserId });
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

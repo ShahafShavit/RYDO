@@ -20,6 +20,7 @@ builder.Services.Configure<DemoClubChatSimulatorOptions>(
 builder.Services.Configure<DemoRideLiveBotsOptions>(
     builder.Configuration.GetSection(DemoRideLiveBotsOptions.SectionName));
 builder.Services.AddScoped<ClubChatMessageDtoFactory>();
+builder.Services.AddSingleton<RideChatMessageDtoFactory>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IUserLifetimeStatsService, UserLifetimeStatsService>();
 builder.Services.AddScoped<IUserHandleService, UserHandleService>();
@@ -183,6 +184,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ClubChatHub>("/hubs/club-chat");
+app.MapHub<RideChatHub>("/hubs/ride-chat");
 app.MapHub<RideLiveHub>("/hubs/ride-live");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

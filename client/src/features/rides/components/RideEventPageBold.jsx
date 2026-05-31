@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  MessageCircle,
   Mountain,
   Pencil,
   Route as RouteIcon,
@@ -30,6 +31,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
+import { useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
 
 import BoldRouteMapElevation from '@/features/routes/components/BoldRouteMapElevation';
 
@@ -82,6 +84,9 @@ export default function RideEventPageBold({
   linkedRoute,
   routeLoading = false,
   upcoming,
+  inProgress = false,
+  eventOpen = false,
+  liveAvailable = false,
   showEdit,
   onEditClick,
   user,
@@ -100,6 +105,7 @@ export default function RideEventPageBold({
 }) {
   const navigate = useNavigate();
   const { formatKm, formatElevation } = useFormatDistance();
+  const { openRideChat } = useRideChatUi();
 
   const sharePath =
     ride?.id != null ? generatePath(ROUTES.rideEvent, { rideId: String(ride.id) }) : null;
@@ -118,7 +124,8 @@ export default function RideEventPageBold({
   const participantCount = ride?.participantCount ?? members.length;
   const whenIso = ride?.scheduledDate || ride?.time;
   const isSoloLog = ride?.rideKind === 'soloLog';
-  const showAttendance = Boolean(user && !isSoloLog && upcoming);
+  const showAttendance = Boolean(user && !isSoloLog && eventOpen);
+  const showRideChat = Boolean(user && amParticipant && !isSoloLog);
 
   const routePath =
     linkedRoute?.id != null
@@ -213,6 +220,10 @@ export default function RideEventPageBold({
               {upcoming ? (
                 <span className="rydo-pill rydo-pill-green px-2.5 py-0.5 text-[11px] font-bold">
                   Upcoming
+                </span>
+              ) : inProgress ? (
+                <span className="rydo-pill rydo-pill-amber px-2.5 py-0.5 text-[11px] font-bold">
+                  In progress
                 </span>
               ) : isSoloLog ? (
                 <span className="rydo-pill rydo-pill-accent px-2.5 py-0.5 text-[11px] font-bold">
@@ -401,9 +412,27 @@ export default function RideEventPageBold({
           ) : null}
         </BoldScrollArea>
 
+        {showRideChat && !showAttendance ? (
+          <div className="relative z-[3] flex shrink-0 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
+            <SecondaryAction className="flex-1" aria-label="Ride chat" onClick={() => openRideChat(ride.id)}>
+              <MessageCircle className="mr-2 h-4 w-4 inline" aria-hidden />
+              View ride chat
+            </SecondaryAction>
+          </div>
+        ) : null}
+
         {showAttendance ? (
           <div className="relative z-[3] flex shrink-0 items-center gap-2 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
-            {amParticipant && hasRoute && onLiveRide ? (
+            {showRideChat ? (
+              <SecondaryAction
+                className="shrink-0 px-3"
+                aria-label="Ride chat"
+                onClick={() => openRideChat(ride.id)}
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden />
+              </SecondaryAction>
+            ) : null}
+            {amParticipant && hasRoute && onLiveRide && liveAvailable ? (
               <GradientCTA
                 className="flex-1 whitespace-nowrap"
                 icon={Bike}

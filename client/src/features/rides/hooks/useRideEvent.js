@@ -1,14 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ridesApi } from '@/features/rides/api/rides-api';
-
-/** @param {{ scheduledDate?: string, time?: string } | null | undefined} ride */
-export function isRideUpcoming(ride) {
-  const iso = ride?.scheduledDate || ride?.time;
-  if (!iso) return true;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return true;
-  return d.getTime() >= Date.now();
-}
+export { isRideUpcoming, isRideInProgress, rideEventWindow } from '@/features/rides/utils/rideEventWindow';
 
 /** Leaflet preview `{ coordinates }` from API ride DTO or normalized ride. */
 export function resolveRideMapPreview(raw) {
@@ -64,6 +56,7 @@ export function mapRideDto(raw) {
     clubAvatarUrl: raw.clubAvatarUrl ?? null,
     rideKind: raw.rideKind ?? 'scheduled',
     viewerCanEdit: Boolean(raw.viewerCanEdit),
+    rideEventWindow: raw.rideEventWindow ?? null,
   };
 }
 

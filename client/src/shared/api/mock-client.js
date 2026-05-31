@@ -202,6 +202,8 @@ let mockInboxSeq = 1;
 const mockInboxStore = [];
 let mockRideInviteSeq = 1;
 const mockRideInviteStore = [];
+let mockRideChatSeq = 1;
+const mockRideChatStore = [];
 
 const INBOX_TAB_KINDS = {
   friends: ['friend_request'],
@@ -462,9 +464,35 @@ function participantDetailsFromIds(ids) {
   });
 }
 
+function mockRideEventWindow(ride) {
+  const start = new Date(ride.scheduledDate).getTime();
+  if (Number.isNaN(start)) {
+    return {
+      closesAt: null,
+      hasStarted: false,
+      liveAvailable: Boolean(ride.routeId) && ride.rideKind !== 'soloLog',
+      chatReadOnly: false,
+      canEditScheduledDate: true,
+    };
+  }
+  const closesAt = new Date(start + 48 * 60 * 60 * 1000);
+  const now = Date.now();
+  const hasStarted = now >= start;
+  const isOpen = now < closesAt.getTime();
+  const isScheduled = ride.rideKind !== 'soloLog';
+  return {
+    closesAt: closesAt.toISOString(),
+    hasStarted,
+    liveAvailable: isOpen && isScheduled && Boolean(ride.routeId),
+    chatReadOnly: !isOpen || !isScheduled,
+    canEditScheduledDate: !hasStarted,
+  };
+}
+
 function mockViewerCanEditRide(ride) {
-  const t = new Date(ride.scheduledDate).getTime();
-  if (Number.isNaN(t) || t < Date.now()) return false;
+  if (ride.rideKind === 'soloLog') return false;
+  const w = mockRideEventWindow(ride);
+  if (w.chatReadOnly) return false;
   const createdId = ride.createdBy?.id != null ? Number(ride.createdBy.id) : null;
   if (ride.clubId == null) return createdId === profile.id;
   if (createdId === profile.id) return true;
@@ -515,6 +543,7 @@ function findRide(rideId) {
     clubAvatarUrl,
     createdBy: enrichRideCreatedBy(ride.createdBy),
     viewerCanEdit: mockViewerCanEditRide(ride),
+    rideEventWindow: ride.rideKind === 'soloLog' ? null : mockRideEventWindow(ride),
   };
 }
 
@@ -1408,6 +1437,18 @@ export async function mockRequest(path, options = {}) {
       throw new ApiError({ message: 'Forbidden', status: 403, code: 'forbidden' });
     }
     const payload = parseJsonBody(options.body);
+    const w = mockRideEventWindow(ride);
+    if (w.hasStarted && payload.scheduledDate) {
+      const next = new Date(payload.scheduledDate).getTime();
+      const cur = new Date(ride.scheduledDate).getTime();
+      if (next !== cur) {
+        throw new ApiError({
+          message: 'Cannot change scheduled start after the ride has started',
+          status: 400,
+          code: 'bad_request',
+        });
+      }
+    }
     const routeId =
       payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
     if (routeId != null && Number.isNaN(routeId)) {
@@ -1581,6 +1622,67 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/api/users/me/club-chat/summary' && method === 'GET') {
     return [];
+  }
+
+  {
+    const m = pathname.match(/^\/api\/rides\/(\d+)\/chat\/(messages|read)$/);
+    if (m) {
+      const rideId = Number(m[1]);
+      const sub = m[2];
+      const ride = rides.find((r) => r.id === rideId);
+      if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+      const isParticipant = Array.isArray(ride.participants) && ride.participants.includes(profile.id);
+      if (!isParticipant) throw new ApiError({ message: 'Forbidden', status: 403, code: 'forbidden' });
+      const w = mockRideEventWindow(ride);
+      if (sub === 'messages' && method === 'GET') {
+        const msgs = mockRideChatStore
+          .filter((row) => row.rideId === rideId)
+          .sort((a, b) => a.id - b.id)
+          .map((row) => ({
+            id: row.id,
+            rideId: row.rideId,
+            authorUserId: row.authorUserId,
+            authorHandle: row.authorHandle,
+            authorDisplayName: row.authorDisplayName,
+            authorAvatarUrl: row.authorAvatarUrl,
+            body: row.body,
+            sentAt: row.sentAt,
+          }));
+        return {
+          messages: msgs,
+          readOnly: w.chatReadOnly,
+          closesAt: w.closesAt,
+        };
+      }
+      if (sub === 'messages' && method === 'POST') {
+        if (w.chatReadOnly) {
+          throw new ApiError({ message: 'Ride chat is read-only', status: 403, code: 'forbidden' });
+        }
+        const payload = parseJsonBody(options.body);
+        const row = {
+          id: mockRideChatSeq++,
+          rideId,
+          authorUserId: profile.id,
+          authorHandle: mockHandle(profile),
+          authorDisplayName: profile.fullName,
+          authorAvatarUrl: profile.avatarUrl ?? null,
+          body: payload.body ?? '',
+          sentAt: new Date().toISOString(),
+        };
+        mockRideChatStore.push(row);
+        return {
+          id: row.id,
+          rideId: row.rideId,
+          authorUserId: row.authorUserId,
+          authorHandle: row.authorHandle,
+          authorDisplayName: row.authorDisplayName,
+          authorAvatarUrl: row.authorAvatarUrl,
+          body: row.body,
+          sentAt: row.sentAt,
+        };
+      }
+      if (sub === 'read' && method === 'POST') return null;
+    }
   }
 
   {

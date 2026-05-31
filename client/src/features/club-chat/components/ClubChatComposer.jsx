@@ -170,7 +170,7 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative flex items-center gap-2 border-t border-border bg-black/25 px-3.5 py-3"
+      className="relative flex items-center gap-2 border-t border-border bg-black/25 px-3.5 pt-3 pb-[calc(0.75rem+var(--rydo-safe-bottom))]"
     >
       {picker && choices.length > 0 ? (
         <ul
