@@ -3,7 +3,11 @@ import { Link, generatePath, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteCardBold from '@/features/routes/components/RouteCardBold';
+import ExploreRoutesFloatingActions from '@/features/routes/components/ExploreRoutesFloatingActions';
+import UploadRouteModal from '@/features/routes/components/UploadRouteModal';
 import RouteFilters from '@/features/routes/components/RouteFilters';
+import Button from '@/shared/components/ui/button/Button';
+import { PAGE_HEADER_PRIMARY_CTA_CLASSNAME } from '@/shared/lib/pageHeaderPrimaryCta';
 import { useRoutesExploreInfinite } from '@/features/routes/hooks/useRoutesExploreInfinite';
 import { useNearMeGeo } from '@/features/routes/hooks/useNearMeGeo';
 import { useUserSearch } from '@/features/users/hooks/useUserSearch';
@@ -69,9 +73,27 @@ function ExploreMobileHeader({ routeCount, filtersOpen, onToggleFilters }) {
 }
 
 export default function RoutesExplorePage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultExploreFilters);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const uploadModalOpen = searchParams.get('upload') === 'true';
+
+  const openUploadModal = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('upload', 'true');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const closeUploadModal = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('upload');
+      return next;
+    });
+  }, [setSearchParams]);
 
   const urlSyncKey = `${searchParams.get('q') ?? ''}\x1f${searchParams.get('createdBy') ?? ''}`;
   const [appliedUrlSyncKey, setAppliedUrlSyncKey] = useState('');
@@ -224,10 +246,31 @@ export default function RoutesExplorePage() {
       <section className="hidden min-w-0 space-y-6 md:block">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Repository</p>
-          <h1 className="mt-2 text-3xl font-semibold text-fg">Explore</h1>
-          <p className="mt-2 max-w-xl text-sm text-fg-muted">
-            Search routes by title or members by name. People matches appear once you type at least two characters.
-          </p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-semibold text-fg">Explore</h1>
+              <p className="mt-2 max-w-xl text-sm text-fg-muted">
+                Search routes by title or members by name. People matches appear once you type at least two characters.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Link
+                to={ROUTES.myRoutes}
+                className="inline-flex h-8 items-center rounded-2xl border border-border bg-surface px-4 text-sm font-semibold text-fg transition hover:border-border-strong hover:bg-surface-strong"
+              >
+                My Routes
+              </Link>
+              <Button
+                variant="primary"
+                type="button"
+                size="sm"
+                className={PAGE_HEADER_PRIMARY_CTA_CLASSNAME}
+                onClick={openUploadModal}
+              >
+                Add route
+              </Button>
+            </div>
+          </div>
         </div>
         <RouteFilters
           filters={filters}
@@ -330,7 +373,7 @@ export default function RoutesExplorePage() {
             )}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-4 pt-3.5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(var(--rydo-tabbar-h)+5rem)] pt-3.5 md:pb-4">
             <div className="mb-2.5 flex items-center justify-between px-5">
               <Eyebrow>Sorted by {filters.sort === 'favorites' ? 'favorites' : 'newest'}</Eyebrow>
             </div>
@@ -343,7 +386,11 @@ export default function RoutesExplorePage() {
           </div>
         </div>
         </BoldScreen>
+
+        <ExploreRoutesFloatingActions onAddRoute={openUploadModal} />
       </div>
+
+      <UploadRouteModal isOpen={uploadModalOpen} onClose={closeUploadModal} />
     </>
   );
 }

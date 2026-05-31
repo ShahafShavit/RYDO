@@ -19,7 +19,6 @@ export function getBoldTabItems(userId) {
 
 /** Secondary destinations on the Me profile quick-nav (settings is in the profile header). */
 export const boldMeOverflowItems = [
-  { label: 'My Routes', to: ROUTES.myRoutes },
   { label: 'Clubs', to: ROUTES.clubs },
   { label: 'Leaderboards', to: ROUTES.leaderboards },
   { label: 'Inbox', to: ROUTES.inbox },
@@ -27,9 +26,6 @@ export const boldMeOverflowItems = [
 
 /** Whether a profile quick-nav chip should show as active for the current path. */
 export function isBoldMeNavActive(pathname, to) {
-  if (to === ROUTES.myRoutes) {
-    return pathname === ROUTES.myRoutes || pathname.startsWith('/your-routes');
-  }
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
@@ -38,6 +34,7 @@ export function resolveBoldActiveTab({ pathname, chatOpen, userId }) {
   if (chatOpen) return 'chat';
   if (pathname.startsWith(ROUTES.dashboard)) return 'home';
   if (pathname.startsWith(ROUTES.routes)) return 'explore';
+  if (pathname === ROUTES.myRoutes || pathname.startsWith('/your-routes')) return 'explore';
   if (pathname.startsWith(ROUTES.myRides) || pathname.includes('/ride/')) return 'ride';
   if (userId != null && pathname === ROUTES.userProfile.replace(':userId', String(userId))) {
     return 'me';
