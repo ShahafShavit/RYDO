@@ -56,9 +56,6 @@ export default function DashboardHomeCardsBold() {
               <br />
               {firstName}
             </DisplayTitle>
-            {home.eventGreeting ? (
-              <Eyebrow className="mt-1.5 text-[var(--rydo-amber)]">{home.eventGreeting}</Eyebrow>
-            ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Link

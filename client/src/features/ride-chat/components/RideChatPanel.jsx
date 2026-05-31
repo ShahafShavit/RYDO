@@ -23,7 +23,12 @@ const MotionDiv = motion.div;
 export default function RideChatPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { rideChatOpen: open, rideChatRideId: rideId, setRideChatOpen } = useRideChatUi();
+  const {
+    rideChatOpen: open,
+    rideChatRideId: rideId,
+    setRideChatOpen,
+    onRideChatPanelExitComplete,
+  } = useRideChatUi();
   const messagesScrollRef = useRef(null);
 
   const { ride } = useRideEvent(rideId);
@@ -105,7 +110,7 @@ export default function RideChatPanel() {
 
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={onRideChatPanelExitComplete}>
         {open ? (
           <MotionDiv
             initial={{ opacity: 0, y: 12 }}

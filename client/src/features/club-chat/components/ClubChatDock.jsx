@@ -29,7 +29,7 @@ export default function ClubChatDock() {
   const { user } = useAuth();
   const { data: preferences } = usePreferences();
   const queryClient = useQueryClient();
-  const { chatOpen: open, setChatOpen, toggleChat } = useClubChatUi();
+  const { chatOpen: open, setChatOpen, toggleChat, onChatPanelExitComplete } = useClubChatUi();
   const [clubId, setClubId] = useState(null);
   const messagesScrollRef = useRef(null);
 
@@ -255,7 +255,7 @@ export default function ClubChatDock() {
         </button>
       ) : null}
 
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={onChatPanelExitComplete}>
         {open ? (
           <MotionDiv
             initial={{ opacity: 0, y: 12 }}

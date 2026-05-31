@@ -158,10 +158,23 @@ if (!fs.existsSync(androidDir)) {
 
 npx(['sync', 'android']);
 
+run('node', [path.join(__dirname, 'assemble-android-debug.mjs'), '--quiet']);
+
 const capRunArgs = ['run', 'android'];
 if (target?.id) {
   capRunArgs.push('--target', target.id);
 }
 
 console.log('\nLaunching on Android…\n');
-npx(capRunArgs);
+const capRun = spawnSync('npx', ['cap', ...capRunArgs], {
+  stdio: 'inherit',
+  cwd: mobileRoot,
+  shell: process.platform === 'win32',
+  env: { ...process.env },
+});
+
+const summaryArgs = [path.join(__dirname, 'log-apk-artifact.mjs')];
+if (process.argv.includes('--reveal')) summaryArgs.push('--reveal');
+run('node', summaryArgs);
+
+if (capRun.status !== 0) process.exit(capRun.status ?? 1);

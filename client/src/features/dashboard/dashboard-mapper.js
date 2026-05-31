@@ -170,18 +170,6 @@ export function buildDashboardHome({
   const xpToNext = Number(g.xpToNextLevel) || 0;
   const featuredCard =
     events.defaultFeaturedCard ?? events.pinned ?? g.defaultFeaturedCard ?? null;
-  const greeting = events.greeting ?? g.greeting;
-  let eventGreeting = null;
-  if (greeting) {
-    if (greeting.kind === 'modifier') {
-      eventGreeting = `${greeting.title} · +${greeting.bonusPercent}% XP`;
-    } else if (greeting.title) {
-      const end = greeting.endDate ? new Date(greeting.endDate).getTime() : NaN;
-      const days = Number.isFinite(end) ? Math.max(0, Math.ceil((end - Date.now()) / 86400000)) : null;
-      eventGreeting = days != null ? `${greeting.title} · ${days} days left` : greeting.title;
-    }
-  }
-
   let awards = {
     title: 'Challenges',
     description: 'Complete rides to earn awards',
@@ -294,7 +282,6 @@ export function buildDashboardHome({
     featuredCard,
     pinnedChallengeInstanceId:
       g.pinnedChallengeInstanceId != null ? Number(g.pinnedChallengeInstanceId) : null,
-    eventGreeting,
     lastRide,
     weeklySnapshot,
     streakSnapshot,

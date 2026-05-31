@@ -22,9 +22,9 @@ function DashboardLayoutBody() {
   useLevelUpConfetti();
   const { isAdmin } = useAuth();
   const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
-  const { chatOpen } = useClubChatUi();
-  const { rideChatOpen } = useRideChatUi();
-  const showMobileTabBar = !rideLiveMatch && !chatOpen && !rideChatOpen;
+  const { chatPanelVisible } = useClubChatUi();
+  const { rideChatPanelVisible } = useRideChatUi();
+  const showMobileTabBar = !rideLiveMatch && !chatPanelVisible && !rideChatPanelVisible;
 
   useEffect(() => {
     prefetchDashboardRoutes();
