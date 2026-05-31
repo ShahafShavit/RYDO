@@ -68,8 +68,9 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         u.LastName = body.LastName;
         u.Bio = string.IsNullOrWhiteSpace(body.Bio) ? null : body.Bio.Trim();
         u.Location = string.IsNullOrWhiteSpace(body.Location) ? null : body.Location.Trim();
+        if (body.AvatarUrl != null)
         {
-            var t = body.AvatarUrl?.Trim() ?? "";
+            var t = body.AvatarUrl.Trim();
             if (string.IsNullOrEmpty(t))
             {
                 u.AvatarUrl = null;
@@ -80,15 +81,9 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             {
                 /* keep uploaded avatar */
             }
-            else if (AvatarUrls.IsExternalHttpUrl(t))
-            {
-                u.AvatarUrl = t;
-                u.AvatarImageBytes = null;
-                u.AvatarImageContentType = null;
-            }
             else
             {
-                return Problem(statusCode: 400, detail: "Avatar must be an http(s) image URL, or clear the field and upload a file.");
+                return Problem(statusCode: 400, detail: "Avatar can only be cleared or left unchanged. Upload a photo to set your avatar.");
             }
         }
         u.PublicFirstName = body.PublicFirstName;

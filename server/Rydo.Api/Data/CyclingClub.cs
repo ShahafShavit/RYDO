@@ -5,9 +5,9 @@ public class CyclingClub
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public string? AvatarUrl { get; set; }
+    public string? AvatarSeed { get; set; }
 
-    /// <summary>Uploaded square club image (1:1), WebP. When set, this wins over <see cref="AvatarUrl"/> for display.</summary>
+    /// <summary>Uploaded square club image (1:1), WebP. When set, this wins over the generated seed avatar for display.</summary>
     public byte[]? AvatarImageBytes { get; set; }
 
     public string? AvatarImageContentType { get; set; }

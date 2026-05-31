@@ -8,7 +8,55 @@ public static class AvatarUrls
 
     public static string UserUploaded(ApplicationUser u) => UserUploaded(u.Handle);
 
+    public static string UserDefaultFromHandle(string handle)
+    {
+        var seed = handle.Trim().TrimStart('@');
+        if (string.IsNullOrEmpty(seed)) return string.Empty;
+        return $"https://api.dicebear.com/7.x/avataaars/svg?seed={Uri.EscapeDataString(seed)}";
+    }
+
     public static string ClubUploaded(int clubId) => $"/api/media/clubs/{clubId}/avatar";
+
+    public static string ClubDefaultFromSeed(string seed)
+    {
+        if (string.IsNullOrWhiteSpace(seed)) return string.Empty;
+        return $"https://api.dicebear.com/7.x/shapes/svg?seed={Uri.EscapeDataString(seed.Trim())}";
+    }
+
+    public static string ClubDefaultSeedFromName(string name)
+    {
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "club";
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var p = parts[i];
+            if (p.Length == 0) continue;
+            if (i == 0)
+                sb.Append(char.ToLowerInvariant(p[0])).Append(p.AsSpan(1));
+            else
+            {
+                sb.Append(char.ToUpperInvariant(p[0]));
+                if (p.Length > 1)
+                    sb.Append(p.AsSpan(1).ToString().ToLowerInvariant());
+            }
+        }
+        return sb.Length > 0 ? sb.ToString() : "club";
+    }
+
+    public static string ResolveClubSeed(string? avatarSeed, string clubName, int clubId)
+    {
+        if (!string.IsNullOrWhiteSpace(avatarSeed)) return avatarSeed.Trim();
+        var fromName = ClubDefaultSeedFromName(clubName);
+        return string.IsNullOrEmpty(fromName) ? $"club{clubId}" : fromName;
+    }
+
+    public static bool IsValidClubAvatarSeed(string? seed)
+    {
+        if (string.IsNullOrWhiteSpace(seed)) return true;
+        var t = seed.Trim();
+        return t.Length <= 64 && t.All(c => !char.IsControl(c));
+    }
 
     public static bool IsExternalHttpUrl(string? s)
     {
@@ -52,28 +100,33 @@ public static class AvatarUrls
         return false;
     }
 
-    /// <summary>Uploaded blob wins; otherwise external <see cref="ApplicationUser.AvatarUrl"/>.</summary>
+    /// <summary>Uploaded blob wins; otherwise a Dicebear avatar seeded from the user's handle.</summary>
     public static string? ResolveUserDisplay(ApplicationUser? u)
     {
         if (u == null) return null;
         if (u.AvatarImageBytes is { Length: > 0 })
             return UserUploaded(u);
-        return string.IsNullOrWhiteSpace(u.AvatarUrl) ? null : u.AvatarUrl.Trim();
+        var seeded = UserDefaultFromHandle(u.Handle);
+        return string.IsNullOrEmpty(seeded) ? null : seeded;
     }
 
     public static string? ResolveClubDisplay(CyclingClub? c) =>
-        c == null ? null : ResolveClubDisplay(c.AvatarUrl, c.AvatarImageBytes, c.Id);
+        c == null ? null : ResolveClubDisplay(c.AvatarSeed, c.Name, c.AvatarImageBytes, c.Id);
 
     /// <summary>When <paramref name="hasUploadedBlob"/> is true (DB column non-null), use media URL without loading bytes.</summary>
-    public static string? ResolveClubDisplay(string? avatarUrl, bool hasUploadedBlob, int clubId)
+    public static string? ResolveClubDisplay(string? avatarSeed, string clubName, bool hasUploadedBlob, int clubId)
     {
         if (hasUploadedBlob) return ClubUploaded(clubId);
-        return string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl.Trim();
+        var seed = ResolveClubSeed(avatarSeed, clubName, clubId);
+        var url = ClubDefaultFromSeed(seed);
+        return string.IsNullOrEmpty(url) ? null : url;
     }
 
-    public static string? ResolveClubDisplay(string? avatarUrl, byte[]? avatarImageBytes, int clubId)
+    public static string? ResolveClubDisplay(string? avatarSeed, string clubName, byte[]? avatarImageBytes, int clubId)
     {
         if (avatarImageBytes is { Length: > 0 }) return ClubUploaded(clubId);
-        return string.IsNullOrWhiteSpace(avatarUrl) ? null : avatarUrl.Trim();
+        var seed = ResolveClubSeed(avatarSeed, clubName, clubId);
+        var url = ClubDefaultFromSeed(seed);
+        return string.IsNullOrEmpty(url) ? null : url;
     }
 }

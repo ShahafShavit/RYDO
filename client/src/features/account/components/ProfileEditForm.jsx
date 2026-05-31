@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
-import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
+import UserAvatarEditor from '@/shared/components/media/UserAvatarEditor';
 import { useProfile, useUpdateProfile } from '../hooks/useAccount';
 import { validateHandle, normalizeHandleInput } from '@/features/users/utils/handle-validation';
 import { normalizeAccountProfile } from '../account-mapper';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isUserUploadedAvatarUrl, resolveUserAvatarDisplayUrl } from '@/shared/lib/avatar-url';
 
 function privacyField(label, name, checked, onChange) {
   return (
@@ -91,6 +92,8 @@ export function ProfileEditForm() {
       return;
     }
     try {
+      const curUrl = (cur.avatarUrl ?? '').trim();
+      const profileUrl = (profile.avatarUrl ?? '').trim();
       const payload = {
         handle: normalizeHandleInput(cur.handle),
         firstName: (cur.firstName || '').trim(),
@@ -98,7 +101,6 @@ export function ProfileEditForm() {
         email: (cur.email || '').trim(),
         bio: cur.bio?.trim() || '',
         location: cur.location?.trim() || '',
-        avatarUrl: cur.avatarUrl?.trim() || '',
         publicFirstName: cur.privacy.publicFirstName,
         publicLastName: cur.privacy.publicLastName,
         publicEmail: cur.privacy.publicEmail,
@@ -108,6 +110,11 @@ export function ProfileEditForm() {
         publicAvatarUrl: cur.privacy.publicAvatarUrl,
         publicDefaultBikeType: cur.privacy.publicDefaultBikeType,
       };
+      if (curUrl === '' && isUserUploadedAvatarUrl(profileUrl)) {
+        payload.avatarUrl = '';
+      } else if (isUserUploadedAvatarUrl(curUrl) && curUrl !== profileUrl) {
+        payload.avatarUrl = curUrl;
+      }
       const raw = await updateProfile(payload);
       const normalized = normalizeAccountProfile(raw);
       updateUser({
@@ -194,16 +201,20 @@ export function ProfileEditForm() {
           />
         </FormField>
         <FormField label="Profile photo">
-          <AvatarOrUrlEditor
-            kind="user"
+          <UserAvatarEditor
+            handle={formData.handle ?? ''}
             displayName={`${formData.firstName || ''} ${formData.lastName || ''}`.trim() || 'You'}
             avatarUrl={formData.avatarUrl ?? ''}
             onAvatarUrlChange={(v) => {
               setSuccessMsg('');
+              const cur = draft || profile;
               setDraft((prev) => {
-                const cur = prev || profile;
-                if (!cur) return prev;
-                return { ...cur, avatarUrl: v };
+                const base = prev || profile;
+                if (!base) return prev;
+                return { ...base, avatarUrl: v };
+              });
+              updateUser({
+                avatarUrl: resolveUserAvatarDisplayUrl(cur?.handle ?? '', v),
               });
             }}
           />

@@ -66,6 +66,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         {
             e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.AvatarImageBytes).HasMaxLength(524_288);
+            e.Property(x => x.AvatarSeed).HasMaxLength(64);
         });
 
         builder.Entity<ApplicationUser>(e =>

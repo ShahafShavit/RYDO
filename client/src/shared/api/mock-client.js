@@ -1,5 +1,13 @@
 import { ApiError } from '@/shared/api/api-errors';
 import { env } from '@/shared/config/env';
+import {
+  clubAvatarDefaultUrl,
+  clubDefaultSeedFromName,
+  isClubUploadedAvatarUrl,
+  isUserUploadedAvatarUrl,
+  resolveClubAvatarSeed,
+  userAvatarDefaultUrl,
+} from '@/shared/lib/avatar-url';
 import { MOCK_CHALLENGES } from '@/shared/mocks/challenges';
 import { MOCK_HAZARDS } from '@/shared/mocks/hazards';
 import { MOCK_HISTORY } from '@/shared/mocks/history';
@@ -151,6 +159,36 @@ function mockLifetimeStatsForUser(userId) {
   };
 }
 
+function mockResolveUserDisplay(u) {
+  if (!u) return null;
+  if (isUserUploadedAvatarUrl(u.avatarUrl)) return String(u.avatarUrl).trim();
+  return userAvatarDefaultUrl(mockHandle(u));
+}
+
+function mockResolveClubDisplay(c) {
+  if (!c) return null;
+  if (isClubUploadedAvatarUrl(c.avatarUploadPath)) return String(c.avatarUploadPath).trim();
+  const seed = resolveClubAvatarSeed(c.avatarSeed, c.name, c.id);
+  return clubAvatarDefaultUrl(seed);
+}
+
+function mockClubToApiRow(c, overrides = {}) {
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    region: c.region,
+    visibility: c.visibility,
+    membershipPending: c.membershipPending ?? false,
+    myRole: c.myRole ?? null,
+    rideCreationPolicy: c.rideCreationPolicy ?? 'everyone',
+    createdAt: c.createdAt,
+    avatarUrl: mockResolveClubDisplay(c),
+    avatarSeed: resolveClubAvatarSeed(c.avatarSeed, c.name, c.id),
+    ...overrides,
+  };
+}
+
 function toFullProfile(p) {
   const privacy = {
     ...mergeMockPrivacy(p.privacy),
@@ -168,7 +206,7 @@ function toFullProfile(p) {
     email: p.email,
     bio: p.bio ?? null,
     location: p.location ?? null,
-    avatarUrl: p.avatarUrl ?? null,
+    avatarUrl: mockResolveUserDisplay(p),
     defaultBikeType: preferences.defaultBikeType ?? 'road',
     role: (p.role || 'user').toLowerCase(),
     isActive: p.isActive ?? true,
@@ -192,7 +230,7 @@ function toPublicProfileView(u) {
     createdAt: privacy.publicCreatedAt ? u.createdAt : null,
     bio: privacy.publicBio ? u.bio : null,
     location: privacy.publicLocation ? u.location : null,
-    avatarUrl: privacy.publicAvatarUrl ? u.avatarUrl : null,
+    avatarUrl: privacy.publicAvatarUrl ? mockResolveUserDisplay(u) : null,
     defaultBikeType: privacy.publicDefaultBikeType ? (u.defaultBikeType ?? 'road') : null,
     publicUploadedRoutesOnProfile: privacy.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: privacy.publicParticipatedRidesOnProfile !== false,
@@ -475,10 +513,9 @@ function enrichListRouteRow(route) {
   };
 }
 
-/** Same as API roster rules: show stored avatar URL whenever set (signed-in lists). */
+/** Same as API roster rules: uploaded photo or handle-seeded default. */
 function mockRosterAvatarUrl(u) {
-  if (!u?.avatarUrl || !String(u.avatarUrl).trim()) return undefined;
-  return String(u.avatarUrl).trim();
+  return mockResolveUserDisplay(u) ?? undefined;
 }
 
 function participantDetailsFromIds(ids) {
@@ -557,8 +594,7 @@ function findRide(rideId) {
     route?.coordinates?.length > 1 ? { coordinates: route.coordinates } : ride.routePreview ?? null;
   const club =
     ride.clubId != null ? clubs.find((c) => c.id === Number(ride.clubId)) : null;
-  const clubAvatarUrl =
-    club?.avatarUrl && String(club.avatarUrl).trim() ? String(club.avatarUrl).trim() : null;
+  const clubAvatarUrl = club ? mockResolveClubDisplay(club) : null;
   return {
     ...ride,
     routeTitle,
@@ -1008,6 +1044,20 @@ export async function mockRequest(path, options = {}) {
     for (const k of privKeys) {
       if (body[k] !== undefined) nextPrivacy[k] = Boolean(body[k]);
     }
+    if ('avatarUrl' in body) {
+      const t = body.avatarUrl == null ? '' : String(body.avatarUrl).trim();
+      if (!t) {
+        profile.avatarUrl = null;
+      } else if (isUserUploadedAvatarUrl(t)) {
+        profile.avatarUrl = t;
+      } else {
+        throw new ApiError({
+          message: 'Avatar can only be cleared or left unchanged. Upload a photo to set your avatar.',
+          status: 400,
+          code: 'invalid_avatar',
+        });
+      }
+    }
     profile = {
       ...profile,
       handle: body.handle != null ? String(body.handle).replace(/^@/, '').trim().toLowerCase() : mockHandle(profile),
@@ -1016,7 +1066,6 @@ export async function mockRequest(path, options = {}) {
       email: body.email ?? profile.email,
       bio: 'bio' in body ? body.bio : profile.bio,
       location: 'location' in body ? body.location : profile.location,
-      avatarUrl: 'avatarUrl' in body ? body.avatarUrl : profile.avatarUrl,
       privacy: nextPrivacy,
     };
     profile.fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
@@ -1028,8 +1077,8 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/account/avatar/upload' && method === 'POST') {
-    const seed = `mockupload-${profile.id}-${Date.now()}`;
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+    const handle = mockHandle(profile);
+    const avatarUrl = `/api/media/users/${handle}/avatar`;
     profile = { ...profile, avatarUrl };
     const uidx = users.findIndex((u) => u.id === profile.id);
     if (uidx >= 0) users[uidx] = { ...users[uidx], avatarUrl };
@@ -1229,7 +1278,7 @@ export async function mockRequest(path, options = {}) {
 
   if (pathname === '/api/clubs' && method === 'GET') {
     return clubs.map((c) => ({
-      ...c,
+      ...mockClubToApiRow(c),
       rideCreationPolicy: mockRideCreationPolicyApi(c),
       viewerCanCreateRide: mockViewerCanCreateRide(c),
     }));
@@ -1238,13 +1287,15 @@ export async function mockRequest(path, options = {}) {
   if (pathname === '/api/clubs' && method === 'POST') {
     const body = parseJsonBody(options.body);
     const nextId = Math.max(...clubs.map((c) => c.id), 0) + 1;
+    const name = String(body.name).trim();
     const row = {
       id: nextId,
-      name: body.name,
+      name,
       description: body.description || '',
       region: body.region || null,
       visibility: body.visibility === 1 ? 'private' : 'public',
-      avatarUrl: null,
+      avatarSeed: clubDefaultSeedFromName(name),
+      avatarUploadPath: null,
       membershipPending: false,
       myRole: 'admin',
       rideCreationPolicy: 'everyone',
@@ -1257,7 +1308,8 @@ export async function mockRequest(path, options = {}) {
       name: row.name,
       description: row.description,
       region: row.region,
-      avatarUrl: row.avatarUrl,
+      avatarUrl: mockResolveClubDisplay(row),
+      avatarSeed: row.avatarSeed,
       visibility: row.visibility,
       createdAt: row.createdAt,
     };
@@ -1267,9 +1319,8 @@ export async function mockRequest(path, options = {}) {
     const cid = Number(pathname.split('/')[3]);
     const c = clubs.find((x) => x.id === cid);
     if (!c) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
-    const seed = `mockclub-${cid}-${Date.now()}`;
-    const avatarUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}`;
-    c.avatarUrl = avatarUrl;
+    const avatarUrl = `/api/media/clubs/${cid}/avatar`;
+    c.avatarUploadPath = avatarUrl;
     return { avatarUrl };
   }
 
@@ -1285,14 +1336,13 @@ export async function mockRequest(path, options = {}) {
     if (body.rideCreationPolicy != null) {
       c.rideCreationPolicy = mockRideCreationPolicyFromPatchValue(body.rideCreationPolicy);
     }
-    if ('avatarUrl' in body) c.avatarUrl = body.avatarUrl ? String(body.avatarUrl).trim() : null;
+    if ('avatarSeed' in body) {
+      const seed = body.avatarSeed == null ? '' : String(body.avatarSeed).trim();
+      c.avatarSeed = seed || clubDefaultSeedFromName(c.name);
+      c.avatarUploadPath = null;
+    }
     return {
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      region: c.region,
-      avatarUrl: c.avatarUrl,
-      visibility: c.visibility,
+      ...mockClubToApiRow(c),
       rideCreationPolicy: mockRideCreationPolicyApi(c),
     };
   }
@@ -1305,13 +1355,15 @@ export async function mockRequest(path, options = {}) {
     const isActive = mockIsActiveClubMember(c);
     let description = c.description;
     let region = c.region;
-    let avatarUrl = c.avatarUrl ?? null;
+    let avatarUrl = mockResolveClubDisplay(c);
+    let avatarSeed = resolveClubAvatarSeed(c.avatarSeed, c.name, c.id);
     let memberCount = 4;
     if (c.visibility === 'private' && !isActive) {
       description = null;
       region = null;
       memberCount = null;
       avatarUrl = null;
+      avatarSeed = null;
     }
     return {
       id: c.id,
@@ -1319,6 +1371,7 @@ export async function mockRequest(path, options = {}) {
       description,
       region,
       avatarUrl,
+      avatarSeed,
       visibility: c.visibility,
       rideCreationPolicy: mockRideCreationPolicyApi(c),
       viewerCanCreateRide: mockViewerCanCreateRide(c),

@@ -6,18 +6,25 @@ import AnimatedModal from '@/shared/components/ui/modal/AnimatedModal';
 import { ModalHeader, ModalPanel, modalControlClass, modalSectionTitleClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
-import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
+import ClubAvatarEditor from '@/shared/components/media/ClubAvatarEditor';
 import { helpTooltip } from '@/shared/content/help-tooltips';
+import {
+  clubDefaultSeedFromName,
+  isClubUploadedAvatarUrl,
+  resolveClubAvatarSeed,
+} from '@/shared/lib/avatar-url';
 
 function formFromClub(club) {
   const policy = club?.rideCreationPolicy;
+  const name = club?.name ?? '';
   return {
-    name: club?.name ?? '',
+    name,
     description: club?.description ?? '',
     region: club?.region ?? '',
     visibility: club?.visibility === 'private' ? 'private' : 'public',
     rideCreationPolicy:
       policy === 'organizersAndAdmins' || policy === 'adminsOnly' ? policy : 'everyone',
+    avatarSeed: club?.avatarSeed ?? resolveClubAvatarSeed(null, name, club?.id),
     avatarUrl: club?.avatarUrl ?? '',
   };
 }
@@ -37,27 +44,49 @@ export default function ClubSettingsModal({
 }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(() => formFromClub(club));
+  const [baseline, setBaseline] = useState(() => formFromClub(club));
 
   const formSnapshotKey =
     isOpen && club
-      ? [club.id, club.name, club.description, club.region, club.visibility, club.rideCreationPolicy ?? 'everyone', club.avatarUrl ?? ''].join('\x1f')
+      ? [
+          club.id,
+          club.name,
+          club.description,
+          club.region,
+          club.visibility,
+          club.rideCreationPolicy ?? 'everyone',
+          club.avatarSeed ?? '',
+          club.avatarUrl ?? '',
+        ].join('\x1f')
       : '';
   const [appliedFormSnapshotKey, setAppliedFormSnapshotKey] = useState(formSnapshotKey);
   if (formSnapshotKey !== appliedFormSnapshotKey) {
     setAppliedFormSnapshotKey(formSnapshotKey);
-    if (isOpen && club) setForm(formFromClub(club));
+    if (isOpen && club) {
+      const next = formFromClub(club);
+      setForm(next);
+      setBaseline(next);
+    }
   }
 
   const patchMut = useMutation({
-    mutationFn: () =>
-      clubsApi.patch(clubId, {
+    mutationFn: () => {
+      const payload = {
         name: form.name.trim(),
         description: form.description.trim(),
         region: form.region.trim() === '' ? '' : form.region.trim(),
         visibility: form.visibility === 'private' ? 1 : 0,
         rideCreationPolicy: RIDE_CREATION_POLICY_VALUES[form.rideCreationPolicy] ?? 0,
-        avatarUrl: form.avatarUrl?.trim() ?? '',
-      }),
+      };
+      const seedTrimmed = form.avatarSeed.trim();
+      const initialSeed = (baseline.avatarSeed ?? '').trim();
+      const hadUpload = isClubUploadedAvatarUrl(baseline.avatarUrl);
+      const hasUpload = isClubUploadedAvatarUrl(form.avatarUrl);
+      if (seedTrimmed !== initialSeed || (hadUpload && !hasUpload)) {
+        payload.avatarSeed = seedTrimmed || clubDefaultSeedFromName(form.name.trim());
+      }
+      return clubsApi.patch(clubId, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clubs', 'detail', clubId] });
       queryClient.invalidateQueries({ queryKey: ['clubs', 'list'] });
@@ -105,12 +134,14 @@ export default function ClubSettingsModal({
             />
           </FormField>
           <FormField label="Club image">
-            <AvatarOrUrlEditor
-              kind="club"
+            <ClubAvatarEditor
               clubId={clubId}
-              displayName={form.name?.trim() || club?.name || 'Club'}
+              clubName={form.name?.trim() || club?.name || 'Club'}
+              avatarSeed={form.avatarSeed ?? ''}
               avatarUrl={form.avatarUrl ?? ''}
-              onAvatarUrlChange={(v) => setForm((f) => ({ ...f, avatarUrl: v }))}
+              onAvatarSeedChange={(v) => setForm((f) => ({ ...f, avatarSeed: v }))}
+              onUploaded={(path) => setForm((f) => ({ ...f, avatarUrl: path }))}
+              onUseGenerated={() => setForm((f) => ({ ...f, avatarUrl: '' }))}
             />
           </FormField>
           <FormField label="Visibility" hint={helpTooltip('clubVisibility')}>

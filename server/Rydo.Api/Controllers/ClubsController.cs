@@ -65,7 +65,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                     c.Name,
                     c.Description,
                     c.Region,
-                    c.AvatarUrl,
+                    c.AvatarSeed,
                     HasBlob = c.AvatarImageBytes != null,
                     c.RideCreationPolicy,
                     c.CreatedAt,
@@ -77,7 +77,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 c.Name,
                 c.Description,
                 c.Region,
-                avatarUrl = AvatarUrls.ResolveClubDisplay(c.AvatarUrl, c.HasBlob, c.Id),
+                avatarUrl = AvatarUrls.ResolveClubDisplay(c.AvatarSeed, c.Name, c.HasBlob, c.Id),
                 visibility = "public",
                 membershipPending = false,
                 myRole = (string?)null,
@@ -118,7 +118,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 c.Name,
                 c.Description,
                 c.Region,
-                c.AvatarUrl,
+                c.AvatarSeed,
                 HasBlob = c.AvatarImageBytes != null,
                 c.Visibility,
                 c.RideCreationPolicy,
@@ -132,7 +132,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             var isActiveMember = role is "admin" or "member" or "organizer";
             var hidePrivateFields = c.Visibility == ClubVisibility.Private && !isActiveMember;
             var vis = c.Visibility == ClubVisibility.Public ? "public" : "private";
-            var avatar = AvatarUrls.ResolveClubDisplay(c.AvatarUrl, c.HasBlob, c.Id);
+            var avatar = AvatarUrls.ResolveClubDisplay(c.AvatarSeed, c.Name, c.HasBlob, c.Id);
             var rideCreationPolicy = ClubRidePolicy.ToApiString(c.RideCreationPolicy);
             return new
             {
@@ -168,6 +168,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             Description = body.Description?.Trim() ?? "",
             Region = string.IsNullOrWhiteSpace(body.Region) ? null : body.Region.Trim(),
             Visibility = body.Visibility,
+            AvatarSeed = AvatarUrls.ClubDefaultSeedFromName(body.Name.Trim()),
             CreatedByUserId = uid,
             CreatedAt = DateTime.UtcNow,
         };
@@ -191,7 +192,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             name = club.Name,
             description = club.Description,
             region = club.Region,
-            avatarUrl = (string?)null,
+            avatarUrl = AvatarUrls.ResolveClubDisplay(club),
+            avatarSeed = club.AvatarSeed,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             createdAt = club.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         });
@@ -225,12 +227,17 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         string? region = club.Region;
         int? memberCountPublic = memberCount;
         string? avatarUrl = AvatarUrls.ResolveClubDisplay(club);
+        string? avatarSeed = null;
         if (club.Visibility == ClubVisibility.Private && !isActiveMember)
         {
             description = null;
             region = null;
             memberCountPublic = null;
             avatarUrl = null;
+        }
+        else
+        {
+            avatarSeed = AvatarUrls.ResolveClubSeed(club.AvatarSeed, club.Name, club.Id);
         }
 
         return Ok(new
@@ -240,6 +247,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             description,
             region,
             avatarUrl,
+            avatarSeed,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             rideCreationPolicy = ClubRidePolicy.ToApiString(club.RideCreationPolicy),
             viewerCanCreateRide = viewerMem != null
@@ -539,7 +547,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         string? Name,
         string? Description,
         string? Region,
-        string? AvatarUrl,
+        string? AvatarSeed,
         ClubVisibility? Visibility,
         ClubRideCreationPolicy? RideCreationPolicy);
 
@@ -558,29 +566,14 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         if (body.Name != null) club.Name = body.Name.Trim();
         if (body.Description != null) club.Description = body.Description.Trim();
         if (body.Region != null) club.Region = string.IsNullOrWhiteSpace(body.Region) ? null : body.Region.Trim();
-        if (body.AvatarUrl != null)
+        if (body.AvatarSeed != null)
         {
-            var t = body.AvatarUrl.Trim();
-            if (string.IsNullOrEmpty(t))
-            {
-                club.AvatarUrl = null;
-                club.AvatarImageBytes = null;
-                club.AvatarImageContentType = null;
-            }
-            else if (AvatarUrls.MatchesClubUploadedPath(t, club.Id) && club.AvatarImageBytes is { Length: > 0 })
-            {
-                /* keep uploaded club image */
-            }
-            else if (AvatarUrls.IsExternalHttpUrl(t))
-            {
-                club.AvatarUrl = t;
-                club.AvatarImageBytes = null;
-                club.AvatarImageContentType = null;
-            }
-            else
-            {
-                return Problem(statusCode: 400, detail: "Club image must be an http(s) URL, or clear the field and upload a file.");
-            }
+            if (!AvatarUrls.IsValidClubAvatarSeed(body.AvatarSeed))
+                return Problem(statusCode: 400, detail: "Avatar seed must be 64 characters or fewer.");
+            var seed = body.AvatarSeed.Trim();
+            club.AvatarSeed = string.IsNullOrEmpty(seed) ? null : seed;
+            club.AvatarImageBytes = null;
+            club.AvatarImageContentType = null;
         }
         if (body.Visibility.HasValue) club.Visibility = body.Visibility.Value;
         if (body.RideCreationPolicy.HasValue) club.RideCreationPolicy = body.RideCreationPolicy.Value;
@@ -593,6 +586,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             description = club.Description,
             region = club.Region,
             avatarUrl = AvatarUrls.ResolveClubDisplay(club),
+            avatarSeed = AvatarUrls.ResolveClubSeed(club.AvatarSeed, club.Name, club.Id),
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
             rideCreationPolicy = ClubRidePolicy.ToApiString(club.RideCreationPolicy),
         });
@@ -624,7 +618,6 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
 
         club.AvatarImageBytes = bytes;
         club.AvatarImageContentType = contentType;
-        club.AvatarUrl = null;
         await db.SaveChangesAsync(ct);
 
         return Ok(new { avatarUrl = AvatarUrls.ClubUploaded(club.Id) });
