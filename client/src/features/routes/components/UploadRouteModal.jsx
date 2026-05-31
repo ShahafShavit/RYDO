@@ -236,6 +236,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
               <RouteMapWithElevation
                 geoJson={geoJson}
                 profile={missingElevation ? null : elevationProfile}
+                interactionMode="auto"
               />
             </Suspense>
 

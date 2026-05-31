@@ -1,5 +1,6 @@
 import { useState, useRef, useId, useCallback } from 'react';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { useCoarsePointer } from '@/shared/hooks/useCoarsePointer';
 import { cn } from '@/shared/lib/cn';
 
 /**
@@ -26,6 +27,7 @@ function elevationAtDistance(profile, distanceM) {
  * @param {boolean} [showHeader=true] — Title + range row; set false when the parent supplies a section label.
  * @param {boolean} [showRangeLabel=true] — Distance/elevation range under embed headers.
  * @param {boolean} [interactive=true] — Hover scrub; disable on small card thumbnails.
+ * @param {boolean} [interactionLocked=false] — Preview mode on touch; show hint to tap map area first.
  * @param {boolean} [fillHeight] — Stretch to parent height (e.g. side-by-side with map).
  */
 export default function ElevationProfileChart({
@@ -37,8 +39,10 @@ export default function ElevationProfileChart({
   showHeader = true,
   showRangeLabel = true,
   interactive = true,
+  interactionLocked = false,
 }) {
   const { formatMeters, formatElevation, formatElevationRange } = useFormatDistance();
+  const isCoarse = useCoarsePointer();
   const svgRef = useRef(null);
   const fillGradientId = `elevFill-${useId().replace(/:/g, '')}`;
   const [hover, setHover] = useState(null);
@@ -111,6 +115,12 @@ export default function ElevationProfileChart({
   const maxDistLabel = formatMeters(maxD, 1);
   const rangeLabel = `${formatElevationRange(minEl, maxEl)} · ${maxDistLabel}`;
   const embed = variant === 'embed';
+
+  const idleHint = interactionLocked
+    ? 'Tap map area above to explore route'
+    : interactive && isCoarse
+      ? 'Drag along the profile · Δ vs start'
+      : 'Hover along the profile · Δ vs start';
 
   return (
     <div
@@ -218,7 +228,7 @@ export default function ElevationProfileChart({
             </span>
           </p>
         ) : (
-          <p className="text-fg-subtle">Hover along the profile · Δ vs start</p>
+          <p className="text-fg-subtle">{idleHint}</p>
         )}
       </div>
     </div>

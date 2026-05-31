@@ -42,6 +42,7 @@ export default function BoldRouteMapElevation({
           chartVariant="embed"
           chartShowHeader={false}
           className="gap-2.5"
+          interactionMode="auto"
         />
       </Suspense>
     </div>

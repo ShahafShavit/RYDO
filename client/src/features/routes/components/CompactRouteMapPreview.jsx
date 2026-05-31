@@ -7,6 +7,10 @@ import RouteMapPreview from './RouteMapPreview';
  * Small Leaflet preview for cards. `preview` matches API preview / routePreview shape ({ coordinates }).
  * Loaded synchronously so the map mounts in the same commit as `geoJson` (lazy+Suspense deferred Leaflet
  * until after paint, so the default world zoom was visible and fitBounds ran too late).
+ *
+ * Decorative thumbnail only — permanently non-interactive (no pan/zoom). Touches pass through to parent
+ * card links. To explore a route map, open the route or ride detail page (`RouteMapWithElevation` /
+ * `BoldRouteMapElevation`).
  */
 export default function CompactRouteMapPreview({
   preview,
@@ -31,6 +35,8 @@ export default function CompactRouteMapPreview({
       scrollWheelZoom={scrollWheelZoom}
       zoomControl={zoomControl}
       compactAttribution={compactAttribution}
+      mapInteractionEnabled={false}
+      pointerEventsNone
     />
   );
 }

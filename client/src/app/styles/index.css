@@ -557,6 +557,12 @@ html[data-theme='dune'] .app-logo {
   z-index: 8 !important;
 }
 
+/* Recenter control — bottom-left, aligned with Leaflet control inset. */
+.rydo-leaflet-recenter-btn {
+  bottom: 10px;
+  left: 10px;
+}
+
 .rydo-map-overlay {
   position: absolute;
   z-index: 9;

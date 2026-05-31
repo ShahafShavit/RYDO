@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Crosshair } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
@@ -29,17 +30,42 @@ const FIT_BOUNDS_OPTIONS = {
   animate: false,
 };
 
-function applyRouteView(map, layer) {
-  if (!map || !layer) return;
+function applyRouteView(map, layer, { animate = false } = {}) {
+  if (!map || !layer) return null;
   map.invalidateSize(false);
   const b = layer.getBounds();
-  if (!b.isValid()) return;
+  if (!b.isValid()) return null;
   const padding = L.point(FIT_BOUNDS_OPTIONS.padding[0], FIT_BOUNDS_OPTIONS.padding[1]);
   const targetZoom = Math.min(
     FIT_BOUNDS_OPTIONS.maxZoom ?? 17,
     map.getBoundsZoom(b, false, padding),
   );
-  map.setView(b.getCenter(), targetZoom, { animate: false });
+  map.setView(b.getCenter(), targetZoom, { animate });
+  return { center: b.getCenter(), zoom: targetZoom };
+}
+
+/** Canonical fitted view for the route layer (used to detect drift from home). */
+function computeRouteHomeView(map, layer) {
+  if (!map || !layer) return null;
+  const b = layer.getBounds();
+  if (!b.isValid()) return null;
+  const padding = L.point(FIT_BOUNDS_OPTIONS.padding[0], FIT_BOUNDS_OPTIONS.padding[1]);
+  const zoom = Math.min(
+    FIT_BOUNDS_OPTIONS.maxZoom ?? 17,
+    map.getBoundsZoom(b, false, padding),
+  );
+  return { center: b.getCenter(), zoom };
+}
+
+/** True when the map view matches the fitted route view (within tolerance). */
+function isAtHomeView(map, home) {
+  if (!map || !home) return true;
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  return (
+    center.distanceTo(home.center) < 80 &&
+    Math.abs(zoom - home.zoom) < 0.5
+  );
 }
 
 export default function RouteMapPreview({
@@ -51,6 +77,10 @@ export default function RouteMapPreview({
   zoomControl = true,
   /** Smaller bar, no "Leaflet |" prefix, shorter OSM link (still required attribution). */
   compactAttribution = false,
+  /** Pan, pinch, and double-click zoom. Off for list thumbnails and scroll-embedded preview mode. */
+  mapInteractionEnabled = true,
+  /** Pass touches through to parent (e.g. card Link). Used with mapInteractionEnabled=false on thumbnails. */
+  pointerEventsNone = false,
 }) {
   const markerStroke = useThemeCssVar('--rydo-green', '#3ecfb9');
   const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
@@ -61,14 +91,40 @@ export default function RouteMapPreview({
   const geoJsonLayerRef = useRef(null);
   const scrubMarkerRef = useRef(null);
   const resizeObserverRef = useRef(null);
+  const homeViewRef = useRef(null);
   /** Bumps when a new L.Map instance exists (incl. React Strict Mode remount) so GeoJSON re-syncs. */
   const [mapEpoch, setMapEpoch] = useState(0);
+  const [needsRecenter, setNeedsRecenter] = useState(false);
+
+  const syncHomeView = useCallback((map) => {
+    const layer = geoJsonLayerRef.current;
+    if (!map || !layer) return;
+    homeViewRef.current = computeRouteHomeView(map, layer);
+    setNeedsRecenter(false);
+  }, []);
+
+  const handleRecenter = useCallback(() => {
+    const map = mapRef.current;
+    const layer = geoJsonLayerRef.current;
+    if (!map || !layer) return;
+    const home = computeRouteHomeView(map, layer);
+    if (!home) return;
+    homeViewRef.current = home;
+    setNeedsRecenter(false);
+    applyRouteView(map, layer, { animate: true });
+  }, []);
 
   useLayoutEffect(() => {
     const el = mapContainerRef.current;
     if (!el || mapRef.current) return;
 
-    const map = L.map(el, { scrollWheelZoom, zoomControl }).setView([45.5, 10], 6);
+    const map = L.map(el, {
+      scrollWheelZoom,
+      zoomControl,
+      dragging: mapInteractionEnabled,
+      touchZoom: mapInteractionEnabled,
+      doubleClickZoom: mapInteractionEnabled,
+    }).setView([45.5, 10], 6);
     mapRef.current = map;
     if (compactAttribution) {
       map.attributionControl.setPrefix(false);
@@ -84,6 +140,7 @@ export default function RouteMapPreview({
       const layer = geoJsonLayerRef.current;
       if (!m || !layer) return;
       applyRouteView(m, layer);
+      syncHomeView(m);
     });
     ro.observe(el);
     resizeObserverRef.current = ro;
@@ -100,7 +157,38 @@ export default function RouteMapPreview({
       geoJsonLayerRef.current = null;
       resizeObserverRef.current = null;
     };
-  }, [scrollWheelZoom, zoomControl, compactAttribution]);
+  }, [scrollWheelZoom, zoomControl, compactAttribution, mapInteractionEnabled, syncHomeView]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (mapInteractionEnabled) {
+      map.dragging.enable();
+      map.touchZoom.enable();
+      map.doubleClickZoom.enable();
+    } else {
+      map.dragging.disable();
+      map.touchZoom.disable();
+      map.doubleClickZoom.disable();
+      setNeedsRecenter(false);
+    }
+  }, [mapInteractionEnabled, mapEpoch]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapInteractionEnabled) return;
+
+    const updateRecenter = () => {
+      setNeedsRecenter(!isAtHomeView(map, homeViewRef.current));
+    };
+
+    map.on('moveend', updateRecenter);
+    map.on('zoomend', updateRecenter);
+    return () => {
+      map.off('moveend', updateRecenter);
+      map.off('zoomend', updateRecenter);
+    };
+  }, [mapInteractionEnabled, mapEpoch]);
 
   useLayoutEffect(() => {
     const map = mapRef.current;
@@ -136,6 +224,7 @@ export default function RouteMapPreview({
 
     const fit = () => {
       applyRouteView(mapRef.current, geoJsonLayerRef.current);
+      syncHomeView(mapRef.current);
     };
 
     let cancelled = false;
@@ -162,7 +251,7 @@ export default function RouteMapPreview({
       window.clearTimeout(t);
       tiles?.off('load', onLoad);
     };
-  }, [geoJson, mapEpoch]);
+  }, [geoJson, mapEpoch, syncHomeView]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -194,15 +283,29 @@ export default function RouteMapPreview({
   }, [geoJson, mapEpoch, scrubDistanceM, markerStroke, markerFill]);
 
   const defaultClass = 'h-64 rounded-3xl border border-border bg-surface overflow-hidden';
+  const hostClass = cn(
+    className ?? defaultClass,
+    compactAttribution && 'rydo-leaflet-compact-attrib',
+    pointerEventsNone && 'pointer-events-none',
+  );
+  const showRecenter = needsRecenter && mapInteractionEnabled && !pointerEventsNone;
 
   return (
-    <div
-      ref={mapContainerRef}
-      className={cn(
-        'rydo-leaflet-host',
-        className ?? defaultClass,
-        compactAttribution && 'rydo-leaflet-compact-attrib',
-      )}
-    />
+    <div className={cn('relative', hostClass)}>
+      <div ref={mapContainerRef} className="rydo-leaflet-host h-full w-full" />
+      {showRecenter ? (
+        <button
+          type="button"
+          className="rydo-map-overlay rydo-leaflet-recenter-btn pointer-events-auto flex h-[30px] w-[30px] items-center justify-center rounded-sm border border-white/20 bg-[#fff] text-[#333] shadow-md"
+          aria-label="Center map on route"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRecenter();
+          }}
+        >
+          <Crosshair className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+        </button>
+      ) : null}
+    </div>
   );
 }
