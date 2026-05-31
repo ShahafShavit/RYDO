@@ -62,6 +62,7 @@ export default function ClubChatListBold({
   isLoading,
   onSelectClub,
   onClose,
+  insetTabBar = false,
 }) {
   const [query, setQuery] = useState('');
   const filtered = useMemo(() => {
@@ -72,10 +73,10 @@ export default function ClubChatListBold({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden pt-[var(--rydo-bold-page-top)]"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
       dir="ltr"
     >
-      <header className="shrink-0 px-5">
+      <header className="shrink-0 px-5 pt-[var(--rydo-bold-page-top)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <DisplayTitle size="lg">
@@ -110,8 +111,8 @@ export default function ClubChatListBold({
       </div>
 
       <BoldScrollArea
-        insetTabBar={false}
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-[max(1rem,var(--rydo-safe-bottom))] pt-1"
+        insetTabBar={insetTabBar}
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-1"
       >
         {isLoading ? (
           <p className="rydo-subtle px-3 py-4 text-sm">Loading…</p>

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NavLink, Link, useMatch } from 'react-router-dom';
+import { NavLink, Link, useLocation, useMatch } from 'react-router-dom';
 import { dashboardNavigation } from '@/shared/config/navigation';
 import { ROUTES, getAppHomeRoute } from '@/app/router/route-paths';
 import AppLogo from '@/shared/components/navigation/AppLogo';
@@ -8,8 +8,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import AnimatedOutlet from '@/shared/components/layout/AnimatedOutlet';
 import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDashboardRoutes';
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
-import { ClubChatUiProvider, useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
-import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
+import ClubChatHubBridge from '@/features/club-chat/components/ClubChatHubBridge';
 import { RideChatUiProvider } from '@/features/ride-chat/RideChatUiProvider';
 import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 import RideChatPanel from '@/features/ride-chat/components/RideChatPanel';
@@ -21,10 +20,10 @@ import { useLevelUpConfetti } from '@/features/gamification/hooks/useLevelUpConf
 function DashboardLayoutBody() {
   useLevelUpConfetti();
   const { isAdmin } = useAuth();
+  const location = useLocation();
   const rideLiveMatch = useMatch({ path: ROUTES.rideLive, end: true });
-  const { chatPanelVisible } = useClubChatUi();
   const { rideChatPanelVisible } = useRideChatUi();
-  const showMobileTabBar = !rideLiveMatch && !chatPanelVisible && !rideChatPanelVisible;
+  const showMobileTabBar = !rideLiveMatch && !rideChatPanelVisible;
 
   useEffect(() => {
     prefetchDashboardRoutes();
@@ -46,12 +45,15 @@ function DashboardLayoutBody() {
               <NavLink
                 key={item.label}
                 to={item.to}
-                className={({ isActive }) =>
-                  `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${isActive && !item.to.includes('?upload=true')
+                className={({ isActive }) => {
+                  const active =
+                    isActive ||
+                    (item.to === ROUTES.chat && location.pathname.startsWith(ROUTES.chat));
+                  return `inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-[background-color,color,box-shadow] duration-300 ease-out ${active && !item.to.includes('?upload=true')
                     ? 'bg-rydo-purple/18 text-fg shadow-[0_0_24px_color-mix(in_srgb,var(--rydo-purple)_18%,transparent)]'
                     : 'text-fg-muted hover:bg-surface hover:text-fg'
-                  }`
-                }
+                  }`;
+                }}
               >
                 {ItemIcon ? (
                   <ItemIcon className="h-[18px] w-[18px] shrink-0 opacity-90" strokeWidth={2} aria-hidden />
@@ -94,7 +96,7 @@ function DashboardLayoutBody() {
         </div>
       </main>
       {showMobileTabBar ? <BoldTabBar /> : null}
-      <ClubChatDock />
+      <ClubChatHubBridge />
       <RideChatPanel />
     </div>
   );
@@ -103,11 +105,9 @@ function DashboardLayoutBody() {
 export default function DashboardLayout() {
   return (
     <BreadcrumbProvider>
-      <ClubChatUiProvider>
-        <RideChatUiProvider>
-          <DashboardLayoutBody />
-        </RideChatUiProvider>
-      </ClubChatUiProvider>
+      <RideChatUiProvider>
+        <DashboardLayoutBody />
+      </RideChatUiProvider>
     </BreadcrumbProvider>
   );
 }

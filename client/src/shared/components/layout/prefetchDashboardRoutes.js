@@ -16,5 +16,6 @@ export function prefetchDashboardRoutes() {
     import('@/features/live-ride/LiveRideRoute'),
     import('@/pages/settings/SettingsPage'),
     import('@/pages/inbox/InboxPage'),
+    import('@/pages/chat/ClubChatPage'),
   ]).catch(() => {});
 }

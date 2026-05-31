@@ -4,6 +4,7 @@ import {
   Home,
   LayoutDashboard,
   Map,
+  MessageCircle,
   Route as RoutePathIcon,
   Sparkles,
   Users,
@@ -25,6 +26,7 @@ export const dashboardNavigation = [
   { label: 'Explore', to: ROUTES.routes, Icon: Compass },
   { label: 'My Routes', to: ROUTES.myRoutes, Icon: RoutePathIcon },
   { label: 'My Rides', to: ROUTES.myRides, Icon: Bike },
+  { label: 'Chat', to: ROUTES.chat, Icon: MessageCircle },
   { label: 'Clubs', to: ROUTES.clubs, Icon: UsersRound },
 ];
 

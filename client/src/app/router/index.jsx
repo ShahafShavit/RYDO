@@ -21,6 +21,7 @@ const YourRoutesPage = lazy(() => import('@/pages/routes/YourRoutesPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
 const UserProfilePage = lazy(() => import('@/pages/users/UserProfilePage'));
 const InboxPage = lazy(() => import('@/pages/inbox/InboxPage'));
+const ClubChatPage = lazy(() => import('@/pages/chat/ClubChatPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
@@ -85,6 +86,8 @@ export function createAppRoutes(options = {}) {
             { path: '/rides/:rideId', element: <LegacyRideSpaRedirect /> },
             { path: ROUTES.settings, element: <SettingsPage /> },
             { path: ROUTES.inbox, element: <InboxPage /> },
+            { path: ROUTES.chat, element: <ClubChatPage /> },
+            { path: ROUTES.chatThread, element: <ClubChatPage /> },
             { path: ROUTES.findPeople, element: <Navigate to={ROUTES.routes} replace /> },
             { path: ROUTES.userProfile, element: <UserProfilePage /> },
           ],

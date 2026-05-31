@@ -1,6 +1,5 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import { useClubChatUnread } from '@/features/club-chat/hooks/useClubChatUnread';
 import {
   getBoldTabItems,
@@ -11,25 +10,13 @@ import { cn } from '@/shared/lib/cn';
 export default function BoldTabBar({ className }) {
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-  const { chatOpen, closeChat, toggleChat } = useClubChatUi();
   const { totalUnread } = useClubChatUnread();
 
   const tabs = getBoldTabItems(user?.handle);
   const activeKey = resolveBoldActiveTab({
     pathname: location.pathname,
-    chatOpen,
     userHandle: user?.handle,
   });
-
-  const handleTabClick = (tab) => {
-    if (tab.type === 'action' && tab.key === 'chat') {
-      toggleChat();
-      return;
-    }
-    if (chatOpen) closeChat();
-    if (tab.to) navigate(tab.to);
-  };
 
   return (
     <nav
@@ -59,21 +46,6 @@ export default function BoldTabBar({ className }) {
           </>
         );
 
-        if (tab.type === 'action') {
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              className={cn('rydo-bold-tab', isActive && 'rydo-bold-tab-active')}
-              aria-current={isActive ? 'page' : undefined}
-              aria-label={showBadge ? `${tab.label}, ${totalUnread} unread` : tab.label}
-              onClick={() => handleTabClick(tab)}
-            >
-              {inner}
-            </button>
-          );
-        }
-
         return (
           <NavLink
             key={tab.key}
@@ -82,9 +54,7 @@ export default function BoldTabBar({ className }) {
             className={({ isActive: navActive }) =>
               cn('rydo-bold-tab', (navActive || isActive) && 'rydo-bold-tab-active')
             }
-            onClick={() => {
-              if (chatOpen) closeChat();
-            }}
+            aria-label={showBadge ? `${tab.label}, ${totalUnread} unread` : tab.label}
           >
             {inner}
           </NavLink>
