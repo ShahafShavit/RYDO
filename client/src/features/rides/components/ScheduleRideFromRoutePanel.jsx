@@ -9,6 +9,7 @@ import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
 import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
+import InviteFriendsToRideModal from '@/features/rides/components/InviteFriendsToRideModal';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import { defaultRideNameFromRoute, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 import { useBoldMobile } from '@/shared/hooks/useBoldMobile';
@@ -31,6 +32,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
   const [description, setDescription] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('20');
   const [scheduledLocal, setScheduledLocal] = useState(defaultScheduledLocal);
+  const [inviteRide, setInviteRide] = useState(null);
 
   const { data: clubs = [] } = useQuery({
     queryKey: ['clubs', 'list'],
@@ -58,10 +60,13 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
         scheduledDate: scheduledDate.toISOString(),
       },
       {
-        onSuccess: () => {
+        onSuccess: (created) => {
           setScheduleBanner('Personal ride scheduled. View it under My rides.');
           setDescription('');
           setScheduledLocal(defaultScheduledLocal());
+          if (created?.id != null) {
+            setInviteRide({ id: created.id, name: created.name || name.trim() });
+          }
         },
       },
     );
@@ -72,6 +77,12 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
 
   return (
     <>
+      <InviteFriendsToRideModal
+        open={inviteRide != null}
+        rideId={inviteRide?.id}
+        rideName={inviteRide?.name}
+        onClose={() => setInviteRide(null)}
+      />
       {!headless ? (
         <>
           <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Plan</p>
@@ -193,7 +204,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
               defaultName={routeTitle ? defaultRideNameFromRoute(routeTitle, ' — club ride') : ''}
               onSuccess={() => {
                 setClubId('');
-                setScheduleBanner('Club ride scheduled. Members can join from the ride page or My rides.');
+                setScheduleBanner('Club ride scheduled. Active members were notified in their inbox.');
               }}
             />
           ) : (

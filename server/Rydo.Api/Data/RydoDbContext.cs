@@ -24,6 +24,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<InboxItem> InboxItems => Set<InboxItem>();
+    public DbSet<RideInvite> RideInvites => Set<RideInvite>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -131,10 +132,22 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasIndex(x => new { x.UserIdLower, x.UserIdHigher }).IsUnique();
         });
 
+        builder.Entity<RideInvite>(e =>
+        {
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.FromUser).WithMany().HasForeignKey(x => x.FromUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ToUser).WithMany().HasForeignKey(x => x.ToUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.RideId, x.ToUserId }).IsUnique();
+            e.HasIndex(x => new { x.ToUserId, x.Status });
+        });
+
         builder.Entity<InboxItem>(e =>
         {
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.FriendRequest).WithMany().HasForeignKey(x => x.FriendRequestId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.RideInvite).WithMany().HasForeignKey(x => x.RideInviteId).OnDelete(DeleteBehavior.SetNull);
+            // Restrict: SQL Server rejects multiple cascade paths (RideInvites/Rides/Clubs also touch InboxItems).
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Club).WithMany().HasForeignKey(x => x.ClubId).OnDelete(DeleteBehavior.Cascade);
             // Restrict: SQL Server disallows two CASCADE paths from InboxItems → AspNetUsers (Recipient + requester).
             // AdminController deletes rows where ClubJoinRequesterUserId == userId before removing the user.

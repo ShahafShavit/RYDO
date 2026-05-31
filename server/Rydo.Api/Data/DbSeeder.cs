@@ -98,6 +98,7 @@ public static class DbSeeder
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
+            await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
             return;
         }
 
@@ -143,6 +144,7 @@ public static class DbSeeder
 
             await SeedActivityHistoryAndMetadataAsync(db, routes, rideGroups, personalRideGroups, userIds, det);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
+            await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
             return;
         }
 
@@ -155,6 +157,7 @@ public static class DbSeeder
         await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
+        await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
     }
 
     /// <summary>
@@ -166,7 +169,8 @@ public static class DbSeeder
         ApplicationUser admin,
         ApplicationUser rider)
     {
-        if (await db.FriendRequests.AnyAsync() || await db.Friendships.AnyAsync())
+        // Friendships are only created here; skip when this graph was already seeded.
+        if (await db.FriendRequests.AnyAsync())
             return;
 
         var community = await LoadOrderedCommunityUsersForFriendSeedAsync(userManager);
@@ -243,6 +247,257 @@ public static class DbSeeder
                     _ => throw new InvalidOperationException($"Unknown {nameof(FriendInboxPendingRecipient)}."),
                 };
                 AddPending(from.Id, toId);
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Demo ride invites and club ride announcements for John Rider (<c>user@rydo.test</c>). Idempotent.
+    /// Requires friendships (run after <see cref="SeedFriendInboxIfNeededAsync"/>) and persisted rides.
+    /// </summary>
+    private static async Task SeedRideInboxIfNeededAsync(
+        RydoDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser admin,
+        ApplicationUser rider)
+    {
+        // Per-scenario idempotency (a partial run may have created only the friend's outgoing invite).
+        var hasIncomingRideInviteForJohn = await db.RideInvites.AnyAsync(i =>
+            i.ToUserId == rider.Id && i.Status == RideInviteStatus.Pending);
+        var hasClubRideAnnouncedForJohn = await db.InboxItems.AnyAsync(i =>
+            i.RecipientUserId == rider.Id && i.Kind == InboxItemKind.ClubRideAnnounced);
+        var hasClubJoinForJohn = await db.InboxItems.AnyAsync(i =>
+            i.RecipientUserId == rider.Id && i.Kind == InboxItemKind.ClubJoinRequest);
+
+        var community = await LoadOrderedCommunityUsersForFriendSeedAsync(userManager);
+        var rideSpec = Profile.RideInbox;
+        var friendSpec = Profile.FriendInbox;
+        ApplicationUser? C(int index) =>
+            (uint)index < (uint)community.Count ? community[index] : null;
+
+        var johnFriend = C(rideSpec.DemoRiderFriendCommunityIndex);
+        if (johnFriend == null)
+            return;
+
+        var (lo, hi) = rider.Id < johnFriend.Id ? (rider.Id, johnFriend.Id) : (johnFriend.Id, rider.Id);
+        if (!await db.Friendships.AnyAsync(f => f.UserIdLower == lo && f.UserIdHigher == hi))
+            return;
+
+        var now = DateTime.UtcNow;
+        var futureCutoff = now;
+
+        async Task<Ride> EnsurePersonalRideAsync(int creatorId, string name, int daysAhead, int hour)
+        {
+            var rideName = RydoTextLimits.TrimAndClampRideName(name);
+            var existing = await db.Rides
+                .Where(r => r.ClubId == null && r.CreatedByUserId == creatorId && r.Name == rideName)
+                .FirstOrDefaultAsync();
+            if (existing != null)
+                return existing;
+
+            var routeId = await db.Routes.OrderBy(r => r.Id).Select(r => (int?)r.Id).FirstOrDefaultAsync();
+            var ride = new Ride
+            {
+                Kind = RideKind.Scheduled,
+                Name = rideName,
+                Description = "Seeded for ride invite inbox demo.",
+                ScheduledDate = now.AddDays(daysAhead).Date.AddHours(hour),
+                RouteId = routeId,
+                MaxParticipants = Profile.PersonalRideMaxParticipants,
+                ClubId = null,
+                CreatedByUserId = creatorId,
+            };
+            db.Rides.Add(ride);
+            await db.SaveChangesAsync();
+            if (!await db.RideParticipants.AnyAsync(p => p.RideId == ride.Id && p.UserId == creatorId))
+            {
+                db.RideParticipants.Add(new RideParticipant { RideId = ride.Id, UserId = creatorId });
+                await db.SaveChangesAsync();
+            }
+
+            return ride;
+        }
+
+        void AddRideInviteInbox(RideInvite invite, DateTime createdAt, bool resolveInbox = false)
+        {
+            db.InboxItems.Add(new InboxItem
+            {
+                RecipientUserId = invite.ToUserId,
+                Kind = InboxItemKind.RideInvite,
+                RideInvite = invite,
+                CreatedAt = createdAt,
+                ResolvedAt = resolveInbox ? createdAt.AddMinutes(1) : null,
+            });
+        }
+
+        RideInvite CreateInvite(int rideId, int fromId, int toId, RideInviteStatus status, DateTime createdAt)
+        {
+            var inv = new RideInvite
+            {
+                RideId = rideId,
+                FromUserId = fromId,
+                ToUserId = toId,
+                Status = status,
+                CreatedAt = createdAt,
+                RespondedAt = status == RideInviteStatus.Pending ? null : createdAt.AddMinutes(1),
+            };
+            db.RideInvites.Add(inv);
+            return inv;
+        }
+
+        var johnRide = await EnsurePersonalRideAsync(
+            rider.Id,
+            rideSpec.JohnPersonalRideName,
+            Profile.Time.PersonalFutureDays,
+            (int)Profile.PersonalFutureRideHour);
+
+        if (!await db.RideInvites.AnyAsync(i =>
+                i.RideId == johnRide.Id && i.ToUserId == johnFriend.Id && i.Status == RideInviteStatus.Pending))
+        {
+            var pendingToFriend = CreateInvite(
+                johnRide.Id,
+                rider.Id,
+                johnFriend.Id,
+                RideInviteStatus.Pending,
+                now.AddDays(-Profile.FriendRequestCreatedDaysAgo));
+            AddRideInviteInbox(pendingToFriend, pendingToFriend.CreatedAt);
+        }
+
+        var adminRide = await EnsurePersonalRideAsync(
+            admin.Id,
+            rideSpec.AdminPersonalRideName,
+            Profile.Time.PersonalFutureDays + 1,
+            (int)Profile.PersonalFutureRideHour + 1);
+
+        if (!hasIncomingRideInviteForJohn)
+        {
+            var pendingToJohn = CreateInvite(
+                adminRide.Id,
+                admin.Id,
+                rider.Id,
+                RideInviteStatus.Pending,
+                now.AddDays(-Profile.FriendRequestCreatedDaysAgo + 1));
+            AddRideInviteInbox(pendingToJohn, pendingToJohn.CreatedAt);
+        }
+
+        if (rideSpec.SeedAcceptedAndDeclinedInvites)
+        {
+            var acceptedRide = await EnsurePersonalRideAsync(
+                rider.Id,
+                rideSpec.JohnAcceptedInviteRideName,
+                Profile.Time.PersonalFutureDays + 2,
+                (int)Profile.PersonalFutureRideHour + 2);
+            if (!await db.RideInvites.AnyAsync(i =>
+                    i.RideId == acceptedRide.Id && i.ToUserId == johnFriend.Id))
+            {
+                var acceptedInvite = CreateInvite(
+                    acceptedRide.Id,
+                    rider.Id,
+                    johnFriend.Id,
+                    RideInviteStatus.Accepted,
+                    now.AddDays(-5));
+                AddRideInviteInbox(acceptedInvite, acceptedInvite.CreatedAt, resolveInbox: true);
+                if (!await db.RideParticipants.AnyAsync(p => p.RideId == acceptedRide.Id && p.UserId == johnFriend.Id))
+                    db.RideParticipants.Add(new RideParticipant { RideId = acceptedRide.Id, UserId = johnFriend.Id });
+            }
+
+            if (!await db.RideInvites.AnyAsync(i =>
+                    i.RideId == adminRide.Id && i.ToUserId == johnFriend.Id))
+            {
+                var declinedInvite = CreateInvite(
+                    adminRide.Id,
+                    admin.Id,
+                    johnFriend.Id,
+                    RideInviteStatus.Declined,
+                    now.AddDays(-4));
+                AddRideInviteInbox(declinedInvite, declinedInvite.CreatedAt, resolveInbox: true);
+            }
+        }
+
+        if (!hasClubRideAnnouncedForJohn)
+        {
+            var riderClubIds = await db.ClubMembers.AsNoTracking()
+                .Where(m => m.UserId == rider.Id && m.MembershipStatus == ClubMembershipStatus.Active)
+                .Select(m => m.ClubId)
+                .ToListAsync();
+
+            if (riderClubIds.Count > 0)
+            {
+                var announcedRide = await db.Rides.AsNoTracking()
+                    .Where(r => r.ClubId != null
+                        && riderClubIds.Contains(r.ClubId.Value)
+                        && r.CreatedByUserId != rider.Id
+                        && r.ScheduledDate > futureCutoff)
+                    .OrderBy(r => r.ScheduledDate)
+                    .FirstOrDefaultAsync();
+
+                if (announcedRide == null)
+                {
+                    var clubId = riderClubIds[0];
+                    var routeId = await db.Routes.OrderBy(r => r.Id).Select(r => (int?)r.Id).FirstOrDefaultAsync();
+                    var demoRide = new Ride
+                    {
+                        Kind = RideKind.Scheduled,
+                        Name = RydoTextLimits.TrimAndClampRideName("Club ride announcement demo"),
+                        Description = "Seeded so John Rider receives a club_ride_announced inbox row.",
+                        ScheduledDate = now.AddDays(Profile.Time.PersonalFutureDays).Date.AddHours(9),
+                        RouteId = routeId,
+                        MaxParticipants = Profile.ClubRideMaxParticipantsMin + 5,
+                        ClubId = clubId,
+                        CreatedByUserId = admin.Id,
+                    };
+                    db.Rides.Add(demoRide);
+                    await db.SaveChangesAsync();
+                    if (!await db.RideParticipants.AnyAsync(p => p.RideId == demoRide.Id && p.UserId == admin.Id))
+                        db.RideParticipants.Add(new RideParticipant { RideId = demoRide.Id, UserId = admin.Id });
+                    announcedRide = demoRide;
+                }
+
+                db.InboxItems.Add(new InboxItem
+                {
+                    RecipientUserId = rider.Id,
+                    Kind = InboxItemKind.ClubRideAnnounced,
+                    RideId = announcedRide.Id,
+                    ClubId = announcedRide.ClubId,
+                    CreatedAt = now.AddDays(-2),
+                });
+            }
+        }
+
+        if (!hasClubJoinForJohn)
+        {
+            var clubsOrdered = await db.CyclingClubs.AsNoTracking().OrderBy(c => c.Id).ToListAsync();
+            if ((uint)rideSpec.JohnAdminClubOrdinal < (uint)clubsOrdered.Count)
+            {
+                var johnAdminClub = clubsOrdered[rideSpec.JohnAdminClubOrdinal];
+                var joinRequester = C(rideSpec.ClubJoinRequesterCommunityIndex);
+                if (joinRequester != null)
+                {
+                    var alreadyMember = await db.ClubMembers.AnyAsync(
+                        m => m.ClubId == johnAdminClub.Id && m.UserId == joinRequester.Id);
+                    if (!alreadyMember)
+                    {
+                        var requestedAt = now.AddDays(-1);
+                        db.ClubMembers.Add(new ClubMember
+                        {
+                            ClubId = johnAdminClub.Id,
+                            UserId = joinRequester.Id,
+                            Role = ClubMemberRole.Member,
+                            MembershipStatus = ClubMembershipStatus.Pending,
+                            RequestedAt = requestedAt,
+                        });
+                        db.InboxItems.Add(new InboxItem
+                        {
+                            RecipientUserId = rider.Id,
+                            Kind = InboxItemKind.ClubJoinRequest,
+                            ClubId = johnAdminClub.Id,
+                            ClubJoinRequesterUserId = joinRequester.Id,
+                            CreatedAt = requestedAt,
+                        });
+                    }
+                }
             }
         }
 

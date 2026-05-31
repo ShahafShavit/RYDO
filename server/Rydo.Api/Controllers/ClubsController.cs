@@ -720,6 +720,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             if (!isClubAdmin)
             {
                 await db.SaveChangesAsync(ct);
+                await RideInviteHelper.NotifyClubRideCreatedAsync(db, g, uid, ct);
                 var routeTitleEarly = await RouteTitleIfAnyAsync(g.RouteId, ct);
                 return Ok(new
                 {
@@ -751,6 +752,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         }
 
         await db.SaveChangesAsync(ct);
+
+        await RideInviteHelper.NotifyClubRideCreatedAsync(db, g, uid, ct);
 
         var routeTitle = await RouteTitleIfAnyAsync(g.RouteId, ct);
         var finalParts = await db.RideParticipants.Where(p => p.RideId == g.Id).Select(p => p.UserId).ToListAsync(ct);

@@ -288,20 +288,47 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         return Ok(new { status = "none" });
     }
 
+    private static string[] InboxKindsForTab(string? tab) => tab?.ToLowerInvariant() switch
+    {
+        "friends" => [InboxItemKind.FriendRequest],
+        "rides" => [InboxItemKind.RideInvite, InboxItemKind.ClubRideAnnounced],
+        "club" => [InboxItemKind.ClubJoinRequest],
+        _ => [],
+    };
+
+    private static object RideInboxSummary(Ride ride) => new
+    {
+        id = ride.Id,
+        name = ride.Name,
+        scheduledDate = ride.ScheduledDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+        routeTitle = ride.Route?.Title ?? "",
+        clubId = ride.ClubId,
+    };
+
     [HttpGet("me/inbox/summary")]
     public async Task<IActionResult> InboxSummary(CancellationToken ct)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
 
-        var unreadCount = await db.InboxItems.AsNoTracking()
-            .CountAsync(i => i.RecipientUserId == viewerId && i.ResolvedAt == null && i.ReadAt == null, ct);
+        var baseQ = db.InboxItems.AsNoTracking()
+            .Where(i => i.RecipientUserId == viewerId && i.ResolvedAt == null && i.ReadAt == null);
 
-        return Ok(new { unreadCount });
+        var unreadCount = await baseQ.CountAsync(ct);
+        var friendUnread = await baseQ.CountAsync(i => i.Kind == InboxItemKind.FriendRequest, ct);
+        var rideUnread = await baseQ.CountAsync(i =>
+            i.Kind == InboxItemKind.RideInvite || i.Kind == InboxItemKind.ClubRideAnnounced, ct);
+        var clubUnread = await baseQ.CountAsync(i => i.Kind == InboxItemKind.ClubJoinRequest, ct);
+
+        return Ok(new { unreadCount, friendUnread, rideUnread, clubUnread });
     }
 
     [HttpGet("me/inbox")]
-    public async Task<IActionResult> Inbox([FromQuery] bool unreadOnly = false, [FromQuery] int take = 50, CancellationToken ct = default)
+    public async Task<IActionResult> Inbox(
+        [FromQuery] string? tab = null,
+        [FromQuery] bool unreadOnly = false,
+        [FromQuery] int take = 50,
+        CancellationToken ct = default)
     {
         if (CurrentUserId() is not { } viewerId)
             return Unauthorized();
@@ -310,11 +337,23 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
 
         var q = db.InboxItems.AsNoTracking()
             .Include(i => i.FriendRequest)!.ThenInclude(f => f!.FromUser)
+            .Include(i => i.RideInvite)!.ThenInclude(ri => ri!.FromUser)
+            .Include(i => i.RideInvite)!.ThenInclude(ri => ri!.Ride)!.ThenInclude(r => r!.Route)
+            .Include(i => i.Ride)!.ThenInclude(r => r!.Route)
+            .Include(i => i.Ride)!.ThenInclude(r => r!.CreatedBy)
             .Include(i => i.Club)
             .Include(i => i.ClubJoinRequester)
             .Where(i => i.RecipientUserId == viewerId)
             .OrderByDescending(i => i.CreatedAt)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(tab))
+        {
+            var kinds = InboxKindsForTab(tab);
+            if (kinds.Length == 0)
+                return Problem(statusCode: 400, detail: "tab must be friends, rides, or club.");
+            q = q.Where(i => kinds.Contains(i.Kind));
+        }
 
         if (unreadOnly)
             q = q.Where(i => i.ReadAt == null && i.ResolvedAt == null);
@@ -324,6 +363,10 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         var items = new List<object>();
         foreach (var i in rows)
         {
+            var createdAt = i.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
             if (i.Kind == InboxItemKind.FriendRequest && i.FriendRequest?.FromUser != null)
             {
                 var fr = i.FriendRequest;
@@ -331,9 +374,9 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                 {
                     id = i.Id,
                     kind = i.Kind,
-                    createdAt = i.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    createdAt,
+                    readAt,
+                    resolvedAt,
                     friendRequest = new
                     {
                         id = fr.Id,
@@ -341,6 +384,8 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                         fromUser = UserSummary(fr.FromUser),
                     },
                     clubJoinRequest = (object?)null,
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = (object?)null,
                 });
             }
             else if (i.Kind == InboxItemKind.ClubJoinRequest && i.Club != null && i.ClubJoinRequester != null)
@@ -349,14 +394,58 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                 {
                     id = i.Id,
                     kind = i.Kind,
-                    createdAt = i.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    createdAt,
+                    readAt,
+                    resolvedAt,
                     friendRequest = (object?)null,
                     clubJoinRequest = new
                     {
                         club = new { id = i.Club.Id, name = i.Club.Name },
                         requester = UserSummary(i.ClubJoinRequester),
+                    },
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = (object?)null,
+                });
+            }
+            else if (i.Kind == InboxItemKind.RideInvite && i.RideInvite?.FromUser != null && i.RideInvite.Ride != null)
+            {
+                var ri = i.RideInvite;
+                items.Add(new
+                {
+                    id = i.Id,
+                    kind = i.Kind,
+                    createdAt,
+                    readAt,
+                    resolvedAt,
+                    friendRequest = (object?)null,
+                    clubJoinRequest = (object?)null,
+                    rideInvite = new
+                    {
+                        id = ri.Id,
+                        status = ri.Status.ToString().ToLowerInvariant(),
+                        fromUser = UserSummary(ri.FromUser),
+                        ride = RideInboxSummary(ri.Ride),
+                    },
+                    clubRideAnnounced = (object?)null,
+                });
+            }
+            else if (i.Kind == InboxItemKind.ClubRideAnnounced && i.Ride != null && i.Club != null)
+            {
+                items.Add(new
+                {
+                    id = i.Id,
+                    kind = i.Kind,
+                    createdAt,
+                    readAt,
+                    resolvedAt,
+                    friendRequest = (object?)null,
+                    clubJoinRequest = (object?)null,
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = new
+                    {
+                        ride = RideInboxSummary(i.Ride),
+                        club = new { id = i.Club.Id, name = i.Club.Name },
+                        createdBy = i.Ride.CreatedBy != null ? UserSummary(i.Ride.CreatedBy) : null,
                     },
                 });
             }
@@ -366,11 +455,13 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
                 {
                     id = i.Id,
                     kind = i.Kind,
-                    createdAt = i.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    readAt = i.ReadAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                    resolvedAt = i.ResolvedAt?.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    createdAt,
+                    readAt,
+                    resolvedAt,
                     friendRequest = (object?)null,
                     clubJoinRequest = (object?)null,
+                    rideInvite = (object?)null,
+                    clubRideAnnounced = (object?)null,
                 });
             }
         }

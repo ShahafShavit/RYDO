@@ -2,6 +2,7 @@ import { generatePath, Link, useNavigate } from 'react-router-dom';
 import { userProfilePath } from '@/shared/lib/user-paths';
 import { ArrowLeft, Inbox as InboxIcon } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import InboxTabs from '@/features/social/components/InboxTabs';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
@@ -11,10 +12,17 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
+const TAB_EMPTY = {
+  friends: 'Friend requests will show up here.',
+  rides: 'Ride invites and new club rides will show up here.',
+  club: 'Club join requests will show up here.',
+};
+
 function InboxRequestCard({
   avatarUrl,
   displayName,
-  kind,
+  pill,
+  pillVariant,
   description,
   profileHref,
   acceptLabel,
@@ -22,46 +30,71 @@ function InboxRequestCard({
   onDecline,
   busy,
   pending,
+  singleAction,
+  singleActionLabel,
+  onSingleAction,
 }) {
-  const isClub = kind === 'club';
-
   return (
     <div className="rydo-bold-glass-row flex flex-col gap-3 p-3.5">
       <div className="flex items-center gap-3">
-        <Link
-          to={profileHref}
-          className={cn(
-            'shrink-0 rounded-full no-underline',
-            isClub
-              ? 'shadow-[0_0_0_2px_rgba(26,199,138,0.4)]'
-              : 'shadow-[0_0_0_2px_rgba(123,92,255,0.4)]',
-          )}
-        >
+        {profileHref ? (
+          <Link
+            to={profileHref}
+            className={cn(
+              'shrink-0 rounded-full no-underline',
+              pillVariant === 'green'
+                ? 'shadow-[0_0_0_2px_rgba(26,199,138,0.4)]'
+                : 'shadow-[0_0_0_2px_rgba(123,92,255,0.4)]',
+            )}
+          >
+            <UserAvatar
+              avatarUrl={avatarUrl}
+              displayName={displayName}
+              sizeClass="h-11 w-11"
+              textClass="text-sm"
+            />
+          </Link>
+        ) : (
           <UserAvatar
             avatarUrl={avatarUrl}
             displayName={displayName}
             sizeClass="h-11 w-11"
             textClass="text-sm"
           />
-        </Link>
+        )}
         <div className="min-w-0 flex-1">
-          <Link to={profileHref} className="text-[14.5px] font-bold leading-tight text-fg no-underline">
-            {displayName}
-          </Link>
+          {profileHref ? (
+            <Link to={profileHref} className="text-[14.5px] font-bold leading-tight text-fg no-underline">
+              {displayName}
+            </Link>
+          ) : (
+            <p className="text-[14.5px] font-bold leading-tight text-fg">{displayName}</p>
+          )}
           <p className="rydo-subtle mt-0.5 text-xs leading-snug">
             <span
               className={cn(
                 'rydo-pill mr-1.5 !py-0.5 !px-2 !text-[10px] !font-semibold',
-                isClub ? 'rydo-pill-green' : 'rydo-pill-accent',
+                pillVariant === 'green' ? 'rydo-pill-green' : 'rydo-pill-accent',
               )}
             >
-              {isClub ? 'Club' : 'Friend'}
+              {pill}
             </span>
             {description}
           </p>
         </div>
       </div>
-      {pending ? (
+      {pending && singleAction ? (
+        <GradientCTA
+          type="button"
+          heightClass="h-10"
+          className="w-full text-[13.5px]"
+          disabled={busy}
+          onClick={onSingleAction}
+        >
+          {singleActionLabel}
+        </GradientCTA>
+      ) : null}
+      {pending && !singleAction ? (
         <div className="flex gap-2">
           <GradientCTA
             type="button"
@@ -87,6 +120,9 @@ function InboxRequestCard({
 }
 
 export default function InboxPageBold({
+  activeTab,
+  onTabChange,
+  tabCounts,
   items,
   isLoading,
   isError,
@@ -95,10 +131,14 @@ export default function InboxPageBold({
   declineMut,
   approveClubMut,
   rejectClubMut,
+  acceptRideInviteMut,
+  declineRideInviteMut,
+  markReadMut,
 }) {
   const navigate = useNavigate();
   const friendBusy = acceptMut.isPending || declineMut.isPending;
   const clubBusy = approveClubMut.isPending || rejectClubMut.isPending;
+  const rideInviteBusy = acceptRideInviteMut.isPending || declineRideInviteMut.isPending;
 
   const pendingItems = items.filter((row) => {
     if (row.resolvedAt) return false;
@@ -106,6 +146,10 @@ export default function InboxPageBold({
       return row.friendRequest.status === 'pending';
     }
     if (row.kind === 'club_join_request') return true;
+    if (row.kind === 'ride_invite' && row.rideInvite) {
+      return row.rideInvite.status === 'pending';
+    }
+    if (row.kind === 'club_ride_announced') return !row.readAt;
     return false;
   });
 
@@ -120,6 +164,10 @@ export default function InboxPageBold({
             </DisplayTitle>
           </div>
         </header>
+
+        <div className="px-4 pt-2">
+          <InboxTabs activeTab={activeTab} onTabChange={onTabChange} counts={tabCounts} />
+        </div>
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-3">
           {isLoading ? (
@@ -139,15 +187,13 @@ export default function InboxPageBold({
             <div className="rydo-panel flex flex-col items-center gap-2 px-6 py-10 text-center">
               <InboxIcon className="h-8 w-8 text-fg-subtle" strokeWidth={1.75} aria-hidden />
               <p className="text-sm font-semibold text-fg">Nothing here yet</p>
-              <p className="rydo-subtle text-xs">
-                Friend requests and club join requests will show up here.
-              </p>
+              <p className="rydo-subtle text-xs">{TAB_EMPTY[activeTab]}</p>
             </div>
           ) : null}
 
           {!isLoading && !isError && pendingItems.length > 0 ? (
             <Eyebrow className="ml-0.5">
-              {pendingItems.length} pending request{pendingItems.length === 1 ? '' : 's'}
+              {pendingItems.length} pending
             </Eyebrow>
           ) : null}
 
@@ -163,7 +209,8 @@ export default function InboxPageBold({
                       key={row.id}
                       avatarUrl={from.avatarUrl}
                       displayName={from.fullName || 'Member'}
-                      kind="friend"
+                      pill="Friend"
+                      pillVariant="accent"
                       description="Wants to be friends"
                       profileHref={profileHref}
                       pending={pending}
@@ -187,7 +234,8 @@ export default function InboxPageBold({
                       key={row.id}
                       avatarUrl={requester.avatarUrl}
                       displayName={requester.fullName || 'Member'}
-                      kind="club"
+                      pill="Club"
+                      pillVariant="green"
                       description={
                         <>
                           requested to join{' '}
@@ -206,6 +254,69 @@ export default function InboxPageBold({
                       onDecline={() =>
                         rejectClubMut.mutate({ clubId: club.id, userId: requester.id })
                       }
+                    />
+                  );
+                }
+
+                if (row.kind === 'ride_invite' && row.rideInvite) {
+                  const ri = row.rideInvite;
+                  const from = ri.fromUser;
+                  const ride = ri.ride;
+                  const pending = ri.status === 'pending' && !row.resolvedAt;
+                  const profileHref = userProfilePath(from?.handle);
+                  return (
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={from?.avatarUrl}
+                      displayName={from?.fullName || 'Member'}
+                      pill="Ride"
+                      pillVariant="accent"
+                      description={
+                        <>
+                          invited you to{' '}
+                          <span className="font-semibold text-fg">{ride?.name || 'a ride'}</span>
+                        </>
+                      }
+                      profileHref={profileHref}
+                      pending={pending}
+                      acceptLabel="Accept"
+                      busy={rideInviteBusy}
+                      onAccept={() =>
+                        acceptRideInviteMut.mutate({ rideId: ride.id, inviteId: ri.id })
+                      }
+                      onDecline={() =>
+                        declineRideInviteMut.mutate({ rideId: ride.id, inviteId: ri.id })
+                      }
+                    />
+                  );
+                }
+
+                if (row.kind === 'club_ride_announced' && row.clubRideAnnounced) {
+                  const ann = row.clubRideAnnounced;
+                  const ride = ann.ride;
+                  const club = ann.club;
+                  const rideHref = generatePath(ROUTES.rideEvent, { rideId: String(ride?.id ?? '') });
+                  return (
+                    <InboxRequestCard
+                      key={row.id}
+                      avatarUrl={ann.createdBy?.avatarUrl}
+                      displayName={club?.name || 'Club ride'}
+                      pill="Ride"
+                      pillVariant="green"
+                      description={
+                        <>
+                          New ride: <span className="font-semibold text-fg">{ride?.name || 'Scheduled ride'}</span>
+                        </>
+                      }
+                      profileHref={null}
+                      pending={!row.readAt}
+                      singleAction
+                      singleActionLabel="View ride"
+                      busy={markReadMut.isPending}
+                      onSingleAction={() => {
+                        if (!row.readAt) markReadMut.mutate(row.id);
+                        navigate(rideHref);
+                      }}
                     />
                   );
                 }

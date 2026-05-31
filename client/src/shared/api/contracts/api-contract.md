@@ -369,6 +369,33 @@ Cannot remove the last admin.
 - **Public** club: array of scheduled ride rows. Same **roster privacy** as `GET /rides/:rideId`: active club members see full participant lists; others see `participantCount` only (names/times/routes still visible).
 - **Private** club, viewer **not** an active member: `{ "summaryOnly": true, "upcomingCount": n, "pastCount": n }` — no ride titles, times, or routes.
 
+## Friends, inbox, and ride invites
+
+### `GET /users/me/inbox/summary` (authenticated)
+Returns `{ "unreadCount", "friendUnread", "rideUnread", "clubUnread" }` — unread = not read and not resolved.
+
+### `GET /users/me/inbox?tab=friends|rides|club` (authenticated)
+Optional `tab` filters rows: **friends** (`friend_request`), **rides** (`ride_invite`, `club_ride_announced`), **club** (`club_join_request`). Optional `unreadOnly`, `take` (1–100).
+
+Each item includes `id`, `kind`, `createdAt`, `readAt`, `resolvedAt`, and one of:
+
+- `friendRequest`: `{ id, status, fromUser }`
+- `clubJoinRequest`: `{ club, requester }`
+- `rideInvite`: `{ id, status, fromUser, ride: { id, name, scheduledDate, routeTitle, clubId } }`
+- `clubRideAnnounced`: `{ ride, club, createdBy }`
+
+### `POST /users/me/inbox/:inboxItemId/read` (authenticated)
+Marks one inbox row read (`204`).
+
+### `POST /rides/:rideId/invites` (authenticated, personal rides only)
+Body: `{ "userIds": [1, 2] }`. Caller must be ride creator; each id must be a **friend**, not already on the roster, no duplicate pending invite; total participants + pending invites must stay within `maxParticipants`. Creates `ride_invite` inbox rows. Response: `{ "sent", "inviteIds" }`.
+
+### `POST /rides/:rideId/invites/:inviteId/accept` | `.../decline` (authenticated)
+Invitee only. **Accept** adds the user as a participant when the ride is not full and resolves the inbox row. **Decline** resolves the inbox row without joining (user may still `POST /rides/:rideId/join` later if allowed).
+
+### Club ride announcements
+On `POST /clubs/:clubId/rides`, after the ride is saved, every **active** club member except the creator receives an informational `club_ride_announced` inbox item (no accept/decline).
+
 ## Secondary Feature Endpoints
 These feature modules exist and use the shared client path:
 
@@ -382,6 +409,8 @@ These feature modules exist and use the shared client path:
 - `PATCH /rides/:rideId`
 - `POST /rides/:rideId/join`
 - `POST /rides/:rideId/leave`
+- `POST /rides/:rideId/invites`, `POST /rides/:rideId/invites/:inviteId/accept`, `POST /rides/:rideId/invites/:inviteId/decline`
+- `GET /users/me/inbox`, `GET /users/me/inbox/summary`, `POST /users/me/inbox/:inboxItemId/read`
 - `GET /clubs`, `POST /clubs`, club sub-resources as above
 - Club group chat (active members only; see `GET /clubs/:id/members` rules):
   - `GET /clubs/:clubId/chat/messages?beforeMessageId=&take=` — paginated history (newest batch uses `beforeMessageId` cursor).

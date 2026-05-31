@@ -66,7 +66,7 @@ export default function CreateRideForm({
     });
     setForm(emptyFields({ name: defaultName ? clampRideName(defaultName) : '' }));
     resetRoute();
-    onSuccess?.();
+    onSuccess?.({ clubNotified: true });
   };
 
   const formInner = (

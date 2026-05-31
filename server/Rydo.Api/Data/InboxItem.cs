@@ -12,6 +12,13 @@ public class InboxItem
     public int? FriendRequestId { get; set; }
     public FriendRequest? FriendRequest { get; set; }
 
+    public int? RideInviteId { get; set; }
+    public RideInvite? RideInvite { get; set; }
+
+    /// <summary>When <see cref="Kind"/> is <see cref="InboxItemKind.ClubRideAnnounced"/>, the announced ride.</summary>
+    public int? RideId { get; set; }
+    public Ride? Ride { get; set; }
+
     /// <summary>When <see cref="Kind"/> is <see cref="InboxItemKind.ClubJoinRequest"/>, the club receiving the request.</summary>
     public int? ClubId { get; set; }
     public CyclingClub? Club { get; set; }

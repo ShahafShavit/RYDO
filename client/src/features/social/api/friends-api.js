@@ -20,6 +20,7 @@ export const friendsApi = {
   getInbox: (params = {}) =>
     apiClient.get(API_ENDPOINTS.users.inbox, {
       query: {
+        tab: params.tab,
         unreadOnly: params.unreadOnly,
         take: params.take,
       },

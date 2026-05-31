@@ -5,4 +5,6 @@ public static class InboxItemKind
 {
     public const string FriendRequest = "friend_request";
     public const string ClubJoinRequest = "club_join_request";
+    public const string RideInvite = "ride_invite";
+    public const string ClubRideAnnounced = "club_ride_announced";
 }

@@ -149,6 +149,9 @@ public sealed class DbSeedProfile
     /// <summary>Deterministic friend / inbox demo graph over ordered community indices (see <see cref="FriendInboxSeedSpec"/>).</summary>
     public FriendInboxSeedSpec FriendInbox { get; init; } = new();
 
+    /// <summary>Ride invite + club ride announcement inbox demo for John Rider.</summary>
+    public RideInboxSeedSpec RideInbox { get; init; } = new();
+
     public string CommunityRiderEmail(int riderNumber) => $"rider{riderNumber:000}@rydo.test";
 }
 

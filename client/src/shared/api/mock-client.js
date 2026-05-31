@@ -200,6 +200,65 @@ let preferences = {
 /** Inbox rows for mock API (e.g. club join request to private club 2 admin). */
 let mockInboxSeq = 1;
 const mockInboxStore = [];
+let mockRideInviteSeq = 1;
+const mockRideInviteStore = [];
+
+const INBOX_TAB_KINDS = {
+  friends: ['friend_request'],
+  rides: ['ride_invite', 'club_ride_announced'],
+  club: ['club_join_request'],
+};
+
+function mockPushClubRideAnnounced(ride, creatorId) {
+  const club = clubs.find((c) => c.id === ride.clubId);
+  if (!club) return;
+  const now = new Date().toISOString();
+  const recipients = users
+    .map((u) => u.id)
+    .filter((id) => id !== creatorId);
+  for (const recipientUserId of recipients) {
+    mockInboxStore.push({
+      id: mockInboxSeq++,
+      recipientUserId,
+      kind: 'club_ride_announced',
+      createdAt: now,
+      readAt: null,
+      resolvedAt: null,
+      clubRideAnnounced: {
+        ride: {
+          id: ride.id,
+          name: ride.name,
+          scheduledDate: ride.scheduledDate,
+          routeTitle: ride.routeTitle || '',
+          clubId: ride.clubId,
+        },
+        club: { id: club.id, name: club.name },
+        createdBy: {
+          id: creatorId,
+          handle: mockHandle(users.find((u) => u.id === creatorId)),
+          fullName: users.find((u) => u.id === creatorId)?.firstName
+            ? `${users.find((u) => u.id === creatorId).firstName} ${users.find((u) => u.id === creatorId).lastName || ''}`.trim()
+            : 'Organizer',
+          avatarUrl: users.find((u) => u.id === creatorId)?.avatarUrl ?? null,
+        },
+      },
+    });
+  }
+}
+
+function mockMapInboxRow(r) {
+  return {
+    id: r.id,
+    kind: r.kind,
+    createdAt: r.createdAt,
+    readAt: r.readAt,
+    resolvedAt: r.resolvedAt,
+    friendRequest: r.kind === 'friend_request' ? r.friendRequest ?? null : null,
+    clubJoinRequest: r.kind === 'club_join_request' ? r.clubJoinRequest ?? null : null,
+    rideInvite: r.kind === 'ride_invite' ? r.rideInvite ?? null : null,
+    clubRideAnnounced: r.kind === 'club_ride_announced' ? r.clubRideAnnounced ?? null : null,
+  };
+}
 
 function mockHandle(u) {
   return String(u?.handle || u?.username || '')
@@ -1076,6 +1135,7 @@ export async function mockRequest(path, options = {}) {
       createdBy: { id: profile.id, fullName: profile.fullName },
     };
     rides.unshift(ride);
+    mockPushClubRideAnnounced(ride, profile.id);
     return {
       id: ride.id,
       name: ride.name,
@@ -1387,26 +1447,127 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/users/me/inbox/summary' && method === 'GET') {
-    const unreadCount = mockInboxStore.filter(
-      (r) => r.recipientUserId === profile.id && r.readAt == null && r.resolvedAt == null
-    ).length;
-    return { unreadCount };
+    const unread = mockInboxStore.filter(
+      (r) => r.recipientUserId === profile.id && r.readAt == null && r.resolvedAt == null,
+    );
+    return {
+      unreadCount: unread.length,
+      friendUnread: unread.filter((r) => r.kind === 'friend_request').length,
+      rideUnread: unread.filter((r) => r.kind === 'ride_invite' || r.kind === 'club_ride_announced').length,
+      clubUnread: unread.filter((r) => r.kind === 'club_join_request').length,
+    };
   }
 
   if (pathname === '/api/users/me/inbox' && method === 'GET') {
-    const items = mockInboxStore
-      .filter((r) => r.recipientUserId === profile.id)
+    const tab = searchParams.get('tab');
+    const kinds = tab ? INBOX_TAB_KINDS[tab] : null;
+    if (tab && !kinds) {
+      throw new ApiError({ message: 'tab must be friends, rides, or club.', status: 400, code: 'bad_request' });
+    }
+    const unreadOnly = searchParams.get('unreadOnly') === 'true';
+    let rows = mockInboxStore.filter((r) => r.recipientUserId === profile.id);
+    if (kinds) rows = rows.filter((r) => kinds.includes(r.kind));
+    if (unreadOnly) rows = rows.filter((r) => r.readAt == null && r.resolvedAt == null);
+    const items = rows
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        createdAt: r.createdAt,
-        readAt: r.readAt,
-        resolvedAt: r.resolvedAt,
-        friendRequest: null,
-        clubJoinRequest: r.kind === 'club_join_request' ? r.clubJoinRequest : null,
-      }));
+      .map(mockMapInboxRow);
     return { items };
+  }
+
+  if (/^\/api\/rides\/\d+\/invites$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    if (ride.clubId != null) {
+      throw new ApiError({ message: 'Only personal rides support friend invites.', status: 400, code: 'bad_request' });
+    }
+    if (ride.createdBy?.id !== profile.id) {
+      throw new ApiError({ message: 'Forbidden', status: 403, code: 'forbidden' });
+    }
+    const payload = parseJsonBody(options.body);
+    const userIds = [...new Set((payload.userIds || []).map(Number).filter((id) => id && id !== profile.id))];
+    const now = new Date().toISOString();
+    const inviteIds = [];
+    for (const toUserId of userIds) {
+      if ((ride.participants || []).includes(toUserId)) continue;
+      const invite = {
+        id: mockRideInviteSeq++,
+        rideId,
+        fromUserId: profile.id,
+        toUserId,
+        status: 'pending',
+      };
+      mockRideInviteStore.push(invite);
+      mockInboxStore.push({
+        id: mockInboxSeq++,
+        recipientUserId: toUserId,
+        kind: 'ride_invite',
+        createdAt: now,
+        readAt: null,
+        resolvedAt: null,
+        rideInvite: {
+          id: invite.id,
+          status: 'pending',
+          fromUser: {
+            id: profile.id,
+            handle: mockHandle(profile),
+            fullName: profile.fullName,
+            avatarUrl: profile.avatarUrl ?? null,
+          },
+          ride: {
+            id: ride.id,
+            name: ride.name,
+            scheduledDate: ride.scheduledDate,
+            routeTitle: ride.routeTitle || '',
+            clubId: null,
+          },
+        },
+      });
+      inviteIds.push(invite.id);
+    }
+    return { sent: inviteIds.length, inviteIds };
+  }
+
+  if (/^\/api\/rides\/\d+\/invites\/\d+\/accept$/.test(pathname) && method === 'POST') {
+    const parts = pathname.split('/');
+    const rideId = Number(parts[3]);
+    const inviteId = Number(parts[5]);
+    const invite = mockRideInviteStore.find((i) => i.id === inviteId && i.rideId === rideId);
+    if (!invite || invite.toUserId !== profile.id) {
+      throw new ApiError({ message: 'Not found', status: 404, code: 'not_found' });
+    }
+    const ride = rides.find((r) => r.id === rideId);
+    if (!ride) throw new ApiError({ message: 'Ride not found', status: 404, code: 'ride_not_found' });
+    invite.status = 'accepted';
+    const now = new Date().toISOString();
+    if (!ride.participants.includes(profile.id)) ride.participants.push(profile.id);
+    ride.participantDetails = participantDetailsFromIds(ride.participants);
+    for (const row of mockInboxStore) {
+      if (row.kind === 'ride_invite' && row.rideInvite?.id === inviteId && row.recipientUserId === profile.id) {
+        row.resolvedAt = now;
+        row.rideInvite.status = 'accepted';
+      }
+    }
+    return { status: 'joined' };
+  }
+
+  if (/^\/api\/rides\/\d+\/invites\/\d+\/decline$/.test(pathname) && method === 'POST') {
+    const parts = pathname.split('/');
+    const rideId = Number(parts[3]);
+    const inviteId = Number(parts[5]);
+    const invite = mockRideInviteStore.find((i) => i.id === inviteId && i.rideId === rideId);
+    if (!invite || invite.toUserId !== profile.id) {
+      throw new ApiError({ message: 'Not found', status: 404, code: 'not_found' });
+    }
+    invite.status = 'declined';
+    const now = new Date().toISOString();
+    for (const row of mockInboxStore) {
+      if (row.kind === 'ride_invite' && row.rideInvite?.id === inviteId && row.recipientUserId === profile.id) {
+        row.resolvedAt = now;
+        row.rideInvite.status = 'declined';
+      }
+    }
+    return null;
   }
 
   if (/^\/api\/users\/me\/inbox\/\d+\/read$/.test(pathname) && method === 'POST') {

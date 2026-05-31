@@ -48,6 +48,9 @@ export const API_ENDPOINTS = {
     update: (rideId) => `${P}/rides/${rideId}`,
     join: (rideId) => `${P}/rides/${rideId}/join`,
     leave: (rideId) => `${P}/rides/${rideId}/leave`,
+    sendInvites: (rideId) => `${P}/rides/${rideId}/invites`,
+    acceptInvite: (rideId, inviteId) => `${P}/rides/${rideId}/invites/${inviteId}/accept`,
+    declineInvite: (rideId, inviteId) => `${P}/rides/${rideId}/invites/${inviteId}/decline`,
   },
   clubs: {
     list: `${P}/clubs`,

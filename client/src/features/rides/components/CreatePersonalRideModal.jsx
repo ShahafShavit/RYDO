@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import InviteFriendsToRideModal from '@/features/rides/components/InviteFriendsToRideModal';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import RoutePickerField from '@/features/routes/components/RoutePickerField';
 import Button from '@/shared/components/ui/button/Button';
@@ -28,6 +29,7 @@ export default function CreatePersonalRideModal({ open, onClose }) {
   const [scheduledLocal, setScheduledLocal] = useState(() =>
     toDatetimeLocalValue(new Date(Date.now() + 86400000).toISOString()),
   );
+  const [inviteRide, setInviteRide] = useState(null);
 
   const handleRouteChange = (id, route) => {
     setRouteId(id);
@@ -49,18 +51,28 @@ export default function CreatePersonalRideModal({ open, onClose }) {
         scheduledDate: scheduledDate.toISOString(),
       },
       {
-        onSuccess: () => {
+        onSuccess: (created) => {
           onClose?.();
           setName('');
           setDescription('');
           setRouteId(null);
           setRouteDisplay(null);
+          if (created?.id != null) {
+            setInviteRide({ id: created.id, name: created.name || name.trim() });
+          }
         },
       },
     );
   };
 
   return (
+    <>
+    <InviteFriendsToRideModal
+      open={inviteRide != null}
+      rideId={inviteRide?.id}
+      rideName={inviteRide?.name}
+      onClose={() => setInviteRide(null)}
+    />
     <AnimatedModal open={open} onClose={onClose}>
       <ModalPanel className="max-h-[90vh] w-full overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <ModalHeader title="Ride!" titleId={titleId} onClose={onClose} />
@@ -118,5 +130,6 @@ export default function CreatePersonalRideModal({ open, onClose }) {
         </form>
       </ModalPanel>
     </AnimatedModal>
+    </>
   );
 }

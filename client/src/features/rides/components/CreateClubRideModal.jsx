@@ -26,7 +26,7 @@ export default function CreateClubRideModal({ clubId, clubName, isOpen, onClose,
           embedded
           onCancel={onClose}
           onSuccess={() => {
-            onSuccess?.();
+            onSuccess?.({ clubNotified: true });
             onClose();
           }}
         />

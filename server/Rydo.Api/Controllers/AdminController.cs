@@ -89,6 +89,14 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
         await db.FriendRequests.Where(f => f.FromUserId == userId || f.ToUserId == userId).ExecuteDeleteAsync(ct);
         await db.Friendships.Where(f => f.UserIdLower == userId || f.UserIdHigher == userId).ExecuteDeleteAsync(ct);
 
+        var rideInviteIds = await db.RideInvites.AsNoTracking()
+            .Where(ri => ri.FromUserId == userId || ri.ToUserId == userId)
+            .Select(ri => ri.Id)
+            .ToListAsync(ct);
+        if (rideInviteIds.Count > 0)
+            await db.InboxItems.Where(i => i.RideInviteId != null && rideInviteIds.Contains(i.RideInviteId.Value)).ExecuteDeleteAsync(ct);
+        await db.RideInvites.Where(ri => ri.FromUserId == userId || ri.ToUserId == userId).ExecuteDeleteAsync(ct);
+
         await users.DeleteAsync(u);
         return NoContent();
     }
