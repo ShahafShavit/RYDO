@@ -18,6 +18,8 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import UserFriendsListModal from '@/features/social/components/UserFriendsListModal';
+import { canViewUserFriendsList, formatFriendsLabel } from '@/features/social/friends-utils';
 import { useFriendsList } from '@/features/social/hooks/useFriendsList';
 import {
   useUserParticipatedRidesPreview,
@@ -58,13 +60,14 @@ function statValue(value, formatter) {
   return formatter ? formatter(value) : String(value);
 }
 
-export default function UserProfilePageBold({ profile, userId, isOwn }) {
+export default function UserProfilePageBold({ profile, userId, isOwn, relationshipStatus }) {
   const { formatKm, formatElevation } = useFormatDistance();
   const location = useLocation();
   const navigate = useNavigate();
   const leaderboardsBackTo = resolveLeaderboardsBackPath(location.state);
   const id = Number(userId);
   const [copied, setCopied] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
 
   const name = profile?.fullName?.trim() || 'Member';
   const handle = profile?.email ? `@${String(profile.email).split('@')[0]}` : '';
@@ -83,11 +86,19 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
   const { data: ridesPage, isLoading: ridesLoading } = useUserParticipatedRidesPreview(userId, {
     enabled: showRides,
   });
+  const canViewFriends = canViewUserFriendsList({
+    isOwn,
+    publicFriendsListOnProfile,
+    relationshipStatus,
+  });
+  const relationshipReady = isOwn || relationshipStatus != null;
+
   const { data: friendsData } = useFriendsList(userId, {
-    enabled: isOwn || publicFriendsListOnProfile !== false,
+    enabled: canViewFriends && relationshipReady,
   });
 
   const friendCount = friendsData?.items?.length ?? 0;
+  const friendsLabel = formatFriendsLabel(friendCount);
   const routeItems = routesPage?.items ?? [];
   const rideItems = ridesPage?.items?.filter(Boolean) ?? [];
   const routesTotal = routesPage?.total ?? 0;
@@ -181,9 +192,16 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
                 {lifetime.level != null ? ` · Lvl ${lifetime.level}` : ''}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <span className="rydo-pill px-2.5 py-1 text-xs">
-                  <b className="text-fg">{friendCount}</b>&nbsp;friends
-                </span>
+                {canViewFriends && relationshipReady ? (
+                  <button
+                    type="button"
+                    className="rydo-pill px-2.5 py-1 text-xs transition hover:border-border-strong hover:bg-surface-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple/50"
+                    aria-label="View friends list"
+                    onClick={() => setFriendsOpen(true)}
+                  >
+                    {friendsLabel}
+                  </button>
+                ) : null}
                 {memberSince ? (
                   <span className="rydo-pill px-2.5 py-1 text-xs">Since {memberSince}</span>
                 ) : null}
@@ -373,6 +391,15 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
           )}
         </BoldScrollArea>
       </div>
+
+      <UserFriendsListModal
+        open={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+        userId={id}
+        isOwn={isOwn}
+        displayName={name}
+        publicFriendsListOnProfile={publicFriendsListOnProfile}
+      />
     </BoldScreen>
   );
 }

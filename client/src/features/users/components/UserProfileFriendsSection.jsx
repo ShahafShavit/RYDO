@@ -1,24 +1,22 @@
-import { generatePath, Link } from 'react-router-dom';
 import { UsersRound } from 'lucide-react';
-import { ROUTES } from '@/app/router/route-paths';
-import { useFriendsList } from '@/features/social/hooks/useFriendsList';
-import { ApiError } from '@/shared/api/api-errors';
+import { UserFriendsListContent } from '@/features/social/components/UserFriendsListContent';
+import { canViewUserFriendsList } from '@/features/social/friends-utils';
 import Card from '@/shared/components/ui/card/Card';
-import UserAvatar from '@/shared/components/user/UserAvatar';
 
 /**
  * @param {object} props
  * @param {number} props.userId
  * @param {boolean} props.isOwn
  * @param {boolean} props.publicFriendsListOnProfile — when false, only non-owners are blocked from seeing the list
+ * @param {string | undefined} props.relationshipStatus
  */
-export function UserProfileFriendsSection({ userId, isOwn, publicFriendsListOnProfile }) {
+export function UserProfileFriendsSection({
+  userId,
+  isOwn,
+  publicFriendsListOnProfile,
+  relationshipStatus,
+}) {
   const id = Number(userId);
-  const canFetch = isOwn || publicFriendsListOnProfile !== false;
-
-  const { data, isLoading, isError, error } = useFriendsList(userId, {
-    enabled: canFetch && Number.isFinite(id) && id > 0,
-  });
 
   if (!isOwn && publicFriendsListOnProfile === false) {
     return (
@@ -31,8 +29,15 @@ export function UserProfileFriendsSection({ userId, isOwn, publicFriendsListOnPr
     );
   }
 
-  const items = data?.items ?? [];
-  const forbidden = error instanceof ApiError && error.status === 403;
+  const canView = canViewUserFriendsList({
+    isOwn,
+    publicFriendsListOnProfile,
+    relationshipStatus,
+  });
+
+  if (!canView) {
+    return null;
+  }
 
   return (
     <section className="space-y-3">
@@ -48,37 +53,10 @@ export function UserProfileFriendsSection({ userId, isOwn, publicFriendsListOnPr
           </p>
         ) : null}
       </div>
-      {isLoading ? <p className="text-sm text-fg-muted">Loading friends…</p> : null}
-      {isError ? (
-        <Card className="p-4 text-sm text-fg-muted">
-          {forbidden
-            ? 'You can’t view this friends list.'
-            : error?.message || 'Could not load friends.'}
-        </Card>
-      ) : null}
-      {!isLoading && !isError && items.length === 0 ? (
-        <Card className="p-4 text-sm text-fg-muted">No friends to show yet.</Card>
-      ) : null}
-      {!isLoading && !isError && items.length > 0 ? (
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {items.map((m) => (
-            <li key={m.id}>
-              <Link
-                to={generatePath(ROUTES.userProfile, { userId: String(m.id) })}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-surface/80 p-3 transition hover:border-rydo-purple/35"
-              >
-                <UserAvatar
-                  avatarUrl={m.avatarUrl}
-                  displayName={m.fullName}
-                  sizeClass="h-10 w-10"
-                  textClass="text-sm"
-                />
-                <span className="min-w-0 truncate font-medium text-fg">{m.fullName || 'Member'}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <UserFriendsListContent
+        userId={userId}
+        enabled={Number.isFinite(id) && id > 0}
+      />
     </section>
   );
 }

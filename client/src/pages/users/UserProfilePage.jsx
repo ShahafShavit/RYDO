@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUserProfile } from '@/features/users/hooks/useUserProfile';
 import { friendsApi } from '@/features/social/api/friends-api';
 import { relationshipKeys, useRelationship } from '@/features/social/hooks/useRelationship';
+import { friendsListKeys } from '@/features/social/hooks/useFriendsList';
 import { inboxSummaryKeys } from '@/features/social/hooks/useInboxSummary';
 import { inboxKeys } from '@/features/social/hooks/useInbox';
 import Button from '@/shared/components/ui/button/Button';
@@ -28,18 +29,25 @@ export default function UserProfilePage() {
 
   const sendMut = useMutation({
     mutationFn: () => friendsApi.sendFriendRequest(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
+    },
   });
 
   const cancelMut = useMutation({
     mutationFn: () => friendsApi.cancelOutgoingFriendRequest(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
+    },
   });
 
   const acceptMut = useMutation({
     mutationFn: (requestId) => friendsApi.acceptFriendRequest(requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxKeys.all });
     },
@@ -49,6 +57,7 @@ export default function UserProfilePage() {
     mutationFn: (requestId) => friendsApi.declineFriendRequest(requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
       queryClient.invalidateQueries({ queryKey: inboxKeys.all });
     },
@@ -171,13 +180,19 @@ export default function UserProfilePage() {
           userId={id}
           isOwn={isOwn}
           publicFriendsListOnProfile={publicFriendsListOnProfile}
+          relationshipStatus={relationship?.status}
         />
 
         <UserProfileActivitySections userId={userId} profile={profile} isOwn={isOwn} />
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <UserProfilePageBold profile={profile} userId={userId} isOwn={isOwn} />
+        <UserProfilePageBold
+          profile={profile}
+          userId={userId}
+          isOwn={isOwn}
+          relationshipStatus={relationship?.status}
+        />
       </div>
     </>
   );
