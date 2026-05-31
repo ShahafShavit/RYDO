@@ -240,7 +240,7 @@ function DashboardGroupsCard({ groups, className = '' }) {
   );
 }
 
-const UPCOMING_SECTION_TITLE = 'Upcoming Group RYDO';
+const UPCOMING_SECTION_TITLE = 'Upcoming RYDO';
 
 function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, className = '' }) {
   const hasAny = upcomingRides.length > 0;
@@ -253,7 +253,7 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, classNam
         <>
           <h3 className="mt-3 text-xl font-semibold">No upcoming rides</h3>
           <p className="mt-2 text-sm text-fg-muted">
-            You&apos;re not signed up for a future group ride.
+            You&apos;re not signed up for a future ride.
           </p>
         </>
       ) : (
@@ -265,7 +265,7 @@ function DashboardUpcomingRidesCard({ upcomingRides, upcomingMoreCount, classNam
               className="block min-w-0 rounded-3xl border border-border bg-surface p-4 text-left transition hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-rydo-purple"
             >
               <h3 className="w-full min-w-0 text-center text-xl font-semibold text-fg">
-                <TruncatedText>{ride.routeName}</TruncatedText>
+                <TruncatedText>{ride.title}</TruncatedText>
               </h3>
               <p className="mt-2 text-sm text-fg-muted">{ride.dateTime}</p>
               {ride.clubName ? (

@@ -1,3 +1,4 @@
+import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
 import { formatDistanceFromKm, formatElevationFromMeters } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
@@ -28,19 +29,8 @@ function formatLongDateTime(iso) {
   }).format(d);
 }
 
-function userInGroup(group, userId) {
-  if (userId == null) return false;
-  const uid = Number(userId);
-  const parts = group?.participants;
-  if (Array.isArray(parts) && parts.map(Number).includes(uid)) return true;
-  const details = group?.participantDetails;
-  if (Array.isArray(details) && details.some((p) => Number(p.userId) === uid)) return true;
-  return false;
-}
-
 /**
  * @param {{
- *   userId: number | null,
  *   historyRaw: unknown,
  *   rideGroupsRaw: unknown,
  *   clubsRaw: unknown,
@@ -145,7 +135,6 @@ function buildStreakSnapshot(history) {
 }
 
 export function buildDashboardHome({
-  userId,
   historyRaw,
   rideGroupsRaw,
   clubsRaw,
@@ -157,14 +146,9 @@ export function buildDashboardHome({
   const last = history[0];
 
   const rides = Array.isArray(rideGroupsRaw) ? rideGroupsRaw : [];
-  const now = Date.now();
-
-  const futureMine = rides
-    .filter((g) => userInGroup(g, userId) && new Date(g.scheduledDate).getTime() >= now)
-    .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate));
-
-  const upcomingPreview = futureMine.slice(0, 2);
-  const upcomingMoreCount = Math.max(0, futureMine.length - 2);
+  const mappedUpcoming = rides.map(mapRideDto).filter(Boolean);
+  const upcomingPreview = mappedUpcoming.slice(0, 2);
+  const upcomingMoreCount = Math.max(0, mappedUpcoming.length - 2);
 
   const clubs = Array.isArray(clubsRaw) ? clubsRaw : [];
   const myClubs = clubs
@@ -268,16 +252,18 @@ export function buildDashboardHome({
         rideKind: null,
       };
 
-  const upcomingRides = upcomingPreview.map((g) => {
-    const clubId = g.clubId ?? null;
+  const upcomingRides = upcomingPreview.map((ride) => {
+    const clubId = ride.clubId ?? null;
     const clubName =
-      typeof g.clubName === 'string' && g.clubName.trim() ? g.clubName.trim() : null;
+      typeof ride.clubName === 'string' && ride.clubName.trim() ? ride.clubName.trim() : null;
     const clubAvatarUrlRaw =
-      typeof g.clubAvatarUrl === 'string' && g.clubAvatarUrl.trim() ? g.clubAvatarUrl.trim() : null;
+      typeof ride.clubAvatarUrl === 'string' && ride.clubAvatarUrl.trim()
+        ? ride.clubAvatarUrl.trim()
+        : null;
     return {
-      id: g.id,
-      routeName: g.routeTitle || 'Route',
-      dateTime: formatLongDateTime(g.scheduledDate),
+      id: ride.id,
+      title: ride.name || ride.routeTitle || 'Ride',
+      dateTime: formatLongDateTime(ride.scheduledDate),
       clubName,
       clubAvatarUrl: clubId != null ? clubAvatarUrlRaw : null,
       isPersonal: clubId == null,

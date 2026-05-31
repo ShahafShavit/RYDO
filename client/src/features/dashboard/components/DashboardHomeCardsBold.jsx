@@ -177,27 +177,40 @@ export default function DashboardHomeCardsBold() {
                 Streak · best {home.streakSnapshot.longestStreak}
               </Eyebrow>
             </div>
-            <div className="rydo-panel flex min-w-0 flex-1 flex-col px-3.5 py-3">
-              <Eyebrow>Next group RYDO</Eyebrow>
-              {upcoming ? (
-                <>
+            {upcoming ? (
+              <Link
+                to={ROUTES.rideEvent.replace(':rideId', String(upcoming.id))}
+                className="rydo-panel flex min-w-0 flex-1 items-stretch gap-2 px-3.5 py-3 transition hover:border-border-strong"
+              >
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Eyebrow>Next RYDO</Eyebrow>
                   <TruncatedText className="mt-1.5 flex-1 text-sm font-bold leading-snug">
-                    {upcoming.routeName}
+                    {upcoming.title}
                   </TruncatedText>
                   <div className="mt-2 flex items-center gap-2">
-                    <UserAvatar
-                      avatarUrl={upcoming.clubAvatarUrl}
-                      displayName={upcoming.clubName}
-                      sizeClass="h-[22px] w-[22px]"
-                      textClass="text-[9px]"
-                    />
+                    {upcoming.isPersonal ? (
+                      <span className="rydo-subtle shrink-0 text-[10px] font-semibold uppercase tracking-wide">
+                        Personal
+                      </span>
+                    ) : (
+                      <UserAvatar
+                        avatarUrl={upcoming.clubAvatarUrl}
+                        displayName={upcoming.clubName}
+                        sizeClass="h-[22px] w-[22px]"
+                        textClass="text-[9px]"
+                      />
+                    )}
                     <span className="rydo-subtle truncate text-[11px]">{upcoming.dateTime}</span>
                   </div>
-                </>
-              ) : (
+                </div>
+                <ChevronRight className="h-[18px] w-[18px] shrink-0 self-center text-fg-subtle" aria-hidden />
+              </Link>
+            ) : (
+              <div className="rydo-panel flex min-w-0 flex-1 flex-col px-3.5 py-3">
+                <Eyebrow>Next RYDO</Eyebrow>
                 <p className="rydo-subtle mt-2 text-sm">No upcoming rides</p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <DashboardClubsSection groups={home.groups} />

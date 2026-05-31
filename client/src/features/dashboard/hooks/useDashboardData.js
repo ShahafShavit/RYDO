@@ -23,8 +23,8 @@ export function useDashboardData() {
         enabled: userId != null,
       },
       {
-        queryKey: ['rides', 'me', scopedKey],
-        queryFn: () => ridesApi.getMyRides(),
+        queryKey: ['rides', 'me', 'upcoming', undefined],
+        queryFn: () => ridesApi.getMyRides({ when: 'upcoming' }),
         enabled: userId != null,
       },
       {
@@ -45,14 +45,13 @@ export function useDashboardData() {
   const home = useMemo(
     () =>
       buildDashboardHome({
-        userId,
         historyRaw: historyQuery.data,
         rideGroupsRaw: ridesQuery.data,
         clubsRaw: clubsQuery.data,
         challengesRaw: challengesQuery.data,
         distanceUnit,
       }),
-    [userId, historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data, distanceUnit],
+    [historyQuery.data, ridesQuery.data, clubsQuery.data, challengesQuery.data, distanceUnit],
   );
 
   const homeLoading = homeQueries.some((q) => q.isPending);
