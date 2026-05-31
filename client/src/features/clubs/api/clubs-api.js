@@ -16,8 +16,10 @@ export const clubsApi = {
   patch: (clubId, payload) => apiClient.patch(API_ENDPOINTS.clubs.patch(clubId), payload),
   uploadAvatar: (clubId, file) =>
     apiClient.uploadFile(API_ENDPOINTS.clubs.avatarUpload(clubId), file, {}, { fileFieldName: 'file' }),
-  promote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.promote(clubId, userId)),
-  demote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.demote(clubId, userId)),
+    promote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.promote(clubId, userId)),
+    demote: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.demote(clubId, userId)),
+    promoteOrganizer: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.promoteOrganizer(clubId, userId)),
+    demoteOrganizer: (clubId, userId) => apiClient.post(API_ENDPOINTS.clubs.demoteOrganizer(clubId, userId)),
   removeMember: (clubId, userId) => apiClient.delete(API_ENDPOINTS.clubs.removeMember(clubId, userId)),
   getRides: (clubId) => apiClient.get(API_ENDPOINTS.clubs.rides(clubId)),
 };

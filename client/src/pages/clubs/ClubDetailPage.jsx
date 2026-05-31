@@ -13,6 +13,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import Button from '@/shared/components/ui/button/Button';
 import Input from '@/shared/components/ui/input/Input';
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
+import { isActiveClubMembershipStatus } from '@/features/clubs/club-list-membership-utils';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 
 function ridePeopleSummary(r) {
@@ -35,12 +36,13 @@ function ridePeopleSummary(r) {
   return `${count} signed up`;
 }
 
-/** Admins → active members → pending; then display name A–Z (aligned with API). */
+/** Admins → organizers → members → pending; then display name A–Z (aligned with API). */
 function compareClubMembers(a, b) {
   const tier = (m) => {
-    if (m.membershipStatus === 'pending') return 2;
+    if (m.membershipStatus === 'pending') return 3;
     if (m.role === 'admin') return 0;
-    return 1;
+    if (m.role === 'organizer') return 1;
+    return 2;
   };
   const d = tier(a) - tier(b);
   if (d !== 0) return d;
@@ -65,7 +67,8 @@ export default function ClubDetailPage() {
     enabled: Number.isFinite(id) && id > 0,
   });
 
-  const canSeeMembers = clubQuery.data?.currentUserMembership === 'member' || clubQuery.data?.currentUserMembership === 'admin';
+  const canSeeMembers = isActiveClubMembershipStatus(clubQuery.data?.currentUserMembership);
+  const canCreateRide = Boolean(clubQuery.data?.viewerCanCreateRide);
 
   const membersQuery = useQuery({
     queryKey: ['clubs', 'members', id],
@@ -135,6 +138,16 @@ export default function ClubDetailPage() {
 
   const demoteMut = useMutation({
     mutationFn: (userId) => clubsApi.demote(id, userId),
+    onSuccess: invalidateClub,
+  });
+
+  const promoteOrganizerMut = useMutation({
+    mutationFn: (userId) => clubsApi.promoteOrganizer(id, userId),
+    onSuccess: invalidateClub,
+  });
+
+  const demoteOrganizerMut = useMutation({
+    mutationFn: (userId) => clubsApi.demoteOrganizer(id, userId),
     onSuccess: invalidateClub,
   });
 
@@ -347,7 +360,7 @@ export default function ClubDetailPage() {
       </div>
 
       <Card>
-        {canSeeMembers ? (
+        {canCreateRide ? (
           <div className="mb-5 border-b border-border pb-5">
             <Button
               variant="neon"
@@ -442,6 +455,8 @@ export default function ClubDetailPage() {
                 rejectMut={rejectMut}
                 promoteMut={promoteMut}
                 demoteMut={demoteMut}
+                promoteOrganizerMut={promoteOrganizerMut}
+                demoteOrganizerMut={demoteOrganizerMut}
                 removeMut={removeMut}
               />
             ))}
@@ -449,7 +464,7 @@ export default function ClubDetailPage() {
         </Card>
       ) : null}
 
-      {(club.currentUserMembership === 'member' || club.currentUserMembership === 'admin') && user ? (
+      {(isActiveClubMembershipStatus(club.currentUserMembership)) && user ? (
         <div className="relative z-0 border-t border-border pt-6">
           <Button variant="secondary" onClick={() => leaveMut.mutate()} disabled={leaveMut.isPending}>
             Leave club
@@ -465,6 +480,7 @@ export default function ClubDetailPage() {
           isLoading={false}
           isError={false}
           canSeeMembers={canSeeMembers}
+          canCreateRide={canCreateRide}
           sortedMembers={sortedMembers}
           membersLoading={membersQuery.isLoading}
           ridesLoading={ridesQuery.isLoading}
@@ -488,6 +504,8 @@ export default function ClubDetailPage() {
           rejectMut={rejectMut}
           promoteMut={promoteMut}
           demoteMut={demoteMut}
+          promoteOrganizerMut={promoteOrganizerMut}
+          demoteOrganizerMut={demoteOrganizerMut}
           removeMut={removeMut}
         />
       </div>

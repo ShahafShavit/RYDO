@@ -18,6 +18,8 @@ export default function ClubMemberChip({
   rejectMut,
   promoteMut,
   demoteMut,
+  promoteOrganizerMut,
+  demoteOrganizerMut,
   removeMut,
 }) {
   const isSelf = member.userId === viewerUserId;
@@ -30,11 +32,18 @@ export default function ClubMemberChip({
       ? 'ring-2 ring-rydo-green/75 ring-offset-[3px] ring-offset-[var(--rydo-bg-deep)]'
       : undefined;
 
+  const organizerAvatarClass =
+    member.role === 'organizer' && isActive
+      ? 'ring-2 ring-sky-400/70 ring-offset-[3px] ring-offset-[var(--rydo-bg-deep)]'
+      : undefined;
+
   const busy =
     approveMut.isPending ||
     rejectMut.isPending ||
     promoteMut.isPending ||
     demoteMut.isPending ||
+    promoteOrganizerMut?.isPending ||
+    demoteOrganizerMut?.isPending ||
     removeMut.isPending;
 
   const detailsRef = useRef(null);
@@ -61,11 +70,12 @@ export default function ClubMemberChip({
           displayName={member.displayName || `User ${member.userId}`}
           sizeClass="h-7 w-7"
           textClass="text-[10px]"
-          className={adminAvatarClass}
+          className={adminAvatarClass ?? organizerAvatarClass}
         />
         <span className="truncate">{member.displayName || `User ${member.userId}`}</span>
       </Link>
       {member.role === 'admin' && isActive ? <span className="sr-only">Admin</span> : null}
+      {member.role === 'organizer' && isActive ? <span className="sr-only">Ride organizer</span> : null}
       {isPending ? <span className="shrink-0 text-xs text-amber-300/90">Pending</span> : null}
 
       {showActions ? (
@@ -117,18 +127,59 @@ export default function ClubMemberChip({
             ) : (
               <>
                 {member.role === 'member' ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled={busy}
-                    className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={(e) => {
-                      promoteMut.mutate(member.userId);
-                      closeParentDetails(e.currentTarget);
-                    }}
-                  >
-                    Make admin
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={busy}
+                      className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={(e) => {
+                        promoteOrganizerMut?.mutate(member.userId);
+                        closeParentDetails(e.currentTarget);
+                      }}
+                    >
+                      Make ride organizer
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={busy}
+                      className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={(e) => {
+                        promoteMut.mutate(member.userId);
+                        closeParentDetails(e.currentTarget);
+                      }}
+                    >
+                      Make admin
+                    </button>
+                  </>
+                ) : member.role === 'organizer' ? (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={busy}
+                      className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={(e) => {
+                        demoteOrganizerMut?.mutate(member.userId);
+                        closeParentDetails(e.currentTarget);
+                      }}
+                    >
+                      Remove ride organizer
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={busy}
+                      className="flex w-full cursor-pointer px-3 py-2 text-left text-sm text-fg/90 hover:bg-surface-strong disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={(e) => {
+                        promoteMut.mutate(member.userId);
+                        closeParentDetails(e.currentTarget);
+                      }}
+                    >
+                      Make admin
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"

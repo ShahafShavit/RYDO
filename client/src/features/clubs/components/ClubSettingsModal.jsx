@@ -9,14 +9,23 @@ import FormField from '@/shared/components/ui/form-field/FormField';
 import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
 
 function formFromClub(club) {
+  const policy = club?.rideCreationPolicy;
   return {
     name: club?.name ?? '',
     description: club?.description ?? '',
     region: club?.region ?? '',
     visibility: club?.visibility === 'private' ? 'private' : 'public',
+    rideCreationPolicy:
+      policy === 'organizersAndAdmins' || policy === 'adminsOnly' ? policy : 'everyone',
     avatarUrl: club?.avatarUrl ?? '',
   };
 }
+
+const RIDE_CREATION_POLICY_VALUES = {
+  everyone: 0,
+  organizersAndAdmins: 1,
+  adminsOnly: 2,
+};
 
 export default function ClubSettingsModal({
   isOpen,
@@ -30,7 +39,7 @@ export default function ClubSettingsModal({
 
   const formSnapshotKey =
     isOpen && club
-      ? [club.id, club.name, club.description, club.region, club.visibility, club.avatarUrl ?? ''].join('\x1f')
+      ? [club.id, club.name, club.description, club.region, club.visibility, club.rideCreationPolicy ?? 'everyone', club.avatarUrl ?? ''].join('\x1f')
       : '';
   const [appliedFormSnapshotKey, setAppliedFormSnapshotKey] = useState(formSnapshotKey);
   if (formSnapshotKey !== appliedFormSnapshotKey) {
@@ -45,6 +54,7 @@ export default function ClubSettingsModal({
         description: form.description.trim(),
         region: form.region.trim() === '' ? '' : form.region.trim(),
         visibility: form.visibility === 'private' ? 1 : 0,
+        rideCreationPolicy: RIDE_CREATION_POLICY_VALUES[form.rideCreationPolicy] ?? 0,
         avatarUrl: form.avatarUrl?.trim() ?? '',
       }),
     onSuccess: () => {
@@ -111,6 +121,22 @@ export default function ClubSettingsModal({
               <option value="public">Public — anyone can join</option>
               <option value="private">Private — approval or invite</option>
             </select>
+          </FormField>
+          <FormField label="Who can schedule rides">
+            <select
+              className={modalControlClass}
+              value={form.rideCreationPolicy}
+              onChange={(e) => setForm((f) => ({ ...f, rideCreationPolicy: e.target.value }))}
+            >
+              <option value="everyone">Everyone — any active member</option>
+              <option value="organizersAndAdmins">Organizers and admins — selected members you designate</option>
+              <option value="adminsOnly">Admins only</option>
+            </select>
+            {form.rideCreationPolicy === 'organizersAndAdmins' ? (
+              <p className="mt-2 text-sm text-fg-muted">
+                Use the member menu (⋮) on the roster to make someone a ride organizer.
+              </p>
+            ) : null}
           </FormField>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" variant="neon" disabled={patchMut.isPending || !form.name.trim()}>

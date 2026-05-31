@@ -14,6 +14,7 @@ public class CyclingClub
 
     public string? Region { get; set; }
     public ClubVisibility Visibility { get; set; }
+    public ClubRideCreationPolicy RideCreationPolicy { get; set; } = ClubRideCreationPolicy.Everyone;
     public int CreatedByUserId { get; set; }
     public ApplicationUser? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -379,16 +379,22 @@ Join or leave the ride roster. Join requires an **active** membership in the rid
 ## Cycling clubs
 Visibility is `public` or `private` in JSON responses; create/patch use numeric enum **`0` = public, `1` = private** (`ClubVisibility`).
 
+Ride creation policy is `everyone` | `organizersAndAdmins` | `adminsOnly` in JSON responses; patch uses numeric enum **`0` = everyone, `1` = organizersAndAdmins, `2` = adminsOnly** (`ClubRideCreationPolicy`). Default is **everyone**.
+
+Member `role` in roster responses: `member` | `organizer` | `admin`. Viewer membership strings (`myRole`, `currentUserMembership`) also include `organizer`.
+
+`viewerCanCreateRide` is computed server-side from the club policy and the viewer’s active membership role.
+
 ### `GET /clubs`
 - Anonymous: public clubs only.
-- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending` and `myRole` (`member` | `admin` | `pending` | null). For **private** clubs, if the viewer is **not** an active member, `description`, `region`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
+- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending`, `myRole` (`member` | `organizer` | `admin` | `pending` | null), `rideCreationPolicy`, and `viewerCanCreateRide`. For **private** clubs, if the viewer is **not** an active member, `description`, `region`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
 - Each row includes optional `avatarUrl` when not redacted (image URL string or null).
 
 ### `POST /clubs` (authenticated)
 Body: `{ "name", "description", "region", "visibility": 0|1 }`. Creator becomes an **active admin** member. Response includes `avatarUrl` (typically `null` for new clubs).
 
 ### `GET /clubs/:id`
-Returns `visibility`, `memberCount`, and `currentUserMembership`: `none` | `pending` | `member` | `admin`.
+Returns `visibility`, `memberCount`, `rideCreationPolicy`, `viewerCanCreateRide`, and `currentUserMembership`: `none` | `pending` | `member` | `organizer` | `admin`.
 
 For **private** clubs, if the viewer is **not** an active member (`pending` or `none`), `description`, `region`, `memberCount`, and `avatarUrl` are omitted (null). The club **name** remains so people know which club they are requesting to join.
 
@@ -410,10 +416,16 @@ Returns `{ "inviteCode": "<token>", "clubId": n }`.
 Body: `{ "token": "<code>" }` — grants **active** membership when valid.
 
 ### `PATCH /clubs/:id` (club admins)
-Update metadata including `visibility`. Optional `avatarUrl`: set to a non-empty string for an image URL, or clear the image by sending an empty string (stored as null). Omitted properties are left unchanged.
+Update metadata including `visibility` and optional `rideCreationPolicy` (`0|1|2`). Optional `avatarUrl`: set to a non-empty string for an image URL, or clear the image by sending an empty string (stored as null). Omitted properties are left unchanged.
 
 ### `POST /clubs/:id/members/:userId/promote` | `.../demote` (club admins)
-Demote is rejected if it would remove the last admin.
+Promote sets role to **admin** (from member or organizer). Demote sets **admin** → **member**; rejected if it would remove the last admin.
+
+### `POST /clubs/:id/members/:userId/promote-organizer` | `.../demote-organizer` (club admins)
+Promote-organizer sets **member** → **organizer**. Demote-organizer sets **organizer** → **member**.
+
+### `POST /clubs/:clubId/rides` (authenticated)
+Caller must be an **active** member allowed by the club’s `rideCreationPolicy` (otherwise `403`). Active members under **everyone**; **organizer** or **admin** under **organizersAndAdmins**; **admin** only under **adminsOnly**.
 
 ### `DELETE /clubs/:id/members/:userId` (club admins)
 Cannot remove the last admin.

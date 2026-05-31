@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
-import { clubsApi } from '@/features/clubs/api/clubs-api';
+import { canCreateClubRide } from '@/features/clubs/club-list-membership-utils';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
@@ -40,7 +40,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
   });
 
   const memberClubs = useMemo(
-    () => clubs.filter((c) => c.myRole === 'member' || c.myRole === 'admin'),
+    () => clubs.filter((c) => canCreateClubRide(c)),
     [clubs],
   );
 

@@ -152,7 +152,7 @@ export function buildDashboardHome({
 
   const clubs = Array.isArray(clubsRaw) ? clubsRaw : [];
   const myClubs = clubs
-    .filter((c) => c.myRole === 'member' || c.myRole === 'admin');
+    .filter((c) => c.myRole === 'member' || c.myRole === 'organizer' || c.myRole === 'admin');
 
   const groups = myClubs.map((c) => ({
     id: String(c.id),

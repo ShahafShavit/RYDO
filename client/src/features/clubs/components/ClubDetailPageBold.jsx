@@ -42,6 +42,7 @@ export default function ClubDetailPageBold({
   isLoading,
   isError,
   canSeeMembers,
+  canCreateRide = false,
   sortedMembers = [],
   membersLoading,
   ridesLoading,
@@ -65,6 +66,8 @@ export default function ClubDetailPageBold({
   rejectMut,
   promoteMut,
   demoteMut,
+  promoteOrganizerMut,
+  demoteOrganizerMut,
   removeMut,
 }) {
   const navigate = useNavigate();
@@ -75,7 +78,10 @@ export default function ClubDetailPageBold({
   };
 
   const isAdmin = club?.currentUserMembership === 'admin';
-  const isMember = club?.currentUserMembership === 'member' || isAdmin;
+  const isMember =
+    club?.currentUserMembership === 'member'
+    || club?.currentUserMembership === 'organizer'
+    || isAdmin;
   const isPending = club?.currentUserMembership === 'pending';
   const canJoin =
     user &&
@@ -88,7 +94,7 @@ export default function ClubDetailPageBold({
     (canJoin || isPending);
 
   /** Fixed tab bar + pinned schedule CTA (see ExploreRoutesFloatingActions). */
-  const scrollBottomInset = canSeeMembers
+  const scrollBottomInset = canCreateRide
     ? 'pb-[calc(var(--rydo-tabbar-h)+5.5rem)]'
     : undefined;
 
@@ -303,6 +309,8 @@ export default function ClubDetailPageBold({
                       rejectMut={rejectMut}
                       promoteMut={promoteMut}
                       demoteMut={demoteMut}
+                      promoteOrganizerMut={promoteOrganizerMut}
+                      demoteOrganizerMut={demoteOrganizerMut}
                       removeMut={removeMut}
                     />
                   ))}
@@ -323,7 +331,7 @@ export default function ClubDetailPageBold({
           ) : null}
         </BoldScrollArea>
 
-        {canSeeMembers ? (
+        {canCreateRide ? (
           <div className="pointer-events-none fixed inset-x-0 bottom-[var(--rydo-tabbar-h)] z-(--rydo-z-sticky) flex items-center px-5 py-3">
             <GradientCTA
               type="button"

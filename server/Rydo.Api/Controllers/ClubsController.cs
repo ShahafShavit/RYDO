@@ -41,7 +41,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         displayName = DisplayName(m.User),
         avatarUrl = UserPublicFields.RosterAvatarUrl(m.User),
         email = m.User?.Email ?? "",
-        role = m.Role == ClubMemberRole.Admin ? "admin" : "member",
+        role = ClubRidePolicy.RoleToApiString(m.Role),
         membershipStatus = m.MembershipStatus == ClubMembershipStatus.Active ? "active" : "pending",
         requestedAt = m.RequestedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         activatedAt = m.ActivatedAt.HasValue
@@ -67,6 +67,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                     c.Region,
                     c.AvatarUrl,
                     HasBlob = c.AvatarImageBytes != null,
+                    c.RideCreationPolicy,
                     c.CreatedAt,
                 })
                 .ToListAsync(ct);
@@ -80,6 +81,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 visibility = "public",
                 membershipPending = false,
                 myRole = (string?)null,
+                rideCreationPolicy = ClubRidePolicy.ToApiString(c.RideCreationPolicy),
+                viewerCanCreateRide = false,
                 c.CreatedAt,
             }).ToList();
             return Ok(publicOnly);
@@ -96,7 +99,14 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             var row = memberRows.FirstOrDefault(m => m.ClubId == clubId);
             if (row == null) return null;
             if (row.MembershipStatus == ClubMembershipStatus.Pending) return "pending";
-            return row.Role == ClubMemberRole.Admin ? "admin" : "member";
+            return ClubRidePolicy.RoleToApiString(row.Role);
+        }
+
+        bool ViewerCanCreateRide(int clubId, ClubRideCreationPolicy policy)
+        {
+            var row = memberRows.FirstOrDefault(m => m.ClubId == clubId);
+            if (row == null) return false;
+            return ClubRidePolicy.CanCreateRide(policy, row.Role, row.MembershipStatus);
         }
 
         // All clubs (public + private) for discovery. Private rows omit detail for non–active members (same rules as GET /clubs/:id).
@@ -111,6 +121,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 c.AvatarUrl,
                 HasBlob = c.AvatarImageBytes != null,
                 c.Visibility,
+                c.RideCreationPolicy,
                 c.CreatedAt,
             })
             .ToListAsync(ct);
@@ -118,10 +129,11 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         var result = list.Select(c =>
         {
             var role = MyRole(c.Id);
-            var isActiveMember = role is "admin" or "member";
+            var isActiveMember = role is "admin" or "member" or "organizer";
             var hidePrivateFields = c.Visibility == ClubVisibility.Private && !isActiveMember;
             var vis = c.Visibility == ClubVisibility.Public ? "public" : "private";
             var avatar = AvatarUrls.ResolveClubDisplay(c.AvatarUrl, c.HasBlob, c.Id);
+            var rideCreationPolicy = ClubRidePolicy.ToApiString(c.RideCreationPolicy);
             return new
             {
                 c.Id,
@@ -132,6 +144,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 visibility = vis,
                 membershipPending = pendingSet.Contains(c.Id),
                 myRole = role,
+                rideCreationPolicy,
+                viewerCanCreateRide = ViewerCanCreateRide(c.Id, c.RideCreationPolicy),
                 c.CreatedAt,
             };
         }).ToList();
@@ -191,20 +205,13 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         if (club == null) return NotFound();
 
         var uid = CurrentUserId();
+        ClubMember? viewerMem = null;
         string currentUserMembership = "none";
         if (uid != null)
         {
-            var mem = await db.ClubMembers.AsNoTracking()
+            viewerMem = await db.ClubMembers.AsNoTracking()
                 .FirstOrDefaultAsync(m => m.ClubId == id && m.UserId == uid.Value, ct);
-            if (mem != null)
-            {
-                if (mem.MembershipStatus == ClubMembershipStatus.Pending)
-                    currentUserMembership = "pending";
-                else if (mem.Role == ClubMemberRole.Admin)
-                    currentUserMembership = "admin";
-                else
-                    currentUserMembership = "member";
-            }
+            currentUserMembership = ClubRidePolicy.MembershipToApiString(viewerMem);
         }
 
         var memberCount = await db.ClubMembers.CountAsync(
@@ -234,6 +241,9 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             region,
             avatarUrl,
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
+            rideCreationPolicy = ClubRidePolicy.ToApiString(club.RideCreationPolicy),
+            viewerCanCreateRide = viewerMem != null
+                && ClubRidePolicy.CanCreateRide(club.RideCreationPolicy, viewerMem.Role, viewerMem.MembershipStatus),
             createdAt = club.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             memberCount = memberCountPublic,
             currentUserMembership,
@@ -269,10 +279,12 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         var sorted = list
             .OrderBy(m =>
                 m.MembershipStatus == ClubMembershipStatus.Pending
-                    ? 2
+                    ? 3
                     : m.Role == ClubMemberRole.Admin
                         ? 0
-                        : 1)
+                        : m.Role == ClubMemberRole.Organizer
+                            ? 1
+                            : 2)
             .ThenBy(m => m.User?.LastName ?? "", StringComparer.Ordinal)
             .ThenBy(m => m.User?.FirstName ?? "", StringComparer.Ordinal)
             .ToList();
@@ -523,7 +535,13 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
         return Ok(new { clubId = inv.ClubId, status = "active" });
     }
 
-    public record PatchClubBody(string? Name, string? Description, string? Region, string? AvatarUrl, ClubVisibility? Visibility);
+    public record PatchClubBody(
+        string? Name,
+        string? Description,
+        string? Region,
+        string? AvatarUrl,
+        ClubVisibility? Visibility,
+        ClubRideCreationPolicy? RideCreationPolicy);
 
     [HttpPatch("{id:int}")]
     [Authorize]
@@ -565,6 +583,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             }
         }
         if (body.Visibility.HasValue) club.Visibility = body.Visibility.Value;
+        if (body.RideCreationPolicy.HasValue) club.RideCreationPolicy = body.RideCreationPolicy.Value;
 
         await db.SaveChangesAsync(ct);
         return Ok(new
@@ -575,6 +594,7 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             region = club.Region,
             avatarUrl = AvatarUrls.ResolveClubDisplay(club),
             visibility = club.Visibility == ClubVisibility.Public ? "public" : "private",
+            rideCreationPolicy = ClubRidePolicy.ToApiString(club.RideCreationPolicy),
         });
     }
 
@@ -621,8 +641,45 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
 
         var m = await db.ClubMembers.FirstOrDefaultAsync(x => x.ClubId == id && x.UserId == userId, ct);
         if (m == null || m.MembershipStatus != ClubMembershipStatus.Active) return NotFound();
+        if (m.Role == ClubMemberRole.Admin) return BadRequest();
 
         m.Role = ClubMemberRole.Admin;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/members/{userId:int}/promote-organizer")]
+    [Authorize]
+    public async Task<IActionResult> PromoteOrganizer(int id, int userId, CancellationToken ct)
+    {
+        var uid = CurrentUserId() ?? 0;
+        var isAdmin = await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid && m.Role == ClubMemberRole.Admin && m.MembershipStatus == ClubMembershipStatus.Active, ct);
+        if (!isAdmin) return Forbid();
+
+        var m = await db.ClubMembers.FirstOrDefaultAsync(x => x.ClubId == id && x.UserId == userId, ct);
+        if (m == null || m.MembershipStatus != ClubMembershipStatus.Active) return NotFound();
+        if (m.Role != ClubMemberRole.Member) return BadRequest();
+
+        m.Role = ClubMemberRole.Organizer;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/members/{userId:int}/demote-organizer")]
+    [Authorize]
+    public async Task<IActionResult> DemoteOrganizer(int id, int userId, CancellationToken ct)
+    {
+        var uid = CurrentUserId() ?? 0;
+        var isAdmin = await db.ClubMembers.AnyAsync(
+            m => m.ClubId == id && m.UserId == uid && m.Role == ClubMemberRole.Admin && m.MembershipStatus == ClubMembershipStatus.Active, ct);
+        if (!isAdmin) return Forbid();
+
+        var m = await db.ClubMembers.FirstOrDefaultAsync(x => x.ClubId == id && x.UserId == userId, ct);
+        if (m == null || m.MembershipStatus != ClubMembershipStatus.Active) return NotFound();
+        if (m.Role != ClubMemberRole.Organizer) return BadRequest();
+
+        m.Role = ClubMemberRole.Member;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
@@ -686,13 +743,16 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
     [Authorize]
     public async Task<IActionResult> CreateClubRide(int id, [FromBody] CreateClubRideBody body, CancellationToken ct)
     {
-        if (!await db.CyclingClubs.AnyAsync(c => c.Id == id, ct)) return NotFound();
+        var club = await db.CyclingClubs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (club == null) return NotFound();
         if (body.RouteId is int routeIdCheck && !await db.Routes.AnyAsync(r => r.Id == routeIdCheck, ct)) return NotFound();
 
         var uid = CurrentUserId() ?? 0;
-        var canLink = await db.ClubMembers.AnyAsync(
-            m => m.ClubId == id && m.UserId == uid && m.MembershipStatus == ClubMembershipStatus.Active, ct);
-        if (!canLink) return Forbid();
+        var viewerMem = await db.ClubMembers.AsNoTracking()
+            .FirstOrDefaultAsync(m => m.ClubId == id && m.UserId == uid, ct);
+        if (viewerMem == null
+            || !ClubRidePolicy.CanCreateRide(club.RideCreationPolicy, viewerMem.Role, viewerMem.MembershipStatus))
+            return Forbid();
 
         if (RydoTextLimits.ValidateRideName(body.Name, out var normalizedName) is { } nameErr)
             return Problem(statusCode: 400, detail: nameErr);

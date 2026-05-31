@@ -9,6 +9,8 @@ export const MOCK_CLUBS = [
     avatarUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=mockOpenClub',
     membershipPending: false,
     myRole: 'member',
+    rideCreationPolicy: 'everyone',
+    viewerCanCreateRide: true,
     createdAt: '2026-01-01T00:00:00.000Z',
   },
   {
@@ -20,6 +22,8 @@ export const MOCK_CLUBS = [
     avatarUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=mockPrivateClub',
     membershipPending: false,
     myRole: 'admin',
+    rideCreationPolicy: 'everyone',
+    viewerCanCreateRide: true,
     createdAt: '2026-01-15T00:00:00.000Z',
   },
   {
@@ -31,6 +35,8 @@ export const MOCK_CLUBS = [
     avatarUrl: 'https://api.dicebear.com/7.x/shapes/svg?seed=jerusalemHillsCollective',
     membershipPending: true,
     myRole: 'pending',
+    rideCreationPolicy: 'everyone',
+    viewerCanCreateRide: false,
     createdAt: '2026-01-20T00:00:00.000Z',
   },
 ];

@@ -28,13 +28,36 @@ function mockClubCurrentMembership(c) {
   if (!c) return 'none';
   if (c.membershipPending) return 'pending';
   if (c.myRole === 'admin') return 'admin';
+  if (c.myRole === 'organizer') return 'organizer';
   if (c.myRole === 'member') return 'member';
   return 'none';
 }
 
 function mockIsActiveClubMember(c) {
   const m = mockClubCurrentMembership(c);
-  return m === 'admin' || m === 'member';
+  return m === 'admin' || m === 'organizer' || m === 'member';
+}
+
+function mockRideCreationPolicyApi(c) {
+  const p = c?.rideCreationPolicy;
+  if (p === 'organizersAndAdmins' || p === 'adminsOnly') return p;
+  return 'everyone';
+}
+
+function mockViewerCanCreateRide(c) {
+  const membership = mockClubCurrentMembership(c);
+  if (membership === 'pending' || membership === 'none') return false;
+  const policy = mockRideCreationPolicyApi(c);
+  if (policy === 'everyone') return true;
+  if (policy === 'organizersAndAdmins') return membership === 'admin' || membership === 'organizer';
+  if (policy === 'adminsOnly') return membership === 'admin';
+  return false;
+}
+
+function mockRideCreationPolicyFromPatchValue(value) {
+  if (value === 1) return 'organizersAndAdmins';
+  if (value === 2) return 'adminsOnly';
+  return 'everyone';
 }
 let historyEntries = [...MOCK_HISTORY];
 
@@ -1141,6 +1164,11 @@ export async function mockRequest(path, options = {}) {
   if (/^\/api\/clubs\/\d+\/rides$/.test(pathname) && method === 'POST') {
     const payload = parseJsonBody(options.body);
     const clubId = Number(pathname.split('/')[3]);
+    const club = clubs.find((c) => c.id === clubId);
+    if (!club) throw new ApiError({ message: 'Club not found', status: 404, code: 'club_not_found' });
+    if (!mockViewerCanCreateRide(club)) {
+      throw new ApiError({ message: 'Forbidden', status: 403, code: 'forbidden' });
+    }
     const routeId =
       payload.routeId != null && payload.routeId !== '' ? Number(payload.routeId) : null;
     if (routeId != null && Number.isNaN(routeId)) {
@@ -1197,7 +1225,11 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/clubs' && method === 'GET') {
-    return clubs.map((c) => ({ ...c }));
+    return clubs.map((c) => ({
+      ...c,
+      rideCreationPolicy: mockRideCreationPolicyApi(c),
+      viewerCanCreateRide: mockViewerCanCreateRide(c),
+    }));
   }
 
   if (pathname === '/api/clubs' && method === 'POST') {
@@ -1212,6 +1244,8 @@ export async function mockRequest(path, options = {}) {
       avatarUrl: null,
       membershipPending: false,
       myRole: 'admin',
+      rideCreationPolicy: 'everyone',
+      viewerCanCreateRide: true,
       createdAt: new Date().toISOString(),
     };
     clubs.push(row);
@@ -1245,6 +1279,9 @@ export async function mockRequest(path, options = {}) {
     if (body.description != null) c.description = String(body.description).trim();
     if (body.region !== undefined) c.region = body.region ? String(body.region).trim() : null;
     if (body.visibility != null) c.visibility = body.visibility === 1 ? 'private' : 'public';
+    if (body.rideCreationPolicy != null) {
+      c.rideCreationPolicy = mockRideCreationPolicyFromPatchValue(body.rideCreationPolicy);
+    }
     if ('avatarUrl' in body) c.avatarUrl = body.avatarUrl ? String(body.avatarUrl).trim() : null;
     return {
       id: c.id,
@@ -1253,6 +1290,7 @@ export async function mockRequest(path, options = {}) {
       region: c.region,
       avatarUrl: c.avatarUrl,
       visibility: c.visibility,
+      rideCreationPolicy: mockRideCreationPolicyApi(c),
     };
   }
 
@@ -1279,6 +1317,8 @@ export async function mockRequest(path, options = {}) {
       region,
       avatarUrl,
       visibility: c.visibility,
+      rideCreationPolicy: mockRideCreationPolicyApi(c),
+      viewerCanCreateRide: mockViewerCanCreateRide(c),
       createdAt: c.createdAt,
       memberCount,
       currentUserMembership,
@@ -1414,6 +1454,14 @@ export async function mockRequest(path, options = {}) {
         row.resolvedAt = now;
       }
     }
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/members\/\d+\/promote-organizer$/.test(pathname) && method === 'POST') {
+    return null;
+  }
+
+  if (/^\/api\/clubs\/\d+\/members\/\d+\/demote-organizer$/.test(pathname) && method === 'POST') {
     return null;
   }
 
