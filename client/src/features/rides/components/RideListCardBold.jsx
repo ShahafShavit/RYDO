@@ -4,6 +4,7 @@ import { ROUTES } from '@/app/router/route-paths';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
+import ListCardMeta from '@/shared/components/bold/ListCardMeta';
 import { formatDurationMinutes } from '@/features/dashboard/dashboard-mapper';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { resolveRideMapPreview } from '@/features/rides/hooks/useRideEvent';
@@ -22,10 +23,10 @@ function formatWhen(iso) {
   }).format(d);
 }
 
-function statusPill(variant) {
-  if (variant === 'upcoming') return { className: 'rydo-pill-green', label: 'Scheduled' };
-  if (variant === 'past') return { className: 'rydo-pill', label: 'Past event' };
-  return { className: 'rydo-pill-accent', label: 'Logged' };
+function statusMeta(variant) {
+  if (variant === 'upcoming') return { text: 'Scheduled', accent: 'green' };
+  if (variant === 'past') return { text: 'Past event' };
+  return { text: 'Logged', accent: 'accent' };
 }
 
 export default function RideListCardBold({
@@ -62,7 +63,14 @@ export default function RideListCardBold({
       : null;
   const duration = isHistory ? formatDurationMinutes(entry.durationMinutes) : null;
 
-  const pill = statusPill(variant);
+  const metaParts = [
+    statusMeta(variant),
+    isClub
+      ? { text: clubName || 'Club', accent: 'green' }
+      : isPersonal
+        ? { text: 'Personal' }
+        : null,
+  ].filter(Boolean);
 
   const inner = (
     <>
@@ -74,22 +82,11 @@ export default function RideListCardBold({
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className={cn('rydo-pill px-2.5 py-0.5 text-[11px] font-bold', pill.className)}>
-            {pill.label}
-          </span>
-          {isClub ? (
-            <span className="rydo-pill rydo-pill-green px-2 py-0.5 text-[10px] font-semibold">
-              {clubName || 'Club'}
-            </span>
-          ) : isPersonal ? (
-            <span className="rydo-pill px-2 py-0.5 text-[10px] font-semibold">Personal</span>
-          ) : null}
-        </div>
-        <DisplayTitle as="div" size="sm" truncate className="mt-1.5 text-lg">
+        <DisplayTitle as="div" size="sm" truncate className="text-lg leading-tight">
           {title}
         </DisplayTitle>
-        <Eyebrow className="mt-1 text-[10px]">{formatWhen(when)}</Eyebrow>
+        <ListCardMeta parts={metaParts} className="mt-1" />
+        <Eyebrow className="mt-1 text-[10px] normal-case tracking-normal">{formatWhen(when)}</Eyebrow>
         {isHistory && (dist || duration || elev) ? (
           <div className="mt-auto flex flex-wrap gap-3 pt-2">
             {dist ? (

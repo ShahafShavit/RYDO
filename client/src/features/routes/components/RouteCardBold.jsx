@@ -3,23 +3,10 @@ import { Bike, ChevronRight, MapPin } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
+import ListCardMeta, { difficultyAccent } from '@/shared/components/bold/ListCardMeta';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { cn } from '@/shared/lib/cn';
-
-function formatDuration(minutes) {
-  if (!minutes && minutes !== 0) return '';
-  const hrs = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-}
-
-function diffPillClass(difficulty) {
-  const d = String(difficulty || '').toLowerCase();
-  if (d === 'hard') return 'rydo-pill-amber';
-  if (d === 'casual' || d === 'easy') return 'rydo-pill-green';
-  return '';
-}
 
 export default function RouteCardBold({ route, className }) {
   const { formatKm, formatElevation } = useFormatDistance();
@@ -54,30 +41,36 @@ export default function RouteCardBold({ route, className }) {
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between gap-2">
-          <span className={cn('rydo-pill px-2.5 py-0.5 text-[11px] font-bold', diffPillClass(route?.difficulty))}>
-            {difficulty || 'Route'}
-          </span>
+        <div className="flex items-start justify-between gap-2">
+          <DisplayTitle as="div" size="sm" truncate className="min-w-0 flex-1 text-lg leading-tight">
+            {title}
+          </DisplayTitle>
           {riders > 0 ? (
-            <span className="rydo-subtle inline-flex items-center gap-1 text-[11px]">
+            <span className="rydo-subtle inline-flex shrink-0 items-center gap-1 pt-0.5 text-[11px] font-semibold tabular-nums">
               <Bike className="h-3 w-3" aria-hidden />
               {riders}
             </span>
           ) : null}
         </div>
-        <DisplayTitle as="div" size="sm" truncate className="mt-1.5 text-lg">
-          {title}
-        </DisplayTitle>
+        <ListCardMeta
+          parts={[
+            {
+              text: difficulty || 'Route',
+              accent: difficultyAccent(route?.difficulty),
+            },
+            terrain ? { text: terrain } : null,
+          ].filter(Boolean)}
+          className="mt-1"
+        />
         {route?.region ? (
           <span className="rydo-subtle mt-0.5 inline-flex items-center gap-1 text-xs">
-            <MapPin className="h-3 w-3" aria-hidden />
-            {route.region}
+            <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+            <span className="truncate">{route.region}</span>
           </span>
         ) : null}
         <div className="mt-auto flex gap-3.5 pt-2">
           <span className="rydo-tnum text-[13px] font-bold text-fg">{distance}</span>
           <span className="rydo-tnum text-[13px] font-bold text-fg">{elevation}</span>
-          <span className="rydo-subtle text-xs font-semibold">{terrain}</span>
         </div>
       </div>
       <ChevronRight className="my-auto h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />
