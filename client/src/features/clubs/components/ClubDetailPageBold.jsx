@@ -68,6 +68,12 @@ export default function ClubDetailPageBold({
   removeMut,
 }) {
   const navigate = useNavigate();
+
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate(ROUTES.dashboard);
+  };
+
   const isAdmin = club?.currentUserMembership === 'admin';
   const isMember = club?.currentUserMembership === 'member' || isAdmin;
   const isPending = club?.currentUserMembership === 'pending';
@@ -94,7 +100,7 @@ export default function ClubDetailPageBold({
     return (
       <BoldScreen>
         <div className="px-5 pt-4">
-          <IconButton icon={ArrowLeft} aria-label="Back to clubs" onClick={() => navigate(ROUTES.clubs)} />
+          <IconButton icon={ArrowLeft} aria-label="Go back" onClick={goBack} />
           <p className="mt-4 text-sm text-red-400">Could not load this club.</p>
         </div>
       </BoldScreen>
@@ -105,7 +111,7 @@ export default function ClubDetailPageBold({
     <BoldScreen>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-3 px-5 pb-1 pt-1">
-          <IconButton icon={ArrowLeft} size="lg" aria-label="Back to clubs" onClick={() => navigate(ROUTES.clubs)} />
+          <IconButton icon={ArrowLeft} size="lg" aria-label="Go back" onClick={goBack} />
           <div className="flex-1" />
           {isAdmin ? (
             <IconButton

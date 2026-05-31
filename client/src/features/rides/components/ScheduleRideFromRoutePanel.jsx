@@ -10,6 +10,7 @@ import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives'
 import CreateRideForm from '@/features/rides/components/CreateRideForm';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import { defaultRideNameFromRoute, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
+import { useBoldMobile } from '@/shared/hooks/useBoldMobile';
 
 function defaultScheduledLocal() {
   const d = new Date(Date.now() + 86400000);
@@ -21,6 +22,7 @@ function defaultScheduledLocal() {
  * @param {{ routeId: number, routeTitle: string, headless?: boolean }} props
  */
 export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = false }) {
+  const isBoldMobile = useBoldMobile();
   const [mode, setMode] = useState('personal');
   const [scheduleBanner, setScheduleBanner] = useState(null);
   const [clubId, setClubId] = useState('');
@@ -152,8 +154,11 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
       ) : memberClubs.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-border bg-surface p-4 text-sm text-fg-muted">
           <p>You need to join a club before scheduling a club ride.</p>
-          <Link to={ROUTES.clubs} className="mt-3 inline-block text-rydo-purple hover:underline">
-            Browse clubs
+          <Link
+            to={isBoldMobile ? ROUTES.routes : ROUTES.clubs}
+            className="mt-3 inline-block text-rydo-purple hover:underline"
+          >
+            {isBoldMobile ? 'Find clubs in Explore' : 'Browse clubs'}
           </Link>
         </div>
       ) : (

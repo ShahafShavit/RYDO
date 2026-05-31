@@ -13,19 +13,13 @@ import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
+import DashboardLeaderboardsSection from '@/features/dashboard/components/DashboardLeaderboardsSection';
+import DashboardClubsSection from '@/features/dashboard/components/DashboardClubsSection';
 
 function greetingForHour(h) {
   if (h < 12) return 'Good morning,';
   if (h < 17) return 'Good afternoon,';
   return 'Good evening,';
-}
-
-function formatToday() {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-  });
 }
 
 export default function DashboardHomeCardsBold() {
@@ -53,8 +47,7 @@ export default function DashboardHomeCardsBold() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-start justify-between gap-3 px-5 pt-2">
           <div className="min-w-0">
-            <Eyebrow>{formatToday()}</Eyebrow>
-            <DisplayTitle size="sm" className="mt-1.5">
+            <DisplayTitle size="sm">
               {greetingForHour(new Date().getHours())}
               <br />
               {firstName}
@@ -206,6 +199,10 @@ export default function DashboardHomeCardsBold() {
               )}
             </div>
           </div>
+
+          <DashboardClubsSection groups={home.groups} />
+
+          <DashboardLeaderboardsSection />
         </BoldScrollArea>
       </div>
     </BoldScreen>

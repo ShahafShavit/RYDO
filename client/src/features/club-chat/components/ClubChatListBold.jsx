@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import IconButton from '@/shared/components/bold/IconButton';
 import UserAvatar from '@/shared/components/user/UserAvatar';
@@ -79,8 +78,7 @@ export default function ClubChatListBold({
       <header className="shrink-0 px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <Eyebrow>Community</Eyebrow>
-            <DisplayTitle size="lg" className="mt-1.5">
+            <DisplayTitle size="lg">
               Club chat
             </DisplayTitle>
           </div>

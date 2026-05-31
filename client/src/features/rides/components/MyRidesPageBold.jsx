@@ -54,8 +54,7 @@ export default function MyRidesPageBold({
     <BoldScreen>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="px-5 pt-2">
-          <Eyebrow>{useMember ? 'Member rides' : 'Your rides'}</Eyebrow>
-          <div className="mt-1.5 flex items-end justify-between gap-3">
+          <div className="flex items-end justify-between gap-3">
             <DisplayTitle size="lg" className="min-w-0 flex-1 truncate">
               {pageTitle}
             </DisplayTitle>

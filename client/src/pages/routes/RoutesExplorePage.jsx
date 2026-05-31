@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useCallback, useState } from 'react';
 import { Link, generatePath, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import RouteCard from '@/features/routes/components/RouteCard';
 import RouteCardBold from '@/features/routes/components/RouteCardBold';
@@ -13,6 +14,11 @@ import { useNearMeGeo } from '@/features/routes/hooks/useNearMeGeo';
 import { useUserSearch } from '@/features/users/hooks/useUserSearch';
 import { useIntersectionSentinel } from '@/shared/hooks/useIntersectionSentinel';
 import { ROUTES } from '@/app/router/route-paths';
+import { clubsApi } from '@/features/clubs/api/clubs-api';
+import ClubCardBold from '@/features/clubs/components/ClubCardBold';
+import CreateClubModal from '@/features/clubs/components/CreateClubModal';
+import RedeemClubInviteModal from '@/features/clubs/components/RedeemClubInviteModal';
+import { clubMatchesSearch, splitMemberAndDiscoverClubs } from '@/features/clubs/club-list-search';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
@@ -49,24 +55,34 @@ const FILTER_CHIPS = [
   { label: 'Hard', value: 'difficulty:hard' },
 ];
 
-function ExploreMobileHeader({ routeCount, filtersOpen, onToggleFilters }) {
+function ExploreMobileHeader({ filtersOpen, onToggleFilters, onCreateOpen, onInviteOpen }) {
   return (
     <header className="px-5 pt-2">
       <div className="flex items-end justify-between gap-3">
-        <div>
-          <Eyebrow>Repository · {routeCount != null ? `${routeCount}+ routes` : 'routes'}</Eyebrow>
-          <DisplayTitle size="lg" className="mt-1.5">
-            Explore
-          </DisplayTitle>
+        <DisplayTitle size="lg" className="min-w-0 flex-1">
+          Explore
+        </DisplayTitle>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className="rydo-iconbtn rydo-iconbtn-lg"
+            aria-label="Filters"
+            aria-expanded={filtersOpen}
+            onClick={onToggleFilters}
+          >
+            <SlidersHorizontal className="h-[19px] w-[19px]" strokeWidth={2} />
+          </button>
         </div>
-        <button
-          type="button"
-          className="rydo-iconbtn rydo-iconbtn-lg"
-          aria-label="Filters"
-          aria-expanded={filtersOpen}
-          onClick={onToggleFilters}
-        >
-          <SlidersHorizontal className="h-[19px] w-[19px]" strokeWidth={2} />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold">
+        <button type="button" className="text-rydo-purple" onClick={onCreateOpen}>
+          Create club
+        </button>
+        <span className="text-fg-subtle" aria-hidden>
+          ·
+        </span>
+        <button type="button" className="text-rydo-purple" onClick={onInviteOpen}>
+          Have an invite code?
         </button>
       </div>
     </header>
@@ -77,6 +93,8 @@ export default function RoutesExplorePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultExploreFilters);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [createClubOpen, setCreateClubOpen] = useState(false);
+  const [inviteClubOpen, setInviteClubOpen] = useState(false);
 
   const uploadModalOpen = searchParams.get('upload') === 'true';
 
@@ -117,6 +135,30 @@ export default function RoutesExplorePage() {
     isError: peopleError,
     error: peopleSearchError,
   } = useUserSearch(peopleSearchQ, 24);
+
+  const { data: clubs = [] } = useQuery({
+    queryKey: ['clubs', 'list'],
+    queryFn: () => clubsApi.list(),
+  });
+
+  const showClubSearch = deferredSearch.trim().length > 0;
+  const clubSearchResults = useMemo(() => {
+    if (!showClubSearch) {
+      return {
+        memberClubs: [],
+        otherPublicClubs: [],
+        otherPrivateClubs: [],
+        totalMatches: 0,
+      };
+    }
+    const q = deferredSearch.trim().toLowerCase();
+    const filtered = clubs.filter((c) => clubMatchesSearch(c, q));
+    const split = splitMemberAndDiscoverClubs(filtered);
+    return {
+      ...split,
+      totalMatches: filtered.length,
+    };
+  }, [clubs, deferredSearch, showClubSearch]);
 
   const filtersForQuery = useMemo(
     () => ({ ...filters, search: deferredSearch }),
@@ -241,6 +283,80 @@ export default function RoutesExplorePage() {
     </>
   );
 
+  const mobileClubSearchSection = showClubSearch ? (
+    <section className="mb-4 px-5" aria-label="Club search results">
+      <Eyebrow className="mb-2.5">Clubs · {clubSearchResults.totalMatches}</Eyebrow>
+      {clubSearchResults.totalMatches === 0 ? (
+        <p className="rydo-subtle text-sm">No clubs match &ldquo;{deferredSearch.trim()}&rdquo;.</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {clubSearchResults.memberClubs.length > 0 ? (
+            <div>
+              <p className="rydo-subtle mb-2 text-xs font-semibold uppercase tracking-wide">Your clubs</p>
+              <div className="flex flex-col gap-2.5">
+                {clubSearchResults.memberClubs.map((club) => (
+                  <ClubCardBold key={club.id} club={club} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {clubSearchResults.otherPublicClubs.length > 0 ? (
+            <div>
+              <p className="rydo-subtle mb-2 text-xs font-semibold uppercase tracking-wide">
+                Public — open to join
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {clubSearchResults.otherPublicClubs.map((club) => (
+                  <ClubCardBold key={club.id} club={club} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {clubSearchResults.otherPrivateClubs.length > 0 ? (
+            <div>
+              <p className="rydo-subtle mb-2 text-xs font-semibold uppercase tracking-wide">
+                Private — invite or approval
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {clubSearchResults.otherPrivateClubs.map((club) => (
+                  <ClubCardBold key={club.id} club={club} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </section>
+  ) : null;
+
+  const mobilePeopleSearchSection = showPeopleSearch ? (
+    <section className="mb-4 px-5" aria-label="People search results">
+      <Eyebrow className="mb-2.5">People</Eyebrow>
+      {peopleFetching ? <p className="rydo-subtle text-sm">Searching…</p> : null}
+      {peopleError ? (
+        <p className="text-sm text-red-400/90">{peopleSearchError?.message || 'People search failed.'}</p>
+      ) : null}
+      {!peopleFetching && !peopleError ? (
+        <div className="flex flex-col gap-2">
+          {peopleItems.length === 0 ? (
+            <p className="rydo-subtle text-sm">No members match that search.</p>
+          ) : (
+            peopleItems.map((row) => (
+              <Link
+                key={row.id}
+                to={generatePath(ROUTES.userProfile, { userId: String(row.id) })}
+                className="rydo-bold-glass-row flex items-center gap-3 p-3 no-underline transition active:opacity-80"
+              >
+                <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
+                <span className="truncate font-semibold text-fg">{row.fullName || `User ${row.id}`}</span>
+              </Link>
+            ))
+          )}
+        </div>
+      ) : null}
+    </section>
+  ) : null;
+
   return (
     <>
       {/* Desktop */}
@@ -322,9 +438,10 @@ export default function RoutesExplorePage() {
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
         <BoldScreen>
         <ExploreMobileHeader
-          routeCount={totalCount}
           filtersOpen={mobileFiltersOpen}
           onToggleFilters={() => setMobileFiltersOpen((o) => !o)}
+          onCreateOpen={() => setCreateClubOpen(true)}
+          onInviteOpen={() => setInviteClubOpen(true)}
         />
 
         <div className="relative z-[2] flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -335,9 +452,9 @@ export default function RoutesExplorePage() {
                 type="search"
                 value={filters.search}
                 onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                placeholder="Search routes or riders…"
+                placeholder="Search routes, riders, or clubs…"
                 className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg placeholder:text-fg-subtle outline-none"
-                aria-label="Search routes"
+                aria-label="Search routes, riders, or clubs"
               />
             </div>
 
@@ -375,6 +492,8 @@ export default function RoutesExplorePage() {
           </div>
 
           <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(var(--rydo-tabbar-h)+5rem)] pt-3.5 md:pb-4">
+            {mobileClubSearchSection}
+            {mobilePeopleSearchSection}
             <div className="mb-2.5 flex items-center justify-between px-5">
               <Eyebrow>Sorted by {filters.sort === 'favorites' ? 'favorites' : 'newest'}</Eyebrow>
             </div>
@@ -392,6 +511,8 @@ export default function RoutesExplorePage() {
       </div>
 
       <UploadRouteModal isOpen={uploadModalOpen} onClose={closeUploadModal} />
+      <CreateClubModal isOpen={createClubOpen} onClose={() => setCreateClubOpen(false)} />
+      <RedeemClubInviteModal isOpen={inviteClubOpen} onClose={() => setInviteClubOpen(false)} />
     </>
   );
 }

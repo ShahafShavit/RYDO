@@ -1,28 +1,22 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { clubsApi } from '@/features/clubs/api/clubs-api';
 import CreateClubModal from '@/features/clubs/components/CreateClubModal';
 import ClubListMembershipBadge from '@/features/clubs/components/ClubListMembershipBadge';
-import ClubsPageBold from '@/features/clubs/components/ClubsPageBold';
+import {
+  clubMatchesSearch,
+  splitMemberAndDiscoverClubs,
+} from '@/features/clubs/club-list-search';
 import {
   getClubListMembershipStatus,
-  isActiveClubMember,
 } from '@/features/clubs/club-list-membership-utils';
 import RedeemClubInviteModal from '@/features/clubs/components/RedeemClubInviteModal';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import UserAvatar from '@/shared/components/user/UserAvatar';
-
-function clubMatchesSearch(club, q) {
-  if (!q) return true;
-  const name = (club.name ?? '').toLowerCase();
-  const desc = (club.description ?? '').toLowerCase();
-  const region = (club.region ?? '').toLowerCase();
-  return name.includes(q) || desc.includes(q) || region.includes(q);
-}
 
 function ClubCard({ club }) {
   const membershipStatus = getClubListMembershipStatus(club);
@@ -69,19 +63,7 @@ export default function ClubsPage() {
 
   const { memberClubs, otherPublicClubs, otherPrivateClubs } = useMemo(() => {
     const filtered = clubs.filter((c) => clubMatchesSearch(c, q));
-    const members = [];
-    const others = [];
-    for (const c of filtered) {
-      if (isActiveClubMember(c)) members.push(c);
-      else others.push(c);
-    }
-    const byName = (a, b) => a.name.localeCompare(b.name);
-    members.sort(byName);
-    others.sort(byName);
-    const isPublic = (c) => String(c.visibility ?? '').toLowerCase() === 'public';
-    const otherPublic = others.filter(isPublic);
-    const otherPrivate = others.filter((c) => !isPublic(c));
-    return { memberClubs: members, otherPublicClubs: otherPublic, otherPrivateClubs: otherPrivate };
+    return splitMemberAndDiscoverClubs(filtered);
   }, [clubs, q]);
 
   const otherClubsCount = otherPublicClubs.length + otherPrivateClubs.length;
@@ -184,19 +166,7 @@ export default function ClubsPage() {
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <ClubsPageBold
-          isLoading={isLoading}
-          clubsCount={clubs.length}
-          memberClubs={memberClubs}
-          otherPublicClubs={otherPublicClubs}
-          otherPrivateClubs={otherPrivateClubs}
-          otherClubsCount={otherClubsCount}
-          showEmptySearch={showEmptySearch}
-          search={search}
-          onSearchChange={setSearch}
-          onCreateOpen={() => setCreateOpen(true)}
-          onInviteOpen={() => setInviteOpen(true)}
-        />
+        <Navigate to={ROUTES.routes} replace />
       </div>
 
       <CreateClubModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />

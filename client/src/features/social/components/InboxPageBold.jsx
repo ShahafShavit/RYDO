@@ -114,8 +114,7 @@ export default function InboxPageBold({
         <header className="flex items-center gap-3 px-5 pb-1 pt-1">
           <IconButton icon={ArrowLeft} aria-label="Back" onClick={() => navigate(-1)} />
           <div className="min-w-0 flex-1">
-            <Eyebrow>Notifications</Eyebrow>
-            <DisplayTitle as="div" size="sm" className="mt-0.5">
+            <DisplayTitle as="div" size="sm">
               Inbox
             </DisplayTitle>
           </div>

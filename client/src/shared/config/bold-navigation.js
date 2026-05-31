@@ -19,8 +19,6 @@ export function getBoldTabItems(userId) {
 
 /** Secondary destinations on the Me profile quick-nav (settings is in the profile header). */
 export const boldMeOverflowItems = [
-  { label: 'Clubs', to: ROUTES.clubs },
-  { label: 'Leaderboards', to: ROUTES.leaderboards },
   { label: 'Inbox', to: ROUTES.inbox },
 ];
 

@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
 import { useLeaderboards } from '@/features/leaderboards/hooks/useLeaderboards';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
-import LeaderboardsPageBold from '@/features/leaderboards/components/LeaderboardsPageBold';
 import {
   LEADERBOARD_BOARD_IDS,
   LEADERBOARD_BOARD_CONFIG,
@@ -83,6 +82,16 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatElevation }) {
       </ul>
     </Card>
   );
+}
+
+function MobileLeaderboardsRedirect() {
+  const [searchParams] = useSearchParams();
+  const boardParam = searchParams.get('board');
+  const to =
+    boardParam && isValidLeaderboardBoardId(boardParam)
+      ? `${ROUTES.dashboard}?board=${encodeURIComponent(boardParam)}`
+      : ROUTES.dashboard;
+  return <Navigate to={to} replace />;
 }
 
 export default function LeaderboardsPage() {
@@ -183,7 +192,7 @@ export default function LeaderboardsPage() {
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <LeaderboardsPageBold data={lb} formatKm={formatKm} formatElevation={formatElevation} />
+        <MobileLeaderboardsRedirect />
       </div>
     </>
   );
