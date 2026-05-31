@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/cn';
  *   dir?: 'auto' | 'ltr' | 'rtl',
  *   lineClamp?: 1 | 2,
  *   mobileOnly?: boolean,
+ *   descenderSafe?: boolean,
  * }} props
  */
 export default function TruncatedText({
@@ -22,12 +23,19 @@ export default function TruncatedText({
   dir = 'auto',
   lineClamp = 1,
   mobileOnly = false,
+  descenderSafe = false,
   ...props
 }) {
   const textTitle =
     title ?? (typeof children === 'string' || typeof children === 'number' ? String(children) : undefined);
 
   const clampClass = (() => {
+    if (descenderSafe) {
+      if (mobileOnly) {
+        return lineClamp === 2 ? 'rydo-truncate-mobile-2' : 'rydo-truncate-mobile-1';
+      }
+      return lineClamp === 2 ? 'rydo-truncate-clamp-2' : 'rydo-truncate-ellipsis-1';
+    }
     if (mobileOnly) {
       return lineClamp === 2
         ? 'max-md:line-clamp-2 max-md:break-words md:overflow-visible md:whitespace-normal md:line-clamp-none'
@@ -40,7 +48,7 @@ export default function TruncatedText({
     <Component
       title={textTitle}
       dir={dir}
-      className={cn('block w-full min-w-0 overflow-hidden', clampClass, className)}
+      className={cn('block w-full min-w-0', !descenderSafe && 'overflow-hidden', clampClass, className)}
       {...props}
     >
       {children}

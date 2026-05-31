@@ -8,6 +8,7 @@ import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -116,7 +117,7 @@ export default function ClubDetailPageBold({
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-1">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-1">
           <div className="flex items-start gap-3.5">
             <UserAvatar
               avatarUrl={club.avatarUrl}
@@ -317,7 +318,7 @@ export default function ClubDetailPageBold({
               {club.memberCount} member{club.memberCount === 1 ? '' : 's'}
             </p>
           ) : null}
-        </div>
+        </BoldScrollArea>
       </div>
     </BoldScreen>
   );

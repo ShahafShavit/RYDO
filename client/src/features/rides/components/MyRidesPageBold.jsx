@@ -4,6 +4,7 @@ import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import RideListCardBold from '@/features/rides/components/RideListCardBold';
 import { cn } from '@/shared/lib/cn';
 
@@ -107,7 +108,7 @@ export default function MyRidesPageBold({
         {isLoading ? (
           <div className="mx-5 mt-4 h-24 animate-pulse rounded-[28px] bg-surface-strong" />
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
             {showUpcoming ? (
               <section>
                 <Eyebrow className="mb-2.5 ml-0.5">
@@ -171,7 +172,7 @@ export default function MyRidesPageBold({
                 ) : null}
               </section>
             ) : null}
-          </div>
+          </BoldScrollArea>
         )}
       </div>
     </BoldScreen>

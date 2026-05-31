@@ -10,5 +10,6 @@ export function useInbox(params = {}) {
   return useQuery({
     queryKey: inboxKeys.list(params),
     queryFn: () => friendsApi.getInbox(params),
+    staleTime: 30_000,
   });
 }

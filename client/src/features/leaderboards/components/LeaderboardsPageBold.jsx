@@ -12,6 +12,7 @@ import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -121,7 +122,7 @@ export default function LeaderboardsPageBold({ data, formatKm, formatElevation }
           </div>
         ) : null}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-4">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4 pt-4">
           {rest.map((row) => {
             const isMe = user?.id != null && Number(row.userId) === Number(user.id);
             const accent = leaderboardRankRowClass(row.rank);
@@ -153,7 +154,7 @@ export default function LeaderboardsPageBold({ data, formatKm, formatElevation }
           {rows.length === 0 ? (
             <p className="rydo-subtle px-2 text-sm">No data yet.</p>
           ) : null}
-        </div>
+        </BoldScrollArea>
       </div>
     </BoldScreen>
   );

@@ -31,6 +31,7 @@ import IconButton from '@/shared/components/bold/IconButton';
 import ProgressRing from '@/shared/components/bold/viz/ProgressRing';
 
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 
 import UserAvatar from '@/shared/components/user/UserAvatar';
 
@@ -158,7 +159,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-4 pt-1">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-4 pt-1">
 
           <div className="min-w-0">
 
@@ -306,7 +307,7 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
           <RouteWeatherPanel route={route} isRouteLoading={isLoading} layout="split" />
 
-        </div>
+        </BoldScrollArea>
 
 
 

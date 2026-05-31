@@ -6,6 +6,7 @@ import IconButton from '@/shared/components/bold/IconButton';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { formatChatPreviewTime } from '@/features/club-chat/utils/formatChatTime';
 import { cn } from '@/shared/lib/cn';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 
 function UnreadBadge({ count }) {
   if (!count || count < 1) return null;
@@ -110,7 +111,7 @@ export default function ClubChatListBold({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-[max(1rem,var(--rydo-safe-bottom))] pt-1">
+      <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-[max(1rem,var(--rydo-safe-bottom))] pt-1">
         {isLoading ? (
           <p className="rydo-subtle px-3 py-4 text-sm">Loading…</p>
         ) : filtered.length === 0 ? (
@@ -126,7 +127,7 @@ export default function ClubChatListBold({
             ))}
           </ul>
         )}
-      </div>
+      </BoldScrollArea>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import { cn } from '@/shared/lib/cn';
 
 const defaultExploreFilters = () => ({
@@ -373,7 +374,7 @@ export default function RoutesExplorePage() {
             )}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(var(--rydo-tabbar-h)+5rem)] pt-3.5 md:pb-4">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(var(--rydo-tabbar-h)+5rem)] pt-3.5 md:pb-4">
             <div className="mb-2.5 flex items-center justify-between px-5">
               <Eyebrow>Sorted by {filters.sort === 'favorites' ? 'favorites' : 'newest'}</Eyebrow>
             </div>
@@ -383,7 +384,7 @@ export default function RoutesExplorePage() {
               </p>
             ) : null}
             {routeListMobile}
-          </div>
+          </BoldScrollArea>
         </div>
         </BoldScreen>
 

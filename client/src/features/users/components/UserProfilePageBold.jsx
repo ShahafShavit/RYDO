@@ -14,6 +14,7 @@ import TruncatedText from '@/shared/components/ui/TruncatedText';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
@@ -211,7 +212,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
           ) : null}
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3">
           <div className="rydo-panel px-4 py-3">
             <Eyebrow className="mb-2.5 block">Lifetime</Eyebrow>
             {statsLoading ? (
@@ -368,7 +369,7 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
           ) : (
             <p className="rydo-subtle px-1 text-sm">This member hides rides they join on their profile.</p>
           )}
-        </div>
+        </BoldScrollArea>
       </div>
     </BoldScreen>
   );

@@ -3,10 +3,10 @@ import { cn } from '@/shared/lib/cn';
 
 const sizes = {
   sm: 'text-xl leading-tight',
-  md: 'text-2xl leading-[1.02]',
-  lg: 'text-[32px] leading-none tracking-[-0.02em]',
-  xl: 'text-[38px] leading-[0.96] tracking-[-0.02em]',
-  hero: 'text-[64px] leading-[0.9] tracking-[-0.03em]',
+  md: 'text-2xl leading-[1.08]',
+  lg: 'text-[32px] leading-[1.4] tracking-[-0.02em]',
+  xl: 'text-[38px] leading-[1.1] tracking-[-0.02em]',
+  hero: 'text-[64px] leading-[1.05] tracking-[-0.03em]',
 };
 
 /**
@@ -30,7 +30,12 @@ export default function DisplayTitle({
   children,
   ...props
 }) {
-  const displayClass = cn('rydo-display m-0 text-fg', sizes[size], !truncate && 'text-balance', className);
+  const displayClass = cn(
+    'rydo-display rydo-display-title m-0 text-fg',
+    sizes[size],
+    !truncate && 'text-balance',
+    className,
+  );
 
   if (truncate) {
     return (
@@ -38,6 +43,7 @@ export default function DisplayTitle({
         as={Tag}
         lineClamp={lineClamp}
         mobileOnly={truncate === 'mobile'}
+        descenderSafe
         title={title}
         className={displayClass}
         {...props}

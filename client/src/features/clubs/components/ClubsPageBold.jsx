@@ -3,6 +3,7 @@ import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import ClubCardBold from '@/features/clubs/components/ClubCardBold';
 
 export default function ClubsPageBold({
@@ -65,7 +66,7 @@ export default function ClubsPageBold({
         ) : clubsCount === 0 ? (
           <p className="rydo-subtle px-5 pt-4 text-sm">No clubs yet.</p>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pb-4 pt-3.5">
             {showEmptySearch ? (
               <p className="rydo-subtle text-sm">No clubs match &ldquo;{search.trim()}&rdquo;.</p>
             ) : (
@@ -118,7 +119,7 @@ export default function ClubsPageBold({
                 ) : null}
               </>
             )}
-          </div>
+          </BoldScrollArea>
         )}
       </div>
     </BoldScreen>

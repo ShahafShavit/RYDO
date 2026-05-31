@@ -2,6 +2,7 @@ import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import RouteCardBold from '@/features/routes/components/RouteCardBold';
 import { cn } from '@/shared/lib/cn';
 
@@ -86,7 +87,7 @@ export default function YourRoutesPageBold({
             ) : null}
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-3.5">
+          <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-4 pt-3.5">
             <Eyebrow className="mb-2.5 ml-0.5">
               {isUploaded ? 'Uploaded routes' : 'Saved favorites'} · {routes.length}
             </Eyebrow>
@@ -95,7 +96,7 @@ export default function YourRoutesPageBold({
                 <RouteCardBold key={route.id} route={route} />
               ))}
             </div>
-          </div>
+          </BoldScrollArea>
         )}
       </div>
     </BoldScreen>

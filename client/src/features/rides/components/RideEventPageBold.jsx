@@ -23,6 +23,7 @@ import StatRibbon from '@/shared/components/bold/StatRibbon';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -194,7 +195,7 @@ export default function RideEventPageBold({
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-3 pt-0">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-3 pt-0">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap gap-2">
               {upcoming ? (
@@ -386,7 +387,7 @@ export default function RideEventPageBold({
           {!user && !isSoloLog && upcoming ? (
             <p className="rydo-subtle px-1 text-sm">Sign in to join this ride.</p>
           ) : null}
-        </div>
+        </BoldScrollArea>
 
         {showAttendance ? (
           <div className="flex shrink-0 items-center gap-2 border-t border-border/60 px-5 py-3.5">

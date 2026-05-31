@@ -7,6 +7,7 @@ import { env } from '@/shared/config/env';
 import { ROLES } from '@/shared/constants/roles';
 import { getStoredUser, setStoredUser, clearStoredUser, getStoredToken, setStoredToken } from '@/features/auth/utils/auth-storage';
 import { queryClient } from '@/app/query-client';
+import { clearPersistedQueryCache } from '@/app/query-persist';
 import { apiClient } from '@/shared/api/api-client';
 
 export const AuthContext = createContext(null);
@@ -40,7 +41,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(initialSession.user);
   const isAuthReady = true;
 
-  const applySession = useCallback((nextUser, token) => {
+  const applySession = useCallback(async (nextUser, token) => {
+    await clearPersistedQueryCache();
     setUser(nextUser);
     setStoredUser(nextUser);
     setStoredToken(token);
@@ -48,10 +50,11 @@ export function AuthProvider({ children }) {
     queryClient.invalidateQueries();
   }, []);
 
-  const clearSession = useCallback((shouldRedirect = false) => {
+  const clearSession = useCallback(async (shouldRedirect = false) => {
     clearStoredUser();
     apiClient.setAuthToken(null);
     setUser(null);
+    await clearPersistedQueryCache();
 
     if (shouldRedirect) {
       window.location.href = ROUTES.login;

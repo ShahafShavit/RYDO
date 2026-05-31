@@ -10,6 +10,7 @@ import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
 import ProgressRing from '@/shared/components/bold/viz/ProgressRing';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
@@ -100,7 +101,7 @@ export default function DashboardHomeCardsBold() {
           </p>
         ) : null}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
           {/* Level hero */}
           <div className="rydo-bold-glass-row flex items-center gap-3.5 p-3.5">
             <ProgressRing value={levelProgress} size={60} strokeWidth={5.5}>
@@ -205,7 +206,7 @@ export default function DashboardHomeCardsBold() {
               )}
             </div>
           </div>
-        </div>
+        </BoldScrollArea>
       </div>
     </BoldScreen>
   );

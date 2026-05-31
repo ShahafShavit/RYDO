@@ -1,5 +1,7 @@
 import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import { setPlatformStorage } from '@/features/auth/utils/auth-storage';
+import { setQueryCacheStorage } from '@/app/query-cache-storage';
 import { setGeolocationProvider } from '@/shared/platform/geolocation-provider';
 import { setPermissionsProvider } from '@/shared/platform/permissions-provider';
 import { createStorage, initNativeStorage } from './storage';
@@ -24,6 +26,21 @@ export async function registerPlatform() {
   setPlatformStorage(storage);
   setGeolocationProvider(geolocation);
   setPermissionsProvider(permissions);
+
+  if (isNative) {
+    setQueryCacheStorage({
+      getItem: async (key) => {
+        const { value } = await Preferences.get({ key });
+        return value ?? null;
+      },
+      setItem: async (key, value) => {
+        await Preferences.set({ key, value });
+      },
+      removeItem: async (key) => {
+        await Preferences.remove({ key });
+      },
+    });
+  }
 
   if (isNative) {
     await initSystemBars();

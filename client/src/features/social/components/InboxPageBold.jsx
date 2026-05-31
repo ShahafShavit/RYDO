@@ -6,6 +6,7 @@ import DisplayTitle from '@/shared/components/bold/DisplayTitle';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
+import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -120,7 +121,7 @@ export default function InboxPageBold({
           </div>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-4 pt-3">
           {isLoading ? (
             <>
               <div className="h-28 animate-pulse rounded-[28px] bg-surface-strong/60" aria-hidden />
@@ -218,7 +219,7 @@ export default function InboxPageBold({
                 );
               })
             : null}
-        </div>
+        </BoldScrollArea>
       </div>
     </BoldScreen>
   );
