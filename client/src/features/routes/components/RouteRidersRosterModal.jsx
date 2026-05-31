@@ -53,11 +53,11 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="max-h-[min(90vh,640px)] w-full overflow-hidden"
+      className="flex max-h-[min(90vh,640px)] w-full flex-col overflow-hidden max-md:max-h-none"
     >
       <ModalHeader title="Who rode this route" titleId={titleId} onClose={onClose} divider />
 
-      <div className="pt-4">
+      <div className="flex min-h-0 flex-1 flex-col pt-4">
         <label className="sr-only" htmlFor="route-riders-search">
           Search riders by name
         </label>
@@ -71,7 +71,7 @@ function RouteRidersRosterModalContent({ onClose, riders, hiddenCount }) {
           className={cn(modalControlClass, 'placeholder:text-fg-subtle')}
         />
 
-        <ul className="mt-3 max-h-[min(50vh,22rem)] space-y-0.5 overflow-y-auto overscroll-contain pr-1">
+        <ul className="mt-3 min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain pr-1 max-md:max-h-none md:max-h-[min(50vh,22rem)]">
           {filtered.length > 0 ? (
             filtered.map((r) => (
               <RouteRiderRow

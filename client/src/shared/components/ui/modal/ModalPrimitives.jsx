@@ -1,3 +1,5 @@
+import { ChevronLeft, X } from 'lucide-react';
+import { useBoldMobile } from '@/shared/hooks/useBoldMobile';
 import { cn } from '@/shared/lib/cn';
 
 /** Matches `FormField` label styling — use for any standalone label in modals. */
@@ -39,16 +41,20 @@ export function ModalPanel({ children, className, ...props }) {
 }
 
 export function ModalCloseButton({ className, type = 'button', ...props }) {
+  const isMobile = useBoldMobile();
+
   return (
     <button
       type={type}
       className={cn(
-        'shrink-0 rounded-lg px-2 py-1 text-lg leading-none text-fg-muted transition hover:bg-surface-strong hover:text-fg disabled:pointer-events-none disabled:opacity-40',
+        'shrink-0 rounded-lg p-2 text-fg-muted transition hover:bg-surface-strong hover:text-fg disabled:pointer-events-none disabled:opacity-40',
         className,
       )}
-      aria-label="Close"
+      aria-label={isMobile ? 'Back' : 'Close'}
       {...props}
-    />
+    >
+      {isMobile ? <ChevronLeft className="h-6 w-6" aria-hidden /> : <X className="h-5 w-5" aria-hidden />}
+    </button>
   );
 }
 
@@ -73,28 +79,44 @@ export function ModalHeader({
   className,
   children,
 }) {
+  const isMobile = useBoldMobile();
+
+  const titleBlock = (
+    <div className="min-w-0 flex-1">
+      {title != null ? (
+        typeof title === 'string' ? (
+          <h2 id={titleId} className="text-xl font-semibold leading-snug tracking-tight text-fg">
+            {title}
+          </h2>
+        ) : (
+          title
+        )
+      ) : null}
+      {description ? <p className={cn('mt-1.5', modalHintClass)}>{description}</p> : null}
+      {children}
+    </div>
+  );
+
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-4',
-        divider && 'border-b border-border pb-4',
+        'rydo-modal-header flex items-start justify-between gap-4',
+        isMobile && onClose && 'items-center gap-3',
+        divider && 'border-b border-border pb-4 max-md:border-b-0',
         className,
       )}
     >
-      <div className="min-w-0 flex-1">
-        {title != null ? (
-          typeof title === 'string' ? (
-            <h2 id={titleId} className="text-xl font-semibold leading-snug tracking-tight text-fg">
-              {title}
-            </h2>
-          ) : (
-            title
-          )
-        ) : null}
-        {description ? <p className={cn('mt-1.5', modalHintClass)}>{description}</p> : null}
-        {children}
-      </div>
-      {onClose ? <ModalCloseButton onClick={onClose} disabled={closeDisabled} /> : null}
+      {isMobile && onClose ? (
+        <>
+          <ModalCloseButton onClick={onClose} disabled={closeDisabled} />
+          {titleBlock}
+        </>
+      ) : (
+        <>
+          {titleBlock}
+          {onClose ? <ModalCloseButton onClick={onClose} disabled={closeDisabled} /> : null}
+        </>
+      )}
     </div>
   );
 }

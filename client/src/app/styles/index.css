@@ -388,6 +388,39 @@ html[data-theme='dune'] .app-logo {
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* Mobile Bold: full-screen sheet — no floating glass card over a dimmed desktop dialog */
+.rydo-modal-mobile .rydo-modal-scrim {
+  background: var(--rydo-bg-deep);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.rydo-modal-mobile .rydo-modal-panel {
+  height: 100%;
+  max-height: none !important;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0;
+  border: none;
+  background: var(--rydo-bg-deep);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: calc(1rem + var(--rydo-safe-top)) 1rem calc(1rem + var(--rydo-safe-bottom));
+}
+
+.rydo-modal-mobile .rydo-modal-header {
+  position: sticky;
+  top: calc(-1rem - var(--rydo-safe-top));
+  z-index: 2;
+  margin: calc(-1rem - var(--rydo-safe-top)) -1rem 0;
+  padding: calc(1rem + var(--rydo-safe-top)) 1rem 1rem;
+  background: var(--rydo-bg-deep);
+  border-bottom: 1px solid var(--rydo-border);
+}
+
 /* Avoid stacked backdrop-blur on inputs inside a glass modal — blur lives on the shell only */
 .rydo-modal-panel :is(input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']), textarea, select) {
   backdrop-filter: none !important;
@@ -714,19 +747,53 @@ html[data-theme='dune'] .app-logo {
   backdrop-filter: blur(20px);
 }
 
+/* Mobile dashboard — gradient fixed to viewport, not scroll height. */
+@media (max-width: 767px) {
+  .rydo-app-shell {
+    background: transparent;
+  }
+
+  .rydo-app-shell::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      var(--rydo-glow-bottom),
+      var(--rydo-glow-purple),
+      linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
+  }
+
+  .rydo-app-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .rydo-bold-screen::before {
+    display: none;
+  }
+}
+
 .rydo-bold-screen {
   position: relative;
   width: 100%;
   padding-top: var(--rydo-bold-page-top);
   font-family: 'Inter', sans-serif;
   color: var(--rydo-text);
-  background:
-    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.16), transparent 42%),
-    radial-gradient(circle at 18% 0%, rgba(123, 92, 255, 0.2), transparent 34%),
-    linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
+  background: transparent;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   isolation: isolate;
+}
+
+@media (min-width: 768px) {
+  .rydo-bold-screen {
+    background:
+      radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.16), transparent 42%),
+      radial-gradient(circle at 18% 0%, rgba(123, 92, 255, 0.2), transparent 34%),
+      linear-gradient(180deg, var(--rydo-bg-deep) 0%, var(--rydo-bg) 42%, var(--rydo-bg) 100%);
+  }
 }
 
 .rydo-bold-screen::before {

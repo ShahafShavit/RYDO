@@ -25,7 +25,7 @@ export default function DashboardLayout() {
   return (
     <BreadcrumbProvider>
     <ClubChatUiProvider>
-    <div className="h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
+    <div className="rydo-app-shell h-dvh w-full flex flex-col md:flex-row overflow-hidden bg-[var(--rydo-bg-deep)]">
       {!rideLiveMatch ? (
       <aside className="hidden md:flex flex-col w-60 h-full rydo-glass border-r border-border p-6 shrink-0">
         <Link to={ROUTES.home} className="mb-6 inline-flex items-center gap-3 hover:opacity-80 transition-opacity border-b border-border pb-6">
@@ -68,7 +68,7 @@ export default function DashboardLayout() {
       ) : null}
 
       <main
-        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-0 pb-[var(--rydo-tabbar-h)] max-md:bg-[var(--rydo-bg)] md:p-8 md:pb-8'}`}
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${rideLiveMatch ? 'overflow-hidden p-0' : 'overflow-y-auto p-0 pb-[var(--rydo-tabbar-h)] md:p-8 md:pb-8'}`}
       >
         <div
           className={

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useBoldMobile } from '@/shared/hooks/useBoldMobile';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { cn } from '@/shared/lib/cn';
 
@@ -11,6 +12,7 @@ const easeOut = [0.32, 0.72, 0, 1];
 /**
  * Portal modal: one fade on the shell, motion on the panel via transform only (no nested opacity multiply).
  * Scrim uses `.rydo-modal-scrim` (dim + blur) — see `index.css`.
+ * On mobile (Bold layout), renders a full-screen sheet instead of a centered dialog.
  * `contentClassName` merges onto the fixed overlay (centering + padding), not the inner panel.
  */
 export default function AnimatedModal({
@@ -22,6 +24,7 @@ export default function AnimatedModal({
   panelClassName = '',
   maxWidthClassName = 'max-w-xl',
 }) {
+  const isMobile = useBoldMobile();
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -39,14 +42,37 @@ export default function AnimatedModal({
   }, [open, onClose]);
 
   const shellDur = reducedMotion ? 0.1 : 0.13;
-  const panelDur = reducedMotion ? 0.1 : 0.16;
+  const panelDur = reducedMotion ? 0.1 : isMobile ? 0.22 : 0.16;
+
+  const panelInitial = isMobile
+    ? reducedMotion
+      ? { y: 0 }
+      : { y: '100%' }
+    : reducedMotion
+      ? { y: 0, scale: 1 }
+      : { y: 14, scale: 0.985 };
+
+  const panelAnimate = isMobile ? { y: 0 } : { y: 0, scale: 1 };
+
+  const panelExit = isMobile
+    ? reducedMotion
+      ? { y: 0 }
+      : { y: '100%' }
+    : reducedMotion
+      ? { y: 0, scale: 1 }
+      : { y: 8, scale: 0.99 };
 
   return createPortal(
     <AnimatePresence>
       {open ? (
         <MotionDiv
           key="animated-modal"
-          className={cn('fixed inset-0 flex items-center justify-center p-4 sm:p-6', zIndexClass, contentClassName)}
+          className={cn(
+            'fixed inset-0',
+            isMobile ? 'rydo-modal-mobile flex flex-col' : 'flex items-center justify-center p-4 sm:p-6',
+            zIndexClass,
+            contentClassName,
+          )}
           role="presentation"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -61,14 +87,14 @@ export default function AnimatedModal({
             }}
           />
           <MotionDiv
-            className={cn('relative z-10 w-full', maxWidthClassName, panelClassName)}
-            initial={
-              reducedMotion
-                ? { y: 0, scale: 1 }
-                : { y: 14, scale: 0.985 }
-            }
-            animate={{ y: 0, scale: 1 }}
-            exit={reducedMotion ? { y: 0, scale: 1 } : { y: 8, scale: 0.99 }}
+            className={cn(
+              'relative z-10',
+              isMobile ? 'flex h-full min-h-0 w-full flex-col' : cn('w-full', maxWidthClassName),
+              panelClassName,
+            )}
+            initial={panelInitial}
+            animate={panelAnimate}
+            exit={panelExit}
             transition={{ duration: panelDur, ease: easeOut }}
             onMouseDown={(e) => e.stopPropagation()}
           >
