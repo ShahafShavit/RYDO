@@ -17,6 +17,9 @@ public class UserPreference
     /// <summary>When true, other signed-in members may see scheduled rides this user participates in on their profile (still subject to ride/club visibility rules).</summary>
     public bool PublicParticipatedRidesOnProfile { get; set; } = true;
 
+    /// <summary>When true, other signed-in members may see lifetime ride totals (distance, elevation, completed rides) on this user&apos;s profile.</summary>
+    public bool PublicLifetimeStatsOnProfile { get; set; } = true;
+
     /// <summary>When true, other signed-in members who are friends may see this user&apos;s friends list on their profile.</summary>
     public bool PublicFriendsListOnProfile { get; set; } = true;
 

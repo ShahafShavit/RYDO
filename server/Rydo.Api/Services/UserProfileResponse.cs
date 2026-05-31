@@ -11,11 +11,22 @@ public static class UserProfileResponse
     private static object[] SerializeBadges(IReadOnlyList<LeaderboardBadgeDto> badges) =>
         badges.Select(b => new { boardId = b.BoardId, rank = b.Rank }).ToArray();
 
+    private static object? SerializeLifetimeStats(UserLifetimeStatsDto? stats) =>
+        stats == null
+            ? null
+            : new
+            {
+                totalKm = stats.TotalKm,
+                totalElevationGainM = stats.TotalElevationGainM,
+                completedRides = stats.CompletedRides,
+            };
+
     public static object Full(
         ApplicationUser u,
         IList<string> roles,
         UserPreference? pref,
-        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges)
+        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges,
+        UserLifetimeStatsDto lifetimeStats)
     {
         var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
         return new
@@ -43,10 +54,12 @@ public static class UserProfileResponse
                 publicDefaultBikeType = u.PublicDefaultBikeType,
                 publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
                 publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
+                publicLifetimeStatsOnProfile = pref?.PublicLifetimeStatsOnProfile ?? true,
                 publicFriendsListOnProfile = pref?.PublicFriendsListOnProfile ?? true,
                 publicInOthersFriendsLists = pref?.PublicInOthersFriendsLists ?? true,
             },
             leaderboardBadges = SerializeBadges(leaderboardBadges),
+            lifetimeStats = SerializeLifetimeStats(lifetimeStats),
         };
     }
 
@@ -54,7 +67,8 @@ public static class UserProfileResponse
     public static object PublicView(
         ApplicationUser u,
         UserPreference? pref,
-        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges)
+        IReadOnlyList<LeaderboardBadgeDto> leaderboardBadges,
+        UserLifetimeStatsDto? lifetimeStats)
     {
         return new
         {
@@ -70,8 +84,10 @@ public static class UserProfileResponse
             defaultBikeType = u.PublicDefaultBikeType && pref != null ? pref.DefaultBikeType : null,
             publicUploadedRoutesOnProfile = pref?.PublicUploadedRoutesOnProfile ?? true,
             publicParticipatedRidesOnProfile = pref?.PublicParticipatedRidesOnProfile ?? true,
+            publicLifetimeStatsOnProfile = pref?.PublicLifetimeStatsOnProfile ?? true,
             publicFriendsListOnProfile = pref?.PublicFriendsListOnProfile ?? true,
             leaderboardBadges = SerializeBadges(leaderboardBadges),
+            lifetimeStats = SerializeLifetimeStats(lifetimeStats),
         };
     }
 }

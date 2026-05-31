@@ -21,9 +21,21 @@ const defaultPrivacy = () => ({
   publicDefaultBikeType: true,
   publicUploadedRoutesOnProfile: true,
   publicParticipatedRidesOnProfile: true,
+  publicLifetimeStatsOnProfile: true,
   publicFriendsListOnProfile: true,
   publicInOthersFriendsLists: true,
 });
+
+/** @param {unknown} payload */
+function normalizeLifetimeStats(payload) {
+  const raw = payload?.lifetimeStats;
+  if (!raw || typeof raw !== 'object') return null;
+  return {
+    totalKm: Number.isFinite(Number(raw.totalKm)) ? Number(raw.totalKm) : 0,
+    totalElevationGainM: Number.isFinite(Number(raw.totalElevationGainM)) ? Number(raw.totalElevationGainM) : 0,
+    completedRides: Number.isFinite(Number(raw.completedRides)) ? Math.trunc(Number(raw.completedRides)) : 0,
+  };
+}
 
 export function normalizeAccountProfile(payload = {}) {
   const base = normalizeUser(payload);
@@ -46,10 +58,13 @@ export function normalizeAccountProfile(payload = {}) {
       publicUploadedRoutesOnProfile: priv.publicUploadedRoutesOnProfile ?? defaultPrivacy().publicUploadedRoutesOnProfile,
       publicParticipatedRidesOnProfile:
         priv.publicParticipatedRidesOnProfile ?? defaultPrivacy().publicParticipatedRidesOnProfile,
+      publicLifetimeStatsOnProfile:
+        priv.publicLifetimeStatsOnProfile ?? defaultPrivacy().publicLifetimeStatsOnProfile,
       publicFriendsListOnProfile: priv.publicFriendsListOnProfile ?? defaultPrivacy().publicFriendsListOnProfile,
       publicInOthersFriendsLists: priv.publicInOthersFriendsLists ?? defaultPrivacy().publicInOthersFriendsLists,
     },
     leaderboardBadges: normalizeLeaderboardBadges(payload),
+    lifetimeStats: normalizeLifetimeStats(payload),
   };
 }
 
@@ -74,8 +89,10 @@ export function normalizeUserPublicProfile(payload = {}) {
     privacy: null,
     publicUploadedRoutesOnProfile: payload.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: payload.publicParticipatedRidesOnProfile !== false,
+    publicLifetimeStatsOnProfile: payload.publicLifetimeStatsOnProfile !== false,
     publicFriendsListOnProfile: payload.publicFriendsListOnProfile !== false,
     leaderboardBadges: normalizeLeaderboardBadges(payload),
+    lifetimeStats: normalizeLifetimeStats(payload),
   };
 }
 
@@ -124,6 +141,7 @@ export function normalizePreferences(payload = {}) {
     publicInRouteRiderLists: payload.publicInRouteRiderLists ?? true,
     publicUploadedRoutesOnProfile: payload.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: payload.publicParticipatedRidesOnProfile !== false,
+    publicLifetimeStatsOnProfile: payload.publicLifetimeStatsOnProfile !== false,
     publicFriendsListOnProfile: payload.publicFriendsListOnProfile !== false,
     publicInOthersFriendsLists: payload.publicInOthersFriendsLists !== false,
     colorScheme,

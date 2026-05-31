@@ -108,6 +108,7 @@ function mockDefaultPrivacy() {
     publicDefaultBikeType: true,
     publicUploadedRoutesOnProfile: true,
     publicParticipatedRidesOnProfile: true,
+    publicLifetimeStatsOnProfile: true,
     publicFriendsListOnProfile: true,
     publicInOthersFriendsLists: true,
   };
@@ -117,11 +118,21 @@ function mergeMockPrivacy(p) {
   return { ...mockDefaultPrivacy(), ...p };
 }
 
+function mockLifetimeStatsForUser(userId) {
+  const entries = historyEntries.filter((h) => Number(h.userId) === Number(userId));
+  return {
+    totalKm: entries.reduce((sum, h) => sum + (Number(h.distanceKm) || 0), 0),
+    totalElevationGainM: entries.reduce((sum, h) => sum + (Number(h.elevationGainM) || 0), 0),
+    completedRides: entries.length,
+  };
+}
+
 function toFullProfile(p) {
   const privacy = {
     ...mergeMockPrivacy(p.privacy),
     publicUploadedRoutesOnProfile: preferences.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: preferences.publicParticipatedRidesOnProfile !== false,
+    publicLifetimeStatsOnProfile: preferences.publicLifetimeStatsOnProfile !== false,
     publicFriendsListOnProfile: preferences.publicFriendsListOnProfile !== false,
     publicInOthersFriendsLists: preferences.publicInOthersFriendsLists !== false,
   };
@@ -139,11 +150,13 @@ function toFullProfile(p) {
     createdAt: p.createdAt,
     privacy,
     leaderboardBadges: mockLeaderboardBadgesForUser(p.id),
+    lifetimeStats: mockLifetimeStatsForUser(p.id),
   };
 }
 
 function toPublicProfileView(u) {
   const privacy = mergeMockPrivacy(u.privacy);
+  const showLifetimeStats = privacy.publicLifetimeStatsOnProfile !== false;
   return {
     id: u.id,
     isSelf: false,
@@ -157,8 +170,10 @@ function toPublicProfileView(u) {
     defaultBikeType: privacy.publicDefaultBikeType ? (u.defaultBikeType ?? 'road') : null,
     publicUploadedRoutesOnProfile: privacy.publicUploadedRoutesOnProfile !== false,
     publicParticipatedRidesOnProfile: privacy.publicParticipatedRidesOnProfile !== false,
+    publicLifetimeStatsOnProfile: privacy.publicLifetimeStatsOnProfile !== false,
     publicFriendsListOnProfile: privacy.publicFriendsListOnProfile !== false,
     leaderboardBadges: mockLeaderboardBadgesForUser(u.id),
+    lifetimeStats: showLifetimeStats ? mockLifetimeStatsForUser(u.id) : null,
   };
 }
 
@@ -173,6 +188,7 @@ let preferences = {
   publicInRouteRiderLists: true,
   publicUploadedRoutesOnProfile: true,
   publicParticipatedRidesOnProfile: true,
+  publicLifetimeStatsOnProfile: true,
   publicFriendsListOnProfile: true,
   publicInOthersFriendsLists: true,
   colorScheme: 'midnight',

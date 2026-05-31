@@ -19,6 +19,7 @@ export const RidingPreferencesForm = () => {
         publicInRouteRiderLists: true,
         publicUploadedRoutesOnProfile: true,
         publicParticipatedRidesOnProfile: true,
+        publicLifetimeStatsOnProfile: true,
         publicFriendsListOnProfile: true,
         publicInOthersFriendsLists: true,
         colorScheme: 'midnight',
@@ -152,6 +153,22 @@ export const RidingPreferencesForm = () => {
                     </div>
                     <p className="text-xs text-fg-subtle leading-snug">
                         When off, others won&apos;t see scheduled rides you participate in on your profile (club and ride visibility rules still apply when shown).
+                    </p>
+                </div>
+
+                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+                    <div className="flex items-center justify-between gap-3">
+                        <span className="text-fg text-sm font-medium">Show lifetime ride stats on my profile</span>
+                        <input
+                            type="checkbox"
+                            name="publicLifetimeStatsOnProfile"
+                            checked={Boolean(formData.publicLifetimeStatsOnProfile)}
+                            onChange={handleChange}
+                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+                        />
+                    </div>
+                    <p className="text-xs text-fg-subtle leading-snug">
+                        When off, others won&apos;t see your Distance, Climbed, or completed Rides totals on your profile. Leaderboards are unchanged.
                     </p>
                 </div>
 

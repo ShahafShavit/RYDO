@@ -1,6 +1,5 @@
 import { useMemo, useCallback, useState } from 'react';
 import { generatePath, Link, NavLink, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Share2, SlidersHorizontal, Bike, Route as RouteIcon, Mountain, Flag, Check } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { boldMeOverflowItems, isBoldMeNavActive } from '@/shared/config/bold-navigation';
@@ -18,7 +17,6 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
-import { historyApi } from '@/features/history/api/history-api';
 import { useFriendsList } from '@/features/social/hooks/useFriendsList';
 import {
   useUserParticipatedRidesPreview,
@@ -47,6 +45,11 @@ function activityVisibility(profile, isOwn, key) {
     return profile?.privacy?.publicUploadedRoutesOnProfile ?? profile?.publicUploadedRoutesOnProfile ?? true;
   }
   return profile?.privacy?.publicParticipatedRidesOnProfile ?? profile?.publicParticipatedRidesOnProfile ?? true;
+}
+
+function lifetimeStatsVisible(profile, isOwn) {
+  if (isOwn) return true;
+  return profile?.privacy?.publicLifetimeStatsOnProfile ?? profile?.publicLifetimeStatsOnProfile ?? true;
 }
 
 function statValue(value, formatter) {
@@ -80,49 +83,37 @@ export default function UserProfilePageBold({ profile, userId, isOwn }) {
   const { data: friendsData } = useFriendsList(userId, {
     enabled: isOwn || publicFriendsListOnProfile !== false,
   });
-  const { data: historyRaw, isLoading: historyLoading } = useQuery({
-    queryKey: ['history', 'profile-lifetime', id],
-    queryFn: () => historyApi.getHistory({ skip: 0, take: 100 }),
-    enabled: isOwn && Number.isFinite(id) && id > 0,
-  });
 
   const friendCount = friendsData?.items?.length ?? 0;
   const routeItems = routesPage?.items ?? [];
   const rideItems = ridesPage?.items?.filter(Boolean) ?? [];
   const routesTotal = routesPage?.total ?? 0;
   const ridesTotal = ridesPage?.total ?? 0;
+  const showLifetimeStats = lifetimeStatsVisible(profile, isOwn);
 
   const lifetime = useMemo(() => {
     const routesCount = routesTotal;
-    if (isOwn && historyRaw) {
-      const items = Array.isArray(historyRaw.items) ? historyRaw.items : [];
-      const completedRides = typeof historyRaw.total === 'number' ? historyRaw.total : items.length;
-      const totalKm = items.reduce(
-        (sum, item) => sum + (Number.isFinite(Number(item.distanceKm)) ? Number(item.distanceKm) : 0),
-        0,
-      );
-      const totalElev = items.reduce(
-        (sum, item) => sum + (Number.isFinite(Number(item.elevationGainM)) ? Number(item.elevationGainM) : 0),
-        0,
-      );
+    const stats = showLifetimeStats ? profile?.lifetimeStats : null;
+    if (!stats) {
       return {
-        totalKm,
-        totalElev,
-        totalRides: completedRides,
+        totalKm: null,
+        totalElev: null,
+        totalRides: null,
         totalRoutes: routesCount,
-        level: Math.max(1, 1 + Math.floor(completedRides / RIDES_PER_LEVEL)),
+        level: null,
       };
     }
+    const completedRides = stats.completedRides ?? 0;
     return {
-      totalKm: null,
-      totalElev: null,
-      totalRides: ridesTotal,
+      totalKm: stats.totalKm,
+      totalElev: stats.totalElevationGainM,
+      totalRides: completedRides,
       totalRoutes: routesCount,
-      level: null,
+      level: Math.max(1, 1 + Math.floor(completedRides / RIDES_PER_LEVEL)),
     };
-  }, [isOwn, historyRaw, routesTotal, ridesTotal]);
+  }, [showLifetimeStats, profile?.lifetimeStats, routesTotal]);
 
-  const statsLoading = (isOwn && historyLoading) || routesLoading || (showRides && ridesLoading);
+  const statsLoading = routesLoading || (showRides && ridesLoading);
 
   const shareUrl = useMemo(() => {
     const path = generatePath(ROUTES.userProfile, { userId: String(userId ?? '') });

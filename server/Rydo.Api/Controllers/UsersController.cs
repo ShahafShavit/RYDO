@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public class UsersController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards) : ControllerBase
+public class UsersController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats) : ControllerBase
 {
     private const int MaxUpcomingMyRides = 4;
     private const int MaxPastMyRidesTake = 100;
@@ -83,14 +83,20 @@ public class UsersController(RydoDbContext db, UserManager<ApplicationUser> user
 
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(userId, ct);
+        var stats = await lifetimeStats.GetAsync(userId, ct);
 
         if (viewerId == userId)
         {
             var roles = await users.GetRolesAsync(subject);
-            return Ok(UserProfileResponse.Full(subject, roles, pref, badges));
+            return Ok(UserProfileResponse.Full(subject, roles, pref, badges, stats));
         }
 
-        return Ok(UserProfileResponse.PublicView(subject, pref, badges));
+        var showLifetimeStats = pref?.PublicLifetimeStatsOnProfile ?? true;
+        return Ok(UserProfileResponse.PublicView(
+            subject,
+            pref,
+            badges,
+            showLifetimeStats ? stats : null));
     }
 
     [HttpGet("{userId:int}/routes")]

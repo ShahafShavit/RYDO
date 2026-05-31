@@ -11,7 +11,7 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/account")]
 [Authorize]
-public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards) : ControllerBase
+public class AccountController(RydoDbContext db, UserManager<ApplicationUser> users, ILeaderboardService leaderboards, IUserLifetimeStatsService lifetimeStats) : ControllerBase
 {
     private static readonly HashSet<string> AllowedColorSchemes =
     [
@@ -29,7 +29,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var roles = await users.GetRolesAsync(u);
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref, badges));
+        var stats = await lifetimeStats.GetAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats));
     }
 
     public record ProfileUpdate(
@@ -94,7 +95,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         var roles = await users.GetRolesAsync(u);
         var pref = await db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == u.Id, ct);
         var badges = await leaderboards.GetUserTopThreeBadgesAsync(u.Id, ct);
-        return Ok(UserProfileResponse.Full(u, roles, pref, badges));
+        var stats = await lifetimeStats.GetAsync(u.Id, ct);
+        return Ok(UserProfileResponse.Full(u, roles, pref, badges, stats));
     }
 
     [HttpPost("avatar/upload")]
@@ -145,6 +147,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
             publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
             publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
+            publicLifetimeStatsOnProfile = p.PublicLifetimeStatsOnProfile,
             publicFriendsListOnProfile = p.PublicFriendsListOnProfile,
             publicInOthersFriendsLists = p.PublicInOthersFriendsLists,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
@@ -158,6 +161,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
         bool? PublicInRouteRiderLists,
         bool? PublicUploadedRoutesOnProfile,
         bool? PublicParticipatedRidesOnProfile,
+        bool? PublicLifetimeStatsOnProfile,
         bool? PublicFriendsListOnProfile,
         bool? PublicInOthersFriendsLists,
         string? ColorScheme);
@@ -181,6 +185,8 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             p.PublicUploadedRoutesOnProfile = body.PublicUploadedRoutesOnProfile.Value;
         if (body.PublicParticipatedRidesOnProfile.HasValue)
             p.PublicParticipatedRidesOnProfile = body.PublicParticipatedRidesOnProfile.Value;
+        if (body.PublicLifetimeStatsOnProfile.HasValue)
+            p.PublicLifetimeStatsOnProfile = body.PublicLifetimeStatsOnProfile.Value;
         if (body.PublicFriendsListOnProfile.HasValue)
             p.PublicFriendsListOnProfile = body.PublicFriendsListOnProfile.Value;
         if (body.PublicInOthersFriendsLists.HasValue)
@@ -196,6 +202,7 @@ public class AccountController(RydoDbContext db, UserManager<ApplicationUser> us
             publicInRouteRiderLists = p.PublicInRouteRiderLists,
             publicUploadedRoutesOnProfile = p.PublicUploadedRoutesOnProfile,
             publicParticipatedRidesOnProfile = p.PublicParticipatedRidesOnProfile,
+            publicLifetimeStatsOnProfile = p.PublicLifetimeStatsOnProfile,
             publicFriendsListOnProfile = p.PublicFriendsListOnProfile,
             publicInOthersFriendsLists = p.PublicInOthersFriendsLists,
             colorScheme = NormalizeColorScheme(p.ColorScheme),
