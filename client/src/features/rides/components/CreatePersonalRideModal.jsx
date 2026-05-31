@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
-import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
+import RoutePickerField from '@/features/routes/components/RoutePickerField';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
@@ -19,32 +19,32 @@ function toDatetimeLocalValue(iso) {
 
 export default function CreatePersonalRideModal({ open, onClose }) {
   const titleId = useId();
-  const { routes, isLoading: routesLoading } = useRoutesList({ take: 80 });
   const createPersonal = useCreatePersonalRide();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [routeId, setRouteId] = useState('');
+  const [routeId, setRouteId] = useState(null);
+  const [routeDisplay, setRouteDisplay] = useState(null);
   const [maxParticipants, setMaxParticipants] = useState(20);
   const [scheduledLocal, setScheduledLocal] = useState(() =>
     toDatetimeLocalValue(new Date(Date.now() + 86400000).toISOString()),
   );
 
+  const handleRouteChange = (id, route) => {
+    setRouteId(id);
+    setRouteDisplay(route);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    let rid = null;
-    if (routeId) {
-      const n = Number(routeId);
-      if (Number.isNaN(n)) return;
-      rid = n;
-    }
     if (!name.trim()) return;
     const scheduledDate = new Date(scheduledLocal);
     if (Number.isNaN(scheduledDate.getTime())) return;
+    const rid = routeId != null ? Number(routeId) : null;
     createPersonal.mutate(
       {
         name: name.trim(),
         description: description.trim(),
-        routeId: rid,
+        routeId: rid != null && !Number.isNaN(rid) ? rid : null,
         maxParticipants: Math.max(1, Number(maxParticipants) || 20),
         scheduledDate: scheduledDate.toISOString(),
       },
@@ -53,7 +53,8 @@ export default function CreatePersonalRideModal({ open, onClose }) {
           onClose?.();
           setName('');
           setDescription('');
-          setRouteId('');
+          setRouteId(null);
+          setRouteDisplay(null);
         },
       },
     );
@@ -77,22 +78,12 @@ export default function CreatePersonalRideModal({ open, onClose }) {
               onChange={(ev) => setDescription(ev.target.value)}
             />
           </FormField>
-          <FormField label="Route">
-            <select
-              id="pr-route"
-              className={cn(modalControlClass, 'disabled:opacity-50')}
-              value={routeId}
-              onChange={(ev) => setRouteId(ev.target.value)}
-              disabled={routesLoading}
-            >
-              <option value="">No route yet (optional)</option>
-              {routes.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title || `Route #${r.id}`}
-                </option>
-              ))}
-            </select>
-          </FormField>
+          <RoutePickerField
+            id="pr-route"
+            value={routeId}
+            onChange={handleRouteChange}
+            displayRoute={routeDisplay}
+          />
           <FormField label="When">
             <Input
               id="pr-when"

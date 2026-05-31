@@ -3,16 +3,13 @@ import Button from '@/shared/components/ui/button/Button';
 import Card from '@/shared/components/ui/card/Card';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
-import { modalControlClass } from '@/shared/components/ui/modal/ModalPrimitives';
-import { cn } from '@/shared/lib/cn';
+import RoutePickerField from '@/features/routes/components/RoutePickerField';
 import { useCreateRide } from '@/features/rides/hooks/useCreateRide';
-import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
 import { clampRideName, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 
 const emptyFields = (defaults = {}) => ({
   name: defaults.name ?? '',
   description: '',
-  routeId: defaults.routeId != null ? String(defaults.routeId) : '',
   scheduledDate: '',
   maxParticipants: '20',
   scheduleForWholeClub: false,
@@ -30,9 +27,10 @@ export default function CreateRideForm({
   fixedRouteId,
   defaultName,
 }) {
-  const [form, setForm] = useState(() => emptyFields({ routeId: fixedRouteId, name: defaultName ? clampRideName(defaultName) : '' }));
+  const [form, setForm] = useState(() => emptyFields({ name: defaultName ? clampRideName(defaultName) : '' }));
+  const [routeId, setRouteId] = useState(null);
+  const [routeDisplay, setRouteDisplay] = useState(null);
   const { createRide, isPending } = useCreateRide();
-  const { routes, isLoading: routesLoading } = useRoutesList({ take: 120 });
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -42,21 +40,32 @@ export default function CreateRideForm({
     }));
   };
 
+  const handleRouteChange = (id, route) => {
+    setRouteId(id);
+    setRouteDisplay(route);
+  };
+
+  const resetRoute = () => {
+    setRouteId(null);
+    setRouteDisplay(null);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const scheduled = form.scheduledDate ? new Date(form.scheduledDate).toISOString() : new Date().toISOString();
-    const routeId =
-      fixedRouteId != null ? fixedRouteId : form.routeId ? Number(form.routeId) : null;
+    const resolvedRouteId =
+      fixedRouteId != null ? fixedRouteId : routeId != null ? Number(routeId) : null;
     await createRide({
       clubId,
       name: form.name,
       description: form.description || '',
       scheduledDate: scheduled,
-      routeId,
+      routeId: resolvedRouteId,
       maxParticipants: Number(form.maxParticipants || 20),
       scheduleForWholeClub: Boolean(form.scheduleForWholeClub),
     });
-    setForm(emptyFields({ routeId: fixedRouteId, name: defaultName ? clampRideName(defaultName) : '' }));
+    setForm(emptyFields({ name: defaultName ? clampRideName(defaultName) : '' }));
+    resetRoute();
     onSuccess?.();
   };
 
@@ -74,22 +83,7 @@ export default function CreateRideForm({
         <Input name="description" value={form.description} onChange={handleChange} placeholder="Pace, meeting spot, notes" />
       </FormField>
       {fixedRouteId == null ? (
-        <FormField label="Route">
-          <select
-            name="routeId"
-            className={cn(modalControlClass, 'disabled:opacity-50')}
-            value={form.routeId}
-            onChange={handleChange}
-            disabled={routesLoading}
-          >
-            <option value="">No route yet (optional)</option>
-            {routes.map((r) => (
-              <option key={r.id} value={r.id}>
-                #{r.id} — {r.title}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <RoutePickerField value={routeId} onChange={handleRouteChange} displayRoute={routeDisplay} />
       ) : (
         <p className="text-sm text-fg-muted">
           Route is fixed to this page — #{fixedRouteId}

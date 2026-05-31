@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useRoutesList } from '@/features/routes/hooks/useRoutesList';
+import RoutePickerField, { routeDisplayFromRide } from '@/features/routes/components/RoutePickerField';
 import { useUpdateRide } from '@/features/rides/hooks/useUpdateRide';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
@@ -22,33 +22,33 @@ function toDatetimeLocalValue(iso) {
 /** Mounted only when `ride` is set — initial state comes from first render. */
 function EditRideForm({ ride, onClose }) {
   const rideId = String(ride.id);
-  const { routes, isLoading: routesLoading } = useRoutesList({ take: 120 });
   const { updateRide, isPending, isError, error } = useUpdateRide(rideId);
 
   const [name, setName] = useState(() => ride.name || '');
   const [description, setDescription] = useState(() => ride.notes || '');
-  const [routeId, setRouteId] = useState(() => (ride.routeId != null ? String(ride.routeId) : ''));
+  const [routeId, setRouteId] = useState(() => (ride.routeId != null ? Number(ride.routeId) : null));
+  const [routeDisplay, setRouteDisplay] = useState(() => routeDisplayFromRide(ride));
   const [maxParticipants, setMaxParticipants] = useState(() => String(ride.maxParticipants ?? 20));
   const [scheduledLocal, setScheduledLocal] = useState(() =>
     toDatetimeLocalValue(ride.scheduledDate || ride.time),
   );
 
+  const handleRouteChange = (id, route) => {
+    setRouteId(id);
+    setRouteDisplay(route);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    let rid = null;
-    if (routeId) {
-      const n = Number(routeId);
-      if (Number.isNaN(n)) return;
-      rid = n;
-    }
     if (!name.trim()) return;
     const scheduledDate = new Date(scheduledLocal);
     if (Number.isNaN(scheduledDate.getTime())) return;
+    const rid = routeId != null ? Number(routeId) : null;
     updateRide(
       {
         name: name.trim(),
         description: description.trim(),
-        routeId: rid,
+        routeId: rid != null && !Number.isNaN(rid) ? rid : null,
         maxParticipants: Math.max(1, Number(maxParticipants) || 20),
         scheduledDate: scheduledDate.toISOString(),
       },
@@ -91,22 +91,12 @@ function EditRideForm({ ride, onClose }) {
             onChange={(ev) => setDescription(ev.target.value)}
           />
         </FormField>
-        <FormField label="Route">
-          <select
-            id="er-route"
-            className={cn(modalControlClass, 'disabled:opacity-50')}
-            value={routeId}
-            onChange={(ev) => setRouteId(ev.target.value)}
-            disabled={routesLoading}
-          >
-            <option value="">No route yet (optional)</option>
-            {routes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.title || `Route #${r.id}`}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <RoutePickerField
+          id="er-route"
+          value={routeId}
+          onChange={handleRouteChange}
+          displayRoute={routeDisplay}
+        />
         <FormField label="When">
           <Input
             id="er-when"

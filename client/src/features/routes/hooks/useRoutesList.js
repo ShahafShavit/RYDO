@@ -5,12 +5,13 @@ import { normalizeRoute } from '@/features/routes/route-mapper';
 
 /** Single-page route list (e.g. pickers). Filtering is applied on the server. */
 export function useRoutesList(options = {}) {
-  const { skip = 0, take = 50, search, terrain, difficulty, distance, sort } = options;
+  const { skip = 0, take = 50, search, terrain, difficulty, distance, sort, enabled = true } = options;
 
   const q = (search || '').trim() || undefined;
 
   const query = useQuery({
     queryKey: routeKeys.list({ skip, take, q, terrain, difficulty, distance, sort }),
+    enabled,
     queryFn: async () =>
       normalizePaginatedResult(
         await routesApi.list({
