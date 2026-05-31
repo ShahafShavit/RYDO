@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, SlidersHorizontal } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import ClubMemberChip from '@/features/clubs/components/ClubMemberChip';
 import RideListCardBold from '@/features/rides/components/RideListCardBold';
@@ -87,6 +87,11 @@ export default function ClubDetailPageBold({
     user &&
     (canJoin || isPending);
 
+  /** Fixed tab bar + pinned schedule CTA (see ExploreRoutesFloatingActions). */
+  const scrollBottomInset = canSeeMembers
+    ? 'pb-[calc(var(--rydo-tabbar-h)+5.5rem)]'
+    : undefined;
+
   if (isLoading && !club) {
     return (
       <BoldScreen>
@@ -123,7 +128,13 @@ export default function ClubDetailPageBold({
           ) : null}
         </div>
 
-        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1">
+        <BoldScrollArea
+          insetTabBar={!canSeeMembers}
+          className={cn(
+            'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1',
+            scrollBottomInset,
+          )}
+        >
           <div className="flex items-start gap-3.5">
             <UserAvatar
               avatarUrl={club.avatarUrl}
@@ -216,12 +227,6 @@ export default function ClubDetailPageBold({
             </div>
           ) : null}
 
-          {canSeeMembers ? (
-            <GradientCTA type="button" className="w-full text-sm" onClick={onScheduleOpen}>
-              + Schedule ride
-            </GradientCTA>
-          ) : null}
-
           <section>
             <Eyebrow className="mb-2.5 ml-0.5">Club rides</Eyebrow>
             {ridesLoading ? (
@@ -307,24 +312,30 @@ export default function ClubDetailPageBold({
           ) : null}
 
           {isMember && user ? (
-            <div className="border-t border-border pt-4">
-              <button
-                type="button"
-                className="text-sm font-semibold text-fg-muted transition hover:text-fg"
-                onClick={onLeave}
-                disabled={leavePending}
-              >
-                Leave club
-              </button>
-            </div>
-          ) : null}
-
-          {club.memberCount != null ? (
-            <p className="rydo-subtle text-center text-xs">
-              {club.memberCount} member{club.memberCount === 1 ? '' : 's'}
-            </p>
+            <button
+              type="button"
+              className="rydo-chip h-11 w-full justify-center text-sm font-semibold text-[#FF5C5C] hover:border-[#FF5C5C]/35 hover:bg-[#FF5C5C]/10 disabled:opacity-50"
+              onClick={onLeave}
+              disabled={leavePending}
+            >
+              {leavePending ? 'Leaving…' : 'Leave club'}
+            </button>
           ) : null}
         </BoldScrollArea>
+
+        {canSeeMembers ? (
+          <div className="pointer-events-none fixed inset-x-0 bottom-[var(--rydo-tabbar-h)] z-(--rydo-z-sticky) flex items-center px-5 py-3">
+            <GradientCTA
+              type="button"
+              icon={Plus}
+              heightClass="h-12"
+              className="pointer-events-auto flex-1 whitespace-nowrap"
+              onClick={onScheduleOpen}
+            >
+              Schedule a ride
+            </GradientCTA>
+          </div>
+        ) : null}
       </div>
     </BoldScreen>
   );
