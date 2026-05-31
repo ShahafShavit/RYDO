@@ -95,7 +95,7 @@ export default function SettingsTabContent({ activeTab, variant = 'default' }) {
         </SettingsSection>
 
         <SettingsSection eyebrow="Preferences" bold={bold}>
-          <RidingPreferencesForm />
+          <RidingPreferencesForm compactHints={bold} />
         </SettingsSection>
       </div>
     );

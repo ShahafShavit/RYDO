@@ -3,9 +3,12 @@ import { Bike, ChevronRight, MapPin } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
-import ListCardMeta, { difficultyAccent } from '@/shared/components/bold/ListCardMeta';
+import ListCardMeta from '@/shared/components/bold/ListCardMeta';
+import { difficultyAccent } from '@/shared/components/bold/list-card-meta-utils';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 import { cn } from '@/shared/lib/cn';
 
 export default function RouteCardBold({ route, className }) {
@@ -68,9 +71,12 @@ export default function RouteCardBold({ route, className }) {
             <span className="truncate">{route.region}</span>
           </span>
         ) : null}
-        <div className="mt-auto flex gap-3.5 pt-2">
+        <div className="mt-auto flex items-center gap-3.5 pt-2">
           <span className="rydo-tnum text-[13px] font-bold text-fg">{distance}</span>
-          <span className="rydo-tnum text-[13px] font-bold text-fg">{elevation}</span>
+          <span className="rydo-tnum inline-flex items-center gap-0.5 text-[13px] font-bold text-fg">
+            {elevation}
+            <InfoTooltip content={helpTooltip('elevationGain')} topic="Elevation" stopPropagation />
+          </span>
         </div>
       </div>
       <ChevronRight className="my-auto h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />

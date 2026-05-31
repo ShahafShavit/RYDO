@@ -1,6 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-
-const RideChatUiContext = createContext(null);
+import { useCallback, useMemo, useState } from 'react';
+import { RideChatUiContext } from '@/features/ride-chat/ride-chat-ui-context.js';
 
 export function RideChatUiProvider({ children }) {
   const [open, setOpen] = useState(false);
@@ -27,12 +26,4 @@ export function RideChatUiProvider({ children }) {
   );
 
   return <RideChatUiContext.Provider value={value}>{children}</RideChatUiContext.Provider>;
-}
-
-export function useRideChatUi() {
-  const ctx = useContext(RideChatUiContext);
-  if (!ctx) {
-    throw new Error('useRideChatUi must be used within RideChatUiProvider');
-  }
-  return ctx;
 }

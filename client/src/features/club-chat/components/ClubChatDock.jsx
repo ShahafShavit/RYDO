@@ -144,7 +144,10 @@ export default function ClubChatDock() {
     },
   });
 
-  const messages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
+  const messages = useMemo(
+    () => (Array.isArray(messagesQuery.data) ? messagesQuery.data : []),
+    [messagesQuery.data],
+  );
 
   const openClubThread = useCallback((row) => {
     setClubId(row.clubId);

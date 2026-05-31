@@ -1,4 +1,5 @@
 import Eyebrow from '@/shared/components/bold/Eyebrow';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
 import { cn } from '@/shared/lib/cn';
 
 export default function Stat({
@@ -6,6 +7,7 @@ export default function Stat({
   value,
   unit,
   label,
+  tooltip,
   size = 21,
   accent = 'text-[var(--rydo-green-bright)]',
   align = 'left',
@@ -38,7 +40,13 @@ export default function Stat({
           </span>
         ) : null}
       </span>
-      <Eyebrow className="text-[10px]">{label}</Eyebrow>
+      {tooltip ? (
+        <LabelWithHelp hint={tooltip} topic={typeof label === 'string' ? label : undefined} className="gap-0.5">
+          <Eyebrow className="text-[10px]">{label}</Eyebrow>
+        </LabelWithHelp>
+      ) : (
+        <Eyebrow className="text-[10px]">{label}</Eyebrow>
+      )}
     </div>
   );
 }

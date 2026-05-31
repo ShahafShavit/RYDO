@@ -37,7 +37,7 @@ export default function LeaderboardBoardPager({
     }
   }, []);
 
-  const scrollToBoard = useCallback(
+  const scrollToBoardPanel = useCallback(
     (boardId) => {
       const idx = LEADERBOARD_BOARD_IDS.indexOf(boardId);
       if (idx < 0 || !scrollerRef.current) return;
@@ -45,7 +45,6 @@ export default function LeaderboardBoardPager({
       if (!panel) return;
 
       programmaticScrollRef.current = true;
-      setActiveBoard(boardId);
       scrollerRef.current.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
 
       if (scrollReleaseTimerRef.current) {
@@ -56,10 +55,18 @@ export default function LeaderboardBoardPager({
     [releaseProgrammaticScroll],
   );
 
+  const scrollToBoard = useCallback(
+    (boardId) => {
+      setActiveBoard(boardId);
+      scrollToBoardPanel(boardId);
+    },
+    [scrollToBoardPanel],
+  );
+
   useEffect(() => {
     if (!isValidLeaderboardBoardId(initialBoardId)) return;
-    scrollToBoard(initialBoardId);
-  }, [initialBoardId, scrollToBoard]);
+    scrollToBoardPanel(initialBoardId);
+  }, [initialBoardId, scrollToBoardPanel]);
 
   useEffect(() => {
     const root = scrollerRef.current;

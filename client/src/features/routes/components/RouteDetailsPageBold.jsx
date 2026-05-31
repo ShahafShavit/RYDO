@@ -17,6 +17,10 @@ import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAna
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import { estimatedTimeTooltip } from '@/features/routes/utils/durationSourceTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
 
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
 
@@ -51,7 +55,7 @@ function formatDuration(minutes) {
 
 export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
   const navigate = useNavigate();
-  const { formatKm, formatElevation, labels } = useFormatDistance();
+  const { formatKm, formatElevation, labels, unit } = useFormatDistance();
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const sharePath =
@@ -116,25 +120,20 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
   const physicsBadge =
-
     physics != null && Number.isFinite(Number(physics)) ? (
-
-      <div className="flex items-center gap-2">
-
+      <div className="flex items-center gap-1.5">
         <ProgressRing value={Number(physics) / 10} size={26} strokeWidth={3.5}>
-
           <span className="rydo-stat-hero text-[9px]">{Number(physics).toFixed(1)}</span>
-
         </ProgressRing>
-
-        <span className="rydo-subtle text-[11px]">
-
-          Physics <b className="text-fg">/10</b>
-
-        </span>
-
+        <LabelWithHelp
+          className="rydo-subtle text-[11px]"
+          labelClassName="inline"
+          hint={helpTooltip('physicsIntensity')}
+          topic="Physics intensity"
+        >
+          Physics intensity <b className="text-fg">/10</b>
+        </LabelWithHelp>
       </div>
-
     ) : null;
 
 
@@ -161,32 +160,24 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
           <div className="min-w-0">
 
-            <div className="mb-2.5 flex flex-wrap gap-2">
-
+            <div className="mb-2.5 flex flex-wrap items-center gap-2">
               {difficulty ? (
-
-                <span className="rydo-pill rydo-pill-amber text-[11px] font-bold uppercase tracking-wider">
-
+                <span className="rydo-pill rydo-pill-amber inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider">
                   {difficulty}
-
+                  <InfoTooltip content={helpTooltip('routeDifficulty')} topic="Difficulty" stopPropagation />
                 </span>
-
               ) : null}
-
-              <span className="rydo-pill text-[13px]">{terrain}</span>
-
+              <span className="rydo-pill inline-flex items-center gap-1 text-[13px]">
+                {terrain}
+                <InfoTooltip content={helpTooltip('routeTerrain')} topic="Terrain" stopPropagation />
+              </span>
               {warnings.length > 0 ? (
-
-                <span className="rydo-pill rydo-pill-amber inline-flex gap-1 text-[11px]">
-
+                <span className="rydo-pill rydo-pill-amber inline-flex items-center gap-1 text-[11px]">
                   <AlertTriangle className="h-3 w-3" aria-hidden />
-
                   {warnings.length} hazards
-
+                  <InfoTooltip content={helpTooltip('routeWarnings')} topic="Route warnings" stopPropagation />
                 </span>
-
               ) : null}
-
             </div>
 
             <DisplayTitle size="lg" truncate="mobile" title={route.title || 'Untitled'}>
@@ -242,33 +233,21 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
                 { key: 'km', icon: RouteIcon, value: distanceLabel, label: labels.distance },
 
                 {
-
                   key: 'up',
-
                   icon: Mountain,
-
                   value:
-
                     route.elevationGainM != null
-
                       ? formatElevation(route.elevationGainM, 0)
-
                       : '—',
-
                   label: labels.elevation,
-
+                  tooltip: helpTooltip('elevationGain'),
                 },
-
                 {
-
                   key: 'time',
-
                   icon: Clock,
-
                   value: formatDuration(route.estimatedDurationMinutes),
-
                   label: 'Est. time',
-
+                  tooltip: estimatedTimeTooltip(route.estimatedDurationSource, unit),
                 },
 
               ]}

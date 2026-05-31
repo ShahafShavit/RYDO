@@ -32,19 +32,21 @@ export default function SettingsPageBold({ activeTab, onTabChange }) {
           </div>
         </header>
 
-        <nav className="rydo-chiprow mt-3 px-5" aria-label="Settings sections">
-          {TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              className={cn('rydo-chip', activeTab === tab.value && 'rydo-chip-on')}
-              aria-current={activeTab === tab.value ? 'page' : undefined}
-              onClick={() => onTabChange(tab.value)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        <div className="px-5 pt-3">
+          <nav className="flex gap-2" aria-label="Settings sections">
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                className={cn('rydo-chip', activeTab === tab.value && 'rydo-chip-on')}
+                aria-current={activeTab === tab.value ? 'page' : undefined}
+                onClick={() => onTabChange(tab.value)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4">
           <SettingsTabContent activeTab={activeTab} variant="bold" />

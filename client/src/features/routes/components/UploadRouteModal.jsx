@@ -7,7 +7,6 @@ import {
   ModalHeader,
   ModalPanel,
   modalControlClass,
-  modalFinePrintClass,
   modalHintClass,
   modalMetricLabelClass,
 } from '@/shared/components/ui/modal/ModalPrimitives';
@@ -18,6 +17,9 @@ import { routesApi } from '@/features/routes/api/routesApi';
 import { analyzeGpxTrack, SUGGESTED_DURATION_SPEED_KMH } from '@/features/routes/utils/gpxAnalysis';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { ESTIMATED_DURATION_SOURCE } from '@/features/routes/utils/durationSource';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import { helpTooltip } from '@/shared/content/help-tooltips';
+import { uploadDurationTileHint } from '@/features/routes/utils/durationSourceTooltip';
 
 const RouteMapWithElevation = lazy(() => import('./RouteMapWithElevation'));
 
@@ -252,29 +254,28 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 <p className="mt-2 text-2xl font-semibold text-fg">{formatKm(stats.distanceKm, 2)}</p>
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className={modalMetricLabelClass}>Elevation gain</p>
+                <LabelWithHelp as="p" className={modalMetricLabelClass} hint={helpTooltip('elevationGain')} topic="Elevation gain">
+                  Elevation gain
+                </LabelWithHelp>
                 <p className="mt-2 text-2xl font-semibold text-fg">{missingElevation ? '—' : formatElevation(stats.elevationGainM, 0)}</p>
-                {!missingElevation ? <p className={cn('mt-1', modalFinePrintClass)}>Smoothed track, noise filtered</p> : null}
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className={modalMetricLabelClass}>Duration</p>
+                <LabelWithHelp
+                  as="p"
+                  className={modalMetricLabelClass}
+                  hint={uploadDurationTileHint(durationSuggestionSource, formatSpeedKmh)}
+                  topic="Duration"
+                >
+                  Duration
+                </LabelWithHelp>
                 <p className="mt-2 text-2xl font-semibold text-fg">{formData.estimatedDurationMinutes} min</p>
-                <p className={cn('mt-1', modalFinePrintClass)}>
-                  {durationSuggestionSource === 'timestamps' &&
-                    'Recorded — from GPX clock times (first to last point with times)'}
-                  {durationSuggestionSource === 'pace' &&
-                    `Inferred at ${formatSpeedKmh(SUGGESTED_DURATION_SPEED_KMH)} average (no GPX clock)`}
-                  {durationSuggestionSource === 'none' &&
-                    'Inferred (no GPX clock) — default 60 min until you change it below'}
-                </p>
               </div>
               <div className="rounded-2xl border border-border bg-surface p-4">
-                <p className={modalMetricLabelClass}>Physics intensity</p>
+                <LabelWithHelp as="p" className={modalMetricLabelClass} hint={helpTooltip('physicsIntensity')} topic="Physics intensity">
+                  Physics intensity
+                </LabelWithHelp>
                 <p className="mt-2 text-2xl font-semibold tabular-nums text-fg">
                   {physicsDifficultyScore != null ? `${physicsDifficultyScore.toFixed(1)} / 10` : '—'}
-                </p>
-                <p className={cn('mt-1', modalFinePrintClass)}>
-                  Mechanical load vs calibrated corpus (same score after save)
                 </p>
               </div>
             </div>
@@ -323,7 +324,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 </div>
               </FormField>
 
-              <FormField label="Difficulty">
+              <FormField label="Difficulty" hint={helpTooltip('routeDifficulty')}>
                 <select
                   value={formData.difficulty}
                   onChange={(e) => handleInputChange('difficulty', e.target.value)}
@@ -338,7 +339,7 @@ export default function UploadRouteModal({ isOpen, onClose, onSuccess }) {
                 </select>
               </FormField>
 
-              <FormField label="Terrain">
+              <FormField label="Terrain" hint={helpTooltip('routeTerrain')}>
                 <select
                   value={formData.terrain}
                   onChange={(e) => handleInputChange('terrain', e.target.value)}

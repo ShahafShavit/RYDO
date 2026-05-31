@@ -7,6 +7,7 @@ import { ModalHeader, ModalPanel, modalControlClass, modalSectionTitleClass } fr
 import Input from '@/shared/components/ui/input/Input';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import AvatarOrUrlEditor from '@/shared/components/media/AvatarOrUrlEditor';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 
 function formFromClub(club) {
   const policy = club?.rideCreationPolicy;
@@ -112,7 +113,7 @@ export default function ClubSettingsModal({
               onAvatarUrlChange={(v) => setForm((f) => ({ ...f, avatarUrl: v }))}
             />
           </FormField>
-          <FormField label="Visibility">
+          <FormField label="Visibility" hint={helpTooltip('clubVisibility')}>
             <select
               className={modalControlClass}
               value={form.visibility}
@@ -122,7 +123,7 @@ export default function ClubSettingsModal({
               <option value="private">Private — approval or invite</option>
             </select>
           </FormField>
-          <FormField label="Who can schedule rides">
+          <FormField label="Who can schedule rides" hint={helpTooltip('clubRidePolicy')}>
             <select
               className={modalControlClass}
               value={form.rideCreationPolicy}

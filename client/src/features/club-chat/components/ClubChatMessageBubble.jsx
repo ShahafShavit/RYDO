@@ -1,10 +1,8 @@
-import { Link, generatePath } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import ClubChatMessageBody from '@/features/club-chat/components/ClubChatMessageBody';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { formatMessageTime } from '@/features/club-chat/utils/formatChatTime';
-import { cn } from '@/shared/lib/cn';
-
 export default function ClubChatMessageBubble({
   message,
   isMine,

@@ -6,6 +6,7 @@ import { ROUTES } from '@/app/router/route-paths';
 import { userProfilePath } from '@/shared/lib/user-paths';
 import { useLeaderboards } from '@/features/leaderboards/hooks/useLeaderboards';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
 import LeaderboardsPageBold from '@/features/leaderboards/components/LeaderboardsPageBold';
 import {
   LEADERBOARD_BOARD_IDS,
@@ -44,9 +45,13 @@ function LeaderboardColumn({ boardId, rows, formatKm, formatElevation }) {
           <Icon className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden />
         </span>
         <div className="min-w-0 flex-1 py-0.5">
-          <p className="text-[11px] font-medium uppercase leading-tight tracking-[0.18em] text-fg-subtle">
+          <LabelWithHelp
+            className="text-[11px] font-medium uppercase leading-tight tracking-[0.18em] text-fg-subtle"
+            hint={cfg.helpText}
+            topic={cfg.title}
+          >
             {cfg.title}
-          </p>
+          </LabelWithHelp>
           <h2 className="mt-1.5 text-xl font-semibold leading-snug tracking-tight text-fg">{cfg.subtitle}</h2>
         </div>
       </div>

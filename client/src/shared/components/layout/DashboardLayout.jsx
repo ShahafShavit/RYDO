@@ -10,7 +10,8 @@ import { prefetchDashboardRoutes } from '@/shared/components/layout/prefetchDash
 import UserProfileDropdown from '@/shared/components/navigation/UserProfileDropdown';
 import { ClubChatUiProvider, useClubChatUi } from '@/features/club-chat/club-chat-ui-context';
 import ClubChatDock from '@/features/club-chat/components/ClubChatDock';
-import { RideChatUiProvider, useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import { RideChatUiProvider } from '@/features/ride-chat/RideChatUiProvider';
+import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 import RideChatPanel from '@/features/ride-chat/components/RideChatPanel';
 import { BreadcrumbProvider } from '@/shared/context/BreadcrumbContext';
 import PageBreadcrumbs from '@/shared/components/navigation/PageBreadcrumbs';

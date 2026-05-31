@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
 import Card from '@/shared/components/ui/card/Card';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 import { userProfilePath } from '@/shared/lib/user-paths';
-import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
+import { estimatedTimeTooltip } from '@/features/routes/utils/durationSourceTooltip';
+import { durationSourceLabel } from '@/features/routes/utils/durationSource';
 
 function formatDuration(minutes) {
   if (!minutes && minutes !== 0) return '';
@@ -17,7 +20,7 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
   if (!route) return null;
 
   const items = [
-    ['Distance', route.distanceKm != null ? formatKm(route.distanceKm) : '—'],
+    ['Distance', route.distanceKm != null ? formatKm(route.distanceKm) : '—', null],
     [
       'Estimated time',
       <>
@@ -26,18 +29,20 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
           {durationSourceLabel(route.estimatedDurationSource, unit)}
         </span>
       </>,
+      estimatedTimeTooltip(route.estimatedDurationSource, unit),
     ],
-    ['Difficulty', formatTrailMetaLabel(route.difficulty)],
+    ['Difficulty', formatTrailMetaLabel(route.difficulty), helpTooltip('routeDifficulty')],
     [
       'Physics intensity',
       route.physicsDifficultyScore != null && Number.isFinite(Number(route.physicsDifficultyScore))
         ? `${Number(route.physicsDifficultyScore).toFixed(1)} / 10`
         : '—',
+      helpTooltip('physicsIntensity'),
     ],
-    ['Terrain', formatTrailMetaLabel(route.terrain)],
-    ['Region', route.region || '—'],
-    ['Total elevation gain', route.elevationGainM ? formatElevation(route.elevationGainM, 0) : '—'],
-    ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—'],
+    ['Terrain', formatTrailMetaLabel(route.terrain), helpTooltip('routeTerrain')],
+    ['Region', route.region || '—', null],
+    ['Total elevation gain', route.elevationGainM ? formatElevation(route.elevationGainM, 0) : '—', helpTooltip('elevationGain')],
+    ['Warnings', route.warnings?.length ? route.warnings.join(', ') : '—', helpTooltip('routeWarnings')],
   ];
 
   return (
@@ -55,9 +60,15 @@ export default function RouteMetadataPanel({ route, showUploadedBy = true }) {
         </p>
       ) : null}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        {items.map(([label, value]) => (
+        {items.map(([label, value, hint]) => (
           <div key={label} className="rounded-2xl border border-border bg-black/20 p-4">
-            <p className="text-sm text-fg-subtle">{label}</p>
+            {hint ? (
+              <LabelWithHelp as="p" className="text-sm text-fg-subtle" hint={hint} topic={label}>
+                {label}
+              </LabelWithHelp>
+            ) : (
+              <p className="text-sm text-fg-subtle">{label}</p>
+            )}
             <div className="mt-2 text-lg font-medium">{value}</div>
           </div>
         ))}

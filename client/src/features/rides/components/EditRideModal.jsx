@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import RoutePickerField, { routeDisplayFromRide } from '@/features/routes/components/RoutePickerField';
+import RoutePickerField from '@/features/routes/components/RoutePickerField';
+import { routeDisplayFromRide } from '@/features/routes/utils/routeDisplayFromRide';
 import { useUpdateRide } from '@/features/rides/hooks/useUpdateRide';
 import { rideEventWindow } from '@/features/rides/utils/rideEventWindow';
 import Button from '@/shared/components/ui/button/Button';

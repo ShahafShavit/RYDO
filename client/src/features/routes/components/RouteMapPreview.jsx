@@ -170,7 +170,6 @@ export default function RouteMapPreview({
       map.dragging.disable();
       map.touchZoom.disable();
       map.doubleClickZoom.disable();
-      setNeedsRecenter(false);
     }
   }, [mapInteractionEnabled, mapEpoch]);
 

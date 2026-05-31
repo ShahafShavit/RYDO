@@ -17,7 +17,7 @@ import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/rout
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import ShareButton from '@/shared/components/share/ShareButton';
-import { useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 import { MessageCircle } from 'lucide-react';
 
 function prefetchLiveRideRoute() {

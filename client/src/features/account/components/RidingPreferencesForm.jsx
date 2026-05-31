@@ -1,12 +1,42 @@
 import { useState } from 'react';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Button from '@/shared/components/ui/button/Button';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 import { usePreferences, useUpdatePreferences } from '../hooks/useAccount';
 import { ColorSchemePicker } from '@/features/account/components/ColorSchemePicker';
 import { BIKE_TYPES } from '@/features/account/constants/bikeTypes';
 import { useTheme } from '@/app/providers/theme-context';
 
-export const RidingPreferencesForm = () => {
+function PrivacyToggle({ label, hintKey, name, checked, onChange, compactHints }) {
+  const hint = helpTooltip(hintKey);
+  return (
+    <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
+      <div className="flex items-center justify-between gap-3">
+        <LabelWithHelp
+          className="text-fg text-sm font-medium"
+          labelClassName="text-left"
+          hint={hint}
+          topic={typeof label === 'string' ? label : undefined}
+        >
+          {label}
+        </LabelWithHelp>
+        <input
+          type="checkbox"
+          name={name}
+          checked={Boolean(checked)}
+          onChange={onChange}
+          className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
+        />
+      </div>
+      {!compactHints ? (
+        <p className="text-xs text-fg-subtle leading-snug">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export const RidingPreferencesForm = ({ compactHints = false }) => {
     const { data: preferences, isLoading } = usePreferences();
     const { mutateAsync: updatePreferences, isLoading: isUpdating } = useUpdatePreferences();
     const { setColorScheme } = useTheme();
@@ -108,101 +138,59 @@ export const RidingPreferencesForm = () => {
                     />
                 </div>
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show me on &quot;who rode this route&quot;</span>
-                        <input
-                            type="checkbox"
-                            name="publicInRouteRiderLists"
-                            checked={Boolean(formData.publicInRouteRiderLists)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, you still count toward totals, but your name is hidden from the rider list on route pages.
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label='Show me on "who rode this route"'
+                    hintKey="privacyRouteRiders"
+                    name="publicInRouteRiderLists"
+                    checked={formData.publicInRouteRiderLists}
+                    onChange={handleChange}
+                />
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show uploaded routes on my profile</span>
-                        <input
-                            type="checkbox"
-                            name="publicUploadedRoutesOnProfile"
-                            checked={Boolean(formData.publicUploadedRoutesOnProfile)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, other members cannot list routes you uploaded from your profile or explore filters.
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label="Show uploaded routes on my profile"
+                    hintKey="privacyUploadedRoutes"
+                    name="publicUploadedRoutesOnProfile"
+                    checked={formData.publicUploadedRoutesOnProfile}
+                    onChange={handleChange}
+                />
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show rides I join on my profile</span>
-                        <input
-                            type="checkbox"
-                            name="publicParticipatedRidesOnProfile"
-                            checked={Boolean(formData.publicParticipatedRidesOnProfile)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, others won&apos;t see scheduled rides you participate in on your profile (club and ride visibility rules still apply when shown).
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label="Show rides I join on my profile"
+                    hintKey="privacyParticipatedRides"
+                    name="publicParticipatedRidesOnProfile"
+                    checked={formData.publicParticipatedRidesOnProfile}
+                    onChange={handleChange}
+                />
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show lifetime ride stats on my profile</span>
-                        <input
-                            type="checkbox"
-                            name="publicLifetimeStatsOnProfile"
-                            checked={Boolean(formData.publicLifetimeStatsOnProfile)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, others won&apos;t see your Distance, Climbed, or completed Rides totals on your profile. Leaderboards are unchanged.
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label="Show lifetime ride stats on my profile"
+                    hintKey="privacyLifetimeStats"
+                    name="publicLifetimeStatsOnProfile"
+                    checked={formData.publicLifetimeStatsOnProfile}
+                    onChange={handleChange}
+                />
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show friends list on my profile</span>
-                        <input
-                            type="checkbox"
-                            name="publicFriendsListOnProfile"
-                            checked={Boolean(formData.publicFriendsListOnProfile)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, other members won&apos;t see your friends on your profile. You can still see your own list.
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label="Show friends list on my profile"
+                    hintKey="privacyFriendsList"
+                    name="publicFriendsListOnProfile"
+                    checked={formData.publicFriendsListOnProfile}
+                    onChange={handleChange}
+                />
 
-                <div className="flex flex-col gap-2 p-4 bg-surface border border-border rounded-xl">
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-fg text-sm font-medium">Show me on other members&apos; friends lists</span>
-                        <input
-                            type="checkbox"
-                            name="publicInOthersFriendsLists"
-                            checked={Boolean(formData.publicInOthersFriendsLists)}
-                            onChange={handleChange}
-                            className="w-5 h-5 accent-rydo-purple rounded cursor-pointer shrink-0"
-                        />
-                    </div>
-                    <p className="text-xs text-fg-subtle leading-snug">
-                        When off, your name won&apos;t appear when someone else views a mutual friend&apos;s friends list.
-                    </p>
-                </div>
+                <PrivacyToggle
+                    compactHints={compactHints}
+                    label="Show me on other members' friends lists"
+                    hintKey="privacyOthersFriendsLists"
+                    name="publicInOthersFriendsLists"
+                    checked={formData.publicInOthersFriendsLists}
+                    onChange={handleChange}
+                />
             </div>
 
             {successMsg && (

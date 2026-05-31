@@ -31,7 +31,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
-import { useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 
 import BoldRouteMapElevation from '@/features/routes/components/BoldRouteMapElevation';
 

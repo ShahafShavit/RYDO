@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ROUTES } from '@/app/router/route-paths';
 import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import { canCreateClubRide } from '@/features/clubs/club-list-membership-utils';
+import { clubsApi } from '@/features/clubs/api/clubs-api';
 import Button from '@/shared/components/ui/button/Button';
 import FormField from '@/shared/components/ui/form-field/FormField';
 import Input from '@/shared/components/ui/input/Input';
@@ -13,6 +14,8 @@ import InviteFriendsToRideModal from '@/features/rides/components/InviteFriendsT
 import { useCreatePersonalRide } from '@/features/rides/hooks/useCreatePersonalRide';
 import { defaultRideNameFromRoute, MAX_RIDE_NAME_LENGTH } from '@/shared/constants/text-limits';
 import { useBoldMobile } from '@/shared/hooks/useBoldMobile';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 
 function defaultScheduledLocal() {
   const d = new Date(Date.now() + 86400000);
@@ -90,7 +93,11 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
         </>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Ride type">
+      <div className="mt-5">
+        <LabelWithHelp className="mb-2 text-sm font-medium text-fg-muted" hint={helpTooltip('rideType')} topic="Ride type">
+          Ride type
+        </LabelWithHelp>
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Ride type">
         <button
           type="button"
           className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
@@ -119,6 +126,7 @@ export function ScheduleRideFromRoutePanel({ routeId, routeTitle, headless = fal
         >
           Club
         </button>
+        </div>
       </div>
 
       {mode === 'personal' ? (

@@ -15,6 +15,9 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 import DashboardClubsSection from '@/features/dashboard/components/DashboardClubsSection';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 
 function greetingForHour(h) {
   if (h < 12) return 'Good morning,';
@@ -102,30 +105,34 @@ export default function DashboardHomeCardsBold() {
         ) : null}
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pt-3">
-          {/* Level hero */}
-          <div className="rydo-bold-glass-row flex items-center gap-3.5 p-3.5">
-            <ProgressRing value={levelProgress} size={60} strokeWidth={5.5}>
-              <span className="rydo-stat-hero text-2xl text-fg">{home.level.currentLevel}</span>
-              <Eyebrow className="mt-0.5 text-[8px]">Level</Eyebrow>
-            </ProgressRing>
+          {/* Level hero — ring is the only level progress indicator */}
+          <div className="rydo-bold-glass-row flex items-center gap-4 p-4">
+            <div className="flex shrink-0 flex-col items-center gap-1.5">
+              <ProgressRing value={levelProgress} size={84} strokeWidth={6}>
+                <span className="rydo-stat-hero text-[32px] leading-none text-fg">
+                  {home.level.currentLevel}
+                </span>
+              </ProgressRing>
+              <LabelWithHelp hint={helpTooltip('level')} topic="Level">
+                <Eyebrow className="text-[9px]">Level</Eyebrow>
+              </LabelWithHelp>
+            </div>
             <div className="min-w-0 flex-1">
-              <Eyebrow>{home.awards.title}</Eyebrow>
-              <p className="mt-1 text-[15px] font-bold leading-snug">
+              <LabelWithHelp hint={helpTooltip('challenge')} topic={home.awards.title}>
+                <Eyebrow>{home.awards.title}</Eyebrow>
+              </LabelWithHelp>
+              <p className="mt-1.5 text-[15px] font-bold leading-snug">
                 <TruncatedText lineClamp={2}>{home.level.nextLevelLabel}</TruncatedText>
               </p>
-              <div className="mt-2 h-[7px] overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--rydo-green-bright)] to-rydo-purple"
-                  style={{ width: `${home.level.progress}%` }}
-                />
-              </div>
             </div>
           </div>
 
           {/* Weekly ribbon */}
           <div className="rydo-panel px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
-              <Eyebrow>This week</Eyebrow>
+              <LabelWithHelp hint={helpTooltip('weeklySnapshot')} topic="This week">
+                <Eyebrow>This week</Eyebrow>
+              </LabelWithHelp>
               <span className="rydo-subtle text-[11px]">{home.weeklySnapshot.duration} riding</span>
             </div>
             <StatRibbon
@@ -146,8 +153,9 @@ export default function DashboardHomeCardsBold() {
                 {home.streakSnapshot.currentStreak}
                 <span className="rydo-subtle ml-0.5 text-[13px] font-bold">wk</span>
               </div>
-              <Eyebrow className="mt-1 text-[9px]">
+              <Eyebrow className="mt-1 inline-flex items-center gap-0.5 text-[9px]">
                 Streak · best {home.streakSnapshot.longestStreak}
+                <InfoTooltip content={helpTooltip('streak')} topic="Streak" />
               </Eyebrow>
             </div>
             {upcoming ? (

@@ -31,8 +31,10 @@ import { buildQueryString } from '@/shared/api/api-helpers';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
-
-const RIDES_PER_LEVEL = 5;
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
+import { RIDES_PER_LEVEL } from '@/shared/constants/gamification';
 
 function formatMemberSince(iso) {
   if (!iso) return null;
@@ -197,9 +199,14 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
             />
             <div className="min-w-0 flex-1">
               <DisplayTitle size="sm">{name}</DisplayTitle>
-              <p className="rydo-subtle mt-1 text-[13px]">
-                {handleLabel}
-                {lifetime.level != null ? ` · Lvl ${lifetime.level}` : ''}
+              <p className="rydo-subtle mt-1 inline-flex flex-wrap items-center gap-1 text-[13px]">
+                <span>
+                  {handleLabel}
+                  {lifetime.level != null ? ` · Lvl ${lifetime.level}` : ''}
+                </span>
+                {lifetime.level != null ? (
+                  <InfoTooltip content={helpTooltip('level')} topic="Level" />
+                ) : null}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {canViewFriends && relationshipReady ? (
@@ -265,26 +272,36 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
 
           {badges.length > 0 ? (
             <div>
-              <Eyebrow className="ml-0.5">Standings</Eyebrow>
+              <LabelWithHelp className="ml-0.5" hint={helpTooltip('leaderboardBadge')} topic="Standings">
+                <Eyebrow>Standings</Eyebrow>
+              </LabelWithHelp>
               <div className="-mx-5 mt-2 overflow-x-auto px-5">
                 <div className="flex gap-2">
                   {badges.map((b) => {
                     const cfg = LEADERBOARD_BOARD_CONFIG[b.boardId];
                     const chipClass = leaderboardBadgeChipClass(b.rank);
+                    const badgeHelp = cfg?.helpText
+                      ? `${helpTooltip('leaderboardBadge')} ${cfg.helpText}`
+                      : helpTooltip('leaderboardBadge');
                     return (
-                      <Link
+                      <div
                         key={`${b.boardId}-${b.rank}`}
-                        to={`${ROUTES.leaderboards}?board=${b.boardId}`}
-                        className={cn('rydo-chip min-w-0 text-fg no-underline', chipClass)}
+                        className={cn('rydo-chip inline-flex min-w-0 items-center gap-1 text-fg', chipClass)}
                       >
-                        <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full bg-black/25 text-xs font-extrabold">
-                          {b.rank}
-                        </span>
-                        <span className="flex min-w-0 flex-col leading-tight">
-                          <b className="truncate text-xs">{cfg?.subtitle ?? b.boardId}</b>
-                          <span className="rydo-subtle text-[10px] font-medium">{cfg?.title}</span>
-                        </span>
-                      </Link>
+                        <Link
+                          to={`${ROUTES.leaderboards}?board=${b.boardId}`}
+                          className="inline-flex min-w-0 flex-1 items-center gap-2 no-underline text-inherit"
+                        >
+                          <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full bg-black/25 text-xs font-extrabold">
+                            {b.rank}
+                          </span>
+                          <span className="flex min-w-0 flex-col leading-tight">
+                            <b className="truncate text-xs">{cfg?.subtitle ?? b.boardId}</b>
+                            <span className="rydo-subtle text-[10px] font-medium">{cfg?.title}</span>
+                          </span>
+                        </Link>
+                        <InfoTooltip content={badgeHelp} topic={cfg?.title ?? 'Standings'} stopPropagation />
+                      </div>
                     );
                   })}
                 </div>
@@ -307,7 +324,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
               ) : routeItems.length === 0 ? (
                 <p className="rydo-subtle px-1 text-sm">No routes uploaded yet.</p>
               ) : (
-                routeItems.map((route, i) => (
+                routeItems.map((route) => (
                   <Link
                     key={route.id}
                     to={ROUTES.routeDetails.replace(':routeId', String(route.id))}
@@ -352,7 +369,7 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
               ) : rideItems.length === 0 ? (
                 <p className="rydo-subtle px-1 text-sm">No rides to show yet.</p>
               ) : (
-                rideItems.map((ride, i) => (
+                rideItems.map((ride) => (
                   <Link
                     key={ride.id}
                     to={ROUTES.rideEvent.replace(':rideId', String(ride.id))}

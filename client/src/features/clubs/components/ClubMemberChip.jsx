@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { generatePath, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { userProfilePath } from '@/shared/lib/user-paths';
 import { ROUTES } from '@/app/router/route-paths';
 import { cn } from '@/shared/lib/cn';

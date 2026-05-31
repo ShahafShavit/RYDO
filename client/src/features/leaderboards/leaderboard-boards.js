@@ -1,4 +1,5 @@
 import { Bike, MapPinned, Mountain, Route } from 'lucide-react';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 
 /** Stable ids aligned with GET /api/leaderboards JSON keys. */
 export const LEADERBOARD_BOARD_IDS = [
@@ -14,24 +15,28 @@ export const LEADERBOARD_BOARD_CONFIG = {
     title: 'Total distance',
     subtitle: 'Horizon Chasers',
     Icon: Route,
+    helpText: helpTooltip('leaderboardHorizonChasers'),
   },
   saddleJunkies: {
     id: 'saddleJunkies',
     title: 'Most rides',
     subtitle: 'Saddle Junkies',
     Icon: Bike,
+    helpText: helpTooltip('leaderboardSaddleJunkies'),
   },
   summitSeekers: {
     id: 'summitSeekers',
     title: 'Total elevation',
     subtitle: 'Summit Seekers',
     Icon: Mountain,
+    helpText: helpTooltip('leaderboardSummitSeekers'),
   },
   trailblazers: {
     id: 'trailblazers',
     title: 'Published routes',
     subtitle: 'Trailblazers',
     Icon: MapPinned,
+    helpText: helpTooltip('leaderboardTrailblazers'),
   },
 };
 

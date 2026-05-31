@@ -1,4 +1,5 @@
 import { mapRideDto } from '@/features/rides/hooks/useRideEvent';
+import { RIDES_PER_LEVEL } from '@/shared/constants/gamification';
 import { formatDistanceFromKm, formatElevationFromMeters } from '@/shared/utils/distance';
 
 function formatDifficulty(raw) {
@@ -182,7 +183,6 @@ export function buildDashboardHome({
     };
   }
 
-  const RIDES_PER_LEVEL = 5;
   const count = historyTotal;
   const currentLevel = Math.max(1, 1 + Math.floor(count / RIDES_PER_LEVEL));
   const within = count % RIDES_PER_LEVEL;

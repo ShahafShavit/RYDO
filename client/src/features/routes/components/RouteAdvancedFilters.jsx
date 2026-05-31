@@ -2,6 +2,9 @@ import { MapPin, X } from 'lucide-react';
 import Input from '@/shared/components/ui/input/Input';
 import BadgeNav from '@/shared/components/ui/badge-nav/BadgeNav';
 import Button from '@/shared/components/ui/button/Button';
+import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 import { cn } from '@/shared/lib/cn';
 
 const FILTER_OPTIONS = [
@@ -60,32 +63,38 @@ export default function RouteAdvancedFilters({
     <div className={cn('space-y-4', className)}>
       <div className="flex flex-wrap items-center gap-2">
         {!nearActive ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5"
-            disabled={geoLoading}
-            aria-label={geoLoading ? 'Getting your location' : 'Use my location'}
-            onClick={() => onUseNearMe?.()}
-          >
-            <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="truncate sm:hidden">{geoLoading ? 'Locating…' : 'Near me'}</span>
-            <span className="hidden sm:inline">{geoLoading ? 'Getting location…' : 'Use my location'}</span>
-          </Button>
+          <div className="inline-flex items-center gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5"
+              disabled={geoLoading}
+              aria-label={geoLoading ? 'Getting your location' : 'Use my location'}
+              onClick={() => onUseNearMe?.()}
+            >
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate sm:hidden">{geoLoading ? 'Locating…' : 'Near me'}</span>
+              <span className="hidden sm:inline">{geoLoading ? 'Getting location…' : 'Use my location'}</span>
+            </Button>
+            <InfoTooltip content={helpTooltip('nearMe')} topic="Near me" />
+          </div>
         ) : (
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5"
-            aria-label="Clear location filter"
-            onClick={() => onClearNearMe?.()}
-          >
-            <X className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="truncate sm:hidden">Clear</span>
-            <span className="hidden sm:inline">Clear location</span>
-          </Button>
+          <div className="inline-flex items-center gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              className="h-11 min-w-0 gap-1.5 whitespace-nowrap px-3 text-sm sm:gap-2 sm:px-5"
+              aria-label="Clear location filter"
+              onClick={() => onClearNearMe?.()}
+            >
+              <X className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate sm:hidden">Clear</span>
+              <span className="hidden sm:inline">Clear location</span>
+            </Button>
+            <InfoTooltip content={helpTooltip('nearMe')} topic="Near me" />
+          </div>
         )}
       </div>
 
@@ -102,7 +111,9 @@ export default function RouteAdvancedFilters({
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <label className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-fg-muted">
-              <span className="shrink-0">Within</span>
+              <LabelWithHelp hint={helpTooltip('nearMe')} topic="Within radius">
+                Within
+              </LabelWithHelp>
               <Input
                 type="number"
                 inputMode="decimal"
@@ -139,6 +150,15 @@ export default function RouteAdvancedFilters({
           </div>
         </div>
       ) : null}
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-subtle">
+        <LabelWithHelp hint={helpTooltip('routeDifficulty')} topic="Difficulty">
+          Difficulty
+        </LabelWithHelp>
+        <LabelWithHelp hint={helpTooltip('routeTerrain')} topic="Terrain">
+          Terrain
+        </LabelWithHelp>
+      </div>
 
       <div className={cn('flex justify-center sm:justify-start', badgeNavClassName)}>
         <BadgeNav

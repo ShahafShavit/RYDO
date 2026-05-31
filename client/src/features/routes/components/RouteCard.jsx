@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import Card from '@/shared/components/ui/card/Card';
 import { ROUTES } from '@/app/router/route-paths';
-import { durationSourceLabel } from '@/features/routes/utils/durationSource';
+import { estimatedTimeTooltip } from '@/features/routes/utils/durationSourceTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
 import CompactRouteMapPreview from '@/features/routes/components/CompactRouteMapPreview';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
@@ -105,13 +107,18 @@ export default function RouteCard({ route }) {
               </p>
             </div>
             <div className="min-w-0 flex-1 border-l border-border/50 pl-2 sm:pl-3">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
-                Duration
-              </p>
-              <p
-                className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg"
-                title={duration ? durationSourceLabel(route?.estimatedDurationSource, unit) : undefined}
-              >
+              <div className="flex items-center justify-center gap-0.5">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle sm:text-xs sm:tracking-[0.14em]">
+                  Duration
+                </p>
+                {duration ? (
+                  <InfoTooltip
+                    content={estimatedTimeTooltip(route?.estimatedDurationSource, unit)}
+                    topic="Duration"
+                  />
+                ) : null}
+              </div>
+              <p className="mt-0.5 truncate text-sm font-semibold tabular-nums text-fg">
                 {duration || '—'}
               </p>
             </div>
@@ -122,11 +129,9 @@ export default function RouteCard({ route }) {
             </p>
           ) : null} */}
           {fromYou ? (
-            <p
-              className="mt-2.5 text-center text-xs tabular-nums text-fg-muted"
-              title="Straight-line distance from your location to the route start"
-            >
+            <p className="mt-2.5 flex items-center justify-center gap-0.5 text-center text-xs tabular-nums text-fg-muted">
               {fromYou} from you
+              <InfoTooltip content={helpTooltip('fromYou')} topic="Distance from you" />
             </p>
           ) : null}
         </div>

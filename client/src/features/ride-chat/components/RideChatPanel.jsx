@@ -9,7 +9,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { rideEventWindow } from '@/features/rides/utils/rideEventWindow';
 import { rideChatApi } from '@/features/ride-chat/api/ride-chat-api';
-import { useRideChatUi } from '@/features/ride-chat/ride-chat-ui-context';
+import { useRideChatUi } from '@/features/ride-chat/useRideChatUi';
 import { useRideChatHub } from '@/features/ride-chat/hooks/useRideChatHub';
 import ClubChatMessageBubble from '@/features/club-chat/components/ClubChatMessageBubble';
 import RideChatComposer from '@/features/ride-chat/components/RideChatComposer';
@@ -45,7 +45,10 @@ export default function RideChatPanel() {
     staleTime: 10_000,
   });
 
-  const messages = messagesQuery.data?.messages ?? [];
+  const messages = useMemo(
+    () => messagesQuery.data?.messages ?? [],
+    [messagesQuery.data?.messages],
+  );
   const chatReadOnly = messagesQuery.data?.readOnly ?? readOnly;
 
   useRideChatHub(rideId, open && Boolean(rideId));

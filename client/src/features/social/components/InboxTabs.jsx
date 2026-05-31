@@ -1,10 +1,5 @@
 import { cn } from '@/shared/lib/cn';
-
-export const INBOX_TABS = [
-  { id: 'friends', label: 'Friends' },
-  { id: 'rides', label: 'Rides' },
-  { id: 'club', label: 'Club' },
-];
+import { INBOX_TABS } from '@/features/social/inbox-tabs';
 
 /**
  * @param {{ activeTab: string, onTabChange: (id: string) => void, counts?: { friends?: number, rides?: number, club?: number } }} props

@@ -1,4 +1,4 @@
-import { NavLink, generatePath } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Menu, X, LogOut, Settings, Inbox } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';

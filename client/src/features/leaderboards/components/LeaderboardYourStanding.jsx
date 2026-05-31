@@ -3,6 +3,8 @@ import { Sparkles, TrendingUp } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { formatLeaderboardValue } from '@/features/leaderboards/leaderboard-format';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
+import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
+import { helpTooltip } from '@/shared/content/help-tooltips';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -28,7 +30,10 @@ export default function LeaderboardYourStanding({
     return (
       <div className={cn('rydo-panel px-4 py-3.5 text-center', className)}>
         <Sparkles className="mx-auto h-5 w-5 text-[var(--rydo-amber)]" aria-hidden />
-        <p className="mt-2 text-sm font-bold text-fg">Not on this board yet</p>
+        <p className="mt-2 flex items-center justify-center gap-1 text-sm font-bold text-fg">
+          Not on this board yet
+          <InfoTooltip content={helpTooltip('leaderboardStanding')} topic="Leaderboard standing" />
+        </p>
         <p className="rydo-subtle mt-1 text-xs leading-snug">
           Log more {boardTitle?.toLowerCase() || 'activity'} to climb the ranks.
         </p>
