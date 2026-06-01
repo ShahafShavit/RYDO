@@ -123,6 +123,10 @@ npm run env:show
 
 Requires **Xcode** on a Mac. Not available on Windows.
 
+**Required:** `ios/App/App/Info.plist` must include `NSLocationWhenInUseUsageDescription` (live ride GPS and native compass). `npm run check:ios` validates this.
+
+After adding or updating native plugins (e.g. `@capgo/capacitor-compass`), run `npx cap sync ios`.
+
 ```bash
 cd mobile
 npm install

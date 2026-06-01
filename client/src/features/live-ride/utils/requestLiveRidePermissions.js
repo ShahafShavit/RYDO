@@ -1,18 +1,9 @@
-import { requestDeviceOrientationPermission } from '@/features/live-ride/utils/liveRideCompass';
 import { getPermissionsProvider } from '@/shared/platform/permissions-provider';
 
 const STORAGE_KEY = 'rydoLiveRideOrientation';
 
 /** @typedef {'granted' | 'denied' | 'not_applicable'} OrientationOutcome */
 /** @typedef {'granted' | 'denied' | 'unavailable' | 'prompt'} LocationOutcome */
-
-const GEO_OPTIONS = { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 };
-
-const LOCATION_BLOCKED_MSG =
-  'Location access is required for live ride. Enable location for this site in your browser settings, then try again.';
-const LOCATION_UNAVAILABLE_MSG = 'Geolocation is not available in this browser.';
-const ORIENTATION_BLOCKED_MSG =
-  'Motion and orientation access is required on this device for live ride direction. Allow access when prompted, or enable it in browser settings.';
 
 /**
  * Persist last orientation permission outcome for the live ride map.
@@ -43,87 +34,34 @@ export function getStoredLiveRideOrientationOutcome() {
 }
 
 /**
- * iOS Safari requires an explicit orientation permission prompt.
+ * Whether live ride needs an explicit orientation/compass permission step.
  * @returns {boolean}
  */
 export function isOrientationPermissionRequired() {
-  const platform = getPermissionsProvider();
-  if (platform) return platform.isOrientationPermissionRequired();
-  const Ctor = typeof window !== 'undefined' ? window.DeviceOrientationEvent : undefined;
-  return Boolean(Ctor && typeof Ctor.requestPermission === 'function');
+  return getPermissionsProvider().isOrientationPermissionRequired();
 }
 
 /**
  * @returns {Promise<'granted' | 'denied' | 'prompt' | 'unknown'>}
  */
 export async function queryGeolocationPermissionState() {
-  if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-    return 'unknown';
-  }
-  try {
-    const result = await navigator.permissions.query({ name: 'geolocation' });
-    return /** @type {'granted' | 'denied' | 'prompt'} */ (result.state);
-  } catch {
-    return 'unknown';
-  }
+  return getPermissionsProvider().queryLocationPermissionState();
 }
 
 /**
- * Request location permission via a one-shot GPS read.
+ * Request location permission via the platform provider.
  * @returns {Promise<{ location: LocationOutcome, blockingReason?: string }>}
  */
 export async function requestLiveRideLocationPermission() {
-  const platform = getPermissionsProvider();
-  if (platform) return platform.requestLocationPermission();
-
-  if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return { location: 'unavailable', blockingReason: LOCATION_UNAVAILABLE_MSG };
-  }
-
-  const permState = await queryGeolocationPermissionState();
-  if (permState === 'denied') {
-    return { location: 'denied', blockingReason: LOCATION_BLOCKED_MSG };
-  }
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      () => resolve({ location: 'granted' }),
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          resolve({ location: 'denied', blockingReason: LOCATION_BLOCKED_MSG });
-          return;
-        }
-        // Timeout / unavailable still means permission was not explicitly denied.
-        resolve({ location: 'granted' });
-      },
-      GEO_OPTIONS,
-    );
-  });
+  return getPermissionsProvider().requestLocationPermission();
 }
 
 /**
- * Request device orientation permission (must be called from a user gesture on iOS).
+ * Request device orientation / native compass permission (user gesture on web iOS).
  * @returns {Promise<{ orientation: OrientationOutcome, blockingReason?: string }>}
  */
 export async function requestLiveRideOrientationPermission() {
-  const platform = getPermissionsProvider();
-  if (platform) return platform.requestOrientationPermission();
-
-  if (!isOrientationPermissionRequired()) {
-    setStoredLiveRideOrientationOutcome('not_applicable');
-    return { orientation: 'not_applicable' };
-  }
-
-  const outcome = await requestDeviceOrientationPermission();
-  setStoredLiveRideOrientationOutcome(outcome);
-
-  if (outcome === 'granted') {
-    return { orientation: 'granted' };
-  }
-  if (outcome === 'denied') {
-    return { orientation: 'denied', blockingReason: ORIENTATION_BLOCKED_MSG };
-  }
-  return { orientation: 'not_applicable' };
+  return getPermissionsProvider().requestOrientationPermission();
 }
 
 /**

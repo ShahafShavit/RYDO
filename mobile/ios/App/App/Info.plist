@@ -45,5 +45,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RYDO uses your location to show your position on the live ride map and nearby routes.</string>
 </dict>
 </plist>

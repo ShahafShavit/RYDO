@@ -14,7 +14,7 @@ import {
   enableRideLiveDebugFromQuery,
   rideLiveLog,
 } from '@/features/live-ride/utils/rideLiveLog';
-import { subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
+import { getCompassProvider } from '@/shared/platform/compass-provider';
 import { mergeLiveRideMotionTuning } from '@/features/live-ride/utils/liveRideMotionTuning';
 import { buildUncertaintyFootprintPolygon } from '@/features/live-ride/utils/liveRideUncertaintyFootprint';
 import { featureCollection } from '@turf/helpers';
@@ -190,7 +190,7 @@ export default function LiveRideReplayPage() {
       compassHeadingRef.current = null;
       return undefined;
     }
-    return subscribeDeviceCompass((h) => {
+    return getCompassProvider().subscribe((h) => {
       compassHeadingRef.current = h;
     });
   }, [session]);

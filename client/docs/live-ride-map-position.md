@@ -40,11 +40,14 @@ Nearby “ahead / behind” uses the same display bearing as the puck (`puckDisp
 
 ## Permissions (live ride entry)
 
-Tapping **Live map** on the ride event runs [`requestLiveRidePermissions`](../src/features/live-ride/utils/requestLiveRidePermissions.js): iOS Safari **motion/orientation** (`DeviceOrientationEvent.requestPermission` when available) and a one-shot **geolocation** read so browser prompts appear before navigating. Outcomes are stored in `sessionStorage` under `rydoLiveRideOrientation` for the map page.
+Entering the live ride map runs a boot overlay ([`useLiveRideBootPermissions`](../src/features/live-ride/hooks/useLiveRideBootGate.js)) that requests permissions through the shared platform layer ([`create-permissions-provider.js`](../src/shared/platform/create-permissions-provider.js)):
 
-If the user opens the live URL directly (deep link), iOS may still require a gesture: the map shows a small **Enable** compass call-to-action until motion is granted, denied, or dismissed.
+- **Location:** `@capacitor/geolocation` on native; browser geolocation on web. iOS requires `NSLocationWhenInUseUsageDescription` in the Capacitor app `Info.plist`.
+- **Compass / heading:** `@capgo/capacitor-compass` on native (CoreLocation on iOS); `DeviceOrientationEvent` on web when `requestPermission` is available.
 
-HTTPS (or localhost) is still required for geolocation; see [lan-https-phone.md](./lan-https-phone.md).
+Location is requested automatically when the boot overlay mounts. Compass / motion uses a separate **Allow motion & orientation** button (web iOS requires a user gesture). Outcomes are stored in `sessionStorage` under `rydoLiveRideOrientation`.
+
+HTTPS (or localhost) is still required for geolocation on web; see [lan-https-phone.md](./lan-https-phone.md).
 
 ## Live hub connectivity (SignalR)
 

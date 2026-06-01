@@ -12,7 +12,7 @@ import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLi
 import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { LIVE_MAP_SAFE_BOTTOM, LIVE_MAP_SAFE_TOP } from '@/features/live-ride/liveRideMapLayout';
-import { subscribeDeviceCompass } from '@/features/live-ride/utils/liveRideCompass';
+import { getCompassProvider } from '@/shared/platform/compass-provider';
 import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
@@ -265,7 +265,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
       compassHeadingRef.current = null;
       return undefined;
     }
-    return subscribeDeviceCompass((h) => {
+    return getCompassProvider().subscribe((h) => {
       compassHeadingRef.current = h;
     });
   }, [hubEnabled, activeBoot.canMountHiddenMap]);

@@ -43,6 +43,7 @@
     "@capacitor/preferences": "^7.0.4",
     "@capacitor/share": "^7.0.4",
     "@capacitor/splash-screen": "^7.0.1",
+    "@capgo/capacitor-compass": "^7.1.1",
     "@microsoft/signalr": "^8.0.7",
     "@studio-freight/lenis": "^1.0.42",
     "@tanstack/query-async-storage-persister": "^5.96.2",

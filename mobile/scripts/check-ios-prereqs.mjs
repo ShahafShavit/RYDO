@@ -4,6 +4,12 @@
  * macOS + Xcode only.
  */
 import { spawnSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const mobileRoot = path.resolve(__dirname, '..');
 
 const issues = [];
 const hints = [];
@@ -44,6 +50,19 @@ function checkNode() {
   if (major < 20) {
     issues.push(`Node.js ${process.versions.node} — Capacitor 7 CLI needs Node 20+.`);
     hints.push('Upgrade Node (nvm, fnm, or brew install node).');
+  }
+}
+
+function checkInfoPlist() {
+  const plistPath = path.join(mobileRoot, 'ios', 'App', 'App', 'Info.plist');
+  if (!fs.existsSync(plistPath)) return;
+
+  const content = fs.readFileSync(plistPath, 'utf8');
+  if (!content.includes('NSLocationWhenInUseUsageDescription')) {
+    issues.push('ios/App/App/Info.plist is missing NSLocationWhenInUseUsageDescription.');
+    hints.push(
+      'Add NSLocationWhenInUseUsageDescription — required for live ride GPS and native compass on iOS.',
+    );
   }
 }
 
@@ -89,6 +108,7 @@ export function parseCapIosTargets(stdout) {
 
 checkPlatform();
 checkNode();
+checkInfoPlist();
 
 console.log('\n--- RYDO iOS prerequisites ---\n');
 

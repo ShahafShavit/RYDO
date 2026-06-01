@@ -4,10 +4,12 @@ import { setPlatformStorage } from '@/features/auth/utils/auth-storage';
 import { setQueryCacheStorage } from '@/app/query-cache-storage';
 import { setGeolocationProvider } from '@/shared/platform/geolocation-provider';
 import { setPermissionsProvider } from '@/shared/platform/permissions-provider';
+import { setCompassProvider } from '@/shared/platform/compass-provider';
 import { setShareProvider } from '@/shared/platform/share-provider';
 import { createStorage, initNativeStorage } from './storage';
 import { createGeolocation } from './geolocation';
-import { createPermissionsProvider } from './permissions';
+import { createPermissionsProvider } from '@/shared/platform/create-permissions-provider';
+import { nativeCompass } from './compass';
 import { shareProvider } from './share';
 import { appLifecycle } from './app-lifecycle';
 import { initSystemBars } from './system-bars';
@@ -23,7 +25,13 @@ export async function registerPlatform() {
   const isNative = Capacitor.isNativePlatform();
   const storage = createStorage();
   const geolocation = createGeolocation(isNative);
-  const permissions = createPermissionsProvider(geolocation);
+  if (isNative) {
+    setCompassProvider(nativeCompass);
+  }
+  const permissions = createPermissionsProvider({
+    geo: geolocation,
+    compass: isNative ? nativeCompass : undefined,
+  });
 
   setPlatformStorage(storage);
   setGeolocationProvider(geolocation);

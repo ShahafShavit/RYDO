@@ -25,9 +25,18 @@
 
 /**
  * @typedef {object} PermissionsProvider
+ * @property {() => Promise<'granted' | 'denied' | 'prompt' | 'unknown'>} queryLocationPermissionState
  * @property {() => Promise<{ location: 'granted' | 'denied' | 'unavailable' | 'prompt', blockingReason?: string }>} requestLocationPermission
  * @property {() => Promise<{ orientation: 'granted' | 'denied' | 'not_applicable', blockingReason?: string }>} requestOrientationPermission
  * @property {() => boolean} isOrientationPermissionRequired
+ */
+
+/**
+ * @typedef {object} CompassProvider
+ * @property {boolean} [isNative]
+ * @property {() => Promise<'granted' | 'denied' | 'prompt' | 'unknown'>} [queryPermissionState]
+ * @property {() => Promise<'granted' | 'denied' | 'unknown'>} [requestPermission]
+ * @property {(onHeading: (headingDeg: number) => void) => () => void} subscribe
  */
 
 /**

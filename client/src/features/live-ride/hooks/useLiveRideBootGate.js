@@ -5,7 +5,6 @@ import {
 } from '@/features/live-ride/liveRideBootMilestones';
 import {
   isOrientationPermissionRequired,
-  queryGeolocationPermissionState,
   requestLiveRideLocationPermission,
   requestLiveRideOrientationPermission,
 } from '@/features/live-ride/utils/requestLiveRidePermissions';
@@ -38,13 +37,6 @@ export function useLiveRideBootPermissions({ moduleReady }) {
     setBootBlocked(false);
     setBlockingReason(undefined);
     try {
-      const permState = await queryGeolocationPermissionState();
-      if (permState === 'denied') {
-        applyPermissionFailure(
-          'Location access is blocked. Enable location for this site in your browser settings, then try again.',
-        );
-        return;
-      }
       const result = await requestLiveRideLocationPermission();
       if (result.location === 'granted') {
         setLocationGranted(true);
