@@ -144,6 +144,24 @@ public sealed class DbSeedProfile
     /// <summary>Scales <see cref="SeedUserTraits.SocialMillis"/> effect on club participation targets.</summary>
     public int UserBehaviorParticipationTraitStrength { get; init; } = 14;
 
+    /// <summary>UTC days of synthetic app-open activity for admin analytics.</summary>
+    public int ActivitySeedHistoryDays { get; init; } = 90;
+
+    /// <summary>Target distinct daily actives at the start of the activity window (early growth).</summary>
+    public int ActivitySeedTargetDauMin { get; init; } = 6;
+
+    /// <summary>Target distinct daily actives at the end of the activity window (recent days).</summary>
+    public int ActivitySeedTargetDauMax { get; init; } = 24;
+
+    /// <summary>Weekend DAU multiplier relative to weekday target (0–1).</summary>
+    public double ActivitySeedWeekendFactor { get; init; } = 0.75;
+
+    /// <summary>Share of users treated as dormant in the last 7 UTC days (still active earlier in MAU window).</summary>
+    public double ActivitySeedRecentDormantFraction { get; init; } = 0.12;
+
+    /// <summary>Users shown as active within the last 15 minutes for admin “Active now”.</summary>
+    public int ActivitySeedActiveNowCount { get; init; } = 10;
+
     public SeedTimeProfile Time { get; init; } = new();
 
     /// <summary>Deterministic friend / inbox demo graph over ordered community indices (see <see cref="FriendInboxSeedSpec"/>).</summary>

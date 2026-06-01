@@ -2086,39 +2086,149 @@ public static class DbSeeder
 
     private static readonly int[] ActivityPeakHoursUtc = [6, 7, 8, 9, 17, 18, 19, 20];
 
+    private static async Task<bool> IsUserActivitySeedCompleteAsync(RydoDbContext db, IReadOnlyList<int> userIds)
+    {
+        if (userIds.Count == 0)
+            return true;
+
+        var minRows = userIds.Count * 12;
+        if (await db.UserActivityDays.CountAsync() < minRows)
+            return false;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var todayDau = await db.UserActivityDays.CountAsync(d => d.ActivityDateUtc == today);
+        if (todayDau < 5)
+            return false;
+
+        var monthStart = today.AddDays(-29);
+        var mau = await db.UserActivityDays
+            .AsNoTracking()
+            .Where(d => d.ActivityDateUtc >= monthStart && d.ActivityDateUtc <= today)
+            .Select(d => d.UserId)
+            .Distinct()
+            .CountAsync();
+
+        return mau >= Math.Max(1, userIds.Count / 2);
+    }
+
+    private static async Task ClearUserActivityRollupsAsync(RydoDbContext db)
+    {
+        await db.UserActivityHours.ExecuteDeleteAsync();
+        await db.UserActivityDays.ExecuteDeleteAsync();
+    }
+
+    private static List<int> PickWeightedUsersWithoutReplacement(
+        IReadOnlyList<int> pool,
+        IReadOnlyDictionary<int, int> weightByUserId,
+        int count,
+        DeterministicSeed det,
+        int dayOffset)
+    {
+        var remaining = pool.ToList();
+        var picked = new List<int>(Math.Min(count, remaining.Count));
+
+        for (var pick = 0; pick < count && remaining.Count > 0; pick++)
+        {
+            var weights = remaining.Select(id => weightByUserId.GetValueOrDefault(id, SeedBehaviorWeights.MinUserWeight)).ToList();
+            var idx = SeedBehaviorWeights.PickWeightedIndex(weights, det, SeedGraph.Salt.UserActivity, dayOffset, pick);
+            picked.Add(remaining[idx]);
+            remaining.RemoveAt(idx);
+        }
+
+        return picked;
+    }
+
+    private static HashSet<int> PickRecentDormantUserIds(
+        IReadOnlyList<int> userIds,
+        DeterministicSeed det,
+        double dormantFraction)
+    {
+        var dormantCount = Math.Clamp((int)Math.Round(userIds.Count * dormantFraction), 0, Math.Max(0, userIds.Count - 3));
+        var ordered = userIds
+            .OrderBy(id => SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, 200, id))
+            .Take(dormantCount)
+            .ToList();
+        return ordered.ToHashSet();
+    }
+
+    private static IEnumerable<byte> PickActivityHoursUtc(
+        DeterministicSeed det,
+        int userId,
+        int dayOffset)
+    {
+        var hourCount = 1 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 3) % 3);
+        var picked = new HashSet<byte>();
+
+        for (var h = 0; h < hourCount; h++)
+        {
+            var useOffPeak = SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 10 + h) % 10 == 0;
+            byte hour;
+            if (useOffPeak)
+            {
+                hour = (byte)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 20 + h) % 24);
+            }
+            else
+            {
+                hour = (byte)ActivityPeakHoursUtc[
+                    (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 4 + h)
+                        % ActivityPeakHoursUtc.Length)];
+            }
+
+            picked.Add(hour);
+        }
+
+        return picked;
+    }
+
     private static async Task SeedUserActivityIfNeededAsync(
         RydoDbContext db,
         IReadOnlyList<int> userIds,
         DeterministicSeed det)
     {
-        if (userIds.Count == 0 || await db.UserActivityDays.AnyAsync())
+        if (userIds.Count == 0)
             return;
 
+        if (await IsUserActivitySeedCompleteAsync(db, userIds))
+            return;
+
+        await ClearUserActivityRollupsAsync(db);
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        const int historyDays = 90;
+        var historyDays = Profile.ActivitySeedHistoryDays;
         var activityDays = new List<UserActivityDay>();
         var activityHours = new List<UserActivityHour>();
         var now = DateTime.UtcNow;
 
+        var weightByUserId = userIds.ToDictionary(
+            id => id,
+            id => SeedBehaviorWeights.MinUserWeight + SeedUserTraits.For(id, det.Root).ActivityMillis);
+
+        var recentDormant = PickRecentDormantUserIds(userIds, det, Profile.ActivitySeedRecentDormantFraction);
+
         for (var dayOffset = historyDays - 1; dayOffset >= 0; dayOffset--)
         {
             var date = today.AddDays(-dayOffset);
-            var progress = (historyDays - dayOffset) / (double)historyDays;
-            var growthFactor = 0.4 + 0.3 * progress;
+            var dayProgress = (historyDays - dayOffset) / (double)historyDays;
             var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
-            var weekdayFactor = isWeekend ? 1.0 : 1.3;
+            var weekdayFactor = isWeekend ? Profile.ActivitySeedWeekendFactor : 1.0;
+            var targetBase = Profile.ActivitySeedTargetDauMin
+                + (Profile.ActivitySeedTargetDauMax - Profile.ActivitySeedTargetDauMin) * dayProgress;
+            var targetDau = Math.Clamp((int)Math.Round(targetBase * weekdayFactor), 1, userIds.Count);
 
-            foreach (var userId in userIds)
+            var pool = dayOffset < 7
+                ? userIds.Where(id => !recentDormant.Contains(id)).ToList()
+                : userIds.ToList();
+
+            if (pool.Count == 0)
+                pool = userIds.ToList();
+
+            var activeUsers = PickWeightedUsersWithoutReplacement(pool, weightByUserId, targetDau, det, dayOffset);
+
+            foreach (var userId in activeUsers)
             {
-                var traits = SeedUserTraits.For(userId, det.Root);
-                var userBias = 0.35 + traits.ActivityMillis / 1400.0;
-                var threshold = growthFactor * weekdayFactor * userBias;
-                var roll = SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset) % 1000 / 1000.0;
-                if (roll > threshold)
-                    continue;
-
                 var firstHour = ActivityPeakHoursUtc[
-                    (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 1) % ActivityPeakHoursUtc.Length)];
+                    (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 1)
+                        % ActivityPeakHoursUtc.Length)];
                 var firstSeen = date.ToDateTime(new TimeOnly(firstHour, 12), DateTimeKind.Utc);
                 var lastSeen = firstSeen.AddMinutes(
                     15 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 2) % 120));
@@ -2131,17 +2241,7 @@ public static class DbSeeder
                     LastSeenAtUtc = lastSeen,
                 });
 
-                var hourCount = 1 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 3) % 3);
-                var pickedHours = new HashSet<byte>();
-                for (var h = 0; h < hourCount; h++)
-                {
-                    var hour = ActivityPeakHoursUtc[
-                        (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 4 + h)
-                            % ActivityPeakHoursUtc.Length)];
-                    pickedHours.Add((byte)hour);
-                }
-
-                foreach (var hour in pickedHours)
+                foreach (var hour in PickActivityHoursUtc(det, userId, dayOffset))
                 {
                     activityHours.Add(new UserActivityHour
                     {
@@ -2153,8 +2253,8 @@ public static class DbSeeder
             }
         }
 
-        var recentActiveCount = Math.Min(10, userIds.Count);
-        for (var i = 0; i < recentActiveCount; i++)
+        var activeNowCount = Math.Min(Profile.ActivitySeedActiveNowCount, userIds.Count);
+        for (var i = 0; i < activeNowCount; i++)
         {
             var userId = userIds[
                 (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, 99, i) % (ulong)userIds.Count)];
