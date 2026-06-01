@@ -30,6 +30,7 @@ import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import MobileChromeSecondaryButton from '@/shared/components/layout/mobile-chrome/MobileChromeSecondaryButton';
 import MobileFloatingActions from '@/shared/components/layout/mobile-chrome/MobileFloatingActions';
+import { desktopChromeFooterClass } from '@/shared/components/layout/mobile-chrome/mobileChromeFooter';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
@@ -71,9 +72,6 @@ function SecondaryAction({ children, className, ...props }) {
     </MobileChromeSecondaryButton>
   );
 }
-
-const chromeFooterClass =
-  'relative z-[3] flex shrink-0 items-center gap-2.5 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl';
 
 function RideChatFooter({ rideId, navigate, className }) {
   return (
@@ -486,7 +484,7 @@ export default function RideEventPageBold({
 
         {showRideChat && !showAttendance ? (
           <>
-            <div className={cn(chromeFooterClass, 'hidden md:flex')}>
+            <div className={cn(desktopChromeFooterClass, 'hidden md:flex')}>
               <RideChatFooter rideId={ride.id} navigate={navigate} />
             </div>
             <MobileFloatingActions className="md:hidden">
@@ -497,7 +495,7 @@ export default function RideEventPageBold({
 
         {showAttendance ? (
           <>
-            <div className={cn(chromeFooterClass, 'hidden md:flex')}>
+            <div className={cn(desktopChromeFooterClass, 'hidden md:flex')}>
               <RideAttendanceFooter
                 ride={ride}
                 amParticipant={amParticipant}

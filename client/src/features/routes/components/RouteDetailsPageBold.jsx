@@ -38,6 +38,8 @@ import ProgressRing from '@/shared/components/bold/viz/ProgressRing';
 
 import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
+import MobileFloatingActions from '@/shared/components/layout/mobile-chrome/MobileFloatingActions';
+import { desktopChromeFooterClass } from '@/shared/components/layout/mobile-chrome/mobileChromeFooter';
 
 import UserAvatar from '@/shared/components/user/UserAvatar';
 
@@ -286,32 +288,33 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
         </BoldScrollArea>
 
-
-
-        <div className="relative z-[3] flex shrink-0 items-center gap-3 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
-
+        <div className={cn(desktopChromeFooterClass, 'hidden md:flex')}>
           <div className="shrink-0">
-
             <SavedRouteButton routeId={route.id} variant="icon" />
-
           </div>
-
           <GradientCTA
-
-            className="flex-1 whitespace-nowrap"
-
+            className="min-w-0 flex-1 whitespace-nowrap"
             icon={Bike}
-
+            heightClass="h-12"
             onClick={() => setScheduleOpen(true)}
-
           >
-
             Start this ride
-
           </GradientCTA>
-
         </div>
 
+        <MobileFloatingActions className="md:hidden">
+          <div className="shrink-0">
+            <SavedRouteButton routeId={route.id} variant="icon" className="h-12 w-12" />
+          </div>
+          <GradientCTA
+            className="min-w-0 flex-1 whitespace-nowrap"
+            icon={Bike}
+            heightClass="h-12"
+            onClick={() => setScheduleOpen(true)}
+          >
+            Start this ride
+          </GradientCTA>
+        </MobileFloatingActions>
       </div>
 
 

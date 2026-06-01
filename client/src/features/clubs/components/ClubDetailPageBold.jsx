@@ -132,10 +132,7 @@ export default function ClubDetailPageBold({
           ) : null}
         </div>
 
-        <BoldScrollArea
-          insetTabBar={!canSeeMembers}
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1"
-        >
+        <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1">
           <div className="flex items-start gap-3.5">
             <UserAvatar
               avatarUrl={club.avatarUrl}

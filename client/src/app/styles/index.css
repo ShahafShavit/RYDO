@@ -979,14 +979,22 @@ html[data-theme='dune'] .app-logo {
   min-height: 0;
 }
 
-/* Scroll inset for fixed bottom tab bar — lives on the scroll viewport, not layout shell padding. */
+/* Mobile Bold: scroll viewport does not add extra bottom padding (chrome is fixed overlay). */
 @media (max-width: 767px) {
   .rydo-bold-scroll-viewport {
-    padding-bottom: max(1rem, var(--rydo-bottom-stack-h));
+    padding-bottom: 1rem;
   }
 
   .rydo-mobile-cta-slot {
     padding: 0.875rem 1.25rem 0.75rem;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .rydo-mobile-cta-row {
+    width: 100%;
   }
 
   .rydo-mobile-cta-slot:empty {

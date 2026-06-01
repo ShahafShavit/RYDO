@@ -6,13 +6,19 @@ Mobile rider and admin shells share a fixed bottom stack:
 CTA slot (portaled) → optional mode bar → tab bar
 ```
 
-`MobileBottomChrome` renders that stack and measures its height into `--rydo-bottom-stack-h` on `<html>`. Scroll areas with the `rydo-bold-scroll-viewport` class pick up that inset automatically.
+`MobileBottomChrome` renders that stack and measures its height into `--rydo-bottom-stack-h` on `<html>`.
+
+## Scroll boundary
+
+Do **not** add `padding-bottom` on [`BoldScreen`](../../bold/BoldScreen.jsx) for chrome clearance — it creates a visible gap above the fixed stack.
+
+`.rydo-bold-scroll-viewport` keeps `padding-bottom: 0`. The `insetTabBar` prop on [`BoldScrollArea`](../../bold/BoldScrollArea.jsx) remains for API compatibility. Portaled CTAs sit in the fixed stack overlay; avoid duplicate `pb-[calc(var(--rydo-tabbar-h)+…)]` on pages.
 
 ## Adding a mobile CTA
 
 Use `MobileFloatingActions` — do **not** use `position: fixed` with `bottom-[calc(var(--rydo-tabbar-h)+…)]`.
 
-The CTA slot renders a shared glass bar (border, blur, padding). Keep action rows inside it:
+The CTA slot (`#rydo-mobile-cta-slot`) is padding-only — transparent, no opaque bar. Keep action rows inside `MobileFloatingActions`:
 
 - Primary: `GradientCTA` with `heightClass="h-12"`
 - Secondary: `MobileChromeSecondaryButton`
@@ -35,11 +41,7 @@ export function MyPageActions() {
 }
 ```
 
-Content is portaled into `#rydo-mobile-cta-slot` at the top of the stack, so CTAs sit above the admin/rider mode bar and tab bar without manual offset tuning.
-
-## Scroll padding
-
-Prefer `BoldScrollArea` with default `insetTabBar` (adds `rydo-bold-scroll-viewport`). Do not add page-specific `pb-[calc(var(--rydo-tabbar-h)+…)]` — the measured stack height already includes CTAs when present.
+Content is portaled into `#rydo-mobile-cta-slot` at the top of the stack, so CTAs sit above the admin/rider mode bar and tab bar without manual offset tuning. When the slot is empty, it collapses and `--rydo-bottom-stack-h` shrinks accordingly.
 
 ## In-flow footers
 
@@ -51,3 +53,4 @@ When adding mobile bottom UI, grep for anti-patterns:
 
 - `bottom-[.*rydo-tabbar`
 - `pb-[calc(var(--rydo-tabbar-h)`
+- `padding-bottom` on `.rydo-bold-scroll-viewport` or page scroll areas for chrome clearance

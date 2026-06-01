@@ -29,7 +29,7 @@ export default function AdminPageShell({
               {banner ? <div className="px-4 pt-3">{banner}</div> : null}
               {toolbar ? <div className="px-4 pt-3">{toolbar}</div> : null}
             </div>
-            <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pb-4 pt-2">
+            <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pt-2">
               {mobile}
             </BoldScrollArea>
           </div>

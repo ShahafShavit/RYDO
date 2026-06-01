@@ -1,13 +1,14 @@
 import { cn } from '@/shared/lib/cn';
 
 /** Full-bleed Bold mobile shell — gradient fills viewport above tab bar (desktop unaffected). */
-export default function BoldScreen({ children, className, hero }) {
+export default function BoldScreen({ children, className, hero, ...props }) {
   return (
     <div
       className={cn(
         'rydo-bold-screen flex h-full min-h-0 flex-1 flex-col overflow-hidden md:min-h-0',
         className,
       )}
+      {...props}
     >
       {hero}
       {children}

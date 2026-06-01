@@ -12,6 +12,7 @@ const MAX_PULL = 160;
 /** Treat tiny scroll offsets as "at top" (sub-pixel / rubber-band). */
 const SCROLL_TOP_TOLERANCE = 2;
 
+/** insetTabBar: adds rydo-bold-scroll-viewport (mobile). No extra scroll padding for bottom chrome. */
 const BoldScrollArea = forwardRef(function BoldScrollArea(
   { className, insetTabBar = true, children, ...props },
   ref,

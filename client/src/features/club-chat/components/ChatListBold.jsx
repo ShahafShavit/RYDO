@@ -5,6 +5,7 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { formatChatPreviewTime } from '@/features/club-chat/utils/formatChatTime';
 import { formatRideChatTitle } from '@/features/ride-chat/utils/formatRideChatTitle';
 import { cn } from '@/shared/lib/cn';
+import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 
 function UnreadBadge({ count }) {
@@ -181,7 +182,7 @@ export default function ChatListBold({
   }, [merged, query]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden" dir="ltr">
+    <BoldScreen className="overflow-hidden" dir="ltr">
       <header className="shrink-0 px-5 pt-[var(--rydo-bold-page-top)]">
         <DisplayTitle size="lg">Chat</DisplayTitle>
       </header>
@@ -227,6 +228,6 @@ export default function ChatListBold({
           </ul>
         )}
       </BoldScrollArea>
-    </div>
+    </BoldScreen>
   );
 }
