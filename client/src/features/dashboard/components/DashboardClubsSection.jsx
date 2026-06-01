@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, UsersRound } from 'lucide-react';
+import { Bike, ChevronRight, Users, UsersRound } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import { EXPLORE_PATHS } from '@/features/routes/explore/explore-scope';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
@@ -51,11 +51,27 @@ export default function DashboardClubsSection({ groups = [] }) {
                   displayName={group.name}
                   sizeClass="h-10 w-10"
                   textClass="text-sm"
-                  className="shrink-0 ring-2 ring-border"
+                  className={
+                    group.isAdmin
+                      ? 'shrink-0 ring-2 ring-rydo-green/75 ring-offset-2 ring-offset-[var(--rydo-bg-deep)]'
+                      : 'shrink-0 ring-2 ring-border'
+                  }
                 />
                 <div className="min-w-0 flex-1">
                   <TruncatedText className="text-sm font-bold text-fg">{group.name}</TruncatedText>
                   <p className="rydo-subtle mt-0.5 truncate text-xs">{group.detail}</p>
+                  <div className="rydo-subtle mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] font-semibold">
+                    <span className="inline-flex items-center gap-1">
+                      <Bike className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                      {group.upcomingRideCount === 1 ? '1 upcoming' : `${group.upcomingRideCount} upcoming`}
+                    </span>
+                    {group.memberCount != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+                        {group.memberCount === 1 ? '1 member' : `${group.memberCount} members`}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <ChevronRight className="h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />
               </Link>

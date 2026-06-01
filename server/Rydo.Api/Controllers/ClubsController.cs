@@ -126,6 +126,24 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             })
             .ToListAsync(ct);
 
+        var clubIds = list.Select(c => c.Id).ToList();
+        var now = DateTime.UtcNow;
+
+        var memberCountByClub = await db.ClubMembers.AsNoTracking()
+            .Where(m => clubIds.Contains(m.ClubId) && m.MembershipStatus == ClubMembershipStatus.Active)
+            .GroupBy(m => m.ClubId)
+            .Select(g => new { ClubId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClubId, x => x.Count, ct);
+
+        var upcomingRideCountByClub = await db.Rides.AsNoTracking()
+            .Where(r => r.ClubId != null
+                && clubIds.Contains(r.ClubId.Value)
+                && r.Kind != RideKind.SoloLog
+                && r.ScheduledDate >= now)
+            .GroupBy(r => r.ClubId!.Value)
+            .Select(g => new { ClubId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClubId, x => x.Count, ct);
+
         var result = list.Select(c =>
         {
             var role = MyRole(c.Id);
@@ -134,6 +152,10 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
             var vis = c.Visibility == ClubVisibility.Public ? "public" : "private";
             var avatar = AvatarUrls.ResolveClubDisplay(c.AvatarSeed, c.Name, c.HasBlob, c.Id);
             var rideCreationPolicy = ClubRidePolicy.ToApiString(c.RideCreationPolicy);
+            int? memberCount = hidePrivateFields
+                ? null
+                : memberCountByClub.GetValueOrDefault(c.Id);
+            var upcomingRideCount = upcomingRideCountByClub.GetValueOrDefault(c.Id);
             return new
             {
                 c.Id,
@@ -146,6 +168,8 @@ public class ClubsController(RydoDbContext db, IHubContext<ClubChatHub> clubChat
                 myRole = role,
                 rideCreationPolicy,
                 viewerCanCreateRide = ViewerCanCreateRide(c.Id, c.RideCreationPolicy),
+                memberCount,
+                upcomingRideCount,
                 c.CreatedAt,
             };
         }).ToList();

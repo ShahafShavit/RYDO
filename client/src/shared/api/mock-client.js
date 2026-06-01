@@ -1277,11 +1277,22 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/clubs' && method === 'GET') {
-    return clubs.map((c) => ({
-      ...mockClubToApiRow(c),
-      rideCreationPolicy: mockRideCreationPolicyApi(c),
-      viewerCanCreateRide: mockViewerCanCreateRide(c),
-    }));
+    const now = Date.now();
+    return clubs.map((c) => {
+      const isActive = mockIsActiveClubMember(c);
+      const hidePrivateFields = c.visibility === 'private' && !isActive;
+      const clubRides = rides.filter((r) => r.clubId === c.id);
+      const upcomingRideCount = clubRides.filter(
+        (r) => new Date(r.scheduledDate).getTime() >= now,
+      ).length;
+      return {
+        ...mockClubToApiRow(c),
+        rideCreationPolicy: mockRideCreationPolicyApi(c),
+        viewerCanCreateRide: mockViewerCanCreateRide(c),
+        memberCount: hidePrivateFields ? null : 4,
+        upcomingRideCount,
+      };
+    });
   }
 
   if (pathname === '/api/clubs' && method === 'POST') {

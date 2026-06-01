@@ -160,6 +160,10 @@ export function buildDashboardHome({
     detail: c.region?.trim() || c.description?.trim()?.slice(0, 72) || '—',
     visibility: c.visibility === 'private' ? 'private' : 'public',
     avatarUrl: typeof c.avatarUrl === 'string' && c.avatarUrl.trim() ? c.avatarUrl.trim() : null,
+    isAdmin: c.myRole === 'admin',
+    memberCount: typeof c.memberCount === 'number' ? c.memberCount : null,
+    upcomingRideCount:
+      typeof c.upcomingRideCount === 'number' ? c.upcomingRideCount : 0,
   }));
 
   const g = gamificationRaw && typeof gamificationRaw === 'object' ? gamificationRaw : {};

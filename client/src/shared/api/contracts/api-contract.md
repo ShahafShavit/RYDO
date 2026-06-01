@@ -397,7 +397,7 @@ Member `role` in roster responses: `member` | `organizer` | `admin`. Viewer memb
 
 ### `GET /clubs`
 - Anonymous: public clubs only.
-- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending`, `myRole` (`member` | `organizer` | `admin` | `pending` | null), `rideCreationPolicy`, and `viewerCanCreateRide`. For **private** clubs, if the viewer is **not** an active member, `description`, `region`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
+- Authenticated: **all** public and **all** private clubs (for discovery). Each row includes `membershipPending`, `myRole` (`member` | `organizer` | `admin` | `pending` | null), `rideCreationPolicy`, `viewerCanCreateRide`, `upcomingRideCount` (scheduled club rides from now), and `memberCount` (active members, or null when redacted). For **private** clubs, if the viewer is **not** an active member, `description`, `region`, `memberCount`, and `avatarUrl` are omitted (null), matching `GET /clubs/:id`.
 - Each row includes optional `avatarUrl` when not redacted (image URL string or null).
 
 ### `POST /clubs` (authenticated)
