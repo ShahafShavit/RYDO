@@ -11,6 +11,7 @@
     "env:ios:dotnet": "node scripts/use-emulator-env.mjs ios --dotnet",
     "env:android:dotnet": "node scripts/use-emulator-env.mjs android --dotnet",
     "env:android:device:dotnet": "node scripts/use-emulator-env.mjs android-device --dotnet",
+    "env:prod": "node scripts/use-emulator-env.mjs prod",
     "env:show": "node scripts/use-emulator-env.mjs show",
     "prebuild": "node scripts/ensure-env.mjs",
     "build": "vite build",
@@ -25,8 +26,10 @@
     "cap:open:ios": "npx cap open ios",
     "env:shell": "bash scripts/android-env.sh",
     "check:android": "node scripts/check-android-prereqs.mjs",
+    "check:ios": "node scripts/check-ios-prereqs.mjs",
     "run:android": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs",
     "run:android:dotnet": "node scripts/check-android-prereqs.mjs && node scripts/run-android.mjs --dotnet",
+    "run:ios:device": "node scripts/check-ios-prereqs.mjs && node scripts/run-ios-device.mjs",
     "icons:render": "node scripts/render-icon.mjs",
     "icons:generate": "npm run icons:render && capacitor-assets generate --android --iconBackgroundColor \"#0f0f10\" --iconBackgroundColorDark \"#0f0f10\""
   },

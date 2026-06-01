@@ -137,6 +137,54 @@ Or add a `run:ios` script later; opening Xcode is the usual flow.
 
 ---
 
+## Run on a physical iPhone (USB, production API)
+
+**macOS + Xcode only.** Builds a **debug** app against **`https://rydo.bike`** and installs it over USB — fastest loop for testing on real hardware without TestFlight.
+
+### One-time setup
+
+1. **Xcode** from the App Store; run it once and accept the license
+2. **Command Line Tools:** `xcode-select --install`
+3. **Node 20+** and `npm install` in `mobile/`
+4. **Mapbox token** in `client/.env.local` (copied into the build by `env:prod`)
+5. On the iPhone: **Trust** the Mac when prompted; **Developer Mode** on (Settings → Privacy & Security, iOS 16+)
+6. **First-time signing:** if install fails, run once with `--open`, pick your Apple ID **Team** under Signing & Capabilities, then retry
+
+### Deploy to USB iPhone
+
+```bash
+cd mobile
+npm run check:ios          # optional: verify Xcode + list connected iPhone
+npm run run:ios:device     # env:prod + build + cap sync + install on USB iPhone
+```
+
+**What it does:** writes `mobile/.env.local` from [`.env.prod`](.env.prod) (`VITE_API_BASE_URL=https://rydo.bike`), builds the web bundle, syncs Capacitor, and runs `cap run ios` on the connected iPhone.
+
+### Debug on device
+
+| What | How |
+|------|-----|
+| **JS / network / React** | Mac **Safari** → **Develop** → *your iPhone* → **RYDO** (enable Develop menu: Safari → Settings → Advanced) |
+| **Native crashes / plugins** | `npm run run:ios:device -- --open` → Run in **Xcode** (⌘R) with the debug console |
+| **Current env** | `npm run env:show` |
+| **API health** | `curl https://rydo.bike/health` |
+
+### Options
+
+```bash
+npm run run:ios:device -- --skip-env          # keep existing mobile/.env.local
+npm run run:ios:device -- --target <id>       # pick a device (npx cap run ios --list)
+npm run run:ios:device -- --open              # open Xcode instead of cap run (signing setup)
+
+# CloudFront URL instead of custom domain:
+RYDO_PROD_API_URL=https://d123.cloudfront.net npm run env:prod
+npm run run:ios:device -- --skip-env
+```
+
+After **JS-only** changes, re-run `npm run run:ios:device`. No Docker or local API required — the phone talks to production over HTTPS/Wi‑Fi or cellular.
+
+---
+
 ## What each command does
 
 | Command | What happens |
@@ -145,7 +193,10 @@ Or add a `run:ios` script later; opening Xcode is the usual flow.
 | `npm run build` | Vite bundles `client/src` → `mobile/dist/` |
 | `npx cap sync android` | Copies `dist/` into the native Android project |
 | `npm run run:android` | All of the above + Gradle + installs/launches (USB device preferred, else emulator) |
+| `npm run run:ios:device` | Prod API + build + sync + install on USB iPhone (macOS only) |
+| `npm run env:prod` | Writes `mobile/.env.local` with `https://rydo.bike` |
 | `npm run check:android` | Checks `JAVA_HOME`, `ANDROID_HOME`, `adb devices` |
+| `npm run check:ios` | Checks Xcode and lists USB iPhones (macOS only) |
 
 `npm run env:android` **alone** does not open anything — use **`npm run run:android`** to run the app.
 

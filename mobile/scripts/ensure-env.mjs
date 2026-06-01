@@ -13,6 +13,7 @@ mobile/.env.local is missing.
 Run one of:
   npm run env:android    (Android emulator + Docker API :5000)
   npm run env:ios        (iOS simulator + Docker API :5000)
+  npm run env:prod       (production API https://rydo.bike)
   npm run env:android:dotnet
 `);
   process.exit(1);
@@ -20,6 +21,6 @@ Run one of:
 
 const text = fs.readFileSync(localPath, 'utf8');
 if (!/VITE_API_BASE_URL=\s*\S+/.test(text)) {
-  console.error('mobile/.env.local has no VITE_API_BASE_URL. Re-run npm run env:android');
+  console.error('mobile/.env.local has no VITE_API_BASE_URL. Re-run npm run env:android, env:ios, or env:prod');
   process.exit(1);
 }

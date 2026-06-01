@@ -22,6 +22,7 @@ const PLATFORM_FILES = {
   ios: '.env.ios-emulator',
   android: '.env.android-emulator',
   'android-device': '.env.android-device',
+  prod: '.env.prod',
   'ios-dotnet': '.env.ios-emulator.dotnet',
   'android-dotnet': '.env.android-emulator.dotnet',
   'android-device-dotnet': '.env.android-device.dotnet',
@@ -73,6 +74,7 @@ function mergeMapboxFromClient(vars) {
 }
 
 function resolveTemplateKey(platform, useDotnet) {
+  if (platform === 'prod') return 'prod';
   if (platform === 'ios') return useDotnet ? 'ios-dotnet' : 'ios';
   if (platform === 'android') return useDotnet ? 'android-dotnet' : 'android';
   if (platform === 'android-device') return useDotnet ? 'android-device-dotnet' : 'android-device';
@@ -106,10 +108,11 @@ function main() {
   const useDotnet = args.includes('--dotnet');
 
   if (!platform || platform === 'help' || args.includes('--help')) {
-    console.log(`Usage: node scripts/use-emulator-env.mjs <ios|android|android-device|show> [--dotnet]
+    console.log(`Usage: node scripts/use-emulator-env.mjs <ios|android|android-device|prod|show> [--dotnet]
 
   ios|android           Write mobile/.env.local from the emulator template
   android-device        USB device on LAN (auto-detects host IPv4)
+  prod                  Production API (https://rydo.bike); override with RYDO_PROD_API_URL
   --dotnet              Use dotnet run ports (5032) instead of Docker (5000)
   show                  Print current mobile/.env.local (if present)
 `);
@@ -128,7 +131,7 @@ function main() {
 
   const templateKey = resolveTemplateKey(platform, useDotnet);
   if (!templateKey) {
-    console.error(`Unknown platform "${platform}". Use ios, android, or android-device.`);
+    console.error(`Unknown platform "${platform}". Use ios, android, android-device, or prod.`);
     process.exit(1);
   }
 
@@ -150,11 +153,19 @@ function main() {
   }
   vars = mergeMapboxFromClient(vars);
 
+  const prodOverride = process.env.RYDO_PROD_API_URL?.replace(/\/$/, '');
+  if (platform === 'prod' && prodOverride) {
+    vars.VITE_API_BASE_URL = prodOverride;
+    header.push(`# RYDO_PROD_API_URL override applied`);
+  }
+
   const outPath = path.join(mobileRoot, '.env.local');
   fs.writeFileSync(outPath, serializeEnv(vars, header));
 
   console.log(`Wrote ${path.relative(process.cwd(), outPath)}`);
-  console.log(`  Platform: ${platform}${useDotnet ? ' (dotnet API)' : ' (Docker API)'}`);
+  const apiLabel =
+    platform === 'prod' ? ' (production)' : useDotnet ? ' (dotnet API)' : ' (Docker API)';
+  console.log(`  Platform: ${platform}${apiLabel}`);
   console.log(`  VITE_API_BASE_URL=${vars.VITE_API_BASE_URL}`);
   if (!vars.VITE_MAPBOX_ACCESS_TOKEN) {
     console.warn(
@@ -164,8 +175,15 @@ function main() {
     console.log('  VITE_MAPBOX_ACCESS_TOKEN=(set)');
   }
   console.log('');
-  console.log('  Next: npm run run:android   (build + sync + launch on device/emulator)');
-  console.log('        npm run check:android (verify JAVA_HOME / SDK)');
+  if (platform === 'prod') {
+    console.log('  Next: npm run run:ios:device   (USB iPhone + prod API, macOS only)');
+    console.log('        npm run run:android -- --skip-env   (Android, keep prod .env.local)');
+  } else if (platform === 'ios') {
+    console.log('  Next: npm run build && npx cap sync ios && npm run cap:open:ios');
+  } else {
+    console.log('  Next: npm run run:android   (build + sync + launch on device/emulator)');
+    console.log('        npm run check:android (verify JAVA_HOME / SDK)');
+  }
 }
 
 main();
