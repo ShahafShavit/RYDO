@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
+import { AdminEngagementKpiBold } from '@/features/admin/components/AdminEngagementKpiRow';
 import { useAdminSummary } from '@/features/admin/hooks/useAdminSummary';
 import AdminErrorState from '@/features/admin/components/AdminErrorState';
 
@@ -37,6 +38,8 @@ export default function AdminStatGridBold() {
 
   return (
     <div className="space-y-4">
+      <AdminEngagementKpiBold data={data} />
+
       <StatRibbon items={ribbonItems} paddingClass="px-0 py-2" />
 
       <div className="space-y-2">

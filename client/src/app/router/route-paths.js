@@ -32,6 +32,7 @@ export const ROUTES = {
   adminRoutes: '/admin/routes',
   adminHazards: '/admin/hazards',
   adminChallenges: '/admin/challenges',
+  adminAnalytics: '/admin/analytics',
 
   // Live Ride (Mapbox simulator; public for desktop QA)
   live: '/live',

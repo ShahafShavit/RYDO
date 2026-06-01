@@ -3,6 +3,7 @@ import {
   Bike,
   Compass,
   Home,
+  BarChart3,
   LayoutDashboard,
   Map,
   MessageCircle,
@@ -33,6 +34,7 @@ export const dashboardNavigation = [
 
 export const adminNavigation = [
   { label: 'Dashboard', shortLabel: 'Home', to: ROUTES.admin, Icon: LayoutDashboard },
+  { label: 'Analytics', shortLabel: 'Stats', to: ROUTES.adminAnalytics, Icon: BarChart3 },
   { label: 'Users', to: ROUTES.adminUsers, Icon: Users },
   { label: 'Routes', to: ROUTES.adminRoutes, Icon: Map },
   { label: 'Hazards', to: ROUTES.adminHazards, Icon: AlertTriangle },

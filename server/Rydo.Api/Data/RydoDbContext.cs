@@ -31,6 +31,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<InboxItem> InboxItems => Set<InboxItem>();
     public DbSet<RideInvite> RideInvites => Set<RideInvite>();
+    public DbSet<UserActivityDay> UserActivityDays => Set<UserActivityDay>();
+    public DbSet<UserActivityHour> UserActivityHours => Set<UserActivityHour>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -74,6 +76,21 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.Property(x => x.AvatarImageBytes).HasMaxLength(524_288);
             e.Property(x => x.Handle).HasMaxLength(30).IsRequired();
             e.HasIndex(x => x.Handle).IsUnique();
+            e.HasIndex(x => x.LastSeenAtUtc);
+        });
+
+        builder.Entity<UserActivityDay>(e =>
+        {
+            e.HasKey(x => new { x.UserId, x.ActivityDateUtc });
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.ActivityDateUtc);
+        });
+
+        builder.Entity<UserActivityHour>(e =>
+        {
+            e.HasKey(x => new { x.UserId, x.ActivityDateUtc, x.HourUtc });
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.ActivityDateUtc, x.HourUtc });
         });
 
         builder.Entity<ClubMember>(e =>

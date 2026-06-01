@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import Card from '@/shared/components/ui/card/Card';
+import AdminEngagementKpiRow from '@/features/admin/components/AdminEngagementKpiRow';
 import { useAdminSummary } from '@/features/admin/hooks/useAdminSummary';
 import Loader from '@/shared/components/feedback/Loader';
 import AdminErrorState from '@/features/admin/components/AdminErrorState';
@@ -92,10 +93,14 @@ export default function AdminStatGrid() {
   if (isError) return <AdminErrorState message={error?.message || 'Could not load admin statistics.'} />;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {STAT_CONFIG.map((stat) => (
-        <StatCard key={stat.key} stat={stat} value={data?.[stat.key]} />
-      ))}
+    <div className="space-y-6">
+      <AdminEngagementKpiRow data={data} />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {STAT_CONFIG.map((stat) => (
+          <StatCard key={stat.key} stat={stat} value={data?.[stat.key]} />
+        ))}
+      </div>
     </div>
   );
 }

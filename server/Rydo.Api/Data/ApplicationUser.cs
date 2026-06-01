@@ -11,6 +11,9 @@ public class ApplicationUser : IdentityUser<int>
     public string LastName { get; set; } = "";
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>Last authenticated app activity (API or SignalR).</summary>
+    public DateTime? LastSeenAtUtc { get; set; }
+
     public string? Bio { get; set; }
     public string? Location { get; set; }
     public string? AvatarUrl { get; set; }

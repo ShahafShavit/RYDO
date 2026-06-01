@@ -142,7 +142,7 @@ export function buildDashboardHome({
   distanceUnit = 'km',
 }) {
   const unit = distanceUnit === 'mi' ? 'mi' : 'km';
-  const { history, total: historyTotal } = normalizeHistoryRaw(historyRaw);
+  const { history } = normalizeHistoryRaw(historyRaw);
   const last = history[0];
 
   const rides = Array.isArray(rideGroupsRaw) ? rideGroupsRaw : [];
@@ -187,8 +187,6 @@ export function buildDashboardHome({
     };
   }
 
-  const count = historyTotal;
-  const ridesToNext = xpToNext;
   const weekStartMs = startOfCurrentWeekMs();
   const weeklyHistory = history.filter((item) => {
     const ts = new Date(item.completedAt).getTime();

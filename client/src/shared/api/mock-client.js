@@ -1806,7 +1806,7 @@ export async function mockRequest(path, options = {}) {
         };
       })
       .sort((a, b) => new Date(b.sortAt) - new Date(a.sortAt))
-      .map(({ sortAt, ...row }) => row);
+      .map(({ sortAt: _sortAt, ...row }) => row);
     return rows;
   }
 

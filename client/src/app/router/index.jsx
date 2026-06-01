@@ -27,6 +27,7 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
 const AdminHazardsPage = lazy(() => import('@/pages/admin/AdminHazardsPage'));
 const AdminChallengesPage = lazy(() => import('@/pages/admin/AdminChallengesPage'));
+const AdminAnalyticsPage = lazy(() => import('@/pages/admin/AdminAnalyticsPage'));
 const NotFoundPage = lazy(() => import('@/pages/not-found/NotFoundPage'));
 const RideEventPage = lazy(() => import('@/pages/rides/RideEventPage'));
 const MyRidesPage = lazy(() => import('@/pages/rides/MyRidesPage'));
@@ -106,6 +107,7 @@ export function createAppRoutes(options = {}) {
             { path: ROUTES.adminRoutes, element: <AdminRoutesPage /> },
             { path: ROUTES.adminHazards, element: <AdminHazardsPage /> },
             { path: ROUTES.adminChallenges, element: <AdminChallengesPage /> },
+            { path: ROUTES.adminAnalytics, element: <AdminAnalyticsPage /> },
           ],
         },
       ],

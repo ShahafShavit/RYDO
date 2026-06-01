@@ -29,5 +29,6 @@ public static class SeedGraph
         public const int ChallengeProgress = 0x90;
         public const int SoloHistory = 0xA0;
         public const int UserPreference = 0xB0;
+        public const int UserActivity = 0xC0;
     }
 }

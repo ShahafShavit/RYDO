@@ -3,11 +3,13 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Rydo.Api;
 using Rydo.Api.Data;
 using Rydo.Api.Hubs;
+using Rydo.Api.Middleware;
 using Rydo.Api.Services;
 using Rydo.Api.Services.RideLive;
 
@@ -26,6 +28,9 @@ builder.Services.AddScoped<IUserLifetimeStatsService, UserLifetimeStatsService>(
 builder.Services.AddScoped<IGamificationService, GamificationService>();
 builder.Services.AddScoped<IHistoryMaterializationService, HistoryMaterializationService>();
 builder.Services.AddScoped<IUserHandleService, UserHandleService>();
+builder.Services.AddScoped<IAdminEngagementAnalyticsService, AdminEngagementAnalyticsService>();
+builder.Services.AddSingleton<IUserActivityRecorder, UserActivityRecorder>();
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
 builder.Services.AddSingleton<RideLiveBotOrchestrator>();
@@ -100,6 +105,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddSingleton<IHubFilter, UserActivityHubFilter>();
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR().AddJsonProtocol(o =>
 {
@@ -132,6 +138,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
 builder.Services.AddHostedService<ClubChatSimulatorBackgroundService>();
 builder.Services.AddHostedService<HistoryMaterializationBackgroundService>();
+builder.Services.AddHostedService<UserActivityRetentionBackgroundService>();
 
 var app = builder.Build();
 
@@ -184,6 +191,7 @@ if (File.Exists(indexHtml))
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UserActivityMiddleware>();
 
 app.MapControllers();
 app.MapHub<ClubChatHub>("/hubs/club-chat");

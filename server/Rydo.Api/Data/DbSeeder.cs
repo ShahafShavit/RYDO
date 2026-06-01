@@ -100,6 +100,8 @@ public static class DbSeeder
             await EnsureClubChatSeedAsync(db, rider.Id);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
+            var existingUserIds = await db.Users.AsNoTracking().Select(u => u.Id).ToListAsync();
+            await SeedUserActivityIfNeededAsync(db, existingUserIds, new DeterministicSeed(Profile.RandomSeed));
             return;
         }
 
@@ -144,6 +146,7 @@ public static class DbSeeder
             await EnsureClubChatSeedAsync(db, rider.Id);
 
             await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routes, rideGroups, personalRideGroups, userIds, det);
+            await SeedUserActivityIfNeededAsync(db, userIds, det);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
             return;
@@ -155,6 +158,7 @@ public static class DbSeeder
         var rideGroupsFromDb = await db.Rides.ToListAsync();
         var personalFromDb = rideGroupsFromDb.Where(g => g.ClubId == null).ToList();
         await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
+        await SeedUserActivityIfNeededAsync(db, userIds, det);
         await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
@@ -2078,5 +2082,115 @@ public static class DbSeeder
                 ColorScheme = "midnight",
             });
         }
+    }
+
+    private static readonly int[] ActivityPeakHoursUtc = [6, 7, 8, 9, 17, 18, 19, 20];
+
+    private static async Task SeedUserActivityIfNeededAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> userIds,
+        DeterministicSeed det)
+    {
+        if (userIds.Count == 0 || await db.UserActivityDays.AnyAsync())
+            return;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        const int historyDays = 90;
+        var activityDays = new List<UserActivityDay>();
+        var activityHours = new List<UserActivityHour>();
+        var now = DateTime.UtcNow;
+
+        for (var dayOffset = historyDays - 1; dayOffset >= 0; dayOffset--)
+        {
+            var date = today.AddDays(-dayOffset);
+            var progress = (historyDays - dayOffset) / (double)historyDays;
+            var growthFactor = 0.4 + 0.3 * progress;
+            var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            var weekdayFactor = isWeekend ? 1.0 : 1.3;
+
+            foreach (var userId in userIds)
+            {
+                var traits = SeedUserTraits.For(userId, det.Root);
+                var userBias = 0.35 + traits.ActivityMillis / 1400.0;
+                var threshold = growthFactor * weekdayFactor * userBias;
+                var roll = SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset) % 1000 / 1000.0;
+                if (roll > threshold)
+                    continue;
+
+                var firstHour = ActivityPeakHoursUtc[
+                    (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 1) % ActivityPeakHoursUtc.Length)];
+                var firstSeen = date.ToDateTime(new TimeOnly(firstHour, 12), DateTimeKind.Utc);
+                var lastSeen = firstSeen.AddMinutes(
+                    15 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 2) % 120));
+
+                activityDays.Add(new UserActivityDay
+                {
+                    UserId = userId,
+                    ActivityDateUtc = date,
+                    FirstSeenAtUtc = firstSeen,
+                    LastSeenAtUtc = lastSeen,
+                });
+
+                var hourCount = 1 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 3) % 3);
+                var pickedHours = new HashSet<byte>();
+                for (var h = 0; h < hourCount; h++)
+                {
+                    var hour = ActivityPeakHoursUtc[
+                        (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, userId, dayOffset, 4 + h)
+                            % ActivityPeakHoursUtc.Length)];
+                    pickedHours.Add((byte)hour);
+                }
+
+                foreach (var hour in pickedHours)
+                {
+                    activityHours.Add(new UserActivityHour
+                    {
+                        UserId = userId,
+                        ActivityDateUtc = date,
+                        HourUtc = hour,
+                    });
+                }
+            }
+        }
+
+        var recentActiveCount = Math.Min(10, userIds.Count);
+        for (var i = 0; i < recentActiveCount; i++)
+        {
+            var userId = userIds[
+                (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, 99, i) % (ulong)userIds.Count)];
+            var minutesAgo = 1 + (int)(SeedDeterminism.Mix(det.Root, SeedGraph.Salt.UserActivity, 100, i) % 12);
+            var lastSeen = now.AddMinutes(-minutesAgo);
+
+            await db.Users
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.LastSeenAtUtc, lastSeen));
+
+            var todayDate = today;
+            if (!activityDays.Any(d => d.UserId == userId && d.ActivityDateUtc == todayDate))
+            {
+                activityDays.Add(new UserActivityDay
+                {
+                    UserId = userId,
+                    ActivityDateUtc = todayDate,
+                    FirstSeenAtUtc = lastSeen,
+                    LastSeenAtUtc = lastSeen,
+                });
+            }
+
+            var hourUtc = (byte)lastSeen.Hour;
+            if (!activityHours.Any(h => h.UserId == userId && h.ActivityDateUtc == todayDate && h.HourUtc == hourUtc))
+            {
+                activityHours.Add(new UserActivityHour
+                {
+                    UserId = userId,
+                    ActivityDateUtc = todayDate,
+                    HourUtc = hourUtc,
+                });
+            }
+        }
+
+        db.UserActivityDays.AddRange(activityDays);
+        db.UserActivityHours.AddRange(activityHours);
+        await db.SaveChangesAsync();
     }
 }

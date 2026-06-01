@@ -102,6 +102,7 @@ export const API_ENDPOINTS = {
   },
   admin: {
     summary: `${P}/admin/summary`,
+    analyticsEngagement: `${P}/admin/analytics/engagement`,
     users: `${P}/admin/users`,
     updateUserRole: (userId) => `${P}/admin/users/${userId}/role`,
     deleteUser: (userId) => `${P}/admin/users/${userId}`,

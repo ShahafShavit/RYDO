@@ -12,15 +12,17 @@ export default function MobileFloatingActions({ children, className }) {
 
   useEffect(() => {
     const find = () => document.getElementById(MOBILE_CTA_SLOT_ID);
+    const update = () => setSlot(find());
 
-    setSlot(find());
+    const frameId = requestAnimationFrame(update);
 
-    const observer = new MutationObserver(() => {
-      setSlot(find());
-    });
+    const observer = new MutationObserver(update);
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
   }, []);
 
   if (!slot) return null;

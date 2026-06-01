@@ -6,6 +6,7 @@ import MobileBottomChrome from '@/shared/components/layout/mobile-chrome/MobileB
 import { cn } from '@/shared/lib/cn';
 
 function resolveAdminActiveTab(pathname) {
+  if (pathname.startsWith(ROUTES.adminAnalytics)) return ROUTES.adminAnalytics;
   if (pathname.startsWith(ROUTES.adminUsers)) return ROUTES.adminUsers;
   if (pathname.startsWith(ROUTES.adminRoutes)) return ROUTES.adminRoutes;
   if (pathname.startsWith(ROUTES.adminHazards)) return ROUTES.adminHazards;

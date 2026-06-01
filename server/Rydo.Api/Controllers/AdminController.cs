@@ -12,10 +12,16 @@ namespace Rydo.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "admin")]
-public class AdminController(RydoDbContext db, UserManager<ApplicationUser> users, IOptions<RydoOptions> rydoOptions) : ControllerBase
+public class AdminController(
+    RydoDbContext db,
+    UserManager<ApplicationUser> users,
+    IOptions<RydoOptions> rydoOptions,
+    IAdminEngagementAnalyticsService engagementAnalytics) : ControllerBase
 {
     [HttpGet("summary")]
-    public async Task<IActionResult> Summary(CancellationToken ct)
+    public async Task<IActionResult> Summary(
+        [FromQuery] bool refresh = false,
+        CancellationToken ct = default)
     {
         var liveHazards = await db.Hazards.CountAsync(h => h.Status == "active", ct);
         var now = DateTime.UtcNow;
@@ -35,6 +41,8 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
         var questCompletionsThisWeek = await db.UserChallengeProgress.CountAsync(p =>
             p.CompletedAt >= weekStart && p.ChallengeInstanceId != null, ct);
 
+        var engagement = await engagementAnalytics.GetSummarySliceAsync(refresh, ct);
+
         return Ok(new
         {
             totalUsers = await db.Users.CountAsync(ct),
@@ -43,6 +51,16 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             activeQuests,
             activeModifiers,
             questCompletionsThisWeek,
+            dau = engagement.Dau,
+            wau = engagement.Wau,
+            mau = engagement.Mau,
+            activeNow = engagement.ActiveNow,
+            deltas = new
+            {
+                dauWoWPct = engagement.Deltas.DauWoWPct,
+                wauWoWPct = engagement.Deltas.WauWoWPct,
+                mauMoMPct = engagement.Deltas.MauMoMPct,
+            },
         });
     }
 

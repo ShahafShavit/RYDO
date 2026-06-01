@@ -114,8 +114,55 @@ Response:
 Response: `204 No Content`
 
 ## Admin
-### `GET /admin/summary`
-Response: `{ totalUsers, totalRoutes, liveHazards, activeQuests, activeModifiers, questCompletionsThisWeek }`
+### `GET /admin/summary?refresh`
+Response:
+```json
+{
+  "totalUsers": 0,
+  "totalRoutes": 0,
+  "liveHazards": 0,
+  "activeQuests": 0,
+  "activeModifiers": 0,
+  "questCompletionsThisWeek": 0,
+  "dau": 0,
+  "wau": 0,
+  "mau": 0,
+  "activeNow": 0,
+  "deltas": { "dauWoWPct": null, "wauWoWPct": null, "mauMoMPct": null }
+}
+```
+- **DAU / WAU / MAU:** distinct users with authenticated activity on UTC calendar day / last 7 / last 30 days.
+- **activeNow:** users with `LastSeenAtUtc` within the last 15 minutes (always computed fresh).
+- **deltas:** week-over-week (DAU, WAU) and month-over-month (MAU) percent change; `null` when prior period is zero.
+- Optional `refresh=true` bypasses the 5-minute in-memory cache for engagement aggregates.
+
+### `GET /admin/analytics/engagement?days&refresh`
+Query: `days` (1–90, default 7), optional `refresh=true`.
+Response adds stickiness, signups breakdown, returning/new active (30d), daily series, and UTC activity heatmap:
+```json
+{
+  "asOfUtc": "...",
+  "cachedUntilUtc": "...",
+  "dau": 0,
+  "wau": 0,
+  "mau": 0,
+  "activeNow": 0,
+  "stickinessPct": 0,
+  "deltas": { "dauWoWPct": null, "wauWoWPct": null, "mauMoMPct": null },
+  "signups": { "today": 0, "last7Days": 0, "last30Days": 0 },
+  "returningActive30d": 0,
+  "newActive30d": 0,
+  "dailyActiveUsers": [{ "date": "2026-06-01", "count": 0 }],
+  "dailySignups": [{ "date": "2026-06-01", "count": 0 }],
+  "activityHeatmap": {
+    "timeZone": "UTC",
+    "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "hours": [0, 1, "...", 23],
+    "values": [[0, "... 24 cols"], "... 7 rows"]
+  }
+}
+```
+Activity rollups (`UserActivityDay`, `UserActivityHour`) are retained for 90 UTC days.
 
 ### `GET /admin/users?skip&take&search&role`
 Optional `search` matches email, handle, or name. Optional `role` filter: `admin` | `user`.
