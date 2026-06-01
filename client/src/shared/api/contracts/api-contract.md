@@ -114,13 +114,25 @@ Response:
 Response: `204 No Content`
 
 ## Admin
-### `GET /admin/users?skip&take`
-Response: paginated normalized user rows
+### `GET /admin/summary`
+Response: `{ totalUsers, totalRoutes, liveHazards, activeQuests, activeModifiers, questCompletionsThisWeek }`
+
+### `GET /admin/users?skip&take&search&role`
+Optional `search` matches email, handle, or name. Optional `role` filter: `admin` | `user`.
+Response: paginated normalized user rows (includes `routeCount`, `rideCount`).
+
+### `PATCH /admin/users/:userId/role`
+Request:
+```json
+{ "role": "admin" }
+```
+Cannot change own role or demote the system admin.
 
 ### `DELETE /admin/users/:userId`
 Response: `204 No Content`
 
-### `GET /admin/routes?skip&take`
+### `GET /admin/routes?skip&take&search&status`
+Optional `search` matches route title or owner name. Optional `status` filter.
 Response: paginated normalized route rows
 
 ### `DELETE /admin/routes/:routeId`
@@ -134,7 +146,8 @@ Request:
 }
 ```
 
-### `GET /admin/hazards?skip&take`
+### `GET /admin/hazards?skip&take&status&severity&type`
+Optional filters for hazard list.
 Response: paginated normalized hazard rows
 
 ### `PATCH /admin/hazards/:hazardId/status`
@@ -144,6 +157,13 @@ Request:
   "status": "resolved"
 }
 ```
+
+### Challenges admin
+- `GET /admin/challenges/templates`
+- `GET /admin/challenges/instances?skip&take&status`
+- `GET /admin/challenges/instances/:id/progress?skip&take`
+- `POST /admin/challenges/instances`
+- `PATCH /admin/challenges/instances/:id`
 
 ## Account
 ### `GET /account/profile`

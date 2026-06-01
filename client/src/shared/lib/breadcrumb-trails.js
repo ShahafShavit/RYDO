@@ -151,6 +151,14 @@ export function buildAdminBreadcrumbTrail(pathname) {
       ],
     },
     {
+      path: ROUTES.adminChallenges,
+      end: true,
+      build: () => [
+        { label: 'Admin', to: ROUTES.admin },
+        { label: 'Challenges', to: undefined },
+      ],
+    },
+    {
       path: ROUTES.admin,
       end: true,
       build: () => [{ label: 'Admin', to: undefined }],

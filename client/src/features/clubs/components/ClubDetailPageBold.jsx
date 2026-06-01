@@ -9,6 +9,7 @@ import GradientCTA from '@/shared/components/bold/GradientCTA';
 import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
+import MobileFloatingActions from '@/shared/components/layout/mobile-chrome/MobileFloatingActions';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { cn } from '@/shared/lib/cn';
 
@@ -93,10 +94,7 @@ export default function ClubDetailPageBold({
     user &&
     (canJoin || isPending);
 
-  /** Fixed tab bar + pinned schedule CTA (see ExploreRoutesFloatingActions). */
-  const scrollBottomInset = canCreateRide
-    ? 'pb-[calc(var(--rydo-tabbar-h)+5.5rem)]'
-    : undefined;
+  /** Schedule CTA portaled into bottom chrome stack (see MobileFloatingActions). */
 
   if (isLoading && !club) {
     return (
@@ -136,10 +134,7 @@ export default function ClubDetailPageBold({
 
         <BoldScrollArea
           insetTabBar={!canSeeMembers}
-          className={cn(
-            'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1',
-            scrollBottomInset,
-          )}
+          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-1"
         >
           <div className="flex items-start gap-3.5">
             <UserAvatar
@@ -332,17 +327,17 @@ export default function ClubDetailPageBold({
         </BoldScrollArea>
 
         {canCreateRide ? (
-          <div className="pointer-events-none fixed inset-x-0 bottom-[var(--rydo-tabbar-h)] z-(--rydo-z-sticky) flex items-center px-5 py-3">
+          <MobileFloatingActions className="md:hidden">
             <GradientCTA
               type="button"
               icon={Plus}
               heightClass="h-12"
-              className="pointer-events-auto flex-1 whitespace-nowrap"
+              className="min-w-0 flex-1 whitespace-nowrap"
               onClick={onScheduleOpen}
             >
               Schedule a ride
             </GradientCTA>
-          </div>
+          </MobileFloatingActions>
         ) : null}
       </div>
     </BoldScreen>

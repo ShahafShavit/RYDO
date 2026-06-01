@@ -5,5 +5,6 @@ export function prefetchAdminRoutes() {
     import('@/pages/admin/AdminUsersPage'),
     import('@/pages/admin/AdminRoutesPage'),
     import('@/pages/admin/AdminHazardsPage'),
+    import('@/pages/admin/AdminChallengesPage'),
   ]).catch(() => {});
 }

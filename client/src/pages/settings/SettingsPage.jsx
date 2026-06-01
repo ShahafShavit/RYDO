@@ -8,6 +8,7 @@ import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import SettingsPageBold from '@/pages/settings/SettingsPageBold';
 import SettingsTabContent from '@/pages/settings/SettingsTabContent';
 import SettingsLogoutButton from '@/pages/settings/SettingsLogoutButton';
+import { AdminModeSettingsRow } from '@/features/admin/components/AdminModeNavLink';
 
 const MotionDiv = motion.div;
 
@@ -87,7 +88,8 @@ const SettingsPage = () => {
             </MotionDiv>
           </AnimatePresence>
 
-          <div className="mt-10 border-t border-border pt-6">
+          <div className="mt-10 space-y-4 border-t border-border pt-6">
+            <AdminModeSettingsRow />
             <SettingsLogoutButton
               onClick={logout}
               icon={LogOut}

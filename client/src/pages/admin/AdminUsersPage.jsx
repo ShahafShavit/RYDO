@@ -1,11 +1,13 @@
-import AdminHeader from '@/features/admin/components/AdminHeader';
-import UsersTable from '@/features/admin/components/UsersTable';
+import AdminPageShell from '@/features/admin/components/AdminPageShell';
+import AdminUsersPanel from '@/features/admin/components/AdminUsersPanel';
 
 export default function AdminUsersPage() {
   return (
-    <section className="space-y-6">
-      <AdminHeader title="Users management" />
-      <UsersTable />
-    </section>
+    <AdminPageShell
+      title="Users"
+      description="Search riders, manage roles, and remove accounts."
+      desktop={<AdminUsersPanel variant="desktop" />}
+      mobile={<AdminUsersPanel variant="mobile" />}
+    />
   );
 }

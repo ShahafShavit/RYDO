@@ -4,11 +4,18 @@ import { adminApi, adminKeys } from '@/features/admin/api/adminApi';
 import { normalizeAdminHazardRow } from '@/features/admin/admin-mapper';
 
 export function useAdminHazards(options = {}) {
-  const { skip = 0, take = 20 } = options;
+  const { skip = 0, take = 20, status = '', severity = '', type = '' } = options;
+  const filters = {
+    skip,
+    take,
+    status: status || undefined,
+    severity: severity || undefined,
+    type: type || undefined,
+  };
 
   const query = useQuery({
-    queryKey: adminKeys.hazardList({ skip, take }),
-    queryFn: async () => normalizePaginatedResult(await adminApi.getHazards({ skip, take }), normalizeAdminHazardRow),
+    queryKey: adminKeys.hazardList(filters),
+    queryFn: async () => normalizePaginatedResult(await adminApi.getHazards(filters), normalizeAdminHazardRow),
     staleTime: 5 * 60 * 1000,
   });
 

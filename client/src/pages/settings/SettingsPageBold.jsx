@@ -9,6 +9,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { cn } from '@/shared/lib/cn';
 import SettingsTabContent from '@/pages/settings/SettingsTabContent';
 import SettingsLogoutButton from '@/pages/settings/SettingsLogoutButton';
+import { AdminModeSettingsRow } from '@/features/admin/components/AdminModeNavLink';
 
 const TABS = [
   { value: 'profile', label: 'Profile' },
@@ -50,6 +51,8 @@ export default function SettingsPageBold({ activeTab, onTabChange }) {
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4">
           <SettingsTabContent activeTab={activeTab} variant="bold" />
+
+          <AdminModeSettingsRow variant="bold" />
 
           <div className="mt-auto border-t border-border pt-4">
             <SettingsLogoutButton

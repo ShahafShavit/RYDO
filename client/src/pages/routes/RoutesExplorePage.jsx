@@ -559,7 +559,7 @@ export default function RoutesExplorePage() {
               ) : null}
             </div>
 
-            <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-[calc(var(--rydo-tabbar-h)+5rem)] pt-3.5 md:pb-4">
+            <BoldScrollArea className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-3.5 md:pb-4">
               {renderMobileContent()}
             </BoldScrollArea>
           </div>

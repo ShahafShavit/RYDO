@@ -47,16 +47,50 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
     }
 
     [HttpGet("users")]
-    public async Task<IActionResult> Users([FromQuery] int skip = 0, [FromQuery] int take = 20, CancellationToken ct = default)
+    public async Task<IActionResult> Users(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? role = null,
+        CancellationToken ct = default)
     {
-        var baseQuery = users.Users.AsNoTracking().OrderBy(u => u.Email);
-        var total = await baseQuery.CountAsync(ct);
-        var pageUsers = await baseQuery.Skip(skip).Take(take).ToListAsync(ct);
+        take = Math.Clamp(take, 1, 100);
+        var baseQuery = users.Users.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            baseQuery = baseQuery.Where(u =>
+                (u.Email != null && u.Email.Contains(term))
+                || (u.Handle != null && u.Handle.Contains(term))
+                || u.FirstName.Contains(term)
+                || u.LastName.Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleNorm = role.Trim().ToLowerInvariant();
+            var adminRoleId = await db.Roles.AsNoTracking()
+                .Where(r => r.Name == "admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync(ct);
+            var adminUserIds = db.UserRoles.AsNoTracking()
+                .Where(ur => ur.RoleId == adminRoleId)
+                .Select(ur => ur.UserId);
+
+            baseQuery = roleNorm == "admin"
+                ? baseQuery.Where(u => adminUserIds.Contains(u.Id))
+                : baseQuery.Where(u => !adminUserIds.Contains(u.Id));
+        }
+
+        var ordered = baseQuery.OrderBy(u => u.Email);
+        var total = await ordered.CountAsync(ct);
+        var pageUsers = await ordered.Skip(skip).Take(take).ToListAsync(ct);
         var items = new List<object>();
         foreach (var u in pageUsers)
         {
             var roles = await users.GetRolesAsync(u);
-            var role = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
+            var userRole = roles.Contains("admin", StringComparer.OrdinalIgnoreCase) ? "admin" : "user";
             var routeCount = await db.Routes.CountAsync(r => r.CreatedByUserId == u.Id, ct);
             var rideCount = await db.RideParticipants.CountAsync(p => p.UserId == u.Id, ct);
             items.Add(new
@@ -65,7 +99,7 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
                 handle = u.Handle,
                 fullName = $"{u.FirstName} {u.LastName}".Trim(),
                 email = u.Email,
-                role,
+                role = userRole,
                 isActive = true,
                 createdAt = u.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                 status = "active",
@@ -74,6 +108,40 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
             });
         }
         return Ok(new { items, total, skip, take });
+    }
+
+    public record UserRoleRequest(string Role);
+
+    [HttpPatch("users/{userId:int}/role")]
+    public async Task<IActionResult> UpdateUserRole(int userId, [FromBody] UserRoleRequest body, CancellationToken ct)
+    {
+        if (userId == GetUserId())
+            return Problem(statusCode: 400, detail: "Cannot change your own role.");
+
+        var targetRole = body.Role?.Trim().ToLowerInvariant();
+        if (targetRole is not ("admin" or "user"))
+            return Problem(statusCode: 400, detail: "Role must be 'admin' or 'user'.");
+
+        var u = await users.FindByIdAsync(userId.ToString());
+        if (u == null) return NotFound();
+
+        var email = rydoOptions.Value.SystemAdminEmail?.Trim();
+        if (string.IsNullOrEmpty(email))
+            email = DbSeeder.AdminEmail;
+
+        var systemAdmin = await users.FindByEmailAsync(email);
+        if (systemAdmin != null && userId == systemAdmin.Id && targetRole != "admin")
+            return Problem(statusCode: 400, detail: "Cannot demote the system admin account.");
+
+        var currentRoles = await users.GetRolesAsync(u);
+        var isAdmin = currentRoles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+
+        if (targetRole == "admin" && !isAdmin)
+            await users.AddToRoleAsync(u, "admin");
+        else if (targetRole == "user" && isAdmin)
+            await users.RemoveFromRoleAsync(u, "admin");
+
+        return NoContent();
     }
 
     [HttpDelete("users/{userId:int}")]
@@ -122,9 +190,30 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
     }
 
     [HttpGet("routes")]
-    public IActionResult Routes([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    public IActionResult Routes(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null)
     {
-        var query = db.Routes.AsNoTracking().Include(r => r.CreatedBy).OrderByDescending(r => r.CreatedAt);
+        take = Math.Clamp(take, 1, 100);
+        IQueryable<RouteEntity> query = db.Routes.AsNoTracking().Include(r => r.CreatedBy);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(r =>
+                r.Title.Contains(term)
+                || (r.CreatedBy != null && (r.CreatedBy.FirstName + " " + r.CreatedBy.LastName).Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusNorm = status.Trim().ToLowerInvariant();
+            query = query.Where(r => r.Status.ToLower() == statusNorm);
+        }
+
+        query = query.OrderByDescending(r => r.CreatedAt);
         var page = Pagination.PageQueryable(query, skip, take);
         var flat = page.Items.Select(r => new Dictionary<string, object?>
         {
@@ -177,9 +266,35 @@ public class AdminController(RydoDbContext db, UserManager<ApplicationUser> user
     }
 
     [HttpGet("hazards")]
-    public IActionResult Hazards([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    public IActionResult Hazards(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] string? severity = null,
+        [FromQuery] string? type = null)
     {
-        var query = db.Hazards.AsNoTracking().Include(h => h.ReportedBy).OrderByDescending(h => h.ReportedAt);
+        take = Math.Clamp(take, 1, 100);
+        IQueryable<HazardEntity> query = db.Hazards.AsNoTracking().Include(h => h.ReportedBy);
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var statusNorm = status.Trim().ToLowerInvariant();
+            query = query.Where(h => h.Status.ToLower() == statusNorm);
+        }
+
+        if (!string.IsNullOrWhiteSpace(severity))
+        {
+            var severityNorm = severity.Trim().ToLowerInvariant();
+            query = query.Where(h => h.Severity.ToLower() == severityNorm);
+        }
+
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            var typeNorm = type.Trim().ToLowerInvariant();
+            query = query.Where(h => h.Type.ToLower() == typeNorm);
+        }
+
+        query = query.OrderByDescending(h => h.ReportedAt);
         var page = Pagination.PageQueryable(query, skip, take);
         var items = page.Items.Select(HazardJson).ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });

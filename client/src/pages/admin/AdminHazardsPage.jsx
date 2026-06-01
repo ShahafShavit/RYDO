@@ -1,11 +1,13 @@
-import AdminHeader from '@/features/admin/components/AdminHeader';
-import HazardsModerationTable from '@/features/admin/components/HazardsModerationTable';
+import AdminPageShell from '@/features/admin/components/AdminPageShell';
+import AdminHazardsPanel from '@/features/admin/components/AdminHazardsPanel';
 
 export default function AdminHazardsPage() {
   return (
-    <section className="space-y-6">
-      <AdminHeader title="Hazards moderation" />
-      <HazardsModerationTable />
-    </section>
+    <AdminPageShell
+      title="Hazards"
+      description="Monitor trail hazards and resolve reports."
+      desktop={<AdminHazardsPanel variant="desktop" />}
+      mobile={<AdminHazardsPanel variant="mobile" />}
+    />
   );
 }

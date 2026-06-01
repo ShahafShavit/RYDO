@@ -52,6 +52,7 @@ The frontend uses a feature-based structure and normalizes backend DTOs once per
 - `/admin/users`
 - `/admin/routes`
 - `/admin/hazards`
+- `/admin/challenges`
 
 ### Important note
 Some feature modules exist without being mounted in the main router yet (e.g. chat). APIs and hooks for rides, history, and challenges are used from routed pages such as dashboard and My rides.
@@ -122,13 +123,20 @@ Canonical contract docs:
 List hooks normalize paginated responses to `{ items, total, skip, take }`, but they also tolerate raw arrays from mock or incomplete backends through the shared pagination helper.
 
 ### Admin
-- `GET /admin/users?skip&take`
+- `GET /admin/summary`
+- `GET /admin/users?skip&take&search&role`
+- `PATCH /admin/users/:userId/role` — body `{ "role": "admin" | "user" }`
 - `DELETE /admin/users/:userId`
-- `GET /admin/routes?skip&take`
+- `GET /admin/routes?skip&take&search&status`
 - `DELETE /admin/routes/:routeId`
 - `PATCH /admin/routes/:routeId/moderation`
-- `GET /admin/hazards?skip&take`
+- `GET /admin/hazards?skip&take&status&severity&type`
 - `PATCH /admin/hazards/:hazardId/status`
+- `GET /admin/challenges/templates`
+- `GET /admin/challenges/instances?skip&take&status`
+- `GET /admin/challenges/instances/:id/progress?skip&take`
+- `POST /admin/challenges/instances`
+- `PATCH /admin/challenges/instances/:id`
 
 ### Account
 - `GET /account/profile`

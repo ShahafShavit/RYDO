@@ -103,6 +103,7 @@ export const API_ENDPOINTS = {
   admin: {
     summary: `${P}/admin/summary`,
     users: `${P}/admin/users`,
+    updateUserRole: (userId) => `${P}/admin/users/${userId}/role`,
     deleteUser: (userId) => `${P}/admin/users/${userId}`,
     routes: `${P}/admin/routes`,
     moderateRoute: (routeId) => `${P}/admin/routes/${routeId}/moderation`,

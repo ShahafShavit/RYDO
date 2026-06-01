@@ -28,6 +28,8 @@ import IconButton from '@/shared/components/bold/IconButton';
 import BoldScreen from '@/shared/components/bold/BoldScreen';
 import BoldScrollArea from '@/shared/components/bold/BoldScrollArea';
 import UserAvatar from '@/shared/components/user/UserAvatar';
+import MobileChromeSecondaryButton from '@/shared/components/layout/mobile-chrome/MobileChromeSecondaryButton';
+import MobileFloatingActions from '@/shared/components/layout/mobile-chrome/MobileFloatingActions';
 import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
@@ -64,16 +66,88 @@ function formatTimeShort(iso) {
 
 function SecondaryAction({ children, className, ...props }) {
   return (
-    <button
-      type="button"
-      className={cn(
-        'inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-border bg-black/25 px-4 text-sm font-semibold text-fg transition hover:border-border-strong',
-        className,
-      )}
-      {...props}
-    >
+    <MobileChromeSecondaryButton className={className} {...props}>
       {children}
-    </button>
+    </MobileChromeSecondaryButton>
+  );
+}
+
+const chromeFooterClass =
+  'relative z-[3] flex shrink-0 items-center gap-2.5 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl';
+
+function RideChatFooter({ rideId, navigate, className }) {
+  return (
+    <MobileChromeSecondaryButton
+      className={cn('flex-1', className)}
+      aria-label="Ride chat"
+      onClick={() => navigate(generatePath(ROUTES.chatRideThread, { rideId: String(rideId) }))}
+    >
+      <MessageCircle className="mr-2 h-4 w-4 inline" aria-hidden />
+      View ride chat
+    </MobileChromeSecondaryButton>
+  );
+}
+
+function RideAttendanceFooter({
+  ride,
+  amParticipant,
+  hasRoute,
+  onLiveRide,
+  liveAvailable,
+  isNavigatingToLive,
+  onPrefetchLive,
+  onLeave,
+  isLeaving,
+  onJoin,
+  isJoining,
+  showRideChat,
+  navigate,
+}) {
+  return (
+    <>
+      {showRideChat ? (
+        <MobileChromeSecondaryButton
+          className="shrink-0 px-3"
+          aria-label="Ride chat"
+          onClick={() =>
+            navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+          }
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden />
+        </MobileChromeSecondaryButton>
+      ) : null}
+      {amParticipant && hasRoute && onLiveRide && liveAvailable ? (
+        <GradientCTA
+          className="min-w-0 flex-1 whitespace-nowrap"
+          icon={Bike}
+          heightClass="h-12"
+          disabled={isNavigatingToLive}
+          onMouseEnter={onPrefetchLive}
+          onFocus={onPrefetchLive}
+          onClick={onLiveRide}
+        >
+          {isNavigatingToLive ? 'Starting…' : 'Live ride'}
+        </GradientCTA>
+      ) : null}
+      {amParticipant ? (
+        <MobileChromeSecondaryButton
+          className={cn('min-w-0', !hasRoute || !onLiveRide ? 'flex-1' : '')}
+          onClick={onLeave}
+          disabled={isLeaving}
+        >
+          {isLeaving ? 'Leaving…' : 'Leave'}
+        </MobileChromeSecondaryButton>
+      ) : (
+        <GradientCTA
+          className="min-w-0 flex-1"
+          heightClass="h-12"
+          onClick={onJoin}
+          disabled={isJoining}
+        >
+          {isJoining ? 'Joining…' : 'Join ride'}
+        </GradientCTA>
+      )}
+    </>
   );
 }
 
@@ -411,65 +485,53 @@ export default function RideEventPageBold({
         </BoldScrollArea>
 
         {showRideChat && !showAttendance ? (
-          <div className="relative z-[3] flex shrink-0 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
-            <SecondaryAction
-              className="flex-1"
-              aria-label="Ride chat"
-              onClick={() =>
-                navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
-              }
-            >
-              <MessageCircle className="mr-2 h-4 w-4 inline" aria-hidden />
-              View ride chat
-            </SecondaryAction>
-          </div>
+          <>
+            <div className={cn(chromeFooterClass, 'hidden md:flex')}>
+              <RideChatFooter rideId={ride.id} navigate={navigate} />
+            </div>
+            <MobileFloatingActions className="md:hidden">
+              <RideChatFooter rideId={ride.id} navigate={navigate} />
+            </MobileFloatingActions>
+          </>
         ) : null}
 
         {showAttendance ? (
-          <div className="relative z-[3] flex shrink-0 items-center gap-2 border-t border-border/60 bg-[var(--rydo-bg-deep)]/90 px-5 py-3.5 backdrop-blur-xl">
-            {showRideChat ? (
-              <SecondaryAction
-                className="shrink-0 px-3"
-                aria-label="Ride chat"
-                onClick={() =>
-                  navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
-                }
-              >
-                <MessageCircle className="h-4 w-4" aria-hidden />
-              </SecondaryAction>
-            ) : null}
-            {amParticipant && hasRoute && onLiveRide && liveAvailable ? (
-              <GradientCTA
-                className="flex-1 whitespace-nowrap"
-                icon={Bike}
-                heightClass="h-12"
-                disabled={isNavigatingToLive}
-                onMouseEnter={onPrefetchLive}
-                onFocus={onPrefetchLive}
-                onClick={onLiveRide}
-              >
-                {isNavigatingToLive ? 'Starting…' : 'Live ride'}
-              </GradientCTA>
-            ) : null}
-            {amParticipant ? (
-              <SecondaryAction
-                className={cn(!hasRoute || !onLiveRide ? 'flex-1' : '')}
-                onClick={onLeave}
-                disabled={isLeaving}
-              >
-                {isLeaving ? 'Leaving…' : 'Leave'}
-              </SecondaryAction>
-            ) : (
-              <GradientCTA
-                className="flex-1"
-                heightClass="h-12"
-                onClick={onJoin}
-                disabled={isJoining}
-              >
-                {isJoining ? 'Joining…' : 'Join ride'}
-              </GradientCTA>
-            )}
-          </div>
+          <>
+            <div className={cn(chromeFooterClass, 'hidden md:flex')}>
+              <RideAttendanceFooter
+                ride={ride}
+                amParticipant={amParticipant}
+                hasRoute={hasRoute}
+                onLiveRide={onLiveRide}
+                liveAvailable={liveAvailable}
+                isNavigatingToLive={isNavigatingToLive}
+                onPrefetchLive={onPrefetchLive}
+                onLeave={onLeave}
+                isLeaving={isLeaving}
+                onJoin={onJoin}
+                isJoining={isJoining}
+                showRideChat={showRideChat}
+                navigate={navigate}
+              />
+            </div>
+            <MobileFloatingActions className="md:hidden">
+              <RideAttendanceFooter
+                ride={ride}
+                amParticipant={amParticipant}
+                hasRoute={hasRoute}
+                onLiveRide={onLiveRide}
+                liveAvailable={liveAvailable}
+                isNavigatingToLive={isNavigatingToLive}
+                onPrefetchLive={onPrefetchLive}
+                onLeave={onLeave}
+                isLeaving={isLeaving}
+                onJoin={onJoin}
+                isJoining={isJoining}
+                showRideChat={showRideChat}
+                navigate={navigate}
+              />
+            </MobileFloatingActions>
+          </>
         ) : null}
       </div>
       <ShareSheetModal {...modalProps} title="Share ride" />

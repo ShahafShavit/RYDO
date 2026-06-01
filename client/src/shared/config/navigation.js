@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Bike,
   Compass,
   Home,
@@ -31,8 +32,9 @@ export const dashboardNavigation = [
 ];
 
 export const adminNavigation = [
-  { label: 'Admin', to: ROUTES.admin, Icon: LayoutDashboard },
+  { label: 'Dashboard', shortLabel: 'Home', to: ROUTES.admin, Icon: LayoutDashboard },
   { label: 'Users', to: ROUTES.adminUsers, Icon: Users },
   { label: 'Routes', to: ROUTES.adminRoutes, Icon: Map },
-  { label: 'Challenges', to: ROUTES.adminChallenges, Icon: Sparkles },
+  { label: 'Hazards', to: ROUTES.adminHazards, Icon: AlertTriangle },
+  { label: 'Challenges', shortLabel: 'Quests', to: ROUTES.adminChallenges, Icon: Sparkles },
 ];

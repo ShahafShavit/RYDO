@@ -1,11 +1,15 @@
-import AdminHeader from '@/features/admin/components/AdminHeader';
-import AdminStatsCards from '@/features/admin/components/AdminStatsCards';
+import AdminPageShell from '@/features/admin/components/AdminPageShell';
+import AdminStatGrid from '@/features/admin/components/AdminStatGrid';
+import AdminStatGridBold from '@/features/admin/components/AdminStatGridBold';
 
 export default function AdminDashboardPage() {
   return (
-    <section className="space-y-6">
-      <AdminHeader />
-      <AdminStatsCards />
-    </section>
+    <AdminPageShell
+      title="Dashboard"
+      eyebrow="Control"
+      description="Platform overview and quick links to moderation tools."
+      desktop={<AdminStatGrid />}
+      mobile={<AdminStatGridBold />}
+    />
   );
 }

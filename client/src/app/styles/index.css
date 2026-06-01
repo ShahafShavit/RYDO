@@ -22,6 +22,7 @@
   --rydo-danger: #ff6b6b;
   --rydo-success: #2db89e;
   --rydo-tabbar-h: calc(56px + var(--rydo-safe-bottom));
+  --rydo-bottom-stack-h: var(--rydo-tabbar-h);
   --rydo-z-tabbar: 90;
   --rydo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --rydo-transition-nav: 300ms var(--rydo-ease-out);
@@ -981,7 +982,16 @@ html[data-theme='dune'] .app-logo {
 /* Scroll inset for fixed bottom tab bar — lives on the scroll viewport, not layout shell padding. */
 @media (max-width: 767px) {
   .rydo-bold-scroll-viewport {
-    padding-bottom: max(1rem, var(--rydo-tabbar-h));
+    padding-bottom: max(1rem, var(--rydo-bottom-stack-h));
+  }
+
+  .rydo-mobile-cta-slot {
+    padding: 0.875rem 1.25rem 0.75rem;
+  }
+
+  .rydo-mobile-cta-slot:empty {
+    display: none;
+    padding: 0;
   }
 }
 
@@ -1026,6 +1036,7 @@ html[data-theme='dune'] .app-logo {
 }
 
 .rydo-bold-tabbar {
+  display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 10px 12px calc(4px + var(--rydo-safe-bottom));

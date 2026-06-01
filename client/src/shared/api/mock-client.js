@@ -853,11 +853,37 @@ export async function mockRequest(path, options = {}) {
       totalUsers: users.length,
       totalRoutes: routes.length,
       liveHazards: hazards.filter((h) => h.status === 'active').length,
+      activeQuests: 0,
+      activeModifiers: 0,
+      questCompletionsThisWeek: 0,
     };
   }
 
   if (pathname === '/api/admin/users' && method === 'GET') {
-    return paginate(users.map(toAuthUser), searchParams);
+    let items = users.map(toAuthUser);
+    const search = (searchParams.get('search') || '').trim().toLowerCase();
+    const role = (searchParams.get('role') || '').trim().toLowerCase();
+    if (search) {
+      items = items.filter(
+        (u) =>
+          (u.email || '').toLowerCase().includes(search)
+          || (u.handle || '').toLowerCase().includes(search)
+          || (u.fullName || '').toLowerCase().includes(search),
+      );
+    }
+    if (role) {
+      items = items.filter((u) => (u.role || 'user').toLowerCase() === role);
+    }
+    return paginate(items, searchParams);
+  }
+
+  if (/^\/api\/admin\/users\/\d+\/role$/.test(pathname) && method === 'PATCH') {
+    const userId = Number(pathname.split('/')[4]);
+    const updates = parseJsonBody(options.body);
+    const user = users.find((u) => u.id === userId);
+    if (!user) throw new ApiError({ message: 'User not found', status: 404, code: 'user_not_found' });
+    user.role = updates.role === 'admin' ? 'admin' : 'user';
+    return null;
   }
 
   if (/^\/api\/admin\/users\/\d+$/.test(pathname) && method === 'DELETE') {

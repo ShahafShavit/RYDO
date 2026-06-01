@@ -4,11 +4,12 @@ import { adminApi, adminKeys } from '@/features/admin/api/adminApi';
 import { normalizeAdminRouteRow } from '@/features/admin/admin-mapper';
 
 export function useAdminRoutes(options = {}) {
-  const { skip = 0, take = 20 } = options;
+  const { skip = 0, take = 20, search = '', status = '' } = options;
+  const filters = { skip, take, search: search || undefined, status: status || undefined };
 
   const query = useQuery({
-    queryKey: adminKeys.routeList({ skip, take }),
-    queryFn: async () => normalizePaginatedResult(await adminApi.getRoutes({ skip, take }), normalizeAdminRouteRow),
+    queryKey: adminKeys.routeList(filters),
+    queryFn: async () => normalizePaginatedResult(await adminApi.getRoutes(filters), normalizeAdminRouteRow),
     staleTime: 5 * 60 * 1000,
   });
 

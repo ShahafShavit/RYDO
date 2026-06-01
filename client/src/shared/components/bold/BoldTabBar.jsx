@@ -5,9 +5,11 @@ import {
   getBoldTabItems,
   resolveBoldActiveTab,
 } from '@/shared/config/bold-navigation';
+import { RiderMobileAdminBar } from '@/features/admin/components/AdminModeNavLink';
+import MobileBottomChrome from '@/shared/components/layout/mobile-chrome/MobileBottomChrome';
 import { cn } from '@/shared/lib/cn';
 
-export default function BoldTabBar({ className }) {
+export function BoldTabNav({ className }) {
   const { user } = useAuth();
   const location = useLocation();
   const { totalUnread } = useClubChatUnread();
@@ -18,48 +20,45 @@ export default function BoldTabBar({ className }) {
     userHandle: user?.handle,
   });
 
-  return (
-    <nav
-      className={cn(
-        'rydo-bold-tabbar fixed inset-x-0 bottom-0 z-(--rydo-z-tabbar) flex md:hidden',
-        className,
-      )}
-      aria-label="Main"
-    >
-      {tabs.map((tab) => {
-        const Icon = tab.Icon;
-        const isActive = activeKey === tab.key;
-        const isChat = tab.key === 'chat';
-        const showBadge = isChat && totalUnread > 0;
+  return tabs.map((tab) => {
+    const Icon = tab.Icon;
+    const isActive = activeKey === tab.key;
+    const isChat = tab.key === 'chat';
+    const showBadge = isChat && totalUnread > 0;
 
-        const inner = (
-          <>
-            <span className="rydo-bold-tab-icon">
-              <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.9} aria-hidden />
-              {showBadge ? (
-                <span className="rydo-unread-pip" aria-hidden>
-                  {totalUnread > 99 ? '99+' : totalUnread}
-                </span>
-              ) : null}
+    return (
+      <NavLink
+        key={tab.key}
+        to={tab.to}
+        end={tab.key === 'home'}
+        className={({ isActive: navActive }) =>
+          cn('rydo-bold-tab', (navActive || isActive) && 'rydo-bold-tab-active', className)
+        }
+        aria-label={showBadge ? `${tab.label}, ${totalUnread} unread` : tab.label}
+      >
+        <span className="rydo-bold-tab-icon">
+          <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.9} aria-hidden />
+          {showBadge ? (
+            <span className="rydo-unread-pip" aria-hidden>
+              {totalUnread > 99 ? '99+' : totalUnread}
             </span>
-            <span>{tab.label}</span>
-          </>
-        );
+          ) : null}
+        </span>
+        <span>{tab.label}</span>
+      </NavLink>
+    );
+  });
+}
 
-        return (
-          <NavLink
-            key={tab.key}
-            to={tab.to}
-            end={tab.key === 'home'}
-            className={({ isActive: navActive }) =>
-              cn('rydo-bold-tab', (navActive || isActive) && 'rydo-bold-tab-active')
-            }
-            aria-label={showBadge ? `${tab.label}, ${totalUnread} unread` : tab.label}
-          >
-            {inner}
-          </NavLink>
-        );
-      })}
-    </nav>
+export default function BoldTabBar({ className }) {
+  const { isAdmin } = useAuth();
+
+  return (
+    <MobileBottomChrome
+      className={className}
+      ariaLabel="Main"
+      modeBar={isAdmin ? <RiderMobileAdminBar /> : null}
+      tabs={<BoldTabNav />}
+    />
   );
 }

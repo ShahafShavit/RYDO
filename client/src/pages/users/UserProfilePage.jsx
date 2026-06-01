@@ -14,13 +14,14 @@ import { UserProfilePublicCard } from '@/features/users/components/UserProfilePu
 import { UserProfileActivitySections } from '@/features/users/components/UserProfileActivitySections';
 import { UserProfileFriendsSection } from '@/features/users/components/UserProfileFriendsSection';
 import UserProfilePageBold from '@/features/users/components/UserProfilePageBold';
+import { AdminModeSettingsRow } from '@/features/admin/components/AdminModeNavLink';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import { normalizeHandle } from '@/shared/lib/user-paths';
 
 export default function UserProfilePage() {
   const { handle: handleParam } = useParams();
   const handle = normalizeHandle(handleParam);
-  const { user: current } = useAuth();
+  const { user: current, isAdmin } = useAuth();
   const isOwn = Boolean(current?.handle && handle && current.handle === handle);
   const queryClient = useQueryClient();
   const { data: profile, isLoading, isError, error } = useUserProfile(handle);
@@ -176,6 +177,8 @@ export default function UserProfilePage() {
         </div>
 
         <UserProfilePublicCard profile={profile} handle={handle} />
+
+        {isOwn && isAdmin ? <AdminModeSettingsRow /> : null}
 
         <UserProfileFriendsSection
           handle={handle}

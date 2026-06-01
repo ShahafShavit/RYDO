@@ -15,6 +15,7 @@ export const adminKeys = {
 export const adminApi = {
   getSummary: () => apiClient.get(API_ENDPOINTS.admin.summary),
   getUsers: (params = {}) => apiClient.get(API_ENDPOINTS.admin.users, { query: params }),
+  updateUserRole: (userId, payload) => apiClient.patch(API_ENDPOINTS.admin.updateUserRole(userId), payload),
   deleteUser: (userId) => apiClient.delete(API_ENDPOINTS.admin.deleteUser(userId)),
   getRoutes: (params = {}) => apiClient.get(API_ENDPOINTS.admin.routes, { query: params }),
   deleteRoute: (routeId) => apiClient.delete(API_ENDPOINTS.admin.deleteRoute(routeId)),

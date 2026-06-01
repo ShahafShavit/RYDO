@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut, Inbox } from 'lucide-react';
+import { User, Settings, LogOut, Inbox, LayoutDashboard } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/app/router/route-paths';
@@ -13,7 +13,7 @@ import { useInboxSummary } from '@/features/social/hooks/useInboxSummary';
 const MotionDiv = motion.div;
 
 export default function UserProfileDropdown() {
-    const { user, logout } = useAuth();
+    const { user, logout, isAdmin } = useAuth();
     const { data: inboxSummary } = useInboxSummary();
     const unreadInbox = inboxSummary?.unreadCount ?? 0;
     const navigate = useNavigate();
@@ -111,6 +111,20 @@ export default function UserProfileDropdown() {
                             <Settings className="h-4 w-4 shrink-0 text-fg-muted" />
                             Settings
                         </button>
+                        {isAdmin ? (
+                            <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                    setIsOpen(false);
+                                    navigate(ROUTES.admin);
+                                }}
+                                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-fg/90 transition-colors hover:bg-surface-strong hover:text-fg"
+                            >
+                                <LayoutDashboard className="h-4 w-4 shrink-0 text-rydo-purple" />
+                                Admin mode
+                            </button>
+                        ) : null}
                         <div className="my-1 h-px w-full bg-border" />
                         <button
                             type="button"

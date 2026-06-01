@@ -1,11 +1,13 @@
-import AdminHeader from '@/features/admin/components/AdminHeader';
-import RoutesModerationTable from '@/features/admin/components/RoutesModerationTable';
+import AdminPageShell from '@/features/admin/components/AdminPageShell';
+import AdminRoutesPanel from '@/features/admin/components/AdminRoutesPanel';
 
 export default function AdminRoutesPage() {
   return (
-    <section className="space-y-6">
-      <AdminHeader title="Routes moderation" />
-      <RoutesModerationTable />
-    </section>
+    <AdminPageShell
+      title="Routes"
+      description="Review community routes, flag issues, and remove content."
+      desktop={<AdminRoutesPanel variant="desktop" />}
+      mobile={<AdminRoutesPanel variant="mobile" />}
+    />
   );
 }
