@@ -1,8 +1,11 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,6 +24,13 @@ builder.Services.Configure<DemoClubChatSimulatorOptions>(
     builder.Configuration.GetSection(DemoClubChatSimulatorOptions.SectionName));
 builder.Services.Configure<DemoRideLiveBotsOptions>(
     builder.Configuration.GetSection(DemoRideLiveBotsOptions.SectionName));
+builder.Services.AddOptions<DemoLiveEntryOptions>()
+    .Bind(builder.Configuration.GetSection(DemoLiveEntryOptions.SectionName))
+    .PostConfigure<IHostEnvironment>((opt, env) =>
+    {
+        if (env.IsDevelopment() && string.IsNullOrWhiteSpace(opt.BoothSigningKey))
+            opt.BoothSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    });
 builder.Services.AddScoped<ClubChatMessageDtoFactory>();
 builder.Services.AddSingleton<RideChatMessageDtoFactory>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
@@ -34,6 +44,27 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
 builder.Services.AddSingleton<RideLiveBotOrchestrator>();
+builder.Services.AddSingleton<LiveEntryBoothTokenService>();
+builder.Services.AddScoped<RideParticipantService>();
+builder.Services.AddScoped<LiveEntryService>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(Rydo.Api.Controllers.LiveEntryController.RateLimitPolicy, context =>
+    {
+        var opt = context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<DemoLiveEntryOptions>>().CurrentValue;
+        var window = TimeSpan.FromHours(Math.Max(1, opt.RateLimitWindowHours));
+        var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            AutoReplenishment = true,
+            PermitLimit = Math.Max(1, opt.RateLimitPermitLimit),
+            Window = window,
+            QueueLimit = 0,
+        });
+    });
+});
 
 var conn = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost,1433;Database=Rydo;User Id=sa;Password=Your_password123;TrustServerCertificate=True;Encrypt=False";
@@ -142,9 +173,30 @@ builder.Services.AddHostedService<UserActivityRetentionBackgroundService>();
 
 var app = builder.Build();
 
+var liveEntryOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<DemoLiveEntryOptions>>().Value;
+if (liveEntryOptions.Enabled && string.IsNullOrWhiteSpace(liveEntryOptions.BoothSigningKey))
+{
+    throw new InvalidOperationException(
+        "Rydo:LiveEntry:BoothSigningKey is required when LiveEntry is enabled outside Development.");
+}
+
+if (app.Environment.IsDevelopment() && liveEntryOptions.Enabled)
+{
+    var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("LiveEntry");
+    logger.LogWarning(
+        "Live entry booth signing key (Development): {Key}. Pin in appsettings.Development.json to keep QR URLs stable across restarts.",
+        liveEntryOptions.BoothSigningKey);
+}
+
 await DatabaseBootstrap.EnsureSchemaReadyAsync(
     app.Services,
     app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrap"));
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var liveEntry = scope.ServiceProvider.GetRequiredService<LiveEntryService>();
+    await liveEntry.EnsureStateRowAsync(CancellationToken.None);
+}
 
 app.UseForwardedHeaders();
 
@@ -189,6 +241,7 @@ if (File.Exists(indexHtml))
 }
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<UserActivityMiddleware>();

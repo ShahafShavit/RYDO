@@ -128,4 +128,10 @@ export const API_ENDPOINTS = {
     renderProgress: `${P}/timelapse/render-progress`,
     video: `${P}/timelapse/video`,
   },
+  liveEntry: {
+    preview: `${P}/live-entry/preview`,
+    challenge: `${P}/live-entry/challenge`,
+    redeem: `${P}/live-entry/redeem`,
+    boothUrl: `${P}/live-entry/booth-url`,
+  },
 };

@@ -28,6 +28,7 @@ const AdminRoutesPage = lazy(() => import('@/pages/admin/AdminRoutesPage'));
 const AdminHazardsPage = lazy(() => import('@/pages/admin/AdminHazardsPage'));
 const AdminChallengesPage = lazy(() => import('@/pages/admin/AdminChallengesPage'));
 const AdminAnalyticsPage = lazy(() => import('@/pages/admin/AdminAnalyticsPage'));
+const AdminLiveEntryQrPage = lazy(() => import('@/pages/admin/AdminLiveEntryQrPage'));
 const NotFoundPage = lazy(() => import('@/pages/not-found/NotFoundPage'));
 const RideEventPage = lazy(() => import('@/pages/rides/RideEventPage'));
 const MyRidesPage = lazy(() => import('@/pages/rides/MyRidesPage'));
@@ -37,6 +38,7 @@ const LeaderboardsPage = lazy(() => import('@/pages/leaderboards/LeaderboardsPag
 const ChallengesPageBold = lazy(() => import('@/pages/challenges/ChallengesPageBold'));
 const LiveRideReplayPage = lazy(() => import('@/features/live-ride/LiveRideReplayPage'));
 const LiveRideRoute = lazy(() => import('@/features/live-ride/LiveRideRoute'));
+const JoinLivePage = lazy(() => import('@/pages/join/JoinLivePage'));
 const TimelapsePage = lazy(() => import('@/features/timelapse/TimelapsePage'));
 
 /**
@@ -63,6 +65,7 @@ export function createAppRoutes(options = {}) {
             { path: ROUTES.register, element: <RegisterPage /> },
           ],
         },
+        { path: ROUTES.joinLive, element: <JoinLivePage /> },
       ],
     },
     {
@@ -108,6 +111,7 @@ export function createAppRoutes(options = {}) {
             { path: ROUTES.adminHazards, element: <AdminHazardsPage /> },
             { path: ROUTES.adminChallenges, element: <AdminChallengesPage /> },
             { path: ROUTES.adminAnalytics, element: <AdminAnalyticsPage /> },
+            { path: ROUTES.adminLiveEntry, element: <AdminLiveEntryQrPage /> },
           ],
         },
       ],

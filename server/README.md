@@ -63,6 +63,21 @@ If you are not using the proxy, you can set `VITE_API_BASE_URL=http://localhost:
 
 **Club group chat** is implemented: REST under `/api/clubs/{clubId}/chat/*`, summary at `/api/users/me/club-chat/summary`, and SignalR at `/hubs/club-chat` (JWT). After pulling schema changes that add chat tables, recreate the Docker SQL volume (`docker compose down -v`) so `EnsureCreated` and `DbSeeder` run on a clean database.
 
+### QR live-entry booth (scan → demo rider → live map)
+
+When `Rydo:LiveEntry:Enabled` is true, the API exposes `/api/live-entry/*` for a booth QR flow: scan opens `/join/live?g=…`, user confirms join, gets the next sequential demo rider (`rider003@rydo.test` … `rider036@rydo.test`), and lands on `/ride/{id}/live`.
+
+| Setting | Purpose |
+|---------|---------|
+| `Rydo:LiveEntry:Enabled` | Master switch (off in Production by default) |
+| `Rydo:LiveEntry:BoothSigningKey` | HMAC secret for booth URLs; **required in production** when enabled. In Development, auto-generated on boot if empty (check API logs; pin in `appsettings.Development.json` to keep QR stable across restarts). |
+| `Rydo:LiveEntry:RouteGpxFileName` | Seeded demo ride route (default `groopy-2448.gpx`) |
+| `Rydo:DemoRideLiveBots:AllowOnLiveEntryRideInProduction` | Peer simulators on the demo ride outside Development |
+
+Admin UI: sign in as `admin@rydo.test`, open **Live entry QR** (`/admin/live-entry`), print or copy the join link.
+
+**Schema / seed:** adds `LiveEntryChallenges`, `LiveEntryStates`, and demo ride seeding. After pulling these changes, recreate the SQL volume: `docker compose down -v` then `docker compose up -d`.
+
 ## Project layout
 
 - [`Rydo.Api/Program.cs`](Rydo.Api/Program.cs) — DI, JWT, CORS, `EnsureCreated`, seed

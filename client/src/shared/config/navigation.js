@@ -8,6 +8,7 @@ import {
   Map,
   MessageCircle,
   Route as RoutePathIcon,
+  QrCode,
   Sparkles,
   Users,
   UsersRound,
@@ -39,4 +40,5 @@ export const adminNavigation = [
   { label: 'Routes', to: ROUTES.adminRoutes, Icon: Map },
   { label: 'Hazards', to: ROUTES.adminHazards, Icon: AlertTriangle },
   { label: 'Challenges', shortLabel: 'Quests', to: ROUTES.adminChallenges, Icon: Sparkles },
+  { label: 'Live entry QR', shortLabel: 'QR', to: ROUTES.adminLiveEntry, Icon: QrCode },
 ];

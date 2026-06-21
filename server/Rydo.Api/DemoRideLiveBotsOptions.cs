@@ -19,4 +19,7 @@ public sealed class DemoRideLiveBotsOptions
 
     /// <summary>Approximate meters advanced along the polyline per update (demo pacing).</summary>
     public double StepMeters { get; set; } = 24;
+
+    /// <summary>When true, pose simulators may run on the QR live-entry demo ride outside Development.</summary>
+    public bool AllowOnLiveEntryRideInProduction { get; set; }
 }

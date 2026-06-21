@@ -101,6 +101,8 @@ export class RydoStack extends cdk.Stack {
         // Dev-only features; explicit off for AWS even if appsettings merge changes.
         Rydo__DemoClubChatSimulator__Enabled: 'false',
         Rydo__DemoRideLiveBots__Enabled: 'false',
+        Rydo__DemoRideLiveBots__AllowOnLiveEntryRideInProduction: 'false',
+        Rydo__LiveEntry__Enabled: 'false',
       },
     });
     appContainer.addPortMappings({

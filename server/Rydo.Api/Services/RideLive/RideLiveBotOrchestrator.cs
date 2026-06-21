@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Rydo.Api;
 using Rydo.Api.Data;
 
 namespace Rydo.Api.Services.RideLive;
@@ -27,14 +28,24 @@ public sealed class RideLiveBotOrchestrator(
 
     public async Task TryStartBotsForRideAsync(int rideId, int triggeringUserId, string? triggeringEmail)
     {
-        if (!environment.IsDevelopment() || !options.Value.Enabled)
+        if (!options.Value.Enabled)
         {
             logger.LogDebug(
-                "Ride live simulators: skip ride {RideId} — IsDevelopment={IsDev}, Rydo:DemoRideLiveBots:Enabled={Enabled}.",
-                rideId,
-                environment.IsDevelopment(),
-                options.Value.Enabled);
+                "Ride live simulators: skip ride {RideId} — Rydo:DemoRideLiveBots:Enabled=false.",
+                rideId);
             return;
+        }
+
+        if (!environment.IsDevelopment())
+        {
+            if (!options.Value.AllowOnLiveEntryRideInProduction
+                || !await IsLiveEntryDemoRideAsync(rideId).ConfigureAwait(false))
+            {
+                logger.LogDebug(
+                    "Ride live simulators: skip ride {RideId} — not Development and not configured live-entry demo ride.",
+                    rideId);
+                return;
+            }
         }
 
         if (!_startedRides.TryAdd(rideId, 0))
@@ -266,6 +277,23 @@ public sealed class RideLiveBotOrchestrator(
         {
             /* ignore */
         }
+    }
+
+    private async Task<bool> IsLiveEntryDemoRideAsync(int rideId)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var liveEntryOpt = scope.ServiceProvider
+            .GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<DemoLiveEntryOptions>>().CurrentValue;
+        if (!liveEntryOpt.Enabled)
+            return false;
+
+        var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
+        var demoRideId = await db.Rides.AsNoTracking()
+            .Where(r => r.Name == liveEntryOpt.RideName)
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+        return demoRideId == rideId;
     }
 
     private static double HaversineQuick(double lat1, double lon1, double lat2, double lon2)

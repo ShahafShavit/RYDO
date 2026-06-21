@@ -33,6 +33,8 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<RideInvite> RideInvites => Set<RideInvite>();
     public DbSet<UserActivityDay> UserActivityDays => Set<UserActivityDay>();
     public DbSet<UserActivityHour> UserActivityHours => Set<UserActivityHour>();
+    public DbSet<LiveEntryChallenge> LiveEntryChallenges => Set<LiveEntryChallenge>();
+    public DbSet<LiveEntryState> LiveEntryStates => Set<LiveEntryState>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -221,6 +223,18 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
             e.HasOne(x => x.ToUser).WithMany().HasForeignKey(x => x.ToUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => new { x.RideId, x.ToUserId }).IsUnique();
             e.HasIndex(x => new { x.ToUserId, x.Status });
+        });
+
+        builder.Entity<LiveEntryChallenge>(e =>
+        {
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasIndex(x => x.ExpiresAt);
+        });
+
+        builder.Entity<LiveEntryState>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).ValueGeneratedNever();
         });
 
         builder.Entity<InboxItem>(e =>

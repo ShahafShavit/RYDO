@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Rydo.Api.Services;
 
 namespace Rydo.Api.Data;
@@ -26,6 +27,7 @@ public static class DbSeeder
         var db = scope.ServiceProvider.GetRequiredService<RydoDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
         // Baseline roles + seeded logins must run even when demo history already exists; otherwise a DB can
         // contain History rows (e.g. partial seed / validation failure after history SaveChanges) while
@@ -97,6 +99,7 @@ public static class DbSeeder
         if (await db.HistoryEntries.AnyAsync())
         {
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
+            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
@@ -143,6 +146,7 @@ public static class DbSeeder
             await db.SaveChangesAsync();
 
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
+            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
             await EnsureClubChatSeedAsync(db, rider.Id);
 
             await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routes, rideGroups, personalRideGroups, userIds, det);
@@ -160,6 +164,7 @@ public static class DbSeeder
         await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
         await SeedUserActivityIfNeededAsync(db, userIds, det);
         await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
+        await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
         await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
@@ -567,6 +572,71 @@ public static class DbSeeder
         await TryAddAsync(7, demoRiderId, ClubMemberRole.Member, 22);
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// QR live-entry demo ride with a configurable route. Idempotent by fixed ride name.
+    /// </summary>
+    private static async Task EnsureDemoLiveRideAsync(
+        RydoDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        int createdByUserId)
+    {
+        var rideName = configuration["Rydo:LiveEntry:RideName"] ?? "Live Demo — QR Entry";
+        var gpxFile = configuration["Rydo:LiveEntry:RouteGpxFileName"] ?? "groopy-2448.gpx";
+        var riderStart = configuration.GetValue("Rydo:LiveEntry:RiderEmailStartNumber", 3);
+        var riderCount = configuration.GetValue("Rydo:LiveEntry:RiderCount", 34);
+
+        var gpxRef = $"routes/{gpxFile}";
+        var route = await db.Routes.AsNoTracking().FirstOrDefaultAsync(r => r.GpxReference == gpxRef);
+        if (route == null)
+            return;
+
+        Ride ride;
+        var existing = await db.Rides.FirstOrDefaultAsync(r => r.Name == rideName);
+        if (existing == null)
+        {
+            ride = new Ride
+            {
+                Kind = RideKind.Scheduled,
+                Name = rideName,
+                Description = "QR demo booth ride — scan to join live with a demo account.",
+                ScheduledDate = DateTime.UtcNow.AddDays(7).Date.AddHours(9),
+                RouteId = route.Id,
+                MaxParticipants = Math.Max(riderCount, 40),
+                ClubId = null,
+                CreatedByUserId = createdByUserId,
+            };
+            db.Rides.Add(ride);
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            ride = existing;
+        }
+
+        await EnsureDemoLiveRideParticipantsAsync(db, userManager, ride.Id, riderStart, riderCount);
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsureDemoLiveRideParticipantsAsync(
+        RydoDbContext db,
+        UserManager<ApplicationUser> userManager,
+        int rideId,
+        int riderStart,
+        int riderCount)
+    {
+        for (var i = 0; i < riderCount; i++)
+        {
+            var email = $"rider{riderStart + i:000}@rydo.test";
+            var user = await userManager.FindByEmailAsync(email);
+            if (user == null)
+                continue;
+            if (await db.RideParticipants.AnyAsync(p => p.RideId == rideId && p.UserId == user.Id))
+                continue;
+            db.RideParticipants.Add(new RideParticipant { RideId = rideId, UserId = user.Id });
+        }
     }
 
     /// <summary>

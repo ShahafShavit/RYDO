@@ -33,9 +33,11 @@ export const ROUTES = {
   adminHazards: '/admin/hazards',
   adminChallenges: '/admin/challenges',
   adminAnalytics: '/admin/analytics',
+  adminLiveEntry: '/admin/live-entry',
 
   // Live Ride (Mapbox simulator; public for desktop QA)
   live: '/live',
+  joinLive: '/join/live',
   timelapse: '/timelapse',
 
   // Fallback

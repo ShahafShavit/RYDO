@@ -133,6 +133,12 @@ export function AuthProvider({ children }) {
     return session.user;
   }, [applySession]);
 
+  const loginWithSession = useCallback((user, token) => {
+    const session = normalizeAuthResponse({ user, token });
+    applySession(session.user, session.token);
+    return session.user;
+  }, [applySession]);
+
   const logout = useCallback(() => {
     clearSession(true);
   }, [clearSession]);
@@ -145,10 +151,11 @@ export function AuthProvider({ children }) {
       isAuthReady,
       register,
       login,
+      loginWithSession,
       logout,
       updateUser,
     }),
-    [isAuthReady, login, logout, register, updateUser, user]
+    [isAuthReady, login, loginWithSession, logout, register, updateUser, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
