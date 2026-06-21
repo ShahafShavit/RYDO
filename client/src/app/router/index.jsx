@@ -66,6 +66,7 @@ export function createAppRoutes(options = {}) {
           ],
         },
         { path: ROUTES.joinLive, element: <JoinLivePage /> },
+        { path: ROUTES.joinDemo, element: <JoinLivePage /> },
       ],
     },
     {

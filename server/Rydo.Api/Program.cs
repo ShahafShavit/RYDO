@@ -173,21 +173,6 @@ builder.Services.AddHostedService<UserActivityRetentionBackgroundService>();
 
 var app = builder.Build();
 
-var liveEntryOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<DemoLiveEntryOptions>>().Value;
-if (liveEntryOptions.Enabled && string.IsNullOrWhiteSpace(liveEntryOptions.BoothSigningKey))
-{
-    throw new InvalidOperationException(
-        "Rydo:LiveEntry:BoothSigningKey is required when LiveEntry is enabled outside Development.");
-}
-
-if (app.Environment.IsDevelopment() && liveEntryOptions.Enabled)
-{
-    var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("LiveEntry");
-    logger.LogWarning(
-        "Live entry booth signing key (Development): {Key}. Pin in appsettings.Development.json to keep QR URLs stable across restarts.",
-        liveEntryOptions.BoothSigningKey);
-}
-
 await DatabaseBootstrap.EnsureSchemaReadyAsync(
     app.Services,
     app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseBootstrap"));

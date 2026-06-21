@@ -65,16 +65,16 @@ If you are not using the proxy, you can set `VITE_API_BASE_URL=http://localhost:
 
 ### QR live-entry booth (scan → demo rider → live map)
 
-When `Rydo:LiveEntry:Enabled` is true, the API exposes `/api/live-entry/*` for a booth QR flow: scan opens `/join/live?g=…`, user confirms join, gets the next sequential demo rider (`rider003@rydo.test` … `rider036@rydo.test`), and lands on `/ride/{id}/live`.
+When `Rydo:LiveEntry:Enabled` is true, the API exposes `/api/live-entry/*` for a booth QR flow: scan opens `/join/demo`, user confirms join, gets the next sequential demo rider (`rider003@rydo.test` … `rider036@rydo.test`), and lands on `/ride/{id}/live`. Legacy signed links `/join/live?g=…` still work for already-printed QRs.
 
 | Setting | Purpose |
 |---------|---------|
 | `Rydo:LiveEntry:Enabled` | Master switch (off in Production by default) |
-| `Rydo:LiveEntry:BoothSigningKey` | HMAC secret for booth URLs; **required in production** when enabled. In Development, auto-generated on boot if empty (check API logs; pin in `appsettings.Development.json` to keep QR stable across restarts). |
+| `Rydo:LiveEntry:BoothSigningKey` | Optional HMAC secret for legacy signed booth URLs (`/join/live?g=…`). Auto-generated in Development when empty. |
 | `Rydo:LiveEntry:RouteGpxFileName` | Seeded demo ride route (default `groopy-2448.gpx`) |
 | `Rydo:DemoRideLiveBots:AllowOnLiveEntryRideInProduction` | Peer simulators on the demo ride outside Development |
 
-Admin UI: sign in as `admin@rydo.test`, open **Live entry QR** (`/admin/live-entry`), print or copy the join link.
+Admin UI: sign in as `admin@rydo.test`, open **Live entry QR** (`/admin/live-entry`), print or copy the join link or QR image.
 
 **Schema / seed:** adds `LiveEntryChallenges`, `LiveEntryStates`, and demo ride seeding. After pulling these changes, recreate the SQL volume: `docker compose down -v` then `docker compose up -d`.
 

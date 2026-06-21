@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import { liveEntryApi } from '@/features/live-entry/api/live-entry-api';
 import { normalizeAuthResponse } from '@/features/auth/auth-mapper';
@@ -31,8 +31,10 @@ function displayInitial(firstName, lastName) {
 }
 
 export default function JoinLivePage() {
+  const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
-  const boothToken = searchParams.get('g')?.trim() || '';
+  const isDemoMode = pathname === ROUTES.joinDemo;
+  const boothToken = isDemoMode ? '' : searchParams.get('g')?.trim() || '';
   const navigate = useNavigate();
   const { loginWithSession } = useAuth();
 
@@ -44,7 +46,7 @@ export default function JoinLivePage() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    if (!boothToken) {
+    if (!isDemoMode && !boothToken) {
       setPreviewLoading(false);
       setPreviewError('Missing booth link. Scan the QR code from the event desk.');
       return;
@@ -55,7 +57,7 @@ export default function JoinLivePage() {
     setPreviewError(null);
 
     liveEntryApi
-      .preview(boothToken)
+      .preview(boothToken || undefined)
       .then((data) => {
         if (!cancelled) setPreview(data);
       })
@@ -71,12 +73,12 @@ export default function JoinLivePage() {
     return () => {
       cancelled = true;
     };
-  }, [boothToken]);
+  }, [boothToken, isDemoMode]);
 
-  const canJoin = Boolean(preview && boothToken && !previewLoading && !previewError);
+  const canJoin = Boolean(preview && (isDemoMode || boothToken) && !previewLoading && !previewError);
 
   const handleJoin = useCallback(async () => {
-    if (!boothToken || joining) return;
+    if ((!isDemoMode && !boothToken) || joining) return;
     setJoinError(null);
     setJoining(true);
 
@@ -84,7 +86,7 @@ export default function JoinLivePage() {
       clearStoredUser();
       apiClient.setAuthToken(null);
 
-      const challenge = await liveEntryApi.challenge(boothToken);
+      const challenge = await liveEntryApi.challenge(boothToken || undefined);
       const entryToken = challenge?.entryToken;
       if (!entryToken) throw new Error('Could not start live entry.');
 
@@ -108,7 +110,7 @@ export default function JoinLivePage() {
       setJoinError(err?.message || 'Could not join live ride.');
       setJoining(false);
     }
-  }, [boothToken, joining, loginWithSession, navigate, preview?.rideId]);
+  }, [boothToken, isDemoMode, joining, loginWithSession, navigate, preview?.rideId]);
 
   const pageTitle = useMemo(() => (previewLoading ? 'Loading…' : 'Join live ride'), [previewLoading]);
 

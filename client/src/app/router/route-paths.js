@@ -38,6 +38,7 @@ export const ROUTES = {
   // Live Ride (Mapbox simulator; public for desktop QA)
   live: '/live',
   joinLive: '/join/live',
+  joinDemo: '/join/demo',
   timelapse: '/timelapse',
 
   // Fallback

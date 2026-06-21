@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
 using Rydo.Api.Services;
 
 namespace Rydo.Api.Controllers;
@@ -12,10 +10,8 @@ namespace Rydo.Api.Controllers;
 public class LiveEntryController(
     LiveEntryService liveEntry,
     LiveEntryBoothTokenService boothTokens,
-    IOptionsMonitor<DemoLiveEntryOptions> options,
     IConfiguration configuration,
-    IHostEnvironment environment) : ControllerBase
-{
+    IHostEnvironment environment) : ControllerBase{
     public const string RateLimitPolicy = "LiveEntry";
 
     public record BoothTokenBody(string BoothToken);
@@ -29,7 +25,7 @@ public class LiveEntryController(
         if (!liveEntry.IsEnabled)
             return Problem(statusCode: 503, title: "Disabled", detail: "Live entry is not enabled.");
 
-        if (!boothTokens.TryValidate(g, out _))
+        if (!IsBoothAuthorized(g))
             return Problem(statusCode: 401, title: "Unauthorized", detail: "Invalid or expired booth link.");
 
         var preview = await liveEntry.GetPreviewAsync(ct);
@@ -54,7 +50,7 @@ public class LiveEntryController(
             return Problem(statusCode: 503, title: "Disabled", detail: "Live entry is not enabled.");
 
         var booth = (body.BoothToken ?? "").Trim();
-        if (!boothTokens.TryValidate(booth, out _))
+        if (!IsBoothAuthorized(booth))
             return Problem(statusCode: 401, title: "Unauthorized", detail: "Invalid or expired booth link.");
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -111,9 +107,6 @@ public class LiveEntryController(
         if (!liveEntry.IsEnabled)
             return Problem(statusCode: 503, title: "Disabled", detail: "Live entry is not enabled.");
 
-        var opt = options.CurrentValue;
-        var expiresAt = DateTime.UtcNow.AddDays(opt.BoothTokenTtlDays);
-        var g = boothTokens.Sign(expiresAt);
         var clientOrigin = configuration["Rydo:ClientOrigin"]?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(clientOrigin))
         {
@@ -122,15 +115,16 @@ public class LiveEntryController(
                 : $"{Request.Scheme}://{Request.Host.Value}";
         }
 
-        var joinPath = $"/join/live?g={Uri.EscapeDataString(g)}";
+        const string joinPath = "/join/demo";
         var joinUrl = clientOrigin + joinPath;
-        return Ok(new
-        {
-            boothToken = g,
-            joinUrl,
-            joinPath,
-            expiresAt = expiresAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-            validDays = opt.BoothTokenTtlDays,
-        });
+        return Ok(new { joinUrl, joinPath });
+    }
+
+    private bool IsBoothAuthorized(string? boothToken)
+    {
+        if (string.IsNullOrWhiteSpace(boothToken))
+            return true;
+
+        return boothTokens.TryValidate(boothToken.Trim(), out _);
     }
 }
