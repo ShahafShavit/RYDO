@@ -43,6 +43,8 @@ export const ROUTES = {
 
   /** Android APK hosted on S3 via CloudFront (/app/*.apk). */
   androidApk: '/app/rydo.apk',
+  /** Marketing landing anchor for the Get the App download section. */
+  getApp: '/#get-app',
 
   // Fallback
   notFound: '/not-found',

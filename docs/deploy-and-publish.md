@@ -298,6 +298,8 @@ A reasonable **release habit**: run `deploy-aws.sh` (stack + web + APK in one go
 
 Host a downloadable Android APK at **`https://rydo.bike/app/rydo.apk`** (S3 + CloudFront `/app/*.apk`). Users discover it from the marketing site via **Get the App** in the navbar → **`/#get-app`** section.
 
+Admins can print an app-install QR from **Live entry QR** (`/admin/live-entry`). It encodes `/#get-app` via `buildShareUrl` (same helper as share links). On production that resolves to the current site origin (`https://rydo.bike/...`). Optionally set **`VITE_APP_BASE_URL=https://rydo.bike`** in the Docker build (root `.env` / `deploy.env`, same pattern as Mapbox) if you want QR links pinned to the canonical domain when opening admin from another host.
+
 **Default:** `bash scripts/deploy-aws.sh` runs the APK upload automatically after the ECS health check. Set **`SKIP_MOBILE_APK_DEPLOY=1`** in `infra/deploy.env` to deploy AWS only.
 
 ### One-time (infra)
