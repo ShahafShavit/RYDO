@@ -283,13 +283,58 @@ When you **re-run** `deploy-aws.sh` (backend only), existing store builds keep w
 
 | Step | Automated? |
 |------|------------|
-| AWS infra + image + ECS rollout | Yes — `scripts/deploy-aws.sh` |
+| AWS infra + image + ECS rollout + APK to S3 | Yes — `scripts/deploy-aws.sh` (set `SKIP_MOBILE_APK_DEPLOY=1` for AWS-only) |
 | ECS scale off/on | Yes — `scripts/ecs-scale.sh` |
 | Mobile prod `.env.local` from CloudFront | No — copy URL from deploy output |
 | `npm run build` + `cap sync` | No — run manually (or add your own script) |
 | Play / App Store upload | No — Play Console / Xcode / `fastlane` if you add it later |
+| APK to rydo.bike/app (S3) | Yes — end of `scripts/deploy-aws.sh`, or standalone `scripts/deploy-mobile-apk.sh` / VS Code mobile task |
 
-A reasonable **release habit**: run `deploy-aws.sh` → verify health → update `mobile/.env.local` if URL changed → `npm run build` → `cap sync` → signed store upload.
+A reasonable **release habit**: run `deploy-aws.sh` (stack + web + APK in one go) → verify health and `/#get-app` → signed store upload when ready for Play.
+
+---
+
+## Deploy APK to rydo.bike/app
+
+Host a downloadable Android APK at **`https://rydo.bike/app/rydo.apk`** (S3 + CloudFront `/app/*.apk`). Users discover it from the marketing site via **Get the App** in the navbar → **`/#get-app`** section.
+
+**Default:** `bash scripts/deploy-aws.sh` runs the APK upload automatically after the ECS health check. Set **`SKIP_MOBILE_APK_DEPLOY=1`** in `infra/deploy.env` to deploy AWS only.
+
+### One-time (infra)
+
+After pulling CDK changes that add `MobileAppBucket`, deploy infra:
+
+```bash
+bash scripts/deploy-aws.sh
+```
+
+This creates the S3 bucket and CloudFront `/app/*.apk` path behavior, deploys the web client (including **Get the App**), and uploads the APK. No separate steps unless you skipped the APK phase.
+
+### APK only (without full AWS deploy)
+
+From the **repository root** (JDK 21, `ANDROID_HOME`, AWS CLI):
+
+```bash
+bash scripts/deploy-mobile-apk.sh
+```
+
+Or run the VS Code task **RYDO: Mobile — build APK & deploy to S3 (/app)**.
+
+The script:
+
+1. Writes `mobile/.env.local` from production env (`npm run env:prod` → `VITE_API_BASE_URL=https://rydo.bike`)
+2. Builds Vite + `cap sync android` + Gradle `assembleDebug`
+3. Uploads `app/rydo.apk` to S3
+4. Invalidates CloudFront `/app/rydo.apk`
+
+Public URLs (from stack outputs): **MobileAppLandingUrl** (`/#get-app`), **MobileAppDownloadUrl**.
+
+**Debug APK:** release signing is not configured in Gradle yet, so the default build is a **debug APK** (fine for internal/demo installs). For wider distribution, configure a release keystore and set `MOBILE_APK_BUILD=release` in `infra/deploy.env`. Play Store submission remains a separate manual step.
+
+Optional in `infra/deploy.env`:
+
+- `MOBILE_APK_BUILD=debug|release` (default `debug`)
+- `MOBILE_APK_FILENAME=rydo.apk` (default)
 
 ---
 

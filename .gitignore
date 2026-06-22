@@ -33,6 +33,7 @@ infra/cdk.out/
 infra/node_modules/
 infra/deploy.env
 infra/cdk-outputs.json
+.cf-invalidation-batch.json
 
 # .NET
 server/**/bin/

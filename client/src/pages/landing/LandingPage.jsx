@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import Lenis from '@studio-freight/lenis';
-import { ArrowRight, CheckCircle2, MapPinned, RadioTower, TriangleAlert, Users2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MapPinned, RadioTower, Smartphone, TriangleAlert, Users2 } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
 import Button from '@/shared/components/ui/button/Button';
 import Badge from '@/shared/components/ui/badge/Badge';
@@ -363,6 +363,36 @@ export default function LandingPage() {
           <Card>
             <h3 className="text-2xl font-semibold">Live awareness</h3>
             <p className="mt-3 text-fg/62">Real-time rider updates designed for visibility, low latency, and practical battery usage during active rides.</p>
+          </Card>
+        </div>
+      </section>
+
+      <section id="get-app" className="rydo-section">
+        <div className="rydo-container">
+          <Card className="flex flex-col gap-8 p-8 md:p-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl space-y-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Mobile</p>
+              <div className="flex items-start gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-rydo-purple/25 bg-rydo-purple/12">
+                  <Smartphone size={22} className="text-rydo-purple" />
+                </div>
+                <div className="space-y-3">
+                  <h2 className="text-4xl font-semibold">RYDO on Android</h2>
+                  <p className="text-fg-muted">
+                    Install the native app for live ride tracking, maps, and club chat on the trail.
+                    You may need to allow installs from unknown sources in Android settings.
+                  </p>
+                  <p className="text-sm text-fg-subtle">Android only for now. Google Play listing coming later.</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a href={ROUTES.androidApk} download="rydo.apk">
+                <Button variant="neon" size="lg" type="button">
+                  Download APK <ArrowRight size={18} />
+                </Button>
+              </a>
+            </div>
           </Card>
         </div>
       </section>

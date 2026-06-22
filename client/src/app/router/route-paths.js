@@ -41,6 +41,9 @@ export const ROUTES = {
   joinDemo: '/join/demo',
   timelapse: '/timelapse',
 
+  /** Android APK hosted on S3 via CloudFront (/app/*.apk). */
+  androidApk: '/app/rydo.apk',
+
   // Fallback
   notFound: '/not-found',
 };

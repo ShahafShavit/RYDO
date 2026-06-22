@@ -22,6 +22,7 @@ export const primaryNavigation = [
   { label: 'Features', href: '#features' },
   { label: 'Flow', href: '#product-flow' },
   { label: 'Tech', href: '#technology' },
+  { label: 'Get the App', href: '#get-app' },
 ];
 
 export const dashboardNavigation = [

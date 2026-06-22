@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # One-command AWS deploy: CDK (infra) -> Docker build -> ECR push -> ECS rollout -> health check.
+# Then (unless skipped) builds and uploads the Android APK to S3.
 # Prerequisites: AWS CLI credentials, Docker, Node/npm (for CDK).
+# APK step also needs JDK 21 and ANDROID_HOME (see mobile/README.md).
 # Optional overrides: infra/deploy.env (region, profile, Mapbox token, etc.).
+# Set SKIP_MOBILE_APK_DEPLOY=1 to skip the mobile APK step (AWS-only deploy).
 
 set -euo pipefail
 
@@ -94,12 +97,22 @@ echo "Verifying $HEALTH_URL …"
 for attempt in 1 2 3 4 5 6; do
   if curl -fsS "$HEALTH_URL" >/dev/null; then
     echo ""
-    echo "Deploy complete."
+    echo "AWS deploy complete."
     echo "Public URL: $CF_URL"
     echo "Health:     $HEALTH_URL"
     if [[ -n "${DOMAIN_NAME:-}" ]]; then
       echo "Domain:     https://${DOMAIN_NAME}"
     fi
+    if [[ "${SKIP_MOBILE_APK_DEPLOY:-}" == "1" || "${SKIP_MOBILE_APK_DEPLOY:-}" == "true" ]]; then
+      echo ""
+      echo "Skipping mobile APK deploy (SKIP_MOBILE_APK_DEPLOY is set)."
+      exit 0
+    fi
+    echo ""
+    echo "================================================================"
+    echo "Mobile APK deploy (deploy-mobile-apk.sh)…"
+    echo "================================================================"
+    bash "$SCRIPT_DIR/deploy-mobile-apk.sh"
     exit 0
   fi
   echo "  attempt $attempt/6 failed; retrying in 15s…"

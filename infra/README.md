@@ -1,6 +1,6 @@
 # RYDO AWS (CDK)
 
-Deploys **ECR**, **ECS Fargate** (app container + SQL Server sidecar), **ALB**, and **CloudFront** (HTTPS viewer → HTTP to ALB).
+Deploys **ECR**, **ECS Fargate** (app container + SQL Server sidecar), **ALB**, **CloudFront** (HTTPS viewer → HTTP to ALB), and an **S3 bucket** for the Android APK at **`/app/*.apk`** on the same CloudFront distribution. The download UX lives on the marketing site at **`/#get-app`**.
 
 ## Prerequisites
 
@@ -16,7 +16,9 @@ From the **repository root** (AWS CLI credentials + Docker required):
 bash scripts/deploy-aws.sh
 ```
 
-This bootstraps CDK if needed, deploys infra when it changed, builds the app image, pushes to ECR, starts ECS tasks, waits for stability, and verifies `/health`.
+This bootstraps CDK if needed, deploys infra when it changed, builds the app image, pushes to ECR, starts ECS tasks, waits for stability, verifies `/health`, then builds and uploads the Android APK to S3 (unless `SKIP_MOBILE_APK_DEPLOY=1` in `deploy.env`).
+
+The APK step requires JDK 21 and `ANDROID_HOME` — see [mobile/README.md](../mobile/README.md). To deploy AWS only, set `SKIP_MOBILE_APK_DEPLOY=1`.
 
 Optional overrides in `infra/deploy.env` (region, profile, Mapbox token). If the file is missing, region/profile come from `aws configure`.
 
@@ -71,8 +73,24 @@ After the image is in ECR, force a new ECS deployment (the script does this auto
 
 - **CloudFrontUrl** — public HTTPS URL (use this in the browser and as `VITE_API_BASE_URL` for production mobile builds).
 - **AlbDns** — direct HTTP to the load balancer (debugging).
+- **MobileAppBucketName** — S3 bucket for APK (`scripts/deploy-mobile-apk.sh`).
+- **MobileAppLandingUrl** — `https://<domain>/#get-app` (marketing site download section).
+- **MobileAppDownloadUrl** — `https://<domain>/app/rydo.apk`.
+- **CloudFrontDistributionId** — used for `/app/*.apk` cache invalidation after APK upload.
 
 Mobile store publishing (after deploy): [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md).
+
+## Mobile APK at /app
+
+After infra is deployed, upload the Android APK from the repo root:
+
+```bash
+bash scripts/deploy-mobile-apk.sh
+```
+
+Or use the VS Code task **RYDO: Mobile — build APK & deploy to S3 (/app)**. Requires JDK 21 and `ANDROID_HOME` (see [mobile/README.md](../mobile/README.md)).
+
+CloudFront routes **`/app/*.apk`** to the private S3 bucket (OAC); the marketing SPA serves **`/#get-app`** with a download link. All other paths go to ECS via the ALB.
 
 ## Tear down
 

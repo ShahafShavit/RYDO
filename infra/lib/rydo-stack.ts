@@ -7,6 +7,7 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
@@ -170,6 +171,23 @@ export class RydoStack extends cdk.Stack {
       });
     }
 
+    const mobileAppBucket = new s3.Bucket(this, 'MobileAppBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      autoDeleteObjects: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const mobileS3Origin = origins.S3BucketOrigin.withOriginAccessControl(mobileAppBucket);
+
+    const mobileApkBehavior = {
+      origin: mobileS3Origin,
+      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+      cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+    };
+
     const dist = new cloudfront.Distribution(this, 'CfDist', {
       comment: domainName ? `RYDO (${domainName})` : 'RYDO demo (ALB origin)',
       domainNames: domainName ? [domainName, ...(wwwDomain ? [wwwDomain] : [])] : undefined,
@@ -190,6 +208,9 @@ export class RydoStack extends cdk.Stack {
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
       },
+      additionalBehaviors: {
+        '/app/*.apk': mobileApkBehavior,
+      },
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
     });
@@ -209,6 +230,29 @@ export class RydoStack extends cdk.Stack {
     }
 
     this.cloudFrontUrl = domainName ? `https://${domainName}` : `https://${dist.distributionDomainName}`;
+
+    const mobileAppDownloadUrl = `${this.cloudFrontUrl}/app/rydo.apk`;
+    const mobileAppLandingUrl = `${this.cloudFrontUrl}/#get-app`;
+
+    new cdk.CfnOutput(this, 'MobileAppBucketName', {
+      value: mobileAppBucket.bucketName,
+      description: 'S3 bucket for Android APK (scripts/deploy-mobile-apk.sh)',
+    });
+
+    new cdk.CfnOutput(this, 'MobileAppDownloadUrl', {
+      value: mobileAppDownloadUrl,
+      description: 'Public HTTPS URL for the Android APK',
+    });
+
+    new cdk.CfnOutput(this, 'MobileAppLandingUrl', {
+      value: mobileAppLandingUrl,
+      description: 'Marketing site download section (/#get-app on the main SPA)',
+    });
+
+    new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
+      value: dist.distributionId,
+      description: 'Used by scripts/deploy-mobile-apk.sh for cache invalidation',
+    });
 
     new cdk.CfnOutput(this, 'EcrRepositoryUri', {
       value: this.ecrRepository.repositoryUri,
