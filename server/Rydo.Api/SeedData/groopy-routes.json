@@ -1,5 +1,19 @@
 [
   {
+    "pid": 2150,
+    "title": "חדרה Mountain Bike",
+    "region": "חדרה",
+    "terrain": "mixed",
+    "difficulty": "moderate",
+    "description": "",
+    "lengthKm": 0,
+    "elevationGainM": 0,
+    "durationMinutes": 0,
+    "gpxFileName": "groopy-2150.gpx",
+    "sourceUrl": "",
+    "notes": "Live-entry demo route (COROS GPX)"
+  },
+  {
     "pid": 2448,
     "title": "רמת צבי - כוכב הירדן (בהשראת אבי מור)",
     "region": "גליל תחתון והעמקים",

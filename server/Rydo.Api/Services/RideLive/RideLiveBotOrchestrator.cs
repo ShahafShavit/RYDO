@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rydo.Api;
@@ -11,8 +9,7 @@ namespace Rydo.Api.Services.RideLive;
 /// <summary>Opens hub connections as selected ride participants (dev-only) and streams UpdatePose along the route preview.</summary>
 public sealed class RideLiveBotOrchestrator(
     IServiceScopeFactory scopeFactory,
-    IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    RideLiveSimulatorGateway simulatorGateway,
     IOptions<DemoRideLiveBotsOptions> options,
     IHostEnvironment environment,
     IHostApplicationLifetime lifetime,
@@ -75,14 +72,30 @@ public sealed class RideLiveBotOrchestrator(
                 || string.IsNullOrWhiteSpace(ride.Route.PreviewCoordinatesJson)
                 || ride.Route.PreviewCoordinatesJson == "[]")
             {
-                logger.LogWarning(
-                    "Ride live simulators: abort ride {RideId} — missing route or preview polyline (RouteId={RouteId}, previewLen={PreviewLen}, previewEmpty={PreviewEmpty}).",
-                    rideId,
-                    ride?.RouteId,
-                    ride?.Route?.PreviewCoordinatesJson?.Length ?? 0,
-                    string.IsNullOrWhiteSpace(ride?.Route?.PreviewCoordinatesJson));
-                _startedRides.TryRemove(rideId, out _);
-                return;
+                if (await IsLiveEntryDemoRideAsync(rideId).ConfigureAwait(false))
+                {
+                    logger.LogInformation(
+                        "Ride live simulators: ride {RideId} missing route preview — running live-entry setup.",
+                        rideId);
+                    await DbSeeder.EnsureLiveEntryReadyAsync(scope.ServiceProvider).ConfigureAwait(false);
+                    ride = await db.Rides.AsNoTracking()
+                        .Include(r => r.Route)
+                        .FirstOrDefaultAsync(r => r.Id == rideId);
+                }
+
+                if (ride?.RouteId == null || ride.Route == null
+                    || string.IsNullOrWhiteSpace(ride.Route.PreviewCoordinatesJson)
+                    || ride.Route.PreviewCoordinatesJson == "[]")
+                {
+                    logger.LogWarning(
+                        "Ride live simulators: abort ride {RideId} — missing route or preview polyline (RouteId={RouteId}, previewLen={PreviewLen}, previewEmpty={PreviewEmpty}).",
+                        rideId,
+                        ride?.RouteId,
+                        ride?.Route?.PreviewCoordinatesJson?.Length ?? 0,
+                        string.IsNullOrWhiteSpace(ride?.Route?.PreviewCoordinatesJson));
+                    _startedRides.TryRemove(rideId, out _);
+                    return;
+                }
             }
 
             var pts = RideLiveRouteSampler.ParsePreviewCoordinates(ride.Route.PreviewCoordinatesJson);
@@ -100,40 +113,40 @@ public sealed class RideLiveBotOrchestrator(
                 .Where(p => p.RideId == rideId)
                 .Select(p => p.UserId)
                 .ToListAsync();
-            var participantUsers = await db.Users.AsNoTracking()
-                .Where(u => participantIds.Contains(u.Id) && u.Email != null)
-                .Select(u => new { u.Id, Email = u.Email! })
-                .ToListAsync();
+            var sims = await SelectSimulatorParticipantsAsync(db, participantIds, triggeringUserId);
 
-            var sims = participantUsers
-                .Where(u => !SimulatorExcludedEmails.Contains(u.Email))
-                .Where(u => u.Id != triggeringUserId)
-                .OrderBy(u => u.Id)
-                .Take(3)
-                .Select(u => new { u.Id, u.Email })
-                .ToList();
+            if (sims.Count == 0 && await IsLiveEntryDemoRideAsync(rideId).ConfigureAwait(false))
+            {
+                logger.LogInformation(
+                    "Ride live simulators: ride {RideId} has no bot peers — running live-entry setup and retrying.",
+                    rideId);
+                await DbSeeder.EnsureLiveEntryReadyAsync(scope.ServiceProvider).ConfigureAwait(false);
+
+                participantIds = await db.RideParticipants.AsNoTracking()
+                    .Where(p => p.RideId == rideId)
+                    .Select(p => p.UserId)
+                    .ToListAsync();
+                sims = await SelectSimulatorParticipantsAsync(db, participantIds, triggeringUserId);
+            }
 
             logger.LogDebug(
-                "Ride live simulators: ride {RideId} — {ParticipantCount} participant(s) with email; {SimulatorCount} selected (excl. admin/user/trigger, max 3).",
+                "Ride live simulators: ride {RideId} — {SimulatorCount} selected (excl. admin/user/trigger, max 3).",
                 rideId,
-                participantUsers.Count,
                 sims.Count);
 
             if (sims.Count == 0)
             {
-                logger.LogDebug(
+                logger.LogWarning(
                     "Ride live simulators: no eligible seeded participants on ride {RideId} to simulate (need other riders besides admin@ / user@ / joiner).",
                     rideId);
                 _startedRides.TryRemove(rideId, out _);
                 return;
             }
 
-            var selfBase = RideLiveSelfApiBaseUrl.Resolve(configuration, opt);
-            logger.LogDebug(
-                "Ride live simulators: starting {Count} connection(s) for ride {RideId}; self API base (login/hub)={SelfBase}.",
+            logger.LogInformation(
+                "Ride live simulators: starting {Count} in-process publisher(s) for ride {RideId}.",
                 sims.Count,
-                rideId,
-                selfBase);
+                rideId);
 
             using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping);
             var ct = shutdown.Token;
@@ -164,55 +177,9 @@ public sealed class RideLiveBotOrchestrator(
         CancellationToken ct)
     {
         var opt = options.Value;
-        var http = httpClientFactory.CreateClient("RideLiveBots");
-        string? token = null;
-        try
-        {
-            using var loginRes = await http.PostAsJsonAsync(
-                "api/auth/login",
-                new { email, password = opt.BotPassword },
-                ct).ConfigureAwait(false);
-            if (!loginRes.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Ride live simulator login failed for {Email}: {Status}", email, loginRes.StatusCode);
-                return;
-            }
-
-            await using var stream = await loginRes.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
-            token = doc.RootElement.GetProperty("token").GetString();
-            if (string.IsNullOrEmpty(token))
-            {
-                logger.LogWarning("Ride live simulator login returned no token for {Email}", email);
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Ride live simulator login error for {Email}", email);
+        var user = await simulatorGateway.TryLoadEligibleSimulatorUserAsync(rideId, userId, ct).ConfigureAwait(false);
+        if (user == null)
             return;
-        }
-
-        var baseUrl = RideLiveSelfApiBaseUrl.Resolve(configuration, opt);
-        var hubUrl = $"{baseUrl}/hubs/ride-live";
-        await using var connection = new HubConnectionBuilder()
-            .WithUrl(hubUrl, o =>
-            {
-                o.AccessTokenProvider = () => Task.FromResult<string?>(token);
-            })
-            .WithAutomaticReconnect()
-            .Build();
-
-        try
-        {
-            await connection.StartAsync(ct).ConfigureAwait(false);
-            await connection.InvokeAsync("JoinRide", rideId, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Ride live simulator hub start/join failed for {Email} ride {RideId}", email, rideId);
-            return;
-        }
 
         var totalLen = 0.0;
         for (var i = 0; i < pts.Count - 1; i++)
@@ -230,19 +197,13 @@ public sealed class RideLiveBotOrchestrator(
             {
                 var (lng, lat, bearing) = RideLiveRouteSampler.Advance(pts, ref distanceAlong, opt.StepMeters);
                 var at = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-                await connection.InvokeAsync(
-                    "UpdatePose",
-                    lat,
-                    lng,
-                    bearing,
-                    (double?)4,
-                    at,
-                    ct).ConfigureAwait(false);
+                await simulatorGateway.PublishPoseAsync(rideId, user, lat, lng, bearing, 4, at, ct)
+                    .ConfigureAwait(false);
                 poseSeq++;
                 if (poseSeq <= 3 || poseSeq % 20 == 0)
                 {
                     logger.LogDebug(
-                        "Ride live simulator {Email} ride {RideId} UpdatePose invoked OK (#{Seq}) lat {Lat:F5} lng {Lng:F5}",
+                        "Ride live simulator {Email} ride {RideId} pose published OK (#{Seq}) lat {Lat:F5} lng {Lng:F5}",
                         email,
                         rideId,
                         poseSeq,
@@ -256,7 +217,7 @@ public sealed class RideLiveBotOrchestrator(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Ride live simulator {Email} UpdatePose failed", email);
+                logger.LogWarning(ex, "Ride live simulator {Email} pose publish failed", email);
             }
 
             try
@@ -268,15 +229,25 @@ public sealed class RideLiveBotOrchestrator(
                 break;
             }
         }
+    }
 
-        try
-        {
-            await connection.StopAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        catch
-        {
-            /* ignore */
-        }
+    private static async Task<List<(int Id, string Email)>> SelectSimulatorParticipantsAsync(
+        RydoDbContext db,
+        IReadOnlyList<int> participantIds,
+        int triggeringUserId)
+    {
+        var participantUsers = await db.Users.AsNoTracking()
+            .Where(u => participantIds.Contains(u.Id) && u.Email != null)
+            .Select(u => new { u.Id, Email = u.Email! })
+            .ToListAsync();
+
+        return participantUsers
+            .Where(u => !SimulatorExcludedEmails.Contains(u.Email))
+            .Where(u => u.Id != triggeringUserId)
+            .OrderBy(u => u.Id)
+            .Take(3)
+            .Select(u => (u.Id, u.Email))
+            .ToList();
     }
 
     private async Task<bool> IsLiveEntryDemoRideAsync(int rideId)

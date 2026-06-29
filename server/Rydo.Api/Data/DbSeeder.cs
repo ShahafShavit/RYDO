@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Rydo.Api.Services;
 
 namespace Rydo.Api.Data;
@@ -21,6 +22,40 @@ public static class DbSeeder
 
     private static readonly DbSeedProfile Profile = new();
 
+    private static readonly string[] CommunityRiderFirstNames =
+    [
+        "Alex", "Noa", "David", "Maya", "Yoni", "Tamar", "Oren", "Shira", "Eitan", "Lior",
+        "Nadav", "Roni", "Gal", "Amit", "Yuval", "Dana", "Itai", "Keren", "Bar", "Hila",
+        "Roi", "Inbar", "Tom", "Stav", "Nitzan", "Alon", "Or", "Michal", "Erez", "Yael",
+        "Ido", "Chen", "Reut", "Gil",
+    ];
+
+    private static readonly string[] CommunityRiderLastNames =
+    [
+        "Cohen", "Levy", "Mizrahi", "Peretz", "Azoulay", "Biton", "Dahan", "Friedman", "Goldstein", "Katz",
+        "Lavi", "Mor", "Nissan", "Ohana", "Pinto", "Rosen", "Segal", "Tal", "Weiss", "Yaron",
+    ];
+
+    /// <summary>
+    /// Idempotent live-entry setup: demo route, community riders, demo ride, and participants.
+    /// Safe to call at startup and when live bots find no eligible peers.
+    /// </summary>
+    public static async Task EnsureLiveEntryReadyAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        var configuration = services.GetRequiredService<IConfiguration>();
+        if (!configuration.GetValue("Rydo:LiveEntry:Enabled", false))
+            return;
+
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var admin = await userManager.FindByEmailAsync(AdminEmail);
+        if (admin == null)
+            return;
+
+        var db = services.GetRequiredService<RydoDbContext>();
+        var contentRoot = services.GetRequiredService<IHostEnvironment>().ContentRootPath;
+        await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id, contentRoot);
+    }
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         await using var scope = services.CreateAsyncScope();
@@ -28,6 +63,7 @@ public static class DbSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var contentRoot = scope.ServiceProvider.GetRequiredService<IHostEnvironment>().ContentRootPath;
 
         // Baseline roles + seeded logins must run even when demo history already exists; otherwise a DB can
         // contain History rows (e.g. partial seed / validation failure after history SaveChanges) while
@@ -99,7 +135,7 @@ public static class DbSeeder
         if (await db.HistoryEntries.AnyAsync())
         {
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
-            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
+            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id, contentRoot);
             await EnsureClubChatSeedAsync(db, rider.Id);
             await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
             await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
@@ -146,7 +182,7 @@ public static class DbSeeder
             await db.SaveChangesAsync();
 
             await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
-            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
+            await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id, contentRoot);
             await EnsureClubChatSeedAsync(db, rider.Id);
 
             await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routes, rideGroups, personalRideGroups, userIds, det);
@@ -164,7 +200,7 @@ public static class DbSeeder
         await SeedActivityHistoryAndMetadataAsync(scope.ServiceProvider, db, routesFromDb, rideGroupsFromDb, personalFromDb, userIds, det);
         await SeedUserActivityIfNeededAsync(db, userIds, det);
         await EnsureDemoLoginClubMembershipsAsync(db, admin.Id, rider.Id);
-        await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id);
+        await EnsureDemoLiveRideAsync(db, userManager, configuration, admin.Id, contentRoot);
         await EnsureClubChatSeedAsync(db, rider.Id);
         await SeedFriendInboxIfNeededAsync(db, userManager, admin, rider);
         await SeedRideInboxIfNeededAsync(db, userManager, admin, rider);
@@ -576,20 +612,21 @@ public static class DbSeeder
 
     /// <summary>
     /// QR live-entry demo ride with a configurable route. Idempotent by fixed ride name.
+    /// Creates the route from <c>GpxSeed</c> when missing so production DBs without full Groopy seed still work.
     /// </summary>
     private static async Task EnsureDemoLiveRideAsync(
         RydoDbContext db,
         UserManager<ApplicationUser> userManager,
         IConfiguration configuration,
-        int createdByUserId)
+        int createdByUserId,
+        string contentRoot)
     {
         var rideName = configuration["Rydo:LiveEntry:RideName"] ?? "Live Demo — QR Entry";
-        var gpxFile = configuration["Rydo:LiveEntry:RouteGpxFileName"] ?? "groopy-2448.gpx";
+        var gpxFile = configuration["Rydo:LiveEntry:RouteGpxFileName"] ?? "groopy-2150.gpx";
         var riderStart = configuration.GetValue("Rydo:LiveEntry:RiderEmailStartNumber", 3);
         var riderCount = configuration.GetValue("Rydo:LiveEntry:RiderCount", 34);
 
-        var gpxRef = $"routes/{gpxFile}";
-        var route = await db.Routes.AsNoTracking().FirstOrDefaultAsync(r => r.GpxReference == gpxRef);
+        var route = await EnsureLiveEntryRouteAsync(db, contentRoot, gpxFile, createdByUserId);
         if (route == null)
             return;
 
@@ -614,10 +651,211 @@ public static class DbSeeder
         else
         {
             ride = existing;
+            if (ride.RouteId != route.Id)
+                ride.RouteId = route.Id;
         }
 
+        await EnsureCommunityRidersAsync(userManager, riderStart, riderCount);
         await EnsureDemoLiveRideParticipantsAsync(db, userManager, ride.Id, riderStart, riderCount);
         await db.SaveChangesAsync();
+    }
+
+    private static async Task<RouteEntity?> EnsureLiveEntryRouteAsync(
+        RydoDbContext db,
+        string contentRoot,
+        string gpxFileName,
+        int createdByUserId)
+    {
+        var gpxRef = $"routes/{gpxFileName}";
+        var existing = await db.Routes.FirstOrDefaultAsync(r => r.GpxReference == gpxRef);
+        if (existing != null)
+        {
+            if (RoutePreviewMissing(existing))
+            {
+                var seedRow = TryLoadGroopySeedRow(contentRoot, gpxFileName)
+                    ?? new GroopySeedDto
+                    {
+                        GpxFileName = gpxFileName,
+                        Title = Path.GetFileNameWithoutExtension(gpxFileName),
+                    };
+                var rebuilt = TryBuildRouteEntityFromGpxSeed(contentRoot, seedRow, createdByUserId);
+                if (rebuilt != null)
+                {
+                    existing.PreviewCoordinatesJson = rebuilt.PreviewCoordinatesJson;
+                    existing.GpxBlob = rebuilt.GpxBlob;
+                    existing.StartLatitude = rebuilt.StartLatitude;
+                    existing.StartLongitude = rebuilt.StartLongitude;
+                    existing.DistanceKm = rebuilt.DistanceKm;
+                    existing.ElevationGainM = rebuilt.ElevationGainM;
+                    existing.EstimatedDurationMinutes = rebuilt.EstimatedDurationMinutes;
+                    existing.EstimatedDurationSource = rebuilt.EstimatedDurationSource;
+                    await db.SaveChangesAsync();
+                }
+            }
+
+            return existing;
+        }
+
+        var row = TryLoadGroopySeedRow(contentRoot, gpxFileName)
+            ?? new GroopySeedDto
+            {
+                GpxFileName = gpxFileName,
+                Title = Path.GetFileNameWithoutExtension(gpxFileName),
+            };
+
+        var route = TryBuildRouteEntityFromGpxSeed(contentRoot, row, createdByUserId);
+        if (route == null)
+            return null;
+
+        db.Routes.Add(route);
+        await db.SaveChangesAsync();
+        return route;
+    }
+
+    private static bool RoutePreviewMissing(RouteEntity route) =>
+        string.IsNullOrWhiteSpace(route.PreviewCoordinatesJson) || route.PreviewCoordinatesJson == "[]";
+
+    private static async Task EnsureCommunityRidersAsync(
+        UserManager<ApplicationUser> userManager,
+        int riderEmailStartNumber,
+        int riderCount)
+    {
+        for (var i = 0; i < riderCount; i++)
+        {
+            var riderNo = riderEmailStartNumber + i;
+            var email = $"rider{riderNo:D3}@rydo.test";
+            if (await userManager.FindByEmailAsync(email) != null)
+                continue;
+
+            var u = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                Handle = $"rider{riderNo:D3}",
+                FirstName = CommunityRiderFirstNames[i % CommunityRiderFirstNames.Length],
+                LastName = CommunityRiderLastNames[i % CommunityRiderLastNames.Length],
+                CreatedAt = DateTime.UtcNow.AddDays(-(Profile.CommunityAccountAgeDaysBase + i * Profile.CommunityAccountAgeDaysStep)),
+                Bio = $"Community rider — usually out on {(i % 2 == 0 ? "gravel" : "road")} at the weekend.",
+                Location = i % 4 == 0 ? "Jerusalem" : i % 4 == 1 ? "Beer Sheva" : i % 4 == 2 ? "Netanya" : "Herzliya",
+                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed=rider{riderNo}",
+                PublicEmail = i % 5 == 0,
+                PublicBio = i % 3 != 1,
+                PublicLocation = i % 7 != 0,
+                PublicAvatarUrl = true,
+                PublicFirstName = i % 11 != 0,
+                PublicDefaultBikeType = i % 5 != 0,
+            };
+            var ok = await userManager.CreateAsync(u, DemoRiderPassword);
+            if (ok.Succeeded)
+                await userManager.AddToRoleAsync(u, "user");
+        }
+    }
+
+    private static GroopySeedDto? TryLoadGroopySeedRow(string contentRoot, string gpxFileName)
+    {
+        var path = Path.Combine(contentRoot, "SeedData", "groopy-routes.json");
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            var json = File.ReadAllText(path);
+            var rows = JsonSerializer.Deserialize<List<GroopySeedDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+            return rows.FirstOrDefault(r =>
+                string.Equals(r.GpxFileName, gpxFileName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static RouteEntity? TryBuildRouteEntityFromGpxSeed(
+        string contentRoot,
+        GroopySeedDto row,
+        int createdByUserId)
+    {
+        if (string.IsNullOrWhiteSpace(row.GpxFileName))
+            return null;
+
+        var gpxPath = Path.Combine(contentRoot, "GpxSeed", row.GpxFileName);
+        if (!File.Exists(gpxPath))
+            return null;
+
+        byte[] bytes;
+        try
+        {
+            bytes = File.ReadAllBytes(gpxPath);
+        }
+        catch
+        {
+            return null;
+        }
+
+        if (bytes.Length == 0 || !GpxTrackParser.IsTrackPlausible(bytes, out _))
+            return null;
+
+        if (!GpxTrackParser.TryParse(bytes, out var previewJson, out var pathKm, out var pathElev, out var suggestedDur, out var derivedSrc, out var startLat, out var startLng))
+            return null;
+
+        var dist = pathKm > 0 ? pathKm : (row.LengthKm ?? Profile.RouteFallbackDistanceKm);
+        var elev = pathElev > 0 ? pathElev : (row.ElevationGainM ?? 0);
+        if (pathElev <= 0 && row.ElevationGainM.HasValue && row.ElevationGainM.Value > 0)
+            elev = row.ElevationGainM.Value;
+
+        int dur;
+        string durationSource;
+        if (suggestedDur.HasValue)
+        {
+            dur = suggestedDur.Value;
+            durationSource = derivedSrc;
+        }
+        else if (row.DurationMinutes.HasValue && row.DurationMinutes.Value > 0)
+        {
+            dur = row.DurationMinutes.Value;
+            durationSource = RouteDurationSource.Estimated;
+        }
+        else
+        {
+            dur = Math.Max(1, (int)Math.Round(dist / GpxTrackParser.SuggestedDurationSpeedKmh * 60.0));
+            durationSource = string.IsNullOrEmpty(derivedSrc) || derivedSrc == RouteDurationSource.Unknown
+                ? RouteDurationSource.EstimatedPace
+                : derivedSrc;
+        }
+
+        double? physicsScore = null;
+        if (RoutePhysicsDifficulty.TryComputeIntensityDensityJPerKm(bytes, out var densityJPerKm))
+        {
+            var s = RoutePhysicsDifficulty.DensityToNotebookScaledScore(densityJPerKm);
+            if (double.IsFinite(s))
+                physicsScore = s;
+        }
+
+        return new RouteEntity
+        {
+            Title = RydoTextLimits.TrimAndClampRouteTitle(
+                string.IsNullOrWhiteSpace(row.Title) ? $"Groopy {row.Pid}" : row.Title),
+            Description = row.Description ?? "",
+            Terrain = string.IsNullOrWhiteSpace(row.Terrain) ? "mixed" : row.Terrain!,
+            Difficulty = string.IsNullOrWhiteSpace(row.Difficulty) ? "moderate" : row.Difficulty!,
+            Region = string.IsNullOrWhiteSpace(row.Region) ? null : row.Region,
+            StartLatitude = startLat,
+            StartLongitude = startLng,
+            DistanceKm = dist,
+            ElevationGainM = Math.Round(elev, 0),
+            EstimatedDurationMinutes = dur,
+            EstimatedDurationSource = durationSource,
+            WarningsJson = "[]",
+            Notes = row.Notes,
+            PreviewCoordinatesJson = previewJson,
+            PhysicsDifficultyScore = physicsScore,
+            CreatedByUserId = createdByUserId,
+            CreatedAt = DateTime.UtcNow,
+            Status = "published",
+            GpxReference = $"routes/{row.GpxFileName}",
+            GpxBlob = bytes,
+        };
     }
 
     private static async Task EnsureDemoLiveRideParticipantsAsync(
@@ -1002,18 +1240,7 @@ public static class DbSeeder
     private static async Task<List<ApplicationUser>> SeedCommunityUsersAsync(UserManager<ApplicationUser> userManager)
     {
         var list = new List<ApplicationUser>();
-        var first = new[]
-        {
-            "Alex", "Noa", "David", "Maya", "Yoni", "Tamar", "Oren", "Shira", "Eitan", "Lior",
-            "Nadav", "Roni", "Gal", "Amit", "Yuval", "Dana", "Itai", "Keren", "Bar", "Hila",
-            "Roi", "Inbar", "Tom", "Stav", "Nitzan", "Alon", "Or", "Michal", "Erez", "Yael",
-            "Ido", "Chen", "Reut", "Gil",
-        };
-        var last = new[]
-        {
-            "Cohen", "Levy", "Mizrahi", "Peretz", "Azoulay", "Biton", "Dahan", "Friedman", "Goldstein", "Katz",
-            "Lavi", "Mor", "Nissan", "Ohana", "Pinto", "Rosen", "Segal", "Tal", "Weiss", "Yaron",
-        };
+        await EnsureCommunityRidersAsync(userManager, Profile.CommunityRiderEmailStartNumber, Profile.CommunityRiderCount);
 
         for (var i = 0; i < Profile.CommunityRiderCount; i++)
         {
@@ -1021,36 +1248,7 @@ public static class DbSeeder
             var email = Profile.CommunityRiderEmail(riderNo);
             var existing = await userManager.FindByEmailAsync(email);
             if (existing != null)
-            {
                 list.Add(existing);
-                continue;
-            }
-
-            var u = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                EmailConfirmed = true,
-                Handle = $"rider{riderNo:D3}",
-                FirstName = first[i % first.Length],
-                LastName = last[i % last.Length],
-                CreatedAt = DateTime.UtcNow.AddDays(-(Profile.CommunityAccountAgeDaysBase + i * Profile.CommunityAccountAgeDaysStep)),
-                Bio = $"Community rider — usually out on {(i % 2 == 0 ? "gravel" : "road")} at the weekend.",
-                Location = i % 4 == 0 ? "Jerusalem" : i % 4 == 1 ? "Beer Sheva" : i % 4 == 2 ? "Netanya" : "Herzliya",
-                AvatarUrl = $"https://api.dicebear.com/7.x/avataaars/svg?seed=rider{riderNo}",
-                PublicEmail = i % 5 == 0,
-                PublicBio = i % 3 != 1,
-                PublicLocation = i % 7 != 0,
-                PublicAvatarUrl = true,
-                PublicFirstName = i % 11 != 0,
-                PublicDefaultBikeType = i % 5 != 0,
-            };
-            var ok = await userManager.CreateAsync(u, DemoRiderPassword);
-            if (ok.Succeeded)
-            {
-                await userManager.AddToRoleAsync(u, "user");
-                list.Add(u);
-            }
         }
 
         return list;

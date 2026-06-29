@@ -1,9 +1,9 @@
 namespace Rydo.Api.Services.RideLive;
 
 /// <summary>
-/// Base URL the API should call for <b>in-process</b> self-requests (dev-only ride-live bots: login + SignalR).
+/// Base URL the API should call for <b>in-process</b> self-requests (ride-live bots: login + SignalR).
 /// Docker/ECS use <c>http://+:8080</c>, which must become <c>http://127.0.0.1:8080</c> for <see cref="HttpClient"/>.
-/// Production (AWS) does not run bots (<see cref="RideLiveBotOrchestrator"/>); public clients use CloudFront/ALB URLs unchanged.
+/// Public clients use CloudFront/ALB URLs unchanged; bots call loopback inside the same task.
 /// </summary>
 public static class RideLiveSelfApiBaseUrl
 {

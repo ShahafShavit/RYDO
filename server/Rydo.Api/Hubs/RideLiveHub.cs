@@ -15,7 +15,6 @@ public class RideLiveHub(
     RideLivePoseStore poseStore,
     RideLiveRateLimiter rateLimiter,
     RideLiveBotOrchestrator botOrchestrator,
-    IHostEnvironment environment,
     ILogger<RideLiveHub> logger)
     : Hub
 {
@@ -108,7 +107,7 @@ public class RideLiveHub(
                 .FirstOrDefaultAsync(Context.ConnectionAborted);
         }
 
-        ScheduleDevBotsIfApplicable(rideId, userId.Value, email);
+        ScheduleLiveBotsIfApplicable(rideId, userId.Value, email);
 
         var peerBroadcast = false;
         if (hasInitialPose)
@@ -333,13 +332,10 @@ public class RideLiveHub(
     private static string DisplayName(ApplicationUser u) =>
         string.Join(" ", new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
 
-    private void ScheduleDevBotsIfApplicable(int rideId, int triggeringUserId, string? triggeringEmail)
+    private void ScheduleLiveBotsIfApplicable(int rideId, int triggeringUserId, string? triggeringEmail)
     {
-        if (!environment.IsDevelopment())
-            return;
-
         logger.LogDebug(
-            "{Tag} dev_bots scheduling ride={RideId} joinerUser={UserId} email={Email}",
+            "{Tag} live_bots scheduling ride={RideId} joinerUser={UserId} email={Email}",
             RideLiveDiagnostics.Tag,
             rideId,
             triggeringUserId,
@@ -354,7 +350,7 @@ public class RideLiveHub(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "{Tag} dev_bots orchestration_failed ride={RideId}", RideLiveDiagnostics.Tag, rideId);
+                logger.LogError(ex, "{Tag} live_bots orchestration_failed ride={RideId}", RideLiveDiagnostics.Tag, rideId);
             }
         });
     }

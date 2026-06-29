@@ -99,9 +99,12 @@ export class RydoStack extends cdk.Stack {
         Jwt__Key: 'rydo-prod-jwt-signing-key-min-32-chars-long!!',
         Jwt__Issuer: 'rydo',
         Jwt__Audience: 'rydo-client',
-        // Dev-only features; explicit off for AWS even if appsettings merge changes.
         Rydo__DemoClubChatSimulator__Enabled: 'false',
-        Rydo__DemoRideLiveBots__Enabled: 'false',
+        // Live-entry demo ride only (orchestrator scopes by ride name); not all production rides.
+        Rydo__DemoRideLiveBots__Enabled: 'true',
+        Rydo__DemoRideLiveBots__AllowOnLiveEntryRideInProduction: 'true',
+        Rydo__DemoRideLiveBots__ApiBaseUrl: 'http://127.0.0.1:8080',
+        Rydo__LiveEntry__RouteGpxFileName: 'groopy-2150.gpx',
       },
     });
     appContainer.addPortMappings({

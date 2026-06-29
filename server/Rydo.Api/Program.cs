@@ -43,6 +43,7 @@ builder.Services.AddSingleton<IUserActivityRecorder, UserActivityRecorder>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<RideLivePoseStore>();
 builder.Services.AddSingleton<RideLiveRateLimiter>();
+builder.Services.AddSingleton<RideLiveSimulatorGateway>();
 builder.Services.AddSingleton<RideLiveBotOrchestrator>();
 builder.Services.AddSingleton<LiveEntryBoothTokenService>();
 builder.Services.AddScoped<RideParticipantService>();
@@ -181,6 +182,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var liveEntry = scope.ServiceProvider.GetRequiredService<LiveEntryService>();
     await liveEntry.EnsureStateRowAsync(CancellationToken.None);
+    await DbSeeder.EnsureLiveEntryReadyAsync(scope.ServiceProvider);
 }
 
 app.UseForwardedHeaders();

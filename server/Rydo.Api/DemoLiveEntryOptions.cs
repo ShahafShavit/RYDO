@@ -11,7 +11,7 @@ public sealed class DemoLiveEntryOptions
 
     public string RideName { get; set; } = "Live Demo — QR Entry";
 
-    public string RouteGpxFileName { get; set; } = "groopy-2448.gpx";
+    public string RouteGpxFileName { get; set; } = "groopy-2150.gpx";
 
     public int RiderEmailStartNumber { get; set; } = 3;
 

@@ -71,8 +71,11 @@ When `Rydo:LiveEntry:Enabled` is true, the API exposes `/api/live-entry/*` for a
 |---------|---------|
 | `Rydo:LiveEntry:Enabled` | Master switch (off in Production by default) |
 | `Rydo:LiveEntry:BoothSigningKey` | Optional HMAC secret for legacy signed booth URLs (`/join/live?g=…`). Auto-generated in Development when empty. |
-| `Rydo:LiveEntry:RouteGpxFileName` | Seeded demo ride route (default `groopy-2448.gpx`) |
-| `Rydo:DemoRideLiveBots:AllowOnLiveEntryRideInProduction` | Peer simulators on the demo ride outside Development |
+| `Rydo:LiveEntry:RouteGpxFileName` | Seeded demo ride route (default `groopy-2150.gpx`) |
+| `Rydo:DemoRideLiveBots:Enabled` | Master switch for pose simulators (up to 3 peer riders on join) |
+| `Rydo:DemoRideLiveBots:AllowOnLiveEntryRideInProduction` | Allow simulators on the live-entry demo ride when not in Development |
+
+When both bot flags are on, joining live on **Live Demo — QR Entry** starts up to three seeded participants moving along the route. In AWS, set `Rydo__DemoRideLiveBots__Enabled` and `Rydo__DemoRideLiveBots__AllowOnLiveEntryRideInProduction` on the ECS task (see `infra/lib/rydo-stack.ts`).
 
 Admin UI: sign in as `admin@rydo.test`, open **Live entry QR** (`/admin/live-entry`), print or copy the join link or QR image.
 
