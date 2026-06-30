@@ -204,15 +204,19 @@ Confirm login, map, and a short live-ride session against the deployed API.
 
 #### Android → Google Play
 
-1. Create an **upload keystore** (backup securely).
-2. Configure **release signing** in `mobile/android` (Gradle `signingConfigs` or Android Studio **Build → Generate Signed Bundle / APK**).
-3. Build an **Android App Bundle (`.aab`)** — required for new Play apps.
-4. Bump `versionCode` / `versionName` in [`mobile/android/app/build.gradle`](../mobile/android/app/build.gradle) for each upload.
+Use the **[`playstore/`](../playstore/)** directory (keystore, signing config, build script):
+
+1. Create an **upload keystore** — `playstore/create-keystore.sh` or `create-keystore.ps1` (backup securely).
+2. Copy `playstore/keystore.properties.example` → `keystore.properties` (Gradle picks it up automatically).
+3. Build a signed **Android App Bundle (`.aab`)** — required for new Play apps:
 
 ```bash
-cd mobile/android
-./gradlew bundleRelease   # after signing is configured
+node playstore/build-release-aab.mjs
 ```
+
+4. Bump `versionCode` / `versionName` in [`mobile/android/app/build.gradle`](../mobile/android/app/build.gradle) for each upload.
+
+Details: [`playstore/README.md`](../playstore/README.md).
 
 #### iOS → App Store / TestFlight
 

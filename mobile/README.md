@@ -249,6 +249,8 @@ mobile/
 
 Local emulator flow above is **not** store publishing. For production: deploy the API to AWS, point the mobile build at the **CloudFront HTTPS URL**, then sign and upload to the stores.
 
+**Android signed AAB (keystore + build script):** [../playstore/README.md](../playstore/README.md)
+
 **Full sequence (AWS → verify → mobile build → stores):** [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md)
 
 ---

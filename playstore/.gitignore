@@ -1,0 +1,7 @@
+# Secrets — never commit
+*.keystore
+*.jks
+keystore.properties
+
+# Build artifacts copied here for convenience
+output/
