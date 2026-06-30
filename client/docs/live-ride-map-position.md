@@ -20,6 +20,20 @@ Tunable constants in [`liveRideDeadReckon.js`](../src/features/live-ride/utils/l
 
 Kinematic gating (`evaluateKinematicGate`) is unchanged; smoothing applies after accepted fixes.
 
+## Peer display smoothing
+
+Other riders’ map markers are **not** drawn at raw hub coordinates. [`usePeerMotionDisplay.js`](../src/features/live-ride/hooks/usePeerMotionDisplay.js) runs a receiver-side dead-reckoning loop ([`liveRidePeerMotion.js`](../src/features/live-ride/utils/liveRidePeerMotion.js)) that reuses the same core math as self (`correctSyntheticTowardGps`, `updateAcceptedKinematics`, rAF extrapolation along wire `headingDeg`, display EMA, stationary freeze).
+
+| Behavior | Detail |
+|----------|--------|
+| Update rate | Hub poses arrive at most every **2s**; the client interpolates between them at rAF (~60 Hz, React updates throttled ~33 ms). |
+| Wire input | Senders already publish **smoothed** display poses via `offerPose`; receivers treat each `RiderMoved` / `RidersState` entry as a sparse fix. |
+| Stale peers | `isStale: true` → snap to last wire lat/lng, zero velocity, **no extrapolation** (grayscale styling unchanged). |
+| Extrapolation cap | `PEER_MAX_EXTRAPOLATE_S` (default **3s**) — if no fresh fix within this window, hold position until the next update (avoids runaway drift on a lost packet). |
+| Avatar rotation | Peer markers stay non-rotating; heading is used only for between-fix extrapolation. |
+
+Nearby-rider distances use the same smoothed display positions as the map markers.
+
 ## Heading: compass / GPS blend
 
 On each **accepted** GPS fix, `extrapolateHeadingDeg` is set from [`blendHeadingBySpeedKmh`](../src/features/live-ride/utils/liveRideHeadingBlend.js) using:

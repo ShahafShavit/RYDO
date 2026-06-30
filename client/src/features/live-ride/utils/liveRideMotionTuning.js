@@ -44,6 +44,11 @@ export const DEFAULT_LIVE_RIDE_MOTION_TUNING = {
   DR_MAX_CORRECTION_STEP_M: 16,
   DR_DISPLAY_EMA_ALPHA: 0.2,
 
+  // —— Peer display smoothing (receiver-side, live map) ——
+  PEER_MAX_EXTRAPOLATE_S: 3,
+  PEER_CORRECTION_BLEND: 0.42,
+  PEER_DISPLAY_EMA_ALPHA: 0.2,
+
   // —— GPS accuracy scaling (pull toward fix) ——
   ACC_SCALE_NUMERATOR: 12,
   ACC_SCALE_FLOOR_M: 8,

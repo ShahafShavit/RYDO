@@ -10,6 +10,7 @@ import { hubChipLabel, peersSnapshotUncertain } from '@/features/live-ride/conne
 import { useLiveRideBootGate, useLiveRideBootPermissions } from '@/features/live-ride/hooks/useLiveRideBootGate';
 import { useLiveRideMotionFromPositions } from '@/features/live-ride/hooks/useLiveRideMotionFromPositions';
 import { useMapboxResize } from '@/features/live-ride/hooks/useMapboxResize';
+import { usePeerMotionDisplay } from '@/features/live-ride/hooks/usePeerMotionDisplay';
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { LIVE_MAP_SAFE_BOTTOM, LIVE_MAP_SAFE_TOP } from '@/features/live-ride/liveRideMapLayout';
 import { getCompassProvider } from '@/shared/platform/compass-provider';
@@ -260,6 +261,11 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     geoError,
   });
 
+  const displayPeersById = usePeerMotionDisplay({
+    peersById,
+    enabled: activeBoot.bootComplete && hubEnabled,
+  });
+
   useEffect(() => {
     if (!hubEnabled || !activeBoot.canMountHiddenMap) {
       compassHeadingRef.current = null;
@@ -335,8 +341,8 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   const selfLngForNearby = puckDisplay?.lng ?? selfFix?.lng;
 
   const nearbyListPeers = useMemo(
-    () => topPeersByDistance(selfLatForNearby, selfLngForNearby, peersById.values(), 4),
-    [selfLatForNearby, selfLngForNearby, peersById],
+    () => topPeersByDistance(selfLatForNearby, selfLngForNearby, displayPeersById.values(), 4),
+    [selfLatForNearby, selfLngForNearby, displayPeersById],
   );
 
   const timeLabel = useMemo(
@@ -349,7 +355,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     [clockTick],
   );
 
-  const peersList = useMemo(() => [...peersById.values()], [peersById]);
+  const peersList = useMemo(() => [...displayPeersById.values()], [displayPeersById]);
 
   const backTo = ROUTES.rideEvent.replace(':rideId', String(rideId));
 
