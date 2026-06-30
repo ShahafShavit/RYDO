@@ -9,7 +9,18 @@ Everything needed to produce a **signed Android App Bundle (`.aab`)** for [Googl
 | Production API | `https://rydo.bike` |
 | Binary for Play | `.aab` (not the debug APK from `rydo.bike/app`) |
 
-Store listing, privacy policy, data safety, and Console upload are **Phase 4+** — see [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md).
+Store listing, data safety, and Console upload are **Phase 4** — see [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md).
+
+### Legal pages (privacy policy URL for Play Console)
+
+| Page | URL |
+|------|-----|
+| Privacy policy | `https://rydo.bike/privacy` |
+| Terms of service | `https://rydo.bike/terms` |
+
+Deploy the web app to production before submitting to Play Console so these URLs resolve. Update entity placeholders in [`client/src/shared/content/legal/legal-meta.js`](../client/src/shared/content/legal/legal-meta.js) before going live.
+
+**Play Console → Data safety:** declare location (precise, when in use, shared with other users during live rides), account info, optional photos (avatar), and user-generated content. RYDO does not sell personal data. See the data-safety table in [../docs/deploy-and-publish.md](../docs/deploy-and-publish.md#phase-4--store-listing-parallel-with-phase-3).
 
 ---
 

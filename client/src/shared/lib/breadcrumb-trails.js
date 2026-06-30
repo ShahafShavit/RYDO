@@ -192,6 +192,18 @@ export function buildPublicBreadcrumbTrail(pathname) {
       { label: 'Register', to: undefined },
     ];
   }
+  if (pathname === ROUTES.privacy) {
+    return [
+      { label: 'Home', to: ROUTES.home },
+      { label: 'Privacy Policy', to: undefined },
+    ];
+  }
+  if (pathname === ROUTES.terms) {
+    return [
+      { label: 'Home', to: ROUTES.home },
+      { label: 'Terms of Service', to: undefined },
+    ];
+  }
 
   return [{ label: 'Home', to: ROUTES.home }];
 }

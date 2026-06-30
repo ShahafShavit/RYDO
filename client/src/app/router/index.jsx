@@ -40,6 +40,8 @@ const LiveRideReplayPage = lazy(() => import('@/features/live-ride/LiveRideRepla
 const LiveRideRoute = lazy(() => import('@/features/live-ride/LiveRideRoute'));
 const JoinLivePage = lazy(() => import('@/pages/join/JoinLivePage'));
 const TimelapsePage = lazy(() => import('@/features/timelapse/TimelapsePage'));
+const PrivacyPage = lazy(() => import('@/pages/legal/PrivacyPage'));
+const TermsPage = lazy(() => import('@/pages/legal/TermsPage'));
 
 /**
  * @param {{ nativeEntry?: boolean }} [options]
@@ -67,6 +69,8 @@ export function createAppRoutes(options = {}) {
         },
         { path: ROUTES.joinLive, element: <JoinLivePage /> },
         { path: ROUTES.joinDemo, element: <JoinLivePage /> },
+        { path: ROUTES.privacy, element: <PrivacyPage /> },
+        { path: ROUTES.terms, element: <TermsPage /> },
       ],
     },
     {

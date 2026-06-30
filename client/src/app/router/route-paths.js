@@ -5,6 +5,8 @@ export const ROUTES = {
   home: '/',
   login: '/login',
   register: '/register',
+  privacy: '/privacy',
+  terms: '/terms',
 
   // User routes
   dashboard: '/dashboard',

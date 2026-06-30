@@ -239,6 +239,30 @@ Prepare once per app (update when permissions or data collection change):
 | Location justification | Data safety form | Usage description strings in `Info.plist` |
 | Content rating / export compliance | Play questionnaires | App Store forms |
 
+### Privacy policy and terms (hosted on the web app)
+
+Public pages live in the React client and deploy with the AWS stack:
+
+| Page | URL |
+|------|-----|
+| Privacy policy | `https://rydo.bike/privacy` |
+| Terms of service | `https://rydo.bike/terms` |
+
+Source: [`client/src/pages/legal/`](../client/src/pages/legal/) and [`client/src/shared/content/legal/`](../client/src/shared/content/legal/). Update copy in `legal-meta.js` (entity name, address, jurisdiction) before production store submit.
+
+**Play Console → App content → Privacy policy:** enter `https://rydo.bike/privacy`.
+
+**Google Play Data safety (align with the privacy policy):**
+
+| Data type | Collected | Shared | Notes |
+|-----------|-----------|--------|-------|
+| Email, name, user ID | Yes | No (except profile visibility to other users) | Account registration |
+| Photos (avatar) | Optional | Per privacy settings | User-uploaded profile image |
+| Location (precise) | Yes, when in use | Yes, with other live-ride participants | Real-time only during active rides; not sold |
+| User-generated content | Yes | Yes, per privacy settings | Routes, chat, hazard reports |
+| App activity | Yes | No | First-party engagement metrics only |
+| Data sold | No | — | — |
+
 Package / bundle ID must match Capacitor `appId`: `dev.rydo.app`.
 
 ---
@@ -277,7 +301,9 @@ When you **re-run** `deploy-aws.sh` (backend only), existing store builds keep w
 ### Stores
 
 - [ ] Developer accounts active
-- [ ] Privacy policy and data declarations
+- [ ] Privacy policy URL (`https://rydo.bike/privacy`) and data safety form completed
+- [ ] Terms URL (`https://rydo.bike/terms`) linked where required
+- [ ] Placeholders in `client/src/shared/content/legal/legal-meta.js` replaced (entity, address, jurisdiction)
 - [ ] Screenshots and descriptions
 - [ ] Internal test track / TestFlight before production
 

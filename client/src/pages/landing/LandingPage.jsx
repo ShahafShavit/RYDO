@@ -5,6 +5,7 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 import Lenis from '@studio-freight/lenis';
 import { ArrowRight, CheckCircle2, MapPinned, RadioTower, Smartphone, TriangleAlert, Users2 } from 'lucide-react';
 import { ROUTES } from '@/app/router/route-paths';
+import { LEGAL_META } from '@/shared/content/legal/legal-meta';
 import Button from '@/shared/components/ui/button/Button';
 import Badge from '@/shared/components/ui/badge/Badge';
 import Card from '@/shared/components/ui/card/Card';
@@ -412,6 +413,26 @@ export default function LandingPage() {
           </Card>
         </div>
       </section>
+
+      <footer className="border-t border-border/50 pb-10 pt-8">
+        <div className="rydo-container flex flex-col items-center justify-between gap-4 px-4 text-sm text-fg-subtle md:flex-row md:px-8">
+          <p>&copy; {new Date().getFullYear()} RYDO</p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2" aria-label="Legal">
+            <Link to={ROUTES.privacy} className="transition hover:text-fg/90">
+              Privacy
+            </Link>
+            <Link to={ROUTES.terms} className="transition hover:text-fg/90">
+              Terms
+            </Link>
+            <a
+              href={`mailto:${LEGAL_META.contactEmail}`}
+              className="transition hover:text-fg/90"
+            >
+              Contact
+            </a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
