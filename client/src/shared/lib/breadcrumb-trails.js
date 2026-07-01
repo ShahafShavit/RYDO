@@ -204,6 +204,12 @@ export function buildPublicBreadcrumbTrail(pathname) {
       { label: 'Terms of Service', to: undefined },
     ];
   }
+  if (pathname === ROUTES.deleteAccount) {
+    return [
+      { label: 'Home', to: ROUTES.home },
+      { label: 'Delete account', to: undefined },
+    ];
+  }
 
   return [{ label: 'Home', to: ROUTES.home }];
 }

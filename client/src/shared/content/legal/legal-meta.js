@@ -4,4 +4,5 @@ export const LEGAL_META = {
   postalAddress: 'Emek Hefer, Israel',
   governingLaw: 'Israel',
   effectiveDate: '2026-06-30',
+  deletionProcessingDays: 30,
 };

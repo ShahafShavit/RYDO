@@ -42,6 +42,7 @@ const JoinLivePage = lazy(() => import('@/pages/join/JoinLivePage'));
 const TimelapsePage = lazy(() => import('@/features/timelapse/TimelapsePage'));
 const PrivacyPage = lazy(() => import('@/pages/legal/PrivacyPage'));
 const TermsPage = lazy(() => import('@/pages/legal/TermsPage'));
+const DeleteAccountPage = lazy(() => import('@/pages/legal/DeleteAccountPage'));
 
 /**
  * @param {{ nativeEntry?: boolean }} [options]
@@ -71,6 +72,7 @@ export function createAppRoutes(options = {}) {
         { path: ROUTES.joinDemo, element: <JoinLivePage /> },
         { path: ROUTES.privacy, element: <PrivacyPage /> },
         { path: ROUTES.terms, element: <TermsPage /> },
+        { path: ROUTES.deleteAccount, element: <DeleteAccountPage /> },
       ],
     },
     {

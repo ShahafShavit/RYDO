@@ -86,7 +86,7 @@ export const TERMS_OF_SERVICE_SECTIONS = [
     id: 'termination',
     title: 'Termination',
     paragraphs: [
-      'You may stop using the Service at any time. You may request account deletion by contacting ' + LEGAL_META.contactEmail + '.',
+      'You may stop using the Service at any time. You may request permanent account deletion using the steps at https://rydo.bike/delete-account (also available from Settings in the app). Deletion requests are processed within ' + LEGAL_META.deletionProcessingDays + ' days after we verify your identity.',
       'We may suspend or terminate your access to the Service at any time for violation of these Terms, legal requirements, or to protect the Service or other users.',
       'Upon termination, your right to use the Service ends. Provisions that by their nature should survive termination will survive, including disclaimers, limitations of liability, and indemnity.',
       'Our handling of your personal data after termination is described in our Privacy Policy.',

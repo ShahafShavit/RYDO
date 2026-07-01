@@ -247,10 +247,15 @@ Public pages live in the React client and deploy with the AWS stack:
 |------|-----|
 | Privacy policy | `https://rydo.bike/privacy` |
 | Terms of service | `https://rydo.bike/terms` |
+| Delete account | `https://rydo.bike/delete-account` |
 
 Source: [`client/src/pages/legal/`](../client/src/pages/legal/) and [`client/src/shared/content/legal/`](../client/src/shared/content/legal/). Update copy in `legal-meta.js` (entity name, address, jurisdiction) before production store submit.
 
 **Play Console → App content → Privacy policy:** enter `https://rydo.bike/privacy`.
+
+**Play Console → App content → Account deletion:** enter `https://rydo.bike/delete-account`.
+
+**Play Console → Data safety → Data deletion:** use `https://rydo.bike/delete-account`; declare that users request deletion by email and data is processed within 30 days (see the delete-account page for deleted vs retained data).
 
 **Google Play Data safety (align with the privacy policy):**
 
@@ -302,6 +307,7 @@ When you **re-run** `deploy-aws.sh` (backend only), existing store builds keep w
 
 - [ ] Developer accounts active
 - [ ] Privacy policy URL (`https://rydo.bike/privacy`) and data safety form completed
+- [ ] Delete account URL (`https://rydo.bike/delete-account`) in App content → Account deletion and Data safety → Data deletion
 - [ ] Terms URL (`https://rydo.bike/terms`) linked where required
 - [ ] Placeholders in `client/src/shared/content/legal/legal-meta.js` replaced (entity, address, jurisdiction)
 - [ ] Screenshots and descriptions

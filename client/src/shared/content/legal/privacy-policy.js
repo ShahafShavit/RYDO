@@ -101,7 +101,7 @@ export const PRIVACY_POLICY_SECTIONS = [
     title: 'Data retention',
     paragraphs: [
       'We retain your account and associated content while your account is active and as needed to provide the Service.',
-      'If you delete your account or request deletion, we will delete or anonymize your personal data within a reasonable period, except where we must retain certain information for legal, security, or legitimate business purposes.',
+      'If you delete your account or request deletion, we will delete or anonymize your personal data within ' + LEGAL_META.deletionProcessingDays + ' days of verifying your request, except where we must retain certain information for legal, security, or legitimate business purposes. See https://rydo.bike/delete-account for what is deleted, what may be retained, and how to submit a request.',
       'Aggregated or de-identified data that cannot reasonably be used to identify you may be retained longer.',
     ],
   },
@@ -114,7 +114,7 @@ export const PRIVACY_POLICY_SECTIONS = [
       'To exercise your rights, contact us at ' + LEGAL_META.contactEmail + '. We will respond within the timeframe required by applicable law (typically within 30 days for GDPR requests).',
       'If you are a California resident, you have the right to know what personal information we collect and how we use it, to request deletion, and to not be discriminated against for exercising your rights. We do not sell personal information.',
       'If you are in the EEA or UK, you may lodge a complaint with your local data protection authority.',
-      'Account deletion and data export are not yet available as self-service features in the app. You may request them by emailing ' + LEGAL_META.contactEmail + '.',
+      'To request account deletion, follow the steps at https://rydo.bike/delete-account (also linked from Settings in the app). Account deletion is permanent and is processed within ' + LEGAL_META.deletionProcessingDays + ' days after we verify your request. Data export is not yet available as a self-service feature; you may request a copy of your data by emailing ' + LEGAL_META.contactEmail + '.',
     ],
   },
   {

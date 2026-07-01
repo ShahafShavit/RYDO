@@ -7,6 +7,7 @@ export const ROUTES = {
   register: '/register',
   privacy: '/privacy',
   terms: '/terms',
+  deleteAccount: '/delete-account',
 
   // User routes
   dashboard: '/dashboard',
