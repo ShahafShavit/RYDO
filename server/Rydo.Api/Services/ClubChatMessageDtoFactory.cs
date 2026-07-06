@@ -37,12 +37,12 @@ public sealed class ClubChatMessageDtoFactory(RydoDbContext db)
                         switch (kind)
                         {
                             case "user":
-                            {
-                                var u = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == x.Id, ct);
-                                label = u != null ? DisplayName(u) : $"User {x.Id}";
-                                userHandle = u?.Handle;
-                                break;
-                            }
+                                {
+                                    var u = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == x.Id, ct);
+                                    label = u != null ? DisplayName(u) : $"User {x.Id}";
+                                    userHandle = u?.Handle;
+                                    break;
+                                }
                             case "route":
                                 label = await db.Routes.AsNoTracking().Where(r => r.Id == x.Id).Select(r => r.Title).FirstOrDefaultAsync(ct) ?? $"Route {x.Id}";
                                 break;

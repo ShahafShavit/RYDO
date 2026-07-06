@@ -11,7 +11,8 @@ public class LiveEntryController(
     LiveEntryService liveEntry,
     LiveEntryBoothTokenService boothTokens,
     IConfiguration configuration,
-    IHostEnvironment environment) : ControllerBase{
+    IHostEnvironment environment) : ControllerBase
+{
     public const string RateLimitPolicy = "LiveEntry";
 
     public record BoothTokenBody(string BoothToken);
