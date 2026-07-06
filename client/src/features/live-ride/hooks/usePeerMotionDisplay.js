@@ -8,6 +8,8 @@ import {
 } from '@/features/live-ride/utils/liveRidePeerMotion';
 import { pickTuning } from '@/features/live-ride/utils/liveRideTuningPick';
 
+const EMPTY_PEERS_MAP = new Map();
+
 function buildDisplayPeersMap(peersById, motionById) {
   const next = new Map();
   for (const [userId, peer] of peersById) {
@@ -62,14 +64,7 @@ export function usePeerMotionDisplay({ peersById, enabled, tuning: tuningProp })
     for (const userId of motionById.keys()) {
       if (!activeIds.has(userId)) motionById.delete(userId);
     }
-
-    if (!enabled || peersById.size === 0) {
-      setDisplayPeersById(new Map());
-      return;
-    }
-
-    setDisplayPeersById(buildDisplayPeersMap(peersById, motionById));
-  }, [peersById, enabled]);
+  }, [peersById]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -105,6 +100,10 @@ export function usePeerMotionDisplay({ peersById, enabled, tuning: tuningProp })
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [enabled]);
+
+  if (!enabled || peersById.size === 0) {
+    return EMPTY_PEERS_MAP;
+  }
 
   return displayPeersById;
 }

@@ -8,8 +8,8 @@ import { HAZARD_EXIT_MS } from '@/features/hazards/utils/hazard-motion';
  */
 export function useHazardExitBuffer(hazards) {
   const prevByIdRef = useRef(new Map());
-  const exitCacheRef = useRef(new Map());
   const [exitingIds, setExitingIds] = useState(() => new Set());
+  const [exitingById, setExitingById] = useState(() => new Map());
   const exitTimersRef = useRef(new Map());
 
   useEffect(() => {
@@ -17,28 +17,33 @@ export function useHazardExitBuffer(hazards) {
     const prevById = prevByIdRef.current;
     const removed = [];
 
-    for (const [id, hazard] of prevById) {
+    for (const [id] of prevById) {
       if (!nextById.has(id)) {
         removed.push(id);
-        exitCacheRef.current.set(id, hazard);
       }
-    }
-
-    for (const [id, hazard] of nextById) {
-      exitCacheRef.current.set(id, hazard);
     }
 
     prevByIdRef.current = nextById;
 
-    if (removed.length === 0) return undefined;
+    if (removed.length > 0) {
+      setExitingById((prev) => {
+        const next = new Map(prev);
+        for (const id of removed) {
+          next.set(id, prevById.get(id));
+        }
+        return next;
+      });
 
-    setExitingIds((prev) => {
-      const next = new Set(prev);
-      for (const id of removed) {
-        next.add(id);
-      }
-      return next;
-    });
+      setExitingIds((prev) => {
+        const next = new Set(prev);
+        for (const id of removed) {
+          next.add(id);
+        }
+        return next;
+      });
+    }
+
+    if (removed.length === 0) return undefined;
 
     for (const id of removed) {
       const existing = exitTimersRef.current.get(id);
@@ -51,7 +56,12 @@ export function useHazardExitBuffer(hazards) {
           next.delete(id);
           return next;
         });
-        exitCacheRef.current.delete(id);
+        setExitingById((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
         exitTimersRef.current.delete(id);
       }, HAZARD_EXIT_MS + 50);
 
@@ -77,7 +87,12 @@ export function useHazardExitBuffer(hazards) {
       window.clearTimeout(timer);
       exitTimersRef.current.delete(id);
     }
-    exitCacheRef.current.delete(id);
+    setExitingById((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
     setExitingIds((prev) => {
       if (!prev.has(id)) return prev;
       const next = new Set(prev);
@@ -90,16 +105,15 @@ export function useHazardExitBuffer(hazards) {
     const result = [...hazards];
     const liveIds = new Set(hazards.map((h) => h.id));
 
-    for (const id of exitingIds) {
+    for (const [id, cached] of exitingById) {
       if (liveIds.has(id)) continue;
-      const cached = exitCacheRef.current.get(id);
       if (cached) {
         result.push(cached);
       }
     }
 
     return result;
-  }, [hazards, exitingIds]);
+  }, [hazards, exitingById]);
 
   return { displayHazards, exitingIds, onMarkerExitComplete };
 }

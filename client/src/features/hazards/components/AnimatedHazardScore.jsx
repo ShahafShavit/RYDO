@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { hazardTransition } from '@/features/hazards/utils/hazard-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
@@ -11,11 +11,11 @@ const MotionSpan = motion.span;
  */
 export default function AnimatedHazardScore({ score, className }) {
   const reducedMotion = useReducedMotion();
-  const prevScoreRef = useRef(score);
-  const shouldPop = prevScoreRef.current !== score;
+  const [prevScore, setPrevScore] = useState(score);
+  const shouldPop = prevScore !== score;
 
   useEffect(() => {
-    prevScoreRef.current = score;
+    setPrevScore(score);
   }, [score]);
 
   if (score == null) return null;

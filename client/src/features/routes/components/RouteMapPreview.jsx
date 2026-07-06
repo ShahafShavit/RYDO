@@ -106,7 +106,10 @@ export default function RouteMapPreview({
   const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
 
   const onHazardSelectRef = useRef(onHazardSelect);
-  onHazardSelectRef.current = onHazardSelect;
+
+  useLayoutEffect(() => {
+    onHazardSelectRef.current = onHazardSelect;
+  }, [onHazardSelect]);
 
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -159,9 +162,11 @@ export default function RouteMapPreview({
     const layout = buildHazardMarkerLayout(hazards, { expandedClusterKeys: new Set() });
     const entry = layout.get(selectedHazardId);
     if (entry?.clusterSize > 1) {
-      setExpandedClusterKeys((prev) => {
-        const next = new Set([entry.clusterKey]);
-        return clusterKeysEqual(prev, next) ? prev : next;
+      queueMicrotask(() => {
+        setExpandedClusterKeys((prev) => {
+          const next = new Set([entry.clusterKey]);
+          return clusterKeysEqual(prev, next) ? prev : next;
+        });
       });
     }
   }, [selectedHazardId, hazards]);
@@ -543,7 +548,9 @@ export default function RouteMapPreview({
       hazardMetaRef.current.clear();
       prevHazardIdsRef.current = new Set();
       hazardsInitializedRef.current = false;
-      setExpandedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+      queueMicrotask(() => {
+        setExpandedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+      });
     } else {
       hazardsInitializedRef.current = true;
     }
@@ -562,7 +569,9 @@ export default function RouteMapPreview({
 
     const zoom = Math.max(map.getZoom(), focusZoom);
     map.flyTo([lat, lng], zoom, { animate: true });
-    setNeedsRecenter(true);
+    queueMicrotask(() => {
+      setNeedsRecenter(true);
+    });
   }, [selectedHazardId, hazards, mapEpoch, focusZoom]);
 
   const defaultClass = 'h-64 rounded-3xl border border-border bg-surface overflow-hidden';

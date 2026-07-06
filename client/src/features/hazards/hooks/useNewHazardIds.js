@@ -30,12 +30,14 @@ export function useNewHazardIds(hazards) {
 
     if (appeared.length === 0) return undefined;
 
-    setNewIds((prev) => {
-      const next = new Set(prev);
-      for (const id of appeared) {
-        next.add(id);
-      }
-      return next;
+    queueMicrotask(() => {
+      setNewIds((prev) => {
+        const next = new Set(prev);
+        for (const id of appeared) {
+          next.add(id);
+        }
+        return next;
+      });
     });
 
     for (const id of appeared) {
