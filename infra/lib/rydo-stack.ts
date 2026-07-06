@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import { Tags } from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
@@ -26,6 +27,9 @@ export class RydoStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props?: RydoStackProps) {
     super(scope, id, props);
+
+    Tags.of(this).add('Project', 'rydo');
+    Tags.of(this).add('Environment', 'demo');
 
     const domainName = props?.domainName?.trim().toLowerCase();
     const wwwDomain = domainName ? `www.${domainName}` : undefined;
