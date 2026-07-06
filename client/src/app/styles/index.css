@@ -546,6 +546,116 @@ html[data-theme='dune'] .app-logo {
   z-index: 5 !important;
 }
 
+.rydo-hazard-div-icon.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+.rydo-hazard-marker {
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rydo-hazard-marker--enter .rydo-hazard-marker-icon {
+  animation: rydo-hazard-enter-icon 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.rydo-hazard-marker--exit .rydo-hazard-marker-icon {
+  animation: rydo-hazard-exit-icon 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.rydo-hazard-marker--pulse .rydo-hazard-marker-icon {
+  animation: rydo-hazard-pulse 0.6s ease-out 2;
+}
+
+.rydo-hazard-marker-score--pop {
+  animation: rydo-hazard-score-pop 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rydo-hazard-marker-score--cluster {
+  margin-top: 2px;
+  display: inline-flex;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fef3c7;
+  white-space: nowrap;
+}
+
+.rydo-hazard-marker-cluster-count {
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rydo-hazard-marker-pulse-ring {
+  animation: rydo-hazard-pulse 0.6s ease-out 2;
+}
+
+@keyframes rydo-hazard-enter-icon {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes rydo-hazard-exit-icon {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.6) translateY(-4px);
+  }
+}
+
+@keyframes rydo-hazard-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+@keyframes rydo-hazard-score-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.35);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rydo-hazard-marker,
+  .rydo-hazard-marker--enter .rydo-hazard-marker-icon,
+  .rydo-hazard-marker--exit .rydo-hazard-marker-icon,
+  .rydo-hazard-marker--pulse .rydo-hazard-marker-icon,
+  .rydo-hazard-marker-score--pop,
+  .rydo-hazard-marker-pulse-ring {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 .rydo-leaflet-host .leaflet-tooltip-pane {
   z-index: 6 !important;
 }

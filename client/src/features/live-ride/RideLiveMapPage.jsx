@@ -3,6 +3,22 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import { rideEventWindow } from '@/features/rides/utils/rideEventWindow';
 import { RideChatFab } from '@/features/ride-chat/components/RideChatPanel';
+import HazardReportSheet from '@/features/hazards/components/HazardReportSheet';
+import HazardVoteSheet from '@/features/hazards/components/HazardVoteSheet';
+import LiveHazardMarker from '@/features/hazards/components/LiveHazardMarker';
+import { HAZARD_VOTE_RADIUS_M, hazardTypeIcon, hazardTypeLabel } from '@/features/hazards/hazard-constants';
+import { useReportLiveHazard, useVoteHazard } from '@/features/hazards/hooks/useHazardMutations';
+import { useHazardExitBuffer } from '@/features/hazards/hooks/useHazardExitBuffer';
+import { useNewHazardIds } from '@/features/hazards/hooks/useNewHazardIds';
+import { applyLocalUserVote } from '@/features/hazards/utils/hazardHubState';
+import { buildHazardMarkerLayout } from '@/features/hazards/utils/hazardMarkerLayout';
+import {
+  hazardAccordionVariants,
+  hazardListItemVariants,
+  hazardListStagger,
+  hazardToastVariants,
+  hazardTransition,
+} from '@/features/hazards/utils/hazard-motion';
 import LiveRideAvatarMarker from '@/features/live-ride/components/LiveRideAvatarMarker';
 import LiveRideBootOverlay from '@/features/live-ride/components/LiveRideBootOverlay';
 import LiveRideMapAttribution from '@/features/live-ride/components/LiveRideMapAttribution';
@@ -14,15 +30,18 @@ import { usePeerMotionDisplay } from '@/features/live-ride/hooks/usePeerMotionDi
 import { useRideLiveHub } from '@/features/live-ride/hooks/useRideLiveHub';
 import { LIVE_MAP_SAFE_BOTTOM, LIVE_MAP_SAFE_TOP } from '@/features/live-ride/liveRideMapLayout';
 import { getCompassProvider } from '@/shared/platform/compass-provider';
-import { topPeersByDistance } from '@/features/live-ride/utils/liveRideNearbyPeers';
+import { topPeersByDistance, topHazardsByDistance, haversineDistanceM } from '@/features/live-ride/utils/liveRideNearbyPeers';
 import { normalizeTrackToLineString } from '@/features/live-ride/utils/normalizeTrackToLineString';
 import { enableRideLiveDebugFromQuery, rideLiveLog } from '@/features/live-ride/utils/rideLiveLog';
 import { useRideEvent } from '@/features/rides/hooks/useRideEvent';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import { env } from '@/shared/config/env';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { featureCollection } from '@turf/helpers';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -36,10 +55,13 @@ import {
 } from 'lucide-react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
+import MapGL, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/mapbox';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 
 const MAP_PITCH = 55;
+const MotionDiv = motion.div;
+const MotionUl = motion.ul;
+const MotionLi = motion.li;
 const MAP_ZOOM = 15.5;
 
 const routeLineLayer = {
@@ -53,17 +75,58 @@ const routeLineLayer = {
   },
 };
 
-function NearbyPeerRow({ peer, formatShortDistance }) {
+function NearbyPeerRow({ peer, formatShortDistance, onFocus }) {
   const name = peer.displayName || `Rider ${peer.userId}`;
-  return (
-    <li className="flex items-center justify-between gap-2">
-      <span className={`min-w-0 truncate ${peer.isStale ? 'text-fg-muted' : ''}`}>{name}</span>
-      {peer.isStale ? (
+  if (peer.isStale) {
+    return (
+      <li className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-fg-muted">{name}</span>
         <X className="h-3.5 w-3.5 shrink-0 text-red-400" strokeWidth={2.5} aria-hidden />
-      ) : (
+      </li>
+    );
+  }
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onFocus(peer.lng, peer.lat)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border-0 bg-transparent px-1 py-0.5 text-left transition hover:bg-black/25 active:scale-[0.99]"
+      >
+        <span className="min-w-0 truncate">{name}</span>
         <span className="shrink-0 tabular-nums text-fg-muted">{formatShortDistance(peer.distanceM)}</span>
-      )}
+      </button>
     </li>
+  );
+}
+
+function NearbyHazardRow({ hazard, formatShortDistance, onFocus }) {
+  const label = hazardTypeLabel(hazard.type);
+  const icon = hazardTypeIcon(hazard.type);
+  const desc = hazard.description?.trim();
+  return (
+    <MotionLi variants={hazardListItemVariants}>
+      <button
+        type="button"
+        onClick={() => onFocus(hazard)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border-0 bg-transparent px-1 py-0.5 text-left transition hover:bg-black/25 active:scale-[0.99]"
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-sm" aria-hidden>
+            {icon}
+          </span>
+          <span className="min-w-0 truncate">
+            <span className="font-medium">{label}</span>
+            {desc ? (
+              <span className="text-fg-muted">
+                {' · '}
+                {desc.length > 40 ? `${desc.slice(0, 40)}…` : desc}
+              </span>
+            ) : null}
+          </span>
+        </span>
+        <span className="shrink-0 tabular-nums text-fg-muted">{formatShortDistance(hazard.distanceM)}</span>
+      </button>
+    </MotionLi>
   );
 }
 
@@ -147,6 +210,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { formatSpeed, formatShortDistance } = useFormatDistance();
+  const reducedMotion = useReducedMotion();
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -183,15 +247,23 @@ export default function RideLiveMapPage({ moduleReady = true }) {
 
   const permissions = useLiveRideBootPermissions({ moduleReady });
 
-  const { peersById, transportState, hubError, offerPose, retryHub } = useRideLiveHub(
+  const { peersById, hazards, setHazardsById, transportState, hubError, offerPose, retryHub } = useRideLiveHub(
     rideId,
     hubEnabled && permissions.permissionsReady,
     myUserId,
   );
 
+  const newHazardIds = useNewHazardIds(hazards);
+  const { displayHazards, exitingIds, onMarkerExitComplete } = useHazardExitBuffer(hazards);
+
   const [showRecenter, setShowRecenter] = useState(false);
   const [clockTick, setClockTick] = useState(() => Date.now());
-  const [nearbyOpen, setNearbyOpen] = useState(false);
+  const [bottomPanelSection, setBottomPanelSection] = useState(null);
+  const [hazardSheetOpen, setHazardSheetOpen] = useState(false);
+  const [selectedHazardId, setSelectedHazardId] = useState(null);
+  const [hazardVoteSheetOpen, setHazardVoteSheetOpen] = useState(false);
+  const [hazardNotice, setHazardNotice] = useState(null);
+  const [mapZoom, setMapZoom] = useState(MAP_ZOOM);
 
   const compassHeadingRef = useRef(null);
 
@@ -234,6 +306,20 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     }
   }, []);
 
+  const focusMapOnTarget = useCallback(
+    (lng, lat) => {
+      if (lng == null || lat == null || !Number.isFinite(lng) || !Number.isFinite(lat)) return;
+      followCameraRef.current = false;
+      setShowRecenter(true);
+      recenterCamera(lng, lat, undefined, { instant: false });
+    },
+    [recenterCamera],
+  );
+
+  const toggleBottomPanelSection = useCallback((section) => {
+    setBottomPanelSection((prev) => (prev === section ? null : section));
+  }, []);
+
   const { geoError, selfFix, puckDisplay, puckDisplayRef } = useLiveRideMotionFromPositions({
     motionLoopEnabled: hubEnabled && permissions.permissionsReady,
     useDeviceGps: true,
@@ -265,6 +351,126 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     peersById,
     enabled: activeBoot.bootComplete && hubEnabled,
   });
+
+  const reportHazardMutation = useReportLiveHazard({
+    rideId,
+    onSuccess: (hazard) => {
+      if (hazard.bumped) {
+        setHazardNotice('Added to existing hazard nearby');
+        setTimeout(() => setHazardNotice(null), 3000);
+      }
+      setHazardsById((prev) => {
+        const next = new Map(prev);
+        next.set(hazard.id, hazard);
+        return next;
+      });
+    },
+  });
+
+  const voteHazardMutation = useVoteHazard({
+    onSuccess: (result, variables) => {
+      setHazardsById((prev) => {
+        let next = applyLocalUserVote(prev, variables.hazardId, result?.userVote ?? variables.value);
+        const existing = next.get(variables.hazardId);
+        if (existing && result?.score != null) {
+          next = new Map(next);
+          if (result.status === 'hidden' || result.score <= 0) {
+            next.delete(variables.hazardId);
+            setSelectedHazardId(null);
+            setHazardVoteSheetOpen(false);
+          } else {
+            next.set(variables.hazardId, {
+              ...existing,
+              score: result.score,
+              status: result.status,
+              userVote:
+                result.userVote === 1 || result.userVote === -1
+                  ? result.userVote
+                  : result.userVote == null
+                    ? null
+                    : existing.userVote,
+            });
+          }
+        }
+        return next;
+      });
+    },
+  });
+
+  const puckCoords = puckDisplay?.lat != null && puckDisplay?.lng != null ? puckDisplay : selfFix;
+
+  const selectedHazard = useMemo(
+    () => hazards.find((h) => h.id === selectedHazardId) ?? null,
+    [hazards, selectedHazardId],
+  );
+
+  const hazardMarkerLayout = useMemo(
+    () => buildHazardMarkerLayout(displayHazards, { zoom: mapZoom }),
+    [displayHazards, mapZoom],
+  );
+
+  const canVoteOnSelected = useMemo(() => {
+    if (!selectedHazard || puckCoords?.lat == null || puckCoords?.lng == null) return false;
+    return (
+      haversineDistanceM(
+        puckCoords.lat,
+        puckCoords.lng,
+        selectedHazard.location.lat,
+        selectedHazard.location.lng,
+      ) <= HAZARD_VOTE_RADIUS_M
+    );
+  }, [selectedHazard, puckCoords]);
+
+  const handleReportHazard = async ({ type, description }) => {
+    if (puckCoords?.lat == null || puckCoords?.lng == null) return;
+    await reportHazardMutation.mutateAsync({
+      type,
+      description,
+      latitude: puckCoords.lat,
+      longitude: puckCoords.lng,
+    });
+  };
+
+  const handleVoteHazard = async (value) => {
+    if (!selectedHazard || puckCoords?.lat == null || puckCoords?.lng == null) return;
+    await voteHazardMutation.mutateAsync({
+      hazardId: selectedHazard.id,
+      rideId: Number(rideId),
+      latitude: puckCoords.lat,
+      longitude: puckCoords.lng,
+      value,
+    });
+  };
+
+  const handleFocusPeer = useCallback(
+    (lng, lat) => {
+      focusMapOnTarget(lng, lat);
+    },
+    [focusMapOnTarget],
+  );
+
+  const handleFocusHazardFromList = useCallback(
+    (hazard) => {
+      setSelectedHazardId(hazard.id);
+      setHazardVoteSheetOpen(false);
+      focusMapOnTarget(hazard.location.lng, hazard.location.lat);
+    },
+    [focusMapOnTarget],
+  );
+
+  const handleFocusHazardFromMarker = useCallback(
+    (hazard) => {
+      setSelectedHazardId(hazard.id);
+      setHazardVoteSheetOpen(true);
+      focusMapOnTarget(hazard.location.lng, hazard.location.lat);
+    },
+    [focusMapOnTarget],
+  );
+
+  const handleCloseHazardVoteSheet = useCallback(() => {
+    setSelectedHazardId(null);
+    setHazardVoteSheetOpen(false);
+  }, []);
 
   useEffect(() => {
     if (!hubEnabled || !activeBoot.canMountHiddenMap) {
@@ -345,6 +551,11 @@ export default function RideLiveMapPage({ moduleReady = true }) {
     [selfLatForNearby, selfLngForNearby, displayPeersById],
   );
 
+  const nearbyListHazards = useMemo(
+    () => topHazardsByDistance(selfLatForNearby, selfLngForNearby, hazards, 4),
+    [selfLatForNearby, selfLngForNearby, hazards],
+  );
+
   const timeLabel = useMemo(
     () =>
       new Date(clockTick).toLocaleTimeString(undefined, {
@@ -402,13 +613,14 @@ export default function RideLiveMapPage({ moduleReady = true }) {
           }
           aria-hidden={!activeBoot.bootComplete}
         >
-          <Map
+          <MapGL
             ref={mapRef}
             mapboxAccessToken={token}
             mapStyle="mapbox://styles/mapbox/streets-v12"
             attributionControl={false}
             initialViewState={initialViewState}
             onLoad={onMapLoad}
+            onMove={(evt) => setMapZoom(evt.viewState.zoom)}
             onDragStart={onUserAdjustedView}
             onRotateStart={onUserAdjustedView}
             onPitchStart={onUserAdjustedView}
@@ -435,20 +647,74 @@ export default function RideLiveMapPage({ moduleReady = true }) {
             })()}
             {peersList.map((p) => (
               <Marker key={p.userId} longitude={p.lng} latitude={p.lat} anchor="center">
-                <LiveRideAvatarMarker
-                  name={p.displayName || 'Rider'}
-                  avatarUrl={p.avatarUrl}
-                  stale={Boolean(p.isStale)}
-                />
+                <button
+                  type="button"
+                  onClick={() => !p.isStale && handleFocusPeer(p.lng, p.lat)}
+                  disabled={Boolean(p.isStale)}
+                  className="border-0 bg-transparent p-0 disabled:cursor-default"
+                  aria-label={`Center map on ${p.displayName || 'rider'}`}
+                >
+                  <LiveRideAvatarMarker
+                    name={p.displayName || 'Rider'}
+                    avatarUrl={p.avatarUrl}
+                    stale={Boolean(p.isStale)}
+                  />
+                </button>
               </Marker>
             ))}
+            {displayHazards.map((hazard) => {
+              const layout = hazardMarkerLayout.get(hazard.id);
+              const anchorLat = layout?.anchorLat ?? hazard.location.lat;
+              const anchorLng = layout?.anchorLng ?? hazard.location.lng;
+              const isExiting = exitingIds.has(hazard.id);
+
+              return (
+                <Marker
+                  key={hazard.id}
+                  longitude={anchorLng}
+                  latitude={anchorLat}
+                  anchor="center"
+                >
+                  <LiveHazardMarker
+                    hazard={hazard}
+                    selected={selectedHazardId === hazard.id}
+                    isNew={newHazardIds.has(hazard.id)}
+                    isExiting={isExiting}
+                    offsetPx={layout?.offsetPx}
+                    clusterSize={layout?.clusterSize ?? 1}
+                    onClick={() => handleFocusHazardFromMarker(hazard)}
+                    onExitComplete={onMarkerExitComplete}
+                  />
+                </Marker>
+              );
+            })}
             <NavigationControl position="top-right" showCompass visualizePitch />
-          </Map>
+          </MapGL>
+
+          <AnimatePresence>
+            {hazardVoteSheetOpen && selectedHazard ? (
+              <MotionDiv
+                key="hazard-vote-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={hazardTransition(reducedMotion, { duration: 0.15 })}
+                className="pointer-events-auto absolute inset-0 z-20"
+              >
+                <button
+                  type="button"
+                  className="h-full w-full cursor-default border-0 bg-transparent p-0"
+                  onClick={handleCloseHazardVoteSheet}
+                  aria-label="Close hazard details"
+                />
+              </MotionDiv>
+            ) : null}
+          </AnimatePresence>
 
           {activeBoot.bootComplete ? (
             <>
               <div
-                className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 top-0 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
+                className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 top-0 z-30 flex flex-row flex-wrap items-center gap-2 p-3 max-md:pr-[4.5rem] md:justify-between"
                 style={{ paddingTop: LIVE_MAP_SAFE_TOP }}
               >
                 <div className="pointer-events-auto flex min-w-0 flex-wrap items-center gap-2">
@@ -472,37 +738,59 @@ export default function RideLiveMapPage({ moduleReady = true }) {
               </div>
 
               <div
-                className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 pt-1"
+                className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1 pt-1"
                 style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
+                onPointerDownCapture={(e) => {
+                  if (!hazardVoteSheetOpen) return;
+                  if (e.target.closest('[data-hazard-vote-sheet]')) return;
+                  e.stopPropagation();
+                  handleCloseHazardVoteSheet();
+                }}
               >
                 {showRecenter || (user && !env.isMockApi) ? (
-                  <div className="pointer-events-auto relative h-11 w-full shrink-0">
-                    {!showRecenter && puckDisplay && hubEnabled ? (
-                      <div
-                        className="pointer-events-none absolute left-[max(1rem,var(--rydo-safe-left))] top-1/2 inline-flex max-w-[min(42%,11rem)] -translate-y-1/2 items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
-                        aria-live="polite"
-                      >
-                        <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
-                        Following
-                      </div>
-                    ) : null}
-                    {showRecenter ? (
-                      <button
-                        type="button"
-                        onClick={handleRecenterClick}
-                        className="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
-                      >
-                        <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-                        Center on me
-                      </button>
-                    ) : null}
-                    {user && amParticipant && !env.isMockApi ? (
-                      <RideChatFab
-                        rideId={rideId}
-                        className="absolute top-1/4 -translate-y-1/2"
-                        style={{ right: 'max(1rem, var(--rydo-safe-right))' }}
-                      />
-                    ) : null}
+                  <div
+                    className="pointer-events-auto relative flex h-13 w-full shrink-0 items-center justify-between gap-2 px-[max(1rem,var(--rydo-safe-left))]"
+                    style={{ paddingRight: 'max(1rem, var(--rydo-safe-right))' }}
+                  >
+                    <div className="flex w-13 shrink-0 items-center justify-start">
+                      {hubEnabled && activeBoot.bootComplete && user && amParticipant && !env.isMockApi ? (
+                        <button
+                          type="button"
+                          onClick={() => setHazardSheetOpen(true)}
+                          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-amber-500/40 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] text-amber-200 shadow-lg backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
+                          aria-label="Report hazard"
+                        >
+                          <AlertTriangle className="h-5 w-5" strokeWidth={2} />
+                        </button>
+                      ) : !showRecenter && puckDisplay && hubEnabled ? (
+                        <div
+                          className="pointer-events-none inline-flex max-w-[min(42%,11rem)] items-center gap-1.5 rounded-full border border-emerald-500/35 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_88%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-emerald-100/90 shadow backdrop-blur-md sm:max-w-none sm:px-3 sm:text-xs"
+                          aria-live="polite"
+                        >
+                          <Crosshair className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+                          Following
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex min-w-0 flex-1 items-center justify-center">
+                      {showRecenter ? (
+                        <button
+                          type="button"
+                          onClick={handleRecenterClick}
+                          className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] px-4 py-2 text-sm font-medium text-fg shadow-lg backdrop-blur-md"
+                        >
+                          <Crosshair className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                          <span className="truncate">Center on me</span>
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="flex w-13 shrink-0 items-center justify-end">
+                      {user && amParticipant && !env.isMockApi ? (
+                        <RideChatFab rideId={rideId} />
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
                 <div className="pointer-events-auto mx-auto flex w-[min(92vw,32rem)] shrink-0 flex-col gap-1.5 rounded-2xl border border-white/12 bg-[color-mix(in_srgb,var(--rydo-bg-deep)_92%,transparent)] p-2.5 shadow-[0_-8px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
@@ -543,14 +831,29 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                       {geoError}
                     </p>
                   ) : null}
+                  <AnimatePresence>
+                    {hazardNotice ? (
+                      <MotionDiv
+                        key="hazard-notice"
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={hazardToastVariants}
+                        transition={hazardTransition(reducedMotion, { duration: 0.18 })}
+                        className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-center text-[11px] text-amber-100/95"
+                      >
+                        {hazardNotice}
+                      </MotionDiv>
+                    ) : null}
+                  </AnimatePresence>
 
                   <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-black/22">
                     <button
                       type="button"
-                      onClick={() => setNearbyOpen((o) => !o)}
-                      aria-expanded={nearbyOpen}
+                      onClick={() => toggleBottomPanelSection('riders')}
+                      aria-expanded={bottomPanelSection === 'riders'}
                       aria-controls="nearby-riders-panel"
-                      aria-label={nearbyOpen ? 'Hide nearby riders' : 'Show nearby riders'}
+                      aria-label={bottomPanelSection === 'riders' ? 'Hide nearby riders' : 'Show nearby riders'}
                       className="flex w-full items-center gap-2 rounded-none border-0 bg-transparent px-2.5 py-1.5 text-left transition hover:bg-black/30 active:scale-[0.99]"
                     >
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-rydo-purple/20 text-rydo-purple">
@@ -561,32 +864,118 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                         {' · '}
                         other rider{peersById.size === 1 ? '' : 's'} on the map
                       </p>
-                      {nearbyOpen ? (
+                      {bottomPanelSection === 'riders' ? (
                         <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
                       ) : (
                         <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
                       )}
                     </button>
-                    {nearbyOpen ? (
-                      <div
-                        id="nearby-riders-panel"
-                        className="max-h-[min(40vh,16rem)] overflow-y-auto border-t border-white/[0.06] px-2.5 py-2 text-xs text-fg md:max-h-[min(50vh,20rem)]"
-                      >
-                        {nearbyListPeers.length === 0 ? (
-                          <p className="text-fg-muted">No other riders to compare yet.</p>
-                        ) : (
-                          <ul className="space-y-1">
-                            {nearbyListPeers.map((p) => (
-                              <NearbyPeerRow key={p.userId} peer={p} formatShortDistance={formatShortDistance} />
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ) : null}
+                    <AnimatePresence initial={false}>
+                      {bottomPanelSection === 'riders' ? (
+                        <MotionDiv
+                          key="nearby-riders-panel"
+                          id="nearby-riders-panel"
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          variants={hazardAccordionVariants}
+                          transition={hazardTransition(reducedMotion, { duration: 0.22 })}
+                          className="overflow-hidden border-t border-white/[0.06]"
+                        >
+                          <div className="max-h-[min(40vh,16rem)] overflow-y-auto px-2.5 py-2 text-xs text-fg md:max-h-[min(50vh,20rem)]">
+                            {nearbyListPeers.length === 0 ? (
+                              <p className="text-fg-muted">No other riders to compare yet.</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {nearbyListPeers.map((p) => (
+                                  <NearbyPeerRow
+                                    key={p.userId}
+                                    peer={p}
+                                    formatShortDistance={formatShortDistance}
+                                    onFocus={handleFocusPeer}
+                                  />
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </MotionDiv>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-black/22">
+                    <button
+                      type="button"
+                      onClick={() => toggleBottomPanelSection('hazards')}
+                      aria-expanded={bottomPanelSection === 'hazards'}
+                      aria-controls="nearby-hazards-panel"
+                      aria-label={bottomPanelSection === 'hazards' ? 'Hide route hazards' : 'Show route hazards'}
+                      className="flex w-full items-center gap-2 rounded-none border-0 bg-transparent px-2.5 py-1.5 text-left transition hover:bg-black/30 active:scale-[0.99]"
+                    >
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500/20 text-amber-300">
+                        <AlertTriangle className="h-3 w-3" strokeWidth={2} aria-hidden />
+                      </span>
+                      <p className="min-w-0 flex-1 text-xs leading-snug text-fg-muted">
+                        <span className="font-semibold tabular-nums text-fg">{hazards.length}</span>
+                        {' · '}
+                        hazard{hazards.length === 1 ? '' : 's'} on the route
+                      </p>
+                      {bottomPanelSection === 'hazards' ? (
+                        <ChevronUp className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 shrink-0 text-fg-muted" aria-hidden />
+                      )}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {bottomPanelSection === 'hazards' ? (
+                        <MotionDiv
+                          key="nearby-hazards-panel"
+                          id="nearby-hazards-panel"
+                          initial="hidden"
+                          animate="visible"
+                          exit="exit"
+                          variants={hazardAccordionVariants}
+                          transition={hazardTransition(reducedMotion, { duration: 0.22 })}
+                          className="overflow-hidden border-t border-white/[0.06]"
+                        >
+                          <div className="max-h-[min(40vh,16rem)] overflow-y-auto px-2.5 py-2 text-xs text-fg md:max-h-[min(50vh,20rem)]">
+                            {nearbyListHazards.length === 0 ? (
+                              <p className="text-fg-muted">No hazards on this route yet.</p>
+                            ) : (
+                              <MotionUl
+                                className="space-y-1"
+                                initial="hidden"
+                                animate="visible"
+                                variants={hazardListStagger}
+                              >
+                                {nearbyListHazards.map((h) => (
+                                  <NearbyHazardRow
+                                    key={h.id}
+                                    hazard={h}
+                                    formatShortDistance={formatShortDistance}
+                                    onFocus={handleFocusHazardFromList}
+                                  />
+                                ))}
+                              </MotionUl>
+                            )}
+                          </div>
+                        </MotionDiv>
+                      ) : null}
+                    </AnimatePresence>
                   </div>
 
                   <LiveRideMapAttribution />
                 </div>
+
+                <HazardVoteSheet
+                  open={hazardVoteSheetOpen && Boolean(selectedHazard)}
+                  hazard={selectedHazard}
+                  canVote={canVoteOnSelected}
+                  isOwnHazard={myUserId != null && selectedHazard?.reportedBy?.id === myUserId}
+                  isPending={voteHazardMutation.isPending}
+                  onVote={handleVoteHazard}
+                  onClose={handleCloseHazardVoteSheet}
+                />
               </div>
             </>
           ) : null}
@@ -610,6 +999,13 @@ export default function RideLiveMapPage({ moduleReady = true }) {
           fadingOut={activeBoot.fadingOut}
         />
       ) : null}
+
+      <HazardReportSheet
+        open={hazardSheetOpen}
+        onClose={() => setHazardSheetOpen(false)}
+        onSubmit={handleReportHazard}
+        isPending={reportHazardMutation.isPending}
+      />
     </div>
   );
 }

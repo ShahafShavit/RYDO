@@ -164,7 +164,7 @@ public static class DbSeeder
             await db.SaveChangesAsync();
 
             SeedSavedRoutes(db, routes, userIds, det);
-            db.Hazards.AddRange(SeedHazards(allUsers, det));
+            db.Hazards.AddRange(SeedHazards(routes, allUsers, det));
 
             var clubs = SeedCyclingClubs(routes, allUsers);
             db.CyclingClubs.AddRange(clubs);
@@ -1457,16 +1457,16 @@ public static class DbSeeder
         }
     }
 
-    private static List<HazardEntity> SeedHazards(IReadOnlyList<ApplicationUser> users, DeterministicSeed det)
+    private static List<HazardEntity> SeedHazards(List<RouteEntity> routes, IReadOnlyList<ApplicationUser> users, DeterministicSeed det)
     {
+        if (routes.Count == 0)
+            return new List<HazardEntity>();
+
         var types = new[] { "pothole", "construction", "debris", "flooding", "poor_lighting", "road_damage", "glass", "animals" };
         var severities = new[] { "low", "medium", "high" };
-        var regions = new[] { "Tel Aviv–Jaffa", "Haifa", "Jerusalem", "Beer Sheva", "Netanya", "Ashdod", "Rishon", "Petah Tikva" };
-        var statuses = new[] { "active", "active", "active", "active", "active", "resolved", "acknowledged" };
+        var statuses = new[] { "active", "active", "active", "active", "hidden" };
 
         var list = new List<HazardEntity>();
-        var baseLat = Profile.HazardBaseLatitude;
-        var baseLng = Profile.HazardBaseLongitude;
 
         var hazardUsers = users.OrderBy(u => u.Id).ToList();
         var hazardWeights = hazardUsers
@@ -1475,17 +1475,22 @@ public static class DbSeeder
 
         for (var i = 0; i < Profile.HazardCount; i++)
         {
+            var route = routes[det.PickIndex(routes.Count, SeedGraph.Salt.Hazard, 0, i)];
             var wi = SeedBehaviorWeights.PickWeightedIndex(hazardWeights, det, SeedGraph.Salt.Hazard, i, 6);
             var reporter = hazardUsers[wi];
             var status = statuses[det.PickIndex(statuses.Length, SeedGraph.Salt.Hazard, 1, i)];
+            var lat = route.StartLatitude ?? Profile.HazardBaseLatitude;
+            var lng = route.StartLongitude ?? Profile.HazardBaseLongitude;
             list.Add(new HazardEntity
             {
+                RouteId = route.Id,
                 Type = types[i % types.Length],
                 Severity = severities[det.PickIndex(severities.Length, SeedGraph.Salt.Hazard, 2, i)],
-                Description = DescribeHazard(types[i % types.Length], regions[i % regions.Length]),
-                Latitude = baseLat + (det.Double01(SeedGraph.Salt.Hazard, i, 3) - 0.5) * 0.5,
-                Longitude = baseLng + (det.Double01(SeedGraph.Salt.Hazard, i, 4) - 0.5) * 0.55,
-                Region = regions[i % regions.Length],
+                Description = DescribeHazard(types[i % types.Length], route.Region ?? route.Title),
+                Latitude = lat + (det.Double01(SeedGraph.Salt.Hazard, i, 3) - 0.5) * 0.08,
+                Longitude = lng + (det.Double01(SeedGraph.Salt.Hazard, i, 4) - 0.5) * 0.09,
+                Region = route.Region,
+                Score = 5,
                 Status = status,
                 ReportedByUserId = reporter.Id,
                 ReportedAt = DateTime.UtcNow.AddDays(-det.Int(0, Profile.HazardReportedDaysMaxExclusive, SeedGraph.Salt.Hazard, 5, i)),

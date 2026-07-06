@@ -110,7 +110,8 @@ public static class RouteJsonMapper
         bool isSaved = false,
         RouteRidersInfo? routeRiders = null,
         double? distanceFromUserKm = null,
-        int favoriteCount = 0)
+        int favoriteCount = 0,
+        int hazardCount = 0)
     {
         var warnings = JsonSerializer.Deserialize<List<string>>(r.WarningsJson) ?? new List<string>();
         var coords = JsonSerializer.Deserialize<List<List<double>>>(r.PreviewCoordinatesJson) ?? new List<List<double>>();
@@ -154,6 +155,7 @@ public static class RouteJsonMapper
             createdAt = r.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             isSaved,
             favoriteCount,
+            hazardCount,
             status = r.Status,
             routeRiders = new
             {

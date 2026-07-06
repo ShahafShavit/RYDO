@@ -1,25 +1,8 @@
 import bearing from '@turf/bearing';
 import { point } from '@turf/helpers';
+import { haversineDistanceM } from '@/shared/lib/geoDistance';
 
-const EARTH_RADIUS_M = 6371000;
-
-/**
- * @param {number} lat1
- * @param {number} lng1
- * @param {number} lat2
- * @param {number} lng2
- * @returns {number}
- */
-export function haversineDistanceM(lat1, lng1, lat2, lng2) {
-  const toRad = (d) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(Math.min(1, a)));
-}
-
+export { haversineDistanceM };
 /**
  * @param {string | null | undefined} name
  * @returns {string}
@@ -159,4 +142,32 @@ export function topPeersByDistance(selfLat, selfLng, peers, limit = 4) {
   stale.sort((a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity));
 
   return [...live, ...stale].slice(0, limit);
+}
+
+/**
+ * Hazards sorted by distance from self, nearest first, capped at `limit`.
+ * @param {number | null | undefined} selfLat
+ * @param {number | null | undefined} selfLng
+ * @param {Iterable<{ id: number, type: string, description?: string, location: { lat: number, lng: number } }>} hazards
+ * @param {number} [limit]
+ */
+export function topHazardsByDistance(selfLat, selfLng, hazards, limit = 4) {
+  const all = [...hazards];
+  if (all.length === 0) return [];
+
+  const hasSelf =
+    selfLat != null &&
+    selfLng != null &&
+    Number.isFinite(selfLat) &&
+    Number.isFinite(selfLng);
+
+  const withDist = all.map((h) => ({
+    ...h,
+    distanceM: hasSelf
+      ? haversineDistanceM(selfLat, selfLng, h.location.lat, h.location.lng)
+      : null,
+  }));
+
+  withDist.sort((a, b) => (a.distanceM ?? Infinity) - (b.distanceM ?? Infinity));
+  return withDist.slice(0, limit);
 }

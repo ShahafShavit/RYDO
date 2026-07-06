@@ -333,9 +333,12 @@ public class AdminController(
     private static object HazardJson(HazardEntity h) => new
     {
         id = h.Id,
+        routeId = h.RouteId,
+        rideId = h.RideId,
         type = h.Type,
         severity = h.Severity,
         description = h.Description,
+        score = h.Score,
         status = h.Status,
         location = new { lat = h.Latitude, lng = h.Longitude, region = h.Region },
         reportedAt = h.ReportedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

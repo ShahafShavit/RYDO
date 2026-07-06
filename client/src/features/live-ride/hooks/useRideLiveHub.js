@@ -19,6 +19,12 @@ import {
   rideLiveWarn,
 } from '@/features/live-ride/utils/rideLiveLog';
 import { subscribeAppForeground } from '@/shared/platform/app-lifecycle';
+import {
+  hazardsFromStatePayload,
+  mergeHazardAdded,
+  mergeHazardUpdated,
+  hazardsListFromMap,
+} from '@/features/hazards/utils/hazardHubState';
 
 /**
  * @param {string|number|undefined|null} rideId
@@ -27,6 +33,7 @@ import { subscribeAppForeground } from '@/shared/platform/app-lifecycle';
  */
 export function useRideLiveHub(rideId, enabled, myUserId) {
   const [peersById, setPeersById] = useState(() => new Map());
+  const [hazardsById, setHazardsById] = useState(() => new Map());
   const [transportState, dispatchTransport] = useReducer(transportReducer, 'idle');
   const [hubError, setHubError] = useState(null);
 
@@ -202,6 +209,21 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
       setPeersById((prev) => removePeer(prev, Number(userId)));
     });
 
+    conn.on('HazardsState', (payload) => {
+      rideLiveLog('← HazardsState', { count: payload?.hazards?.length ?? 0 });
+      setHazardsById(hazardsFromStatePayload(payload));
+    });
+
+    conn.on('HazardAdded', (raw) => {
+      rideLiveLog('← HazardAdded', raw);
+      setHazardsById((prev) => mergeHazardAdded(prev, raw));
+    });
+
+    conn.on('HazardUpdated', (payload) => {
+      rideLiveLog('← HazardUpdated', payload);
+      setHazardsById((prev) => mergeHazardUpdated(prev, payload));
+    });
+
     connRef.current = conn;
 
     (async () => {
@@ -228,6 +250,7 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
       conn.stop().catch(() => {});
       publisher.reset();
       setPeersById(new Map());
+      setHazardsById(new Map());
       dispatchTransport({ type: 'CLEANUP', reason: 'hub_effect_unmount' });
     };
   }, [enabled, rideId, myId, invokeJoinRide, publisher]);
@@ -274,5 +297,16 @@ export function useRideLiveHub(rideId, enabled, myUserId) {
     return subscribeAppForeground(onForeground);
   }, [enabled, rideId, retryHub]);
 
-  return { peersById, transportState: resolvedTransport, hubError, offerPose, retryHub };
+  const hazards = useMemo(() => hazardsListFromMap(hazardsById), [hazardsById]);
+
+  return {
+    peersById,
+    hazards,
+    hazardsById,
+    setHazardsById,
+    transportState: resolvedTransport,
+    hubError,
+    offerPose,
+    retryHub,
+  };
 }

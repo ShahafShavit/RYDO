@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { useNavigate, generatePath, Link } from 'react-router-dom';
 
@@ -23,6 +23,7 @@ import { helpTooltip } from '@/shared/content/help-tooltips';
 import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
 
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
+import RouteHazardsPanel from '@/features/hazards/components/RouteHazardsPanel';
 
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 
@@ -64,8 +65,18 @@ function initialsFromName(name) {
   return '?';
 }
 
-export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
+export default function RouteDetailsPageBold({
+  route,
+  geoJson,
+  isLoading,
+  hazards = [],
+  hazardsLoading = false,
+  selectedHazardId = null,
+  onSelectHazard,
+  onHazardSelect,
+}) {
   const navigate = useNavigate();
+  const mapPanelRef = useRef(null);
   const { formatKm, formatElevation, labels, unit } = useFormatDistance();
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
@@ -341,16 +352,15 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-          <div className="rydo-panel shrink-0 overflow-hidden px-3 py-3">
+          <div ref={mapPanelRef} className="rydo-panel shrink-0 overflow-hidden px-3 py-3">
 
             <BoldRouteMapElevation
-
               geoJson={geoJson}
-
               profile={profile}
-
               headerExtra={physicsBadge}
-
+              hazards={hazards}
+              selectedHazardId={selectedHazardId}
+              onHazardSelect={onHazardSelect}
             />
 
           </div>
@@ -365,8 +375,18 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
 
 
-          <RouteWeatherPanel route={route} isRouteLoading={isLoading} layout="split" />
+          <RouteHazardsPanel
+            hazards={hazards}
+            isLoading={hazardsLoading || isLoading}
+            layout="split"
+            selectedHazardId={selectedHazardId}
+            onSelectHazard={(hazard) => {
+              mapPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              onSelectHazard?.(hazard);
+            }}
+          />
 
+          <RouteWeatherPanel route={route} isRouteLoading={isLoading} layout="split" />
         </BoldScrollArea>
 
         <div className={cn(desktopChromeFooterClass, 'hidden md:flex')}>

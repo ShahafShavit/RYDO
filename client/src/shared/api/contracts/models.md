@@ -67,14 +67,19 @@ Normalization notes:
 - legacy `easy` is normalized to `casual`
 - legacy `medium` is normalized to `moderate`
 - legacy `soilType` and related aliases are normalized to `terrain`
+- `hazardCount` counts visible active route hazards
+
+Route detail also includes `hazardCount` (number of visible active hazards on the route).
 
 ## Hazard
 ```json
 {
   "id": 10,
+  "routeId": 3,
+  "rideId": 42,
   "type": "gate",
-  "severity": "medium",
   "description": "Gate locked near the second climb.",
+  "score": 5,
   "status": "active",
   "location": {
     "lat": 31.7683,
@@ -85,7 +90,8 @@ Normalization notes:
   "reportedBy": {
     "id": 1,
     "fullName": "John Rider"
-  }
+  },
+  "userVote": 1
 }
 ```
 

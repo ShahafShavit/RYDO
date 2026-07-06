@@ -1,3 +1,1 @@
-export default function HazardMarkers() {
-  return null;
-}
+export { default } from '@/features/hazards/components/LiveHazardMarker';

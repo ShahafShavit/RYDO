@@ -28,7 +28,7 @@ const featureCards = [
   },
   {
     title: 'Hazard reporting',
-    body: 'Report blocked paths, obstacles, or dangerous sections and share those updates instantly with other riders on the route.',
+    body: 'During a live ride on a route, drop hazards at your GPS position. Other riders nearby can confirm or dispute them on the map.',
     icon: TriangleAlert,
   },
 ];
@@ -295,7 +295,7 @@ export default function LandingPage() {
             ['One connected experience', 'Routes, navigation, coordination, and updates work together instead of living in separate apps.'],
             ['Clear route decisions', 'Terrain, difficulty, distance, and ride time are structured up front — before you commit.'],
             ['Built for solo and group rides', 'Use it independently or with others without changing the core experience.'],
-            ['Trail context in real time', 'Live riders and hazard updates keep the ride grounded in what is actually happening.'],
+            ['Trail context in real time', 'Live riders and route hazards reported during live rides keep the ride grounded in what is actually happening.'],
           ].map(([title, body], index) => (
             <Card key={title} ref={(node) => { featureRefs.current[index] = node; }}>
               <h3 className="text-xl font-semibold">{title}</h3>

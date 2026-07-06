@@ -103,6 +103,7 @@ export function normalizeRoute(rawRoute = {}) {
     },
     routeRiders: normalizeRouteRiders(rawRoute.routeRiders),
     favoriteCount: Math.max(0, Number(rawRoute.favoriteCount ?? 0) || 0),
+    hazardCount: Math.max(0, Number(rawRoute.hazardCount ?? 0) || 0),
     createdAt: rawRoute.createdAt || null,
     isSaved: Boolean(rawRoute.isSaved),
     status: rawRoute.status || 'published',

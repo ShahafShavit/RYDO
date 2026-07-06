@@ -15,6 +15,7 @@ public class RideLiveHub(
     RideLivePoseStore poseStore,
     RideLiveRateLimiter rateLimiter,
     RideLiveBotOrchestrator botOrchestrator,
+    HazardService hazardService,
     ILogger<RideLiveHub> logger)
     : Hub
 {
@@ -138,6 +139,12 @@ public class RideLiveHub(
             "completed",
             detail: $"peerCount={riders.Count} peerBroadcast={peerBroadcast} email={email ?? "(none)"}");
         await Clients.Caller.SendAsync("RidersState", new { riders });
+        await hazardService.SendHazardsStateToCallerAsync(
+            Clients,
+            Context.ConnectionId,
+            rideId,
+            userId.Value,
+            Context.ConnectionAborted);
     }
 
     public async Task UpdatePose(double lat, double lng, double? headingDeg, double? accuracyM, string? atUtc)

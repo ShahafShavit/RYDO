@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { generatePath, useParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RouteDetailsHeader from '@/features/routes/components/RouteDetailsHeader';
@@ -12,13 +12,29 @@ import Button from '@/shared/components/ui/button/Button';
 import { useRouteDetails } from '@/features/routes/hooks/useRouteDetails';
 import { buildRoutePreviewFeatureCollection } from '@/features/routes/utils/routePreviewGeoJson';
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
+import RouteHazardsPanel from '@/features/hazards/components/RouteHazardsPanel';
+import { useRouteHazards } from '@/features/hazards/hooks/useRouteHazards';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import ShareButton from '@/shared/components/share/ShareButton';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
   const { route, isLoading: routeLoading } = useRouteDetails(routeId);
+  const { hazards, isLoading: hazardsLoading } = useRouteHazards(routeId, {
+    enabled: Boolean(route?.id),
+  });
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [selectedHazardId, setSelectedHazardId] = useState(null);
+  const mapBlockRef = useRef(null);
+
+  const handleSelectHazard = useCallback((hazard) => {
+    setSelectedHazardId(hazard.id);
+    mapBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, []);
+
+  const handleHazardSelect = useCallback((hazard) => {
+    setSelectedHazardId(hazard?.id ?? null);
+  }, []);
 
   usePageBreadcrumbDetail(route?.title);
 
@@ -47,10 +63,13 @@ export default function RouteDetailsPage() {
             </Button>
           ) : null}
         </RouteDetailsHeader>
-        <div className="relative z-0">
+        <div ref={mapBlockRef} className="relative z-0">
           <RouteMapWithElevation
             geoJson={geoJson}
             layout="split"
+            hazards={hazards}
+            selectedHazardId={selectedHazardId}
+            onHazardSelect={handleHazardSelect}
             splitTrailing={
               <RouteWeatherPanel
                 key={route?.id ?? 'route-weather'}
@@ -71,10 +90,25 @@ export default function RouteDetailsPage() {
           />
         ) : null}
         <RouteMetadataPanel route={route} showUploadedBy={false} />
+        <RouteHazardsPanel
+          hazards={hazards}
+          isLoading={hazardsLoading || routeLoading}
+          selectedHazardId={selectedHazardId}
+          onSelectHazard={handleSelectHazard}
+        />
       </section>
 
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <RouteDetailsPageBold route={route} geoJson={geoJson} isLoading={routeLoading} />
+        <RouteDetailsPageBold
+          route={route}
+          geoJson={geoJson}
+          isLoading={routeLoading}
+          hazards={hazards}
+          hazardsLoading={hazardsLoading}
+          selectedHazardId={selectedHazardId}
+          onSelectHazard={handleSelectHazard}
+          onHazardSelect={handleHazardSelect}
+        />
       </div>
     </>
   );

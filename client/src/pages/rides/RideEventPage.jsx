@@ -5,6 +5,7 @@ import RideEventCard from '@/features/rides/components/RideEventCard';
 import RideEventPageBold from '@/features/rides/components/RideEventPageBold';
 import EditRideModal from '@/features/rides/components/EditRideModal';
 import RideMembersList from '@/features/rides/components/RideMembersList';
+import LinkedRouteRow from '@/features/rides/components/LinkedRouteRow';
 import RouteMapWithElevation from '@/features/routes/components/RouteMapWithElevation';
 import RouteMetadataPanel from '@/features/routes/components/RouteMetadataPanel';
 import { isRideUpcoming, useRideEvent } from '@/features/rides/hooks/useRideEvent';
@@ -173,6 +174,13 @@ export default function RideEventPage() {
             />
             {ride.routeId ? (
               <div className="space-y-4">
+                {!routeLoading && linkedRoute ? (
+                  <LinkedRouteRow
+                    route={linkedRoute}
+                    routePath={generatePath(ROUTES.routeDetails, { routeId: String(ride.routeId) })}
+                    className="rounded-2xl border border-border"
+                  />
+                ) : null}
                 <RouteMapWithElevation
                   geoJson={geoJson}
                   layout="split"

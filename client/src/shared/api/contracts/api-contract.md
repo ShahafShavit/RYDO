@@ -542,8 +542,9 @@ On `POST /clubs/:clubId/rides`, after the ride is saved, every **active** club m
 These feature modules exist and use the shared client path:
 
 - `GET /dashboard/summary`
-- `GET /hazards`
-- `POST /hazards`
+- `GET /routes/:routeId/hazards` — visible hazards on a route
+- `POST /rides/:rideId/hazards` — report during live ride (auth, participant)
+- `PUT /hazards/:hazardId/vote` — up/down/clear vote during live ride within 200 m
 - `GET /users/me/rides` (optional `q`, `when`)
 - `POST /users/me/rides`
 - `POST /clubs/:clubId/rides`

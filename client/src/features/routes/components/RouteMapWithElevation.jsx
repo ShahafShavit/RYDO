@@ -75,6 +75,10 @@ export default function RouteMapWithElevation({
   splitTriplePreset = 'default',
   className = '',
   interactionMode = 'interactive',
+  hazards = [],
+  selectedHazardId = null,
+  onHazardSelect,
+  focusZoom = 16,
 }) {
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
@@ -135,6 +139,10 @@ export default function RouteMapWithElevation({
           compactAttribution={mapCompactAttribution}
           scrubDistanceM={profileReady ? scrubDistanceM : null}
           mapInteractionEnabled={mapInteractive}
+          hazards={hazards}
+          selectedHazardId={selectedHazardId}
+          onHazardSelect={onHazardSelect}
+          focusZoom={focusZoom}
         />
       </Suspense>
     </div>

@@ -48,6 +48,7 @@ builder.Services.AddSingleton<RideLiveBotOrchestrator>();
 builder.Services.AddSingleton<LiveEntryBoothTokenService>();
 builder.Services.AddScoped<RideParticipantService>();
 builder.Services.AddScoped<LiveEntryService>();
+builder.Services.AddScoped<HazardService>();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -171,6 +172,7 @@ builder.Services.AddHostedService<DatabaseSeederBackgroundService>();
 builder.Services.AddHostedService<ClubChatSimulatorBackgroundService>();
 builder.Services.AddHostedService<HistoryMaterializationBackgroundService>();
 builder.Services.AddHostedService<UserActivityRetentionBackgroundService>();
+builder.Services.AddHostedService<HazardExpiryBackgroundService>();
 
 var app = builder.Build();
 

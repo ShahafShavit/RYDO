@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     my: `${P}/routes/my`,
     save: (routeId) => `${P}/routes/${routeId}/save`,
     unsave: (routeId) => `${P}/routes/${routeId}/save`,
+    hazards: (routeId) => `${P}/routes/${routeId}/hazards`,
   },
   users: {
     myRides: `${P}/users/me/rides`,
@@ -55,6 +56,7 @@ export const API_ENDPOINTS = {
     chatMessages: (rideId) => `${P}/rides/${rideId}/chat/messages`,
     chatSend: (rideId) => `${P}/rides/${rideId}/chat/messages`,
     chatRead: (rideId) => `${P}/rides/${rideId}/chat/read`,
+    hazards: (rideId) => `${P}/rides/${rideId}/hazards`,
   },
   clubs: {
     list: `${P}/clubs`,
@@ -84,8 +86,7 @@ export const API_ENDPOINTS = {
     clubChatSummary: `${P}/users/me/club-chat/summary`,
   },
   hazards: {
-    list: `${P}/hazards`,
-    create: `${P}/hazards`,
+    vote: (hazardId) => `${P}/hazards/${hazardId}/vote`,
   },
   challenges: {
     list: `${P}/challenges`,

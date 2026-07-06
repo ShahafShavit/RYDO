@@ -9,7 +9,7 @@ namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/routes")]
-public class RoutesController(RydoDbContext db, IUserHandleService handles) : ControllerBase
+public class RoutesController(RydoDbContext db, IUserHandleService handles, HazardService hazards) : ControllerBase
 {
     private const int MaxRouteListTake = 200;
 
@@ -180,7 +180,19 @@ public class RoutesController(RydoDbContext db, IUserHandleService handles) : Co
         var saved = uid.HasValue && await db.SavedRoutes.AnyAsync(s => s.UserId == uid && s.RouteId == routeId, ct);
         var ridersInfo = await RouteJsonMapper.LoadRouteRidersInfoAsync(db, routeId, ct);
         var favoriteCount = await db.SavedRoutes.AsNoTracking().CountAsync(s => s.RouteId == routeId, ct);
-        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo, null, favoriteCount));
+        var hazardCount = await hazards.CountVisibleForRouteAsync(routeId, ct);
+        return Ok(RouteJsonMapper.ToClientRoute(r, r.CreatedBy, saved, ridersInfo, null, favoriteCount, hazardCount));
+    }
+
+    [HttpGet("{routeId:int}/hazards")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ListHazards(int routeId, CancellationToken ct)
+    {
+        if (!await db.Routes.AsNoTracking().AnyAsync(r => r.Id == routeId, ct))
+            return NotFound();
+
+        var items = await hazards.ListVisibleForRouteAsync(routeId, GetUserId(), ct);
+        return Ok(items);
     }
 
     /// <summary>Validate GPX and compute physics difficulty before saving (same rules as upload).</summary>

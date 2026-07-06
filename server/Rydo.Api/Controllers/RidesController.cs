@@ -9,7 +9,7 @@ namespace Rydo.Api.Controllers;
 
 [ApiController]
 [Route("api/rides")]
-public class RidesController(RydoDbContext db) : ControllerBase
+public class RidesController(RydoDbContext db, HazardService hazards) : ControllerBase
 {
     private int? CurrentUserId()
     {
@@ -312,5 +312,33 @@ public class RidesController(RydoDbContext db) : ControllerBase
         db.RideParticipants.Remove(p);
         await db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    public record CreateRideHazardBody(string Type, string? Description, double Latitude, double Longitude);
+
+    [HttpPost("{rideId:int}/hazards")]
+    [Authorize]
+    public async Task<IActionResult> CreateHazard(int rideId, [FromBody] CreateRideHazardBody body, CancellationToken ct)
+    {
+        var uid = CurrentUserId();
+        if (uid == null) return Unauthorized();
+
+        var (hazard, bumped, error) = await hazards.CreateDuringLiveRideAsync(
+            rideId,
+            uid.Value,
+            body.Type,
+            body.Description,
+            body.Latitude,
+            body.Longitude,
+            ct);
+
+        if (error != null)
+        {
+            if (error is "Ride not found.")
+                return NotFound(new { detail = error });
+            return Problem(statusCode: 400, detail: error);
+        }
+
+        return Ok(Services.Hazards.HazardJsonMapper.ToClientHazard(hazard, bumped: bumped));
     }
 }

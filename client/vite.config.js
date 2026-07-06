@@ -82,6 +82,11 @@ export default defineConfig(({ command, mode }) => {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.{js,jsx}'],
+    exclude: ['tests/**', 'node_modules/**'],
+  },
   server,
   build: {
     rollupOptions: {

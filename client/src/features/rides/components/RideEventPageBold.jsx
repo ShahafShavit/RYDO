@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Bike,
   Calendar,
-  ChevronRight,
   Clock,
   MessageCircle,
   Mountain,
@@ -17,11 +16,11 @@ import {
 import { ROUTES } from '@/app/router/route-paths';
 import RideWeatherSummary from '@/features/weather/RideWeatherSummary';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
-import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAnalysis';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import Eyebrow from '@/shared/components/bold/Eyebrow';
 import DisplayTitle from '@/shared/components/bold/DisplayTitle';
+import LinkedRouteRow from '@/features/rides/components/LinkedRouteRow';
 import StatRibbon from '@/shared/components/bold/StatRibbon';
 import GradientCTA from '@/shared/components/bold/GradientCTA';
 import IconButton from '@/shared/components/bold/IconButton';
@@ -378,32 +377,10 @@ export default function RideEventPageBold({
           ) : null}
 
           {routePath ? (
-            <Link
-              to={routePath}
-              className="rydo-bold-glass-row flex items-center gap-3 p-3 no-underline transition hover:border-border-strong"
-            >
-              <div className="flex min-w-0 flex-1 flex-col">
-                <Eyebrow className="text-[10px]">Linked route</Eyebrow>
-                <DisplayTitle as="div" size="sm" truncate title={linkedRoute?.title || `Route #${ride.routeId}`} className="mt-1 text-base">
-                  {linkedRoute?.title || `Route #${ride.routeId}`}
-                </DisplayTitle>
-                {linkedRoute?.terrain ? (
-                  <p className="rydo-subtle mt-0.5 text-xs">
-                    {formatTrailMetaLabel(linkedRoute.terrain)}
-                    {linkedRoute.difficulty
-                      ? ` · ${formatTrailMetaLabel(linkedRoute.difficulty)}`
-                      : ''}
-                    {linkedRoute.region ? ` · ${linkedRoute.region}` : ''}
-                  </p>
-                ) : linkedRoute?.difficulty ? (
-                  <p className="rydo-subtle mt-0.5 text-xs">
-                    {formatTrailMetaLabel(linkedRoute.difficulty)}
-                    {linkedRoute.region ? ` · ${linkedRoute.region}` : ''}
-                  </p>
-                ) : null}
-              </div>
-              <ChevronRight className="h-[18px] w-[18px] shrink-0 text-fg-subtle" aria-hidden />
-            </Link>
+            <LinkedRouteRow
+              route={!routeLoading ? linkedRoute : null}
+              routePath={routePath}
+            />
           ) : !hasRoute ? (
             <p className="rydo-subtle px-1 text-sm">No route is linked to this event yet.</p>
           ) : null}

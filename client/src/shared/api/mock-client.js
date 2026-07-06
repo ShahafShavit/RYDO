@@ -469,6 +469,12 @@ function mockFavoriteCountForRoute(routeId) {
   return (id * 17 + 5) % 47;
 }
 
+function mockHazardCountForRoute(routeId) {
+  return hazards.filter(
+    (h) => h.routeId === Number(routeId) && h.status === 'active' && (h.score ?? 5) > 0,
+  ).length;
+}
+
 function findRoute(routeId) {
   const route = routes.find((item) => item.id === Number(routeId));
   if (!route) {
@@ -500,6 +506,7 @@ function findRoute(routeId) {
     createdBy,
     routeRiders: { totalCount, visibleRiders },
     favoriteCount: mockFavoriteCountForRoute(rid),
+    hazardCount: mockHazardCountForRoute(rid),
   };
 }
 
@@ -510,6 +517,7 @@ function enrichListRouteRow(route) {
     preview: { coordinates: route.coordinates },
     routeRiders: { totalCount: rr.totalCount, visibleRiders: [] },
     favoriteCount: mockFavoriteCountForRoute(route.id),
+    hazardCount: mockHazardCountForRoute(route.id),
   };
 }
 
@@ -1127,25 +1135,70 @@ export async function mockRequest(path, options = {}) {
     return null;
   }
 
-  if (pathname === '/api/hazards' && method === 'GET') {
-    return hazards;
+  if (/^\/api\/routes\/\d+\/hazards$/.test(pathname) && method === 'GET') {
+    const routeId = Number(pathname.split('/')[3]);
+    return hazards
+      .filter((h) => h.routeId === routeId && h.status === 'active' && (h.score ?? 5) > 0)
+      .map((h) => ({
+        id: h.id,
+        routeId: h.routeId,
+        type: h.type,
+        description: h.description,
+        score: h.score ?? 5,
+        status: h.status,
+        location: { lat: h.latitude, lng: h.longitude, region: h.region ?? null },
+        reportedAt: h.reportedAt,
+        reportedBy: { id: h.reportedBy, fullName: 'Mock rider' },
+        userVote: null,
+      }));
   }
 
-  if (pathname === '/api/hazards' && method === 'POST') {
+  if (/^\/api\/rides\/\d+\/hazards$/.test(pathname) && method === 'POST') {
+    const rideId = Number(pathname.split('/')[3]);
     const payload = parseJsonBody(options.body);
     const hazard = {
       id: Math.max(...hazards.map((item) => item.id), 0) + 1,
+      routeId: 1,
+      rideId,
       type: payload.type || 'other',
-      severity: payload.severity || 'medium',
       description: payload.description || '',
-      latitude: Number(payload.latitude || payload.location?.lat || 0),
-      longitude: Number(payload.longitude || payload.location?.lng || 0),
+      latitude: Number(payload.latitude || 0),
+      longitude: Number(payload.longitude || 0),
       reportedBy: profile.id,
       reportedAt: new Date().toISOString(),
       status: 'active',
+      score: 5,
     };
     hazards.unshift(hazard);
-    return hazard;
+    return {
+      id: hazard.id,
+      routeId: hazard.routeId,
+      rideId: hazard.rideId,
+      type: hazard.type,
+      description: hazard.description,
+      score: hazard.score,
+      status: hazard.status,
+      location: { lat: hazard.latitude, lng: hazard.longitude },
+      reportedAt: hazard.reportedAt,
+      reportedBy: { id: profile.id, fullName: profile.fullName },
+      bumped: false,
+    };
+  }
+
+  if (/^\/api\/hazards\/\d+\/vote$/.test(pathname) && method === 'PUT') {
+    const hazardId = Number(pathname.split('/')[3]);
+    const payload = parseJsonBody(options.body);
+    const hazard = hazards.find((h) => h.id === hazardId);
+    if (!hazard) throw new Error('Hazard not found');
+    const value = Number(payload.value ?? 0);
+    hazard.score = Math.max(0, (hazard.score ?? 5) + value);
+    if (hazard.score <= 0) hazard.status = 'hidden';
+    return {
+      id: hazard.id,
+      score: hazard.score,
+      status: hazard.status,
+      userVote: value === 0 ? null : value,
+    };
   }
 
   if (pathname === '/api/challenges' && method === 'GET') {

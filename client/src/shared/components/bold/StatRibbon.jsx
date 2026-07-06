@@ -5,12 +5,15 @@ export default function StatRibbon({ items, className, paddingClass = 'px-5 py-4
   if (!items?.length) return null;
   return (
     <div className={cn('flex justify-between', paddingClass, className)}>
-      {items.map((item, i) => (
-        <div key={item.key ?? item.label ?? i} className="contents">
+      {items.map((item, i) => {
+        const { key: itemKey, ...statProps } = item;
+        return (
+        <div key={itemKey ?? item.label ?? i} className="contents">
           {i > 0 ? <div className="rydo-vhair" aria-hidden /> : null}
-          <Stat {...item} />
+          <Stat {...statProps} />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

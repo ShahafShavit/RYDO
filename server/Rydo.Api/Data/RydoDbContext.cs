@@ -11,6 +11,7 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
     public DbSet<RouteEntity> Routes => Set<RouteEntity>();
     public DbSet<SavedRoute> SavedRoutes => Set<SavedRoute>();
     public DbSet<HazardEntity> Hazards => Set<HazardEntity>();
+    public DbSet<HazardVote> HazardVotes => Set<HazardVote>();
     public DbSet<Ride> Rides => Set<Ride>();
     public DbSet<RideParticipant> RideParticipants => Set<RideParticipant>();
     public DbSet<UserPreference> UserPreferences => Set<UserPreference>();
@@ -56,6 +57,18 @@ public class RydoDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int
         builder.Entity<HazardEntity>(e =>
         {
             e.HasOne(x => x.ReportedBy).WithMany().HasForeignKey(x => x.ReportedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Ride).WithMany().HasForeignKey(x => x.RideId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.RouteId, x.Status, x.ReportedAt });
+            e.Property(x => x.Type).HasMaxLength(32);
+            e.Property(x => x.Description).HasMaxLength(140);
+        });
+
+        builder.Entity<HazardVote>(e =>
+        {
+            e.HasKey(x => new { x.HazardId, x.UserId });
+            e.HasOne(x => x.Hazard).WithMany(h => h.Votes).HasForeignKey(x => x.HazardId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Ride>(e =>

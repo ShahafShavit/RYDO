@@ -229,7 +229,7 @@ export function useLiveRideBootGate({
   useEffect(() => {
     if (!permissionsReady || !geoError || bootComplete) return;
     permissions.applyPermissionFailure(geoError);
-  }, [permissionsReady, geoError, bootComplete, permissions]);
+  }, [permissionsReady, geoError, bootComplete, permissions.applyPermissionFailure]);
 
   const retryAll = useCallback(async () => {
     setMapSurfaceReady(false);

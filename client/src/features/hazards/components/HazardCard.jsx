@@ -8,7 +8,10 @@ export default function HazardCard({ hazard }) {
         <div>
           <h3 className="text-lg font-semibold capitalize">{hazard.type}</h3>
           <p className="mt-2 text-fg-muted">{hazard.description || 'No additional details provided.'}</p>
-          <p className="mt-2 text-fg-subtle">Severity: {hazard.severity}</p>
+          <p className="mt-2 text-fg-subtle">
+            Score: {hazard.score ?? '—'}
+            {hazard.routeId ? ` · Route #${hazard.routeId}` : ''}
+          </p>
         </div>
         <Badge variant="neon">{hazard.status}</Badge>
       </div>

@@ -15,6 +15,10 @@ export default function BoldRouteMapElevation({
   eyebrow = 'The shape of the ride',
   headerExtra = null,
   className = '',
+  hazards = [],
+  selectedHazardId = null,
+  onHazardSelect,
+  focusZoom = 16,
 }) {
   if (!geoJson?.features?.length) return null;
 
@@ -43,6 +47,10 @@ export default function BoldRouteMapElevation({
           chartShowHeader={false}
           className="gap-2.5"
           interactionMode="auto"
+          hazards={hazards}
+          selectedHazardId={selectedHazardId}
+          onHazardSelect={onHazardSelect}
+          focusZoom={focusZoom}
         />
       </Suspense>
     </div>

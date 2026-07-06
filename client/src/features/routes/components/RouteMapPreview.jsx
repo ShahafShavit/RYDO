@@ -3,6 +3,10 @@ import { Crosshair } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { latLngAtDistanceAlongGeoJson } from '@/features/routes/utils/gpxAnalysis';
+import { hazardTypeLabel } from '@/features/hazards/hazard-constants';
+import { buildHazardMarkerHtml, hazardLeafletIconDimensions } from '@/features/hazards/utils/hazardMarkerHtml';
+import { buildHazardMarkerLayout } from '@/features/hazards/utils/hazardMarkerLayout';
+import { HAZARD_EXIT_MS } from '@/features/hazards/utils/hazard-motion';
 import { useThemeCssVar } from '@/shared/hooks/useThemeCssVar';
 import { cn } from '@/shared/lib/cn';
 
@@ -14,6 +18,18 @@ const OSM_ATTRIB_COMPACT =
 
 /** Polyline stroke on OSM tiles: fixed blue so the route stays visible regardless of app theme. */
 const ROUTE_LINE_COLOR = '#2563eb';
+
+/** Stable empty list — default `hazards = []` would allocate a new array every render. */
+const EMPTY_HAZARDS = [];
+
+function clusterKeysEqual(a, b) {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const key of a) {
+    if (!b.has(key)) return false;
+  }
+  return true;
+}
 
 // Fix missing marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -81,20 +97,74 @@ export default function RouteMapPreview({
   mapInteractionEnabled = true,
   /** Pass touches through to parent (e.g. card Link). Used with mapInteractionEnabled=false on thumbnails. */
   pointerEventsNone = false,
+  hazards = EMPTY_HAZARDS,
+  selectedHazardId = null,
+  onHazardSelect,
+  focusZoom = 16,
 }) {
   const markerStroke = useThemeCssVar('--rydo-green', '#3ecfb9');
   const markerFill = useThemeCssVar('--rydo-bg-deep', '#0a0908');
+
+  const onHazardSelectRef = useRef(onHazardSelect);
+  onHazardSelectRef.current = onHazardSelect;
 
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const tileLayerRef = useRef(null);
   const geoJsonLayerRef = useRef(null);
   const scrubMarkerRef = useRef(null);
+  const hazardLayerRef = useRef(null);
+  const hazardMarkersRef = useRef(new Map());
+  const hazardMetaRef = useRef(new Map());
+  const hazardExitTimersRef = useRef(new Map());
+  const prevHazardIdsRef = useRef(new Set());
+  const hazardsInitializedRef = useRef(false);
   const resizeObserverRef = useRef(null);
   const homeViewRef = useRef(null);
   /** Bumps when a new L.Map instance exists (incl. React Strict Mode remount) so GeoJSON re-syncs. */
   const [mapEpoch, setMapEpoch] = useState(0);
   const [needsRecenter, setNeedsRecenter] = useState(false);
+  const [expandedClusterKeys, setExpandedClusterKeys] = useState(() => new Set());
+
+  const handleHazardMarkerClickRef = useRef((hazard) => {
+    onHazardSelectRef.current?.(hazard);
+  });
+
+  const handleHazardMarkerClick = useCallback(
+    (hazard) => {
+      const layout = buildHazardMarkerLayout(hazards ?? [], { expandedClusterKeys });
+      const entry = layout.get(hazard.id);
+      if (!entry) {
+        onHazardSelectRef.current?.(hazard);
+        return;
+      }
+      if (entry.collapsed && entry.clusterSize > 1) {
+        setExpandedClusterKeys((prev) => {
+          const next = new Set([entry.clusterKey]);
+          return clusterKeysEqual(prev, next) ? prev : next;
+        });
+        return;
+      }
+      onHazardSelectRef.current?.(hazard);
+    },
+    [hazards, expandedClusterKeys],
+  );
+
+  useEffect(() => {
+    handleHazardMarkerClickRef.current = handleHazardMarkerClick;
+  }, [handleHazardMarkerClick]);
+
+  useEffect(() => {
+    if (selectedHazardId == null || !hazards?.length) return;
+    const layout = buildHazardMarkerLayout(hazards, { expandedClusterKeys: new Set() });
+    const entry = layout.get(selectedHazardId);
+    if (entry?.clusterSize > 1) {
+      setExpandedClusterKeys((prev) => {
+        const next = new Set([entry.clusterKey]);
+        return clusterKeysEqual(prev, next) ? prev : next;
+      });
+    }
+  }, [selectedHazardId, hazards]);
 
   const syncHomeView = useCallback((map) => {
     const layer = geoJsonLayerRef.current;
@@ -151,6 +221,15 @@ export default function RouteMapPreview({
 
     return () => {
       ro.disconnect();
+      for (const timer of hazardExitTimersRef.current.values()) {
+        window.clearTimeout(timer);
+      }
+      hazardExitTimersRef.current.clear();
+      hazardLayerRef.current = null;
+      hazardMarkersRef.current.clear();
+      hazardMetaRef.current.clear();
+      prevHazardIdsRef.current = new Set();
+      hazardsInitializedRef.current = false;
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
@@ -158,6 +237,19 @@ export default function RouteMapPreview({
       resizeObserverRef.current = null;
     };
   }, [scrollWheelZoom, zoomControl, compactAttribution, mapInteractionEnabled, syncHomeView]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const collapseClusters = () => {
+      setExpandedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+    };
+    map.on('click', collapseClusters);
+    return () => {
+      map.off('click', collapseClusters);
+    };
+  }, [mapEpoch]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -280,6 +372,198 @@ export default function RouteMapPreview({
       if (scrubMarkerRef.current === marker) scrubMarkerRef.current = null;
     };
   }, [geoJson, mapEpoch, scrubDistanceM, markerStroke, markerFill]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    if (!hazardLayerRef.current || !map.hasLayer(hazardLayerRef.current)) {
+      hazardLayerRef.current = L.layerGroup().addTo(map);
+      hazardMarkersRef.current.clear();
+      hazardMetaRef.current.clear();
+    }
+    const group = hazardLayerRef.current;
+    const layout = buildHazardMarkerLayout(hazards ?? [], { expandedClusterKeys });
+    const { iconSize, iconAnchor } = hazardLeafletIconDimensions();
+    const currentIds = new Set();
+    const prevIds = prevHazardIdsRef.current;
+
+    const hazardTooltip = (hazard, entry) => {
+      if (entry?.collapsed && entry.clusterSize > 1) {
+        return `${entry.clusterSize} hazards here — tap to expand`;
+      }
+      return `${hazardTypeLabel(hazard.type)} · 👍 ${hazard.score}`;
+    };
+
+    const makeIcon = (hazard, options) =>
+      L.divIcon({
+        className: 'rydo-hazard-div-icon',
+        html: buildHazardMarkerHtml(hazard, options),
+        iconSize,
+        iconAnchor,
+      });
+
+    const bindMarkerClick = (marker, hazard) => {
+      marker.off('click');
+      marker.on('click', (event) => {
+        L.DomEvent.stopPropagation(event);
+        handleHazardMarkerClickRef.current?.(hazard);
+      });
+    };
+
+    for (const hazard of hazards ?? []) {
+      const lat = hazard.location?.lat;
+      const lng = hazard.location?.lng;
+      if (lat == null || lng == null) continue;
+
+      const entry = layout.get(hazard.id);
+      if (entry?.hidden) {
+        const hidden = hazardMarkersRef.current.get(hazard.id);
+        if (hidden) {
+          group.removeLayer(hidden.marker);
+          hazardMarkersRef.current.delete(hazard.id);
+          hazardMetaRef.current.delete(hazard.id);
+        }
+        continue;
+      }
+
+      currentIds.add(hazard.id);
+      const selected = hazard.id === selectedHazardId;
+      const offsetPx = entry?.offsetPx ?? { x: 0, y: 0 };
+      const anchorLat = entry?.anchorLat ?? lat;
+      const anchorLng = entry?.anchorLng ?? lng;
+      const clusterSize = entry?.clusterSize ?? 1;
+      const collapsed = entry?.collapsed ?? false;
+      const isNew = hazardsInitializedRef.current && !prevIds.has(hazard.id);
+      const meta = hazardMetaRef.current.get(hazard.id);
+      const scoreChanged = meta != null && meta.score !== hazard.score;
+      const offsetChanged =
+        meta != null &&
+        (meta.offsetPx?.x !== offsetPx.x || meta.offsetPx?.y !== offsetPx.y);
+
+      const existing = hazardMarkersRef.current.get(hazard.id);
+      const iconOptions = {
+        selected,
+        offsetPx,
+        entering: isNew,
+        pulsing: isNew,
+        scorePop: scoreChanged && !isNew,
+        clusterSize,
+        collapsed,
+      };
+      const tooltip = hazardTooltip(hazard, entry);
+
+      if (existing) {
+        existing.marker.setLatLng([anchorLat, anchorLng]);
+        existing.marker.setIcon(makeIcon(hazard, iconOptions));
+        existing.marker.setZIndexOffset(selected ? 1000 : 0);
+        bindMarkerClick(existing.marker, hazard);
+        const existingTooltip = existing.marker.getTooltip();
+        if (existingTooltip) {
+          existingTooltip.setContent(tooltip);
+        } else {
+          existing.marker.bindTooltip(tooltip);
+        }
+      } else {
+        const marker = L.marker([anchorLat, anchorLng], {
+          icon: makeIcon(hazard, iconOptions),
+          zIndexOffset: selected ? 1000 : 0,
+        });
+        marker.bindTooltip(tooltip);
+        bindMarkerClick(marker, hazard);
+        group.addLayer(marker);
+        hazardMarkersRef.current.set(hazard.id, { marker, hazard });
+      }
+
+      hazardMetaRef.current.set(hazard.id, { score: hazard.score, offsetPx });
+
+      if (isNew || offsetChanged) {
+        const enterTimer = hazardExitTimersRef.current.get(`enter-${hazard.id}`);
+        if (enterTimer) window.clearTimeout(enterTimer);
+        const timer = window.setTimeout(() => {
+          const entry2 = hazardMarkersRef.current.get(hazard.id);
+          if (!entry2) return;
+          entry2.marker.setIcon(
+            makeIcon(hazard, { selected, offsetPx, scorePop: false, clusterSize, collapsed }),
+          );
+          hazardExitTimersRef.current.delete(`enter-${hazard.id}`);
+        }, 320);
+        hazardExitTimersRef.current.set(`enter-${hazard.id}`, timer);
+      }
+
+      if (scoreChanged && !isNew) {
+        const popTimer = hazardExitTimersRef.current.get(`pop-${hazard.id}`);
+        if (popTimer) window.clearTimeout(popTimer);
+        const timer = window.setTimeout(() => {
+          const entry2 = hazardMarkersRef.current.get(hazard.id);
+          if (!entry2) return;
+          entry2.marker.setIcon(makeIcon(hazard, { selected, offsetPx, clusterSize, collapsed }));
+          hazardExitTimersRef.current.delete(`pop-${hazard.id}`);
+        }, 280);
+        hazardExitTimersRef.current.set(`pop-${hazard.id}`, timer);
+      }
+    }
+
+    prevHazardIdsRef.current = currentIds;
+
+    for (const [id, entry] of hazardMarkersRef.current) {
+      if (currentIds.has(id)) continue;
+
+      const exitTimer = hazardExitTimersRef.current.get(`exit-${id}`);
+      if (exitTimer) continue;
+
+      const { marker, hazard } = entry;
+      const meta = hazardMetaRef.current.get(id);
+      const offsetPx = meta?.offsetPx ?? { x: 0, y: 0 };
+      const selected = id === selectedHazardId;
+
+      marker.setIcon(
+        makeIcon(hazard, {
+          selected,
+          offsetPx,
+          exiting: true,
+        }),
+      );
+
+      const timer = window.setTimeout(() => {
+        group.removeLayer(marker);
+        hazardMarkersRef.current.delete(id);
+        hazardMetaRef.current.delete(id);
+        hazardExitTimersRef.current.delete(`exit-${id}`);
+      }, HAZARD_EXIT_MS + 20);
+
+      hazardExitTimersRef.current.set(`exit-${id}`, timer);
+    }
+
+    if ((hazards ?? []).length === 0) {
+      for (const [, entry] of hazardMarkersRef.current) {
+        group.removeLayer(entry.marker);
+      }
+      hazardMarkersRef.current.clear();
+      hazardMetaRef.current.clear();
+      prevHazardIdsRef.current = new Set();
+      hazardsInitializedRef.current = false;
+      setExpandedClusterKeys((prev) => (prev.size === 0 ? prev : new Set()));
+    } else {
+      hazardsInitializedRef.current = true;
+    }
+
+    return undefined;
+  }, [hazards, mapEpoch, selectedHazardId, expandedClusterKeys]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || selectedHazardId == null) return;
+
+    const hazard = hazards.find((h) => h.id === selectedHazardId);
+    const lat = hazard?.location?.lat;
+    const lng = hazard?.location?.lng;
+    if (lat == null || lng == null) return;
+
+    const zoom = Math.max(map.getZoom(), focusZoom);
+    map.flyTo([lat, lng], zoom, { animate: true });
+    setNeedsRecenter(true);
+  }, [selectedHazardId, hazards, mapEpoch, focusZoom]);
 
   const defaultClass = 'h-64 rounded-3xl border border-border bg-surface overflow-hidden';
   const hostClass = cn(

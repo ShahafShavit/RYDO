@@ -15,4 +15,7 @@ public static class GeoDistance
         var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         return EarthRadiusKm * c;
     }
+
+    public static double HaversineM(double lat1Deg, double lon1Deg, double lat2Deg, double lon2Deg) =>
+        HaversineKm(lat1Deg, lon1Deg, lat2Deg, lon2Deg) * 1000.0;
 }
