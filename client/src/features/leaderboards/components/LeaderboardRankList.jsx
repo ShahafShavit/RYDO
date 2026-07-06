@@ -37,8 +37,7 @@ export default function LeaderboardRankList({
             state={leaderboardProfileLinkState(boardId)}
             className={cn(
               'rydo-panel flex items-center gap-3 px-3.5 py-2.5 no-underline transition active:opacity-80',
-              isMe &&
-                'border-transparent bg-gradient-to-r from-[rgba(33,241,168,0.12)] to-[rgba(123,92,255,0.16)]',
+              isMe && 'border-rydo-purple/30 bg-rydo-purple/12',
               !isMe && accent,
             )}
           >

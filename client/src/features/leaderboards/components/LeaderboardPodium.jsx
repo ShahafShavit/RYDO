@@ -61,7 +61,7 @@ function PodiumCol({ row, lift, formatKm, formatElevation, currentUserId, boardI
       </div>
       <div className="mt-1 max-w-[96px] text-center">
         <p className="truncate text-xs font-bold text-fg">{label}</p>
-        <p className="rydo-tnum mt-0.5 bg-gradient-to-r from-[var(--rydo-green-bright)] to-rydo-purple bg-clip-text text-[13px] font-extrabold text-transparent">
+        <p className="rydo-tnum mt-0.5 text-[13px] font-extrabold text-accent">
           {formatLeaderboardValue(row, formatKm, formatElevation)}
         </p>
       </div>

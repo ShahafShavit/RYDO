@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 
-import { useNavigate, generatePath } from 'react-router-dom';
+import { useNavigate, generatePath, Link } from 'react-router-dom';
 
-import { ArrowLeft, Bike, Clock, Mountain, Route as RouteIcon, Share2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Bike, Clock, Mountain, Route as RouteIcon, Share2, AlertTriangle, Heart } from 'lucide-react';
 
 import { ROUTES } from '@/app/router/route-paths';
+import { userProfilePath } from '@/shared/lib/user-paths';
 
 import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 
@@ -20,7 +21,6 @@ import { formatTrailMetaLabel } from '@/features/routes/utils/route-formatters';
 import { estimatedTimeTooltip } from '@/features/routes/utils/durationSourceTooltip';
 import { helpTooltip } from '@/shared/content/help-tooltips';
 import LabelWithHelp from '@/shared/components/ui/info-tooltip/LabelWithHelp';
-import InfoTooltip from '@/shared/components/ui/info-tooltip/InfoTooltip';
 
 import RouteWeatherPanel from '@/features/weather/RouteWeatherPanel';
 
@@ -55,6 +55,15 @@ function formatDuration(minutes) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+function initialsFromName(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts[0]?.length) return parts[0].slice(0, 2).toUpperCase();
+  return '?';
+}
+
 export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
   const navigate = useNavigate();
   const { formatKm, formatElevation, labels, unit } = useFormatDistance();
@@ -77,9 +86,18 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
   const warnings = route?.warnings ?? [];
 
-  const riders = route?.routeRiders?.riders ?? [];
+  const riders = route?.routeRiders?.visibleRiders ?? route?.routeRiders?.riders ?? [];
 
   const ridersCount = route?.routeRiders?.totalCount ?? 0;
+
+  const favoriteCount = Math.max(0, Number(route?.favoriteCount ?? 0) || 0);
+  const favoriteTitle =
+    favoriteCount === 1
+      ? '1 person saved this route as a favorite'
+      : `${favoriteCount} people saved this route as favorites`;
+
+  const cb = route?.createdBy;
+  const showUploader = cb?.handle && cb?.fullName;
 
   const physics = route?.physicsDifficultyScore;
 
@@ -162,29 +180,47 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
           <div className="min-w-0">
 
-            <div className="mb-2.5 flex flex-wrap items-center gap-2">
-              {difficulty ? (
-                <span className="rydo-pill rydo-pill-amber inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider">
-                  {difficulty}
-                  <InfoTooltip content={helpTooltip('routeDifficulty')} topic="Difficulty" stopPropagation />
-                </span>
-              ) : null}
-              <span className="rydo-pill inline-flex items-center gap-1 text-[13px]">
-                {terrain}
-                <InfoTooltip content={helpTooltip('routeTerrain')} topic="Terrain" stopPropagation />
-              </span>
-              {warnings.length > 0 ? (
-                <span className="rydo-pill rydo-pill-amber inline-flex items-center gap-1 text-[11px]">
-                  <AlertTriangle className="h-3 w-3" aria-hidden />
-                  {warnings.length} hazards
-                  <InfoTooltip content={helpTooltip('routeWarnings')} topic="Route warnings" stopPropagation />
-                </span>
-              ) : null}
-            </div>
-
             <DisplayTitle size="lg" truncate="mobile" title={route.title || 'Untitled'}>
               {route.title || 'Untitled'}
             </DisplayTitle>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {showUploader ? (
+                <Link
+                  to={userProfilePath(cb.handle)}
+                  className="inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border border-border bg-surface py-1 pl-1 pr-3 text-sm text-fg/90 no-underline transition hover:border-border-strong hover:bg-surface-strong"
+                >
+                  {cb.avatarUrl ? (
+                    <img
+                      src={cb.avatarUrl}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-strong text-[10px] font-semibold text-fg/80"
+                      aria-hidden
+                    >
+                      {initialsFromName(cb.fullName)}
+                    </span>
+                  )}
+                  <span className="min-w-0 truncate">
+                    <span className="text-fg-subtle">Uploaded by </span>
+                    <span className="font-medium text-fg/92">{cb.fullName}</span>
+                  </span>
+                </Link>
+              ) : null}
+              <div
+                role="img"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[13px] text-fg/90"
+                title={favoriteTitle}
+                aria-label={favoriteTitle}
+              >
+                <Heart className="h-3.5 w-3.5 shrink-0 text-rydo-purple opacity-90" strokeWidth={2} aria-hidden />
+                <span className="font-semibold tabular-nums">{favoriteCount}</span>
+              </div>
+            </div>
 
             <div className="mt-2.5 flex items-center gap-2">
 
@@ -220,6 +256,51 @@ export default function RouteDetailsPageBold({ route, geoJson, isLoading }) {
 
             </div>
 
+          </div>
+
+
+
+          <div className="rydo-panel grid gap-3 px-4 py-3.5 sm:grid-cols-2">
+            {difficulty ? (
+              <div>
+                <LabelWithHelp
+                  as="p"
+                  className="text-[11px] font-medium uppercase tracking-[0.12em] text-fg-subtle"
+                  hint={helpTooltip('routeDifficulty')}
+                  topic="Difficulty"
+                >
+                  Difficulty
+                </LabelWithHelp>
+                <p className="mt-1 text-sm font-semibold uppercase tracking-wide">{difficulty}</p>
+              </div>
+            ) : null}
+            <div>
+              <LabelWithHelp
+                as="p"
+                className="text-[11px] font-medium uppercase tracking-[0.12em] text-fg-subtle"
+                hint={helpTooltip('routeTerrain')}
+                topic="Terrain"
+              >
+                Terrain
+              </LabelWithHelp>
+              <p className="mt-1 text-sm font-semibold">{terrain}</p>
+            </div>
+            {warnings.length > 0 ? (
+              <div className="sm:col-span-2">
+                <LabelWithHelp
+                  as="p"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.12em] text-fg-subtle"
+                  hint={helpTooltip('routeWarnings')}
+                  topic="Route warnings"
+                >
+                  <AlertTriangle className="h-3 w-3" aria-hidden />
+                  Hazards
+                </LabelWithHelp>
+                <p className="mt-1 text-sm font-semibold">
+                  {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
+                </p>
+              </div>
+            ) : null}
           </div>
 
 

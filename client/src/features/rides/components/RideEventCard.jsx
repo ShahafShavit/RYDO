@@ -5,7 +5,7 @@ import Button from '@/shared/components/ui/button/Button';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { ROUTES } from '@/app/router/route-paths';
 import { userProfilePath } from '@/shared/lib/user-paths';
-import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
+import { isRideUpcoming, isRideInProgress, rideEventStatusLabel } from '@/features/rides/utils/rideEventWindow';
 import { formatRideDateTime } from '@/features/rides/utils/formatRideDateTime';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
@@ -14,6 +14,8 @@ import TruncatedText from '@/shared/components/ui/TruncatedText';
  */
 export default function RideEventCard({ ride, showEdit = false, onEditClick, headerExtra = null }) {
   const upcoming = isRideUpcoming(ride);
+  const inProgress = isRideInProgress(ride);
+  const statusLabel = rideEventStatusLabel(ride, { upcoming, inProgress });
   const whenLabel = formatRideDateTime(ride.scheduledDate || ride.time);
   const notes = String(ride.notes || '').trim();
   const hasClub = ride.clubId != null && ride.clubName != null && String(ride.clubName).trim() !== '';
@@ -26,9 +28,12 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
     <Card className="min-w-0 p-5 sm:p-8">
       <div className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <h1 className="min-w-0 flex-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-            <TruncatedText lineClamp={2}>{ride.name}</TruncatedText>
-          </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+              <TruncatedText lineClamp={2}>{ride.name}</TruncatedText>
+            </h1>
+            <p className="mt-1.5 text-sm text-fg-subtle">{statusLabel}</p>
+          </div>
           {showTitleActions ? (
             <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
               {headerExtra}
@@ -117,14 +122,7 @@ export default function RideEventCard({ ride, showEdit = false, onEditClick, hea
           <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-strong/40 px-4 py-3.5 backdrop-blur-sm">
             <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle" strokeWidth={2} aria-hidden />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">When</p>
-                {upcoming ? (
-                  <span className="rounded-md border border-amber-400/35 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100">
-                    Upcoming
-                  </span>
-                ) : null}
-              </div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">When</p>
               <p className="mt-1 text-base font-semibold tabular-nums text-fg">{whenLabel}</p>
             </div>
           </div>

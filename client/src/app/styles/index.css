@@ -736,9 +736,16 @@ html[data-theme='dune'] .app-logo {
   justify-content: center;
   gap: 9px;
   cursor: pointer;
-  background: linear-gradient(95deg, var(--rydo-green-bright), var(--rydo-purple));
-  box-shadow: 0 10px 40px rgba(123, 92, 255, 0.42);
-  transition: transform 0.2s var(--rydo-ease-out), box-shadow 0.2s var(--rydo-ease-out);
+  background: var(--rydo-purple);
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--rydo-purple) 42%, transparent);
+  transition:
+    transform 0.2s var(--rydo-ease-out),
+    box-shadow 0.2s var(--rydo-ease-out),
+    background 0.2s var(--rydo-ease-out);
+}
+
+.rydo-gradient-cta:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--rydo-purple) 88%, white);
 }
 
 .rydo-gradient-cta:active {
@@ -795,7 +802,7 @@ html[data-theme='dune'] .app-logo {
 
 .rydo-chip-on {
   border: 1px solid transparent;
-  background: linear-gradient(95deg, rgba(33, 241, 168, 0.9), rgba(123, 92, 255, 0.92));
+  background: var(--rydo-purple);
   color: #0d0a1f;
 }
 
@@ -1100,7 +1107,7 @@ html[data-theme='dune'] .app-logo {
   padding: 0 5px;
   border-radius: 9999px;
   border: 2px solid var(--rydo-bg-deep);
-  background: linear-gradient(135deg, var(--rydo-green-bright), var(--rydo-purple));
+  background: var(--rydo-purple);
   color: #0d0a1f;
   font-size: 10px;
   font-weight: 800;

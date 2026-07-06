@@ -35,6 +35,7 @@ import { cn } from '@/shared/lib/cn';
 import { useShare } from '@/shared/hooks/useShare';
 import ShareSheetModal from '@/shared/components/share/ShareSheetModal';
 
+import { rideEventStatusLabel } from '@/features/rides/utils/rideEventWindow';
 import BoldRouteMapElevation from '@/features/routes/components/BoldRouteMapElevation';
 
 function formatDuration(minutes) {
@@ -101,35 +102,13 @@ function RideAttendanceFooter({
   showRideChat,
   navigate,
 }) {
+  const showLiveRide = amParticipant && hasRoute && onLiveRide && liveAvailable;
+
   return (
     <>
-      {showRideChat ? (
-        <MobileChromeSecondaryButton
-          className="shrink-0 px-3"
-          aria-label="Ride chat"
-          onClick={() =>
-            navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
-          }
-        >
-          <MessageCircle className="h-4 w-4" aria-hidden />
-        </MobileChromeSecondaryButton>
-      ) : null}
-      {amParticipant && hasRoute && onLiveRide && liveAvailable ? (
-        <GradientCTA
-          className="min-w-0 flex-1 whitespace-nowrap"
-          icon={Bike}
-          heightClass="h-12"
-          disabled={isNavigatingToLive}
-          onMouseEnter={onPrefetchLive}
-          onFocus={onPrefetchLive}
-          onClick={onLiveRide}
-        >
-          {isNavigatingToLive ? 'Starting…' : 'Live ride'}
-        </GradientCTA>
-      ) : null}
       {amParticipant ? (
         <MobileChromeSecondaryButton
-          className={cn('min-w-0', !hasRoute || !onLiveRide ? 'flex-1' : '')}
+          className={cn('min-w-0 shrink-0', !showLiveRide ? 'flex-1' : '')}
           onClick={onLeave}
           disabled={isLeaving}
         >
@@ -145,6 +124,30 @@ function RideAttendanceFooter({
           {isJoining ? 'Joining…' : 'Join ride'}
         </GradientCTA>
       )}
+      {showRideChat ? (
+        <MobileChromeSecondaryButton
+          className="shrink-0 px-3"
+          aria-label="Ride chat"
+          onClick={() =>
+            navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+          }
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden />
+        </MobileChromeSecondaryButton>
+      ) : null}
+      {showLiveRide ? (
+        <GradientCTA
+          className="min-w-0 flex-1 whitespace-nowrap"
+          icon={Bike}
+          heightClass="h-12"
+          disabled={isNavigatingToLive}
+          onMouseEnter={onPrefetchLive}
+          onFocus={onPrefetchLive}
+          onClick={onLiveRide}
+        >
+          {isNavigatingToLive ? 'Starting…' : 'Live ride'}
+        </GradientCTA>
+      ) : null}
     </>
   );
 }
@@ -196,6 +199,8 @@ export default function RideEventPageBold({
   const isSoloLog = ride?.rideKind === 'soloLog';
   const showAttendance = Boolean(user && !isSoloLog && eventOpen);
   const showRideChat = Boolean(user && amParticipant && !isSoloLog);
+
+  const statusLabel = rideEventStatusLabel(ride, { upcoming, inProgress });
 
   const routePath =
     linkedRoute?.id != null
@@ -286,39 +291,11 @@ export default function RideEventPageBold({
 
         <BoldScrollArea className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pt-0 [&>*]:shrink-0">
           <div className="min-w-0">
-            <div className="mb-2 flex flex-wrap gap-2">
-              {upcoming ? (
-                <span className="rydo-pill rydo-pill-green px-2.5 py-0.5 text-[11px] font-bold">
-                  Upcoming
-                </span>
-              ) : inProgress ? (
-                <span className="rydo-pill rydo-pill-amber px-2.5 py-0.5 text-[11px] font-bold">
-                  In progress
-                </span>
-              ) : isSoloLog ? (
-                <span className="rydo-pill rydo-pill-accent px-2.5 py-0.5 text-[11px] font-bold">
-                  Logged
-                </span>
-              ) : (
-                <span className="rydo-pill px-2.5 py-0.5 text-[11px] font-bold">Past event</span>
-              )}
-              {hasClub ? (
-                <span className="rydo-pill rydo-pill-green px-2.5 py-0.5 text-[11px] font-semibold">
-                  {ride.clubName}
-                </span>
-              ) : !isSoloLog ? (
-                <span className="rydo-pill px-2.5 py-0.5 text-[11px] font-semibold">Personal</span>
-              ) : null}
-              {linkedRoute?.difficulty ? (
-                <span className="rydo-pill rydo-pill-amber px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider">
-                  {formatTrailMetaLabel(linkedRoute.difficulty)}
-                </span>
-              ) : null}
-            </div>
             <DisplayTitle size="lg" truncate="mobile" title={ride.name}>
               {ride.name}
             </DisplayTitle>
-            <p className="rydo-subtle mt-1.5 text-[13px]">{formatRideDateTime(whenIso)}</p>
+            <p className="mt-1.5 text-sm text-fg-subtle">{statusLabel}</p>
+            <p className="rydo-subtle mt-1 text-[13px]">{formatRideDateTime(whenIso)}</p>
           </div>
 
           {organizer?.fullName ? (
@@ -379,6 +356,8 @@ export default function RideEventPageBold({
                   >
                     {ride.clubName}
                   </Link>
+                ) : !isSoloLog ? (
+                  <p className="rydo-subtle mt-0.5 text-xs">Personal ride</p>
                 ) : null}
               </div>
             </div>
@@ -411,6 +390,14 @@ export default function RideEventPageBold({
                 {linkedRoute?.terrain ? (
                   <p className="rydo-subtle mt-0.5 text-xs">
                     {formatTrailMetaLabel(linkedRoute.terrain)}
+                    {linkedRoute.difficulty
+                      ? ` · ${formatTrailMetaLabel(linkedRoute.difficulty)}`
+                      : ''}
+                    {linkedRoute.region ? ` · ${linkedRoute.region}` : ''}
+                  </p>
+                ) : linkedRoute?.difficulty ? (
+                  <p className="rydo-subtle mt-0.5 text-xs">
+                    {formatTrailMetaLabel(linkedRoute.difficulty)}
                     {linkedRoute.region ? ` · ${linkedRoute.region}` : ''}
                   </p>
                 ) : null}

@@ -252,7 +252,7 @@ export default function ClubChatComposer({ clubId, disabled, onSend }) {
         aria-label="Send message"
         className={cn(
           'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-0 text-[#0d0a1f] transition-opacity',
-          'bg-gradient-to-br from-rydo-green-bright to-rydo-purple shadow-[0_6px_22px_rgba(123,92,255,0.42)]',
+          'bg-rydo-purple shadow-[0_6px_22px_color-mix(in_srgb,var(--rydo-purple)_42%,transparent)]',
           !canSend && 'cursor-not-allowed opacity-40',
         )}
       >

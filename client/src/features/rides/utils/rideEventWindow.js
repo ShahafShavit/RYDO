@@ -71,3 +71,12 @@ export function isRideInProgress(ride) {
   const w = rideEventWindow(ride);
   return w.hasStarted && w.isOpen;
 }
+
+/** Human-readable ride event status for detail page subtitles. */
+export function rideEventStatusLabel(ride, { upcoming, inProgress } = {}) {
+  const isSoloLog = ride?.rideKind === 'soloLog';
+  if (upcoming) return 'Upcoming';
+  if (inProgress) return 'In progress';
+  if (isSoloLog) return 'Logged';
+  return 'Past event';
+}

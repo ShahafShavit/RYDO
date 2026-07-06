@@ -84,48 +84,61 @@ export default function RideEventPage() {
         modalTitle="Share ride"
         className="shrink-0"
       />
-      {amParticipant && ride?.rideKind !== 'soloLog' ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="shrink-0"
-            aria-label="Ride chat"
-            onClick={() =>
-              navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
-            }
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden />
-            Chat
-          </Button>
-        ) : null}
       {user && ride?.rideKind !== 'soloLog' && eventOpen ? (
-      <>
-        {amParticipant && ride.routeId && liveAvailable ? (
-          <Button
-            type="button"
-            variant="neon"
-            className="shrink-0"
-            disabled={isNavigatingToLive}
-            onMouseEnter={prefetchLiveRideRoute}
-            onFocus={prefetchLiveRideRoute}
-            onClick={() => {
-              setEnteringLive(true);
-              navigate(liveRideTarget);
-            }}
-          >
-            {isNavigatingToLive ? 'Starting…' : 'Live Ride'}
-          </Button>
-        ) : null}
-        {amParticipant ? (
-          <Button variant="secondary" type="button" className="shrink-0" onClick={() => leaveRide()} disabled={isLeaving}>
-            {isLeaving ? 'Leaving…' : 'Leave ride'}
-          </Button>
-        ) : (
-          <Button variant="primary" type="button" className="shrink-0" onClick={() => joinRide()} disabled={isJoining}>
-            {isJoining ? 'Joining…' : 'Join ride'}
-          </Button>
-        )}
-      </>
+        <>
+          {amParticipant ? (
+            <Button variant="secondary" type="button" className="shrink-0" onClick={() => leaveRide()} disabled={isLeaving}>
+              {isLeaving ? 'Leaving…' : 'Leave ride'}
+            </Button>
+          ) : (
+            <Button variant="primary" type="button" className="shrink-0" onClick={() => joinRide()} disabled={isJoining}>
+              {isJoining ? 'Joining…' : 'Join ride'}
+            </Button>
+          )}
+          {amParticipant ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="shrink-0"
+              aria-label="Ride chat"
+              onClick={() =>
+                navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+              }
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              Chat
+            </Button>
+          ) : null}
+          {amParticipant && ride.routeId && liveAvailable ? (
+            <Button
+              type="button"
+              variant="neon"
+              className="shrink-0"
+              disabled={isNavigatingToLive}
+              onMouseEnter={prefetchLiveRideRoute}
+              onFocus={prefetchLiveRideRoute}
+              onClick={() => {
+                setEnteringLive(true);
+                navigate(liveRideTarget);
+              }}
+            >
+              {isNavigatingToLive ? 'Starting…' : 'Live Ride'}
+            </Button>
+          ) : null}
+        </>
+      ) : amParticipant && ride?.rideKind !== 'soloLog' ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="shrink-0"
+          aria-label="Ride chat"
+          onClick={() =>
+            navigate(generatePath(ROUTES.chatRideThread, { rideId: String(ride.id) }))
+          }
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden />
+          Chat
+        </Button>
       ) : null}
     </>
   );
