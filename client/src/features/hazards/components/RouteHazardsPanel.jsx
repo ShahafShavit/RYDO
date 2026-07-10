@@ -10,6 +10,8 @@ import {
   hazardTransition,
 } from '@/features/hazards/utils/hazard-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { formatDistanceFromRoute } from '@/features/hazards/utils/formatHazardDistance';
 import { cn } from '@/shared/lib/cn';
 
 const MotionLi = motion.li;
@@ -61,9 +63,10 @@ function HazardsHeader({ split, count, isLoading }) {
   );
 }
 
-function HazardRow({ hazard, split, selected, onSelect, reducedMotion }) {
+function HazardRow({ hazard, split, selected, onSelect, reducedMotion, formatRouteDistance }) {
   const label = hazardTypeLabel(hazard.type);
   const icon = hazardTypeIcon(hazard.type);
+  const routeDistanceLabel = formatRouteDistance(hazard.distanceFromRouteM);
 
   return (
     <MotionLi variants={hazardListItemVariants}>
@@ -103,7 +106,10 @@ function HazardRow({ hazard, split, selected, onSelect, reducedMotion }) {
           <p className="mt-2 text-xs text-fg-subtle">
             {formatReportedAt(hazard.reportedAt)}
             {hazard.reportedBy?.fullName ? ` · ${hazard.reportedBy.fullName}` : ''}
+            {routeDistanceLabel !== '—' ? ` · ${routeDistanceLabel}` : ''}
           </p>
+        ) : routeDistanceLabel !== '—' ? (
+          <p className="mt-1 text-[11px] text-fg-subtle">{routeDistanceLabel}</p>
         ) : null}
       </MotionButton>
     </MotionLi>
@@ -122,6 +128,8 @@ export default function RouteHazardsPanel({
 }) {
   const split = layout === 'split';
   const reducedMotion = useReducedMotion();
+  const { unit } = useFormatDistance();
+  const formatRouteDistance = (distanceM) => formatDistanceFromRoute(distanceM, unit);
 
   if (isLoading) {
     const inner = (
@@ -165,6 +173,7 @@ export default function RouteHazardsPanel({
             selected={hazard.id === selectedHazardId}
             onSelect={onSelectHazard}
             reducedMotion={reducedMotion}
+            formatRouteDistance={formatRouteDistance}
           />
         ))}
       </MotionUl>

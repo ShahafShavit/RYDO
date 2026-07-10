@@ -15,6 +15,11 @@ import AdminErrorState from '@/features/admin/components/AdminErrorState';
 import AdminInlineBanner from '@/features/admin/components/AdminInlineBanner';
 import HazardScoreBadge from '@/features/hazards/components/HazardScoreBadge';
 import { HAZARD_TYPES, hazardTypeIcon, hazardTypeLabel } from '@/features/hazards/hazard-constants';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import {
+  formatDistanceAlongRoute,
+  formatDistanceFromRoute,
+} from '@/features/hazards/utils/formatHazardDistance';
 import { cn } from '@/shared/lib/cn';
 
 const STATUS_FILTERS = [
@@ -82,8 +87,10 @@ function UserVisibleIndicator({ visible }) {
   );
 }
 
-function HazardDetails({ hazard }) {
+function HazardDetails({ hazard, unit }) {
   const mapsLink = buildMapsLink(hazard);
+  const fromRouteLabel = formatDistanceFromRoute(hazard.distanceFromRouteM, unit);
+  const alongRouteLabel = formatDistanceAlongRoute(hazard.distanceAlongRouteM, unit);
 
   return (
     <div className="mt-3 space-y-3 border-t border-border pt-3 text-sm">
@@ -108,6 +115,14 @@ function HazardDetails({ hazard }) {
         <div>
           <dt className="text-fg-subtle">Region</dt>
           <dd className="text-fg">{hazard.location?.region || '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-fg-subtle">Distance from route</dt>
+          <dd className="text-fg">{fromRouteLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-fg-subtle">Distance along route</dt>
+          <dd className="text-fg">{alongRouteLabel}</dd>
         </div>
       </dl>
       {hazard.votes?.voters?.length > 0 ? (
@@ -142,10 +157,11 @@ function HazardDetails({ hazard }) {
   );
 }
 
-function HazardRow({ hazard, expanded, onToggleExpand, onStatusAction, pending, variant }) {
+function HazardRow({ hazard, expanded, onToggleExpand, onStatusAction, pending, variant, unit }) {
   const routeLink = buildRouteHazardLink(hazard);
   const isHidden = hazard.status === 'hidden';
   const isDesktop = variant === 'desktop';
+  const fromRouteLabel = formatDistanceFromRoute(hazard.distanceFromRouteM, unit);
 
   const shellClass = isDesktop
     ? 'rounded-2xl border border-border bg-black/20 p-4'
@@ -174,6 +190,9 @@ function HazardRow({ hazard, expanded, onToggleExpand, onStatusAction, pending, 
             <p className="mt-1 text-sm text-fg-muted">Route #{hazard.routeId ?? '—'}</p>
           )}
           <p className="mt-1 text-xs text-fg-subtle">{formatVoteSummary(hazard.votes)}</p>
+          {fromRouteLabel !== '—' ? (
+            <p className="mt-1 text-xs text-fg-subtle">{fromRouteLabel}</p>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <AdminStatusPill label={hazard.severity} />
@@ -186,7 +205,7 @@ function HazardRow({ hazard, expanded, onToggleExpand, onStatusAction, pending, 
         <p className="mt-2 line-clamp-2 text-sm text-fg-muted">{hazard.description}</p>
       ) : null}
 
-      {expanded ? <HazardDetails hazard={hazard} /> : null}
+      {expanded ? <HazardDetails hazard={hazard} unit={unit} /> : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {routeLink ? (
@@ -231,6 +250,7 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
     type,
   });
   const updateStatus = useUpdateHazardStatus();
+  const { unit } = useFormatDistance();
 
   function resetPage() {
     setSkip(0);
@@ -313,6 +333,7 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
             onToggleExpand={() => setExpandedId((prev) => (prev === hazard.id ? null : hazard.id))}
             onStatusAction={requestStatusAction}
             pending={updateStatus.isPending}
+            unit={unit}
           />
         ))}
       </div>
@@ -330,6 +351,7 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
               onToggleExpand={() => setExpandedId((prev) => (prev === hazard.id ? null : hazard.id))}
               onStatusAction={requestStatusAction}
               pending={updateStatus.isPending}
+              unit={unit}
             />
           ))}
         </div>

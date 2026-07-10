@@ -45,12 +45,16 @@ export default function RouteDetailsPage() {
   }, [hazardIdParam, hazards, hazardsLoading]);
 
   const handleSelectHazard = useCallback((hazard) => {
-    setSelectedHazardId(hazard.id);
+    setSelectedHazardId((prev) => (prev === hazard.id ? null : hazard.id));
     mapBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, []);
 
   const handleHazardSelect = useCallback((hazard) => {
-    setSelectedHazardId(hazard?.id ?? null);
+    if (!hazard) {
+      setSelectedHazardId(null);
+      return;
+    }
+    setSelectedHazardId((prev) => (prev === hazard.id ? null : hazard.id));
   }, []);
 
   usePageBreadcrumbDetail(route?.title);

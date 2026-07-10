@@ -2,6 +2,8 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { Map } from 'lucide-react';
 import ElevationProfileChart from '@/features/routes/components/ElevationProfileChart';
 import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAnalysis';
+import { hazardsForElevationChart } from '@/features/routes/utils/routeProximity';
+import { HAZARD_ROUTE_CHART_PROXIMITY_M } from '@/features/hazards/hazard-constants';
 import { useCoarsePointer } from '@/shared/hooks/useCoarsePointer';
 import { cn } from '@/shared/lib/cn';
 
@@ -83,11 +85,19 @@ export default function RouteMapWithElevation({
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
 
+  const profileReady = profile && profile.length >= 2;
+  const chartHazards = useMemo(
+    () =>
+      profileReady
+        ? hazardsForElevationChart(geoJson, hazards, HAZARD_ROUTE_CHART_PROXIMITY_M)
+        : [],
+    [geoJson, hazards, profileReady],
+  );
+
   const isCoarse = useCoarsePointer();
   const [unlocked, setUnlocked] = useState(false);
   const [scrubDistanceM, setScrubDistanceM] = useState(null);
 
-  const profileReady = profile && profile.length >= 2;
   const split = layout === 'split';
   const hasTrailing = Boolean(splitTrailing);
   const needsGate = interactionMode !== 'interactive';
@@ -159,6 +169,9 @@ export default function RouteMapWithElevation({
         onScrubChange={setScrubDistanceM}
         interactive={mapInteractive && profileReady}
         interactionLocked={showUnlockOverlay}
+        chartHazards={chartHazards}
+        selectedHazardId={selectedHazardId}
+        onHazardSelect={onHazardSelect}
       />
     ) : null;
 

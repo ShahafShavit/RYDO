@@ -9,6 +9,8 @@ import {
   hazardTransition,
 } from '@/features/hazards/utils/hazard-motion';
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { formatDistanceFromRoute } from '@/features/hazards/utils/formatHazardDistance';
 
 const MotionDiv = motion.div;
 
@@ -57,6 +59,10 @@ export default function HazardVoteSheet({
   onClose,
 }) {
   const reducedMotion = useReducedMotion();
+  const { unit } = useFormatDistance();
+  const routeDistanceLabel = hazard
+    ? formatDistanceFromRoute(hazard.distanceFromRouteM, unit)
+    : '—';
   const actionKey = isOwnHazard ? 'own' : canVote ? 'vote' : 'far';
 
   return (
@@ -80,6 +86,12 @@ export default function HazardVoteSheet({
               ) : null}
               <p className="mt-1 text-xs text-fg-subtle">
                 Score: <AnimatedHazardScore score={hazard.score} />
+                {routeDistanceLabel !== '—' ? (
+                  <>
+                    {' '}
+                    · {routeDistanceLabel}
+                  </>
+                ) : null}
               </p>
             </div>
             <button

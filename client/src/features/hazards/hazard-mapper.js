@@ -30,5 +30,9 @@ export function normalizeHazard(rawHazard = {}) {
     },
     userVote: userVote === 1 || userVote === -1 ? userVote : null,
     bumped: Boolean(rawHazard.bumped),
+    distanceFromRouteM:
+      rawHazard.distanceFromRouteM != null ? Number(rawHazard.distanceFromRouteM) : null,
+    distanceAlongRouteM:
+      rawHazard.distanceAlongRouteM != null ? Number(rawHazard.distanceAlongRouteM) : null,
   };
 }

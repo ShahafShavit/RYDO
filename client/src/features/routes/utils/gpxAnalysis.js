@@ -354,7 +354,7 @@ export function analyzeGpxTrack(gpxDom) {
  * @param {unknown} geoJson
  * @returns {{ lat: number, lon: number, ele: number | null }[]}
  */
-function collectLinePointsFromGeoJson(geoJson) {
+export function collectLinePointsFromGeoJson(geoJson) {
   if (!geoJson || geoJson.type !== 'FeatureCollection' || !Array.isArray(geoJson.features)) {
     return [];
   }

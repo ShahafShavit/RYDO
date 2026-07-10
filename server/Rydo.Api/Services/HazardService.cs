@@ -102,6 +102,17 @@ public class HazardService(RydoDbContext db, IHubContext<RideLiveHub> rideLiveHu
             return (existing, true, null);
         }
 
+        var routeRow = await db.Routes.AsNoTracking()
+            .Where(r => r.Id == routeId)
+            .Select(r => new { r.Region, r.PreviewCoordinatesJson, r.GpxBlob })
+            .FirstOrDefaultAsync(ct);
+
+        var snap = RoutePolylineProximity.Snap(
+            routeRow?.PreviewCoordinatesJson,
+            routeRow?.GpxBlob,
+            latitude,
+            longitude);
+
         var hazard = new HazardEntity
         {
             RouteId = routeId,
@@ -110,10 +121,9 @@ public class HazardService(RydoDbContext db, IHubContext<RideLiveHub> rideLiveHu
             Description = desc,
             Latitude = latitude,
             Longitude = longitude,
-            Region = await db.Routes.AsNoTracking()
-                .Where(r => r.Id == routeId)
-                .Select(r => r.Region)
-                .FirstOrDefaultAsync(ct),
+            DistanceFromRouteM = snap?.DistanceFromRouteM,
+            DistanceAlongRouteM = snap?.DistanceAlongRouteM,
+            Region = routeRow?.Region,
             Score = HazardConstants.InitialScore,
             Status = HazardConstants.StatusActive,
             ReportedByUserId = userId,

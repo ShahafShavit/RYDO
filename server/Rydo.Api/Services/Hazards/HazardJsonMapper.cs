@@ -13,6 +13,8 @@ public static class HazardJsonMapper
         description = h.Description,
         score = h.Score,
         status = h.Status,
+        distanceFromRouteM = h.DistanceFromRouteM,
+        distanceAlongRouteM = h.DistanceAlongRouteM,
         location = new { lat = h.Latitude, lng = h.Longitude, region = h.Region },
         reportedAt = h.ReportedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         reportedBy = new

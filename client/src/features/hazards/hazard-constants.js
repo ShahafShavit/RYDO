@@ -1,5 +1,7 @@
 export const HAZARD_INITIAL_SCORE = 5;
 export const HAZARD_VOTE_RADIUS_M = 200;
+/** Max distance from route polyline to plot a hazard on the elevation chart. */
+export const HAZARD_ROUTE_CHART_PROXIMITY_M = 1000;
 export const HAZARD_DESCRIPTION_MAX = 140;
 export const HAZARD_MARKER_OVERLAP_M = 8;
 export const HAZARD_SPIDERFY_RADIUS_PX = 28;

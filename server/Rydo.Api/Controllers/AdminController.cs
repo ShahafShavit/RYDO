@@ -379,6 +379,8 @@ public class AdminController(
             score = h.Score,
             status = h.Status,
             userVisible = HazardVisibility.IsVisible(h),
+            distanceFromRouteM = h.DistanceFromRouteM,
+            distanceAlongRouteM = h.DistanceAlongRouteM,
             location = new { lat = h.Latitude, lng = h.Longitude, region = h.Region },
             reportedAt = h.ReportedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             reportedBy = new { id = h.ReportedBy?.Id ?? h.ReportedByUserId, fullName = h.ReportedBy != null ? $"{h.ReportedBy.FirstName} {h.ReportedBy.LastName}".Trim() : "Unknown" },

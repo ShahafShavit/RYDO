@@ -91,7 +91,9 @@ Route detail also includes `hazardCount` (number of visible active hazards on th
     "id": 1,
     "fullName": "John Rider"
   },
-  "userVote": 1
+  "userVote": 1,
+  "distanceFromRouteM": 42,
+  "distanceAlongRouteM": 1250
 }
 ```
 

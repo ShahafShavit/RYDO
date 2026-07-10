@@ -12,6 +12,13 @@ public class HazardEntity
     public string Description { get; set; } = "";
     public double Latitude { get; set; }
     public double Longitude { get; set; }
+
+    /// <summary>Shortest distance from hazard point to route polyline (meters).</summary>
+    public double? DistanceFromRouteM { get; set; }
+
+    /// <summary>Distance along route polyline to nearest snap point (meters).</summary>
+    public double? DistanceAlongRouteM { get; set; }
+
     public string? Region { get; set; }
     public int Score { get; set; } = 5;
     public string Status { get; set; } = "active";

@@ -1,5 +1,6 @@
 import { useState, useRef, useId, useCallback } from 'react';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
+import { hazardTypeIcon, hazardTypeLabel } from '@/features/hazards/hazard-constants';
 import { useCoarsePointer } from '@/shared/hooks/useCoarsePointer';
 import { cn } from '@/shared/lib/cn';
 
@@ -40,12 +41,16 @@ export default function ElevationProfileChart({
   showRangeLabel = true,
   interactive = true,
   interactionLocked = false,
+  chartHazards = [],
+  selectedHazardId = null,
+  onHazardSelect,
 }) {
   const { formatMeters, formatElevation, formatElevationRange } = useFormatDistance();
   const isCoarse = useCoarsePointer();
   const svgRef = useRef(null);
   const fillGradientId = `elevFill-${useId().replace(/:/g, '')}`;
   const [hover, setHover] = useState(null);
+  const [hoveredHazardId, setHoveredHazardId] = useState(null);
 
   const w = 400;
   const h = 104;
@@ -99,6 +104,11 @@ export default function ElevationProfileChart({
     setHover(null);
     onScrubChange?.(null);
   };
+
+  const activeHazard =
+    chartHazards.find((h) => h.id === hoveredHazardId) ??
+    chartHazards.find((h) => h.id === selectedHazardId) ??
+    null;
 
   if (!valid) return null;
 
@@ -180,6 +190,67 @@ export default function ElevationProfileChart({
             strokeLinecap="round"
             points={linePoints}
           />
+          {chartHazards.map((hazard) => {
+            const selected = selectedHazardId === hazard.id;
+            const hovered = hoveredHazardId === hazard.id;
+            const elevM = elevationAtDistance(profile, hazard.distanceAlongM);
+            const svgX = toX(hazard.distanceAlongM);
+            const svgY = toY(elevM);
+            const label = hazardTypeLabel(hazard.type);
+            const icon = hazardTypeIcon(hazard.type);
+            const r = selected || hovered ? 5.5 : 4;
+            return (
+              <g
+                key={hazard.id}
+                role="button"
+                tabIndex={onHazardSelect ? 0 : undefined}
+                aria-label={`${label}, score ${hazard.score ?? 0}`}
+                className={onHazardSelect ? 'cursor-pointer' : undefined}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onHazardSelect?.(hazard);
+                }}
+                onKeyDown={(e) => {
+                  if (!onHazardSelect) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onHazardSelect(hazard);
+                  }
+                }}
+                onPointerEnter={() => setHoveredHazardId(hazard.id)}
+                onPointerLeave={() => setHoveredHazardId((id) => (id === hazard.id ? null : id))}
+              >
+                <circle
+                  cx={svgX}
+                  cy={svgY}
+                  r={r + 3}
+                  fill="var(--rydo-bg-deep)"
+                  fillOpacity={selected ? 0.85 : 0.55}
+                  stroke="none"
+                />
+                <circle
+                  cx={svgX}
+                  cy={svgY}
+                  r={r}
+                  fill="var(--rydo-amber)"
+                  stroke={selected ? 'var(--rydo-text)' : 'var(--rydo-bg-deep)'}
+                  strokeWidth={selected ? 2 : 1.5}
+                />
+                <text
+                  x={svgX}
+                  y={svgY - r - 4}
+                  textAnchor="middle"
+                  fontSize="9"
+                  pointerEvents="none"
+                  aria-hidden
+                >
+                  {icon}
+                </text>
+              </g>
+            );
+          })}
           {hover ? (
             <g pointerEvents="none">
               <line
@@ -226,6 +297,17 @@ export default function ElevationProfileChart({
               Δ {hover.deltaM >= 0 ? '+' : '-'}
               {formatElevation(Math.abs(hover.deltaM), 0)}
             </span>
+          </p>
+        ) : activeHazard ? (
+          <p className="text-fg/90">
+            <span className="mr-1.5" aria-hidden>
+              {hazardTypeIcon(activeHazard.type)}
+            </span>
+            <span className="text-fg-muted">{hazardTypeLabel(activeHazard.type)}</span>
+            <span className="mx-2 text-fg-subtle">·</span>
+            <span className="text-amber-200/95">👍 {activeHazard.score ?? 0}</span>
+            <span className="mx-2 text-fg-subtle">·</span>
+            <span className="text-fg-muted">{formatMeters(activeHazard.distanceAlongM, 2)}</span>
           </p>
         ) : (
           <p className="text-fg-subtle">{idleHint}</p>

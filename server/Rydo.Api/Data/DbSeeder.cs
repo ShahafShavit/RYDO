@@ -1487,14 +1487,23 @@ public static class DbSeeder
             var status = statuses[det.PickIndex(statuses.Length, SeedGraph.Salt.Hazard, 1, i)];
             var lat = route.StartLatitude ?? Profile.HazardBaseLatitude;
             var lng = route.StartLongitude ?? Profile.HazardBaseLongitude;
+            var hazardLat = lat + (det.Double01(SeedGraph.Salt.Hazard, i, 3) - 0.5) * 0.08;
+            var hazardLng = lng + (det.Double01(SeedGraph.Salt.Hazard, i, 4) - 0.5) * 0.09;
+            var snap = RoutePolylineProximity.Snap(
+                route.PreviewCoordinatesJson,
+                route.GpxBlob,
+                hazardLat,
+                hazardLng);
             list.Add(new HazardEntity
             {
                 RouteId = route.Id,
                 Type = types[i % types.Length],
                 Severity = severities[det.PickIndex(severities.Length, SeedGraph.Salt.Hazard, 2, i)],
                 Description = DescribeHazard(types[i % types.Length], route.Region ?? route.Title),
-                Latitude = lat + (det.Double01(SeedGraph.Salt.Hazard, i, 3) - 0.5) * 0.08,
-                Longitude = lng + (det.Double01(SeedGraph.Salt.Hazard, i, 4) - 0.5) * 0.09,
+                Latitude = hazardLat,
+                Longitude = hazardLng,
+                DistanceFromRouteM = snap?.DistanceFromRouteM,
+                DistanceAlongRouteM = snap?.DistanceAlongRouteM,
                 Region = route.Region,
                 Score = 5,
                 Status = status,
