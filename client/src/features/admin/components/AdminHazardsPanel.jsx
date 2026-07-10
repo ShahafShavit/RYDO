@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { generatePath, Link } from 'react-router-dom';
+import { ChevronDown, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { ROUTES } from '@/app/router/route-paths';
 import Card from '@/shared/components/ui/card/Card';
 import Button from '@/shared/components/ui/button/Button';
 import Loader from '@/shared/components/feedback/Loader';
@@ -10,11 +13,14 @@ import AdminStatusPill from '@/features/admin/components/AdminStatusPill';
 import AdminEmptyState from '@/features/admin/components/AdminEmptyState';
 import AdminErrorState from '@/features/admin/components/AdminErrorState';
 import AdminInlineBanner from '@/features/admin/components/AdminInlineBanner';
+import HazardScoreBadge from '@/features/hazards/components/HazardScoreBadge';
+import { HAZARD_TYPES, hazardTypeIcon, hazardTypeLabel } from '@/features/hazards/hazard-constants';
+import { cn } from '@/shared/lib/cn';
 
 const STATUS_FILTERS = [
   { label: 'All statuses', value: '' },
   { label: 'Active', value: 'active' },
-  { label: 'Resolved', value: 'resolved' },
+  { label: 'Hidden', value: 'hidden' },
 ];
 
 const SEVERITY_FILTERS = [
@@ -22,62 +28,185 @@ const SEVERITY_FILTERS = [
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' },
 ];
 
-function HazardRowDesktop({ hazard, onResolve, pending }) {
+const TYPE_FILTERS = [{ label: 'All types', value: '' }, ...HAZARD_TYPES.map((t) => ({ label: t.label, value: t.id }))];
+
+function formatReportedAt(value) {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatVoteSummary(votes) {
+  if (!votes?.total) return 'No community votes';
+  const parts = [];
+  if (votes.up > 0) parts.push(`${votes.up} confirmation${votes.up === 1 ? '' : 's'}`);
+  if (votes.down > 0) parts.push(`${votes.down} dispute${votes.down === 1 ? '' : 's'}`);
+  return parts.join(' · ');
+}
+
+function buildRouteHazardLink(hazard) {
+  if (!hazard.routeId) return null;
+  const path = generatePath(ROUTES.routeDetails, { routeId: String(hazard.routeId) });
+  return hazard.id ? `${path}?hazardId=${hazard.id}` : path;
+}
+
+function buildMapsLink(hazard) {
+  const lat = hazard.location?.lat;
+  const lng = hazard.location?.lng;
+  if (lat == null || lng == null) return null;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
+function UserVisibleIndicator({ visible }) {
   return (
-    <div className="rounded-2xl border border-border bg-black/20 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+        visible
+          ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-200'
+          : 'border-border bg-black/20 text-fg-muted',
+      )}
+      title={visible ? 'Visible to users on route detail' : 'Not visible to users'}
+    >
+      {visible ? <Eye className="h-3 w-3" aria-hidden /> : <EyeOff className="h-3 w-3" aria-hidden />}
+      {visible ? 'User visible' : 'Hidden from users'}
+    </span>
+  );
+}
+
+function HazardDetails({ hazard }) {
+  const mapsLink = buildMapsLink(hazard);
+
+  return (
+    <div className="mt-3 space-y-3 border-t border-border pt-3 text-sm">
+      {hazard.description ? <p className="text-fg-muted">{hazard.description}</p> : null}
+      <dl className="grid gap-2 text-xs sm:grid-cols-2">
         <div>
-          <p className="font-medium capitalize">{hazard.type}</p>
-          <p className="mt-1 text-sm text-fg-muted">
-            {hazard.reportedBy?.fullName || 'Unknown'} · {hazard.location?.region || 'Unknown region'}
-          </p>
+          <dt className="text-fg-subtle">Hazard ID</dt>
+          <dd className="font-mono text-fg">{hazard.id}</dd>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <AdminStatusPill label={hazard.severity} />
-          <AdminStatusPill label={hazard.status} />
+        {hazard.rideId ? (
+          <div>
+            <dt className="text-fg-subtle">Ride ID</dt>
+            <dd className="font-mono text-fg">{hazard.rideId}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt className="text-fg-subtle">Coordinates</dt>
+          <dd className="font-mono text-fg">
+            {hazard.location?.lat?.toFixed(5)}, {hazard.location?.lng?.toFixed(5)}
+          </dd>
         </div>
-      </div>
-      {hazard.description ? <p className="mt-3 text-sm text-fg-muted">{hazard.description}</p> : null}
-      <div className="mt-4">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onResolve(hazard)}
-          disabled={pending || hazard.status === 'resolved'}
+        <div>
+          <dt className="text-fg-subtle">Region</dt>
+          <dd className="text-fg">{hazard.location?.region || '—'}</dd>
+        </div>
+      </dl>
+      {hazard.votes?.voters?.length > 0 ? (
+        <div>
+          <p className="text-xs font-medium text-fg-subtle">Community votes</p>
+          <ul className="mt-2 space-y-1.5">
+            {hazard.votes.voters.map((voter) => (
+              <li key={`${voter.id}-${voter.updatedAt}`} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="text-fg">{voter.fullName}</span>
+                <span className="text-fg-muted">
+                  {voter.value > 0 ? 'Confirmed' : 'Disputed'} · {formatReportedAt(voter.updatedAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="text-xs text-fg-muted">No community votes yet.</p>
+      )}
+      {mapsLink ? (
+        <a
+          href={mapsLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-[var(--rydo-cyan)] hover:underline"
         >
-          Resolve
-        </Button>
-      </div>
+          Open in Google Maps
+          <ExternalLink className="h-3 w-3" aria-hidden />
+        </a>
+      ) : null}
     </div>
   );
 }
 
-function HazardRowBold({ hazard, onResolve, pending }) {
+function HazardRow({ hazard, expanded, onToggleExpand, onStatusAction, pending, variant }) {
+  const routeLink = buildRouteHazardLink(hazard);
+  const isHidden = hazard.status === 'hidden';
+  const isDesktop = variant === 'desktop';
+
+  const shellClass = isDesktop
+    ? 'rounded-2xl border border-border bg-black/20 p-4'
+    : 'rydo-bold-glass-row px-4 py-3.5';
+
   return (
-    <div className="rydo-bold-glass-row px-4 py-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-medium capitalize">{hazard.type}</p>
-          <p className="mt-1 text-sm text-fg-muted">{hazard.reportedBy?.fullName || 'Unknown reporter'}</p>
-          <p className="mt-1 text-xs text-fg-subtle">{hazard.location?.region || 'Unknown region'}</p>
+    <div className={shellClass}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-base" aria-hidden>
+              {hazardTypeIcon(hazard.type)}
+            </span>
+            <p className="font-medium text-fg">{hazardTypeLabel(hazard.type)}</p>
+            <HazardScoreBadge score={hazard.score} compact />
+          </div>
+          <p className="mt-1 text-sm text-fg-muted">
+            {formatReportedAt(hazard.reportedAt)} · {hazard.reportedBy?.fullName || 'Unknown reporter'}
+          </p>
+          {routeLink ? (
+            <Link to={routeLink} className="mt-1 block truncate text-sm text-[var(--rydo-cyan)] hover:underline">
+              Route #{hazard.routeId}
+              {hazard.routeTitle ? ` · ${hazard.routeTitle}` : ''}
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm text-fg-muted">Route #{hazard.routeId ?? '—'}</p>
+          )}
+          <p className="mt-1 text-xs text-fg-subtle">{formatVoteSummary(hazard.votes)}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
           <AdminStatusPill label={hazard.severity} />
           <AdminStatusPill label={hazard.status} />
+          <UserVisibleIndicator visible={hazard.userVisible} />
         </div>
       </div>
-      {hazard.description ? <p className="mt-2 text-sm text-fg-muted">{hazard.description}</p> : null}
-      <div className="mt-3">
+
+      {!expanded && hazard.description ? (
+        <p className="mt-2 line-clamp-2 text-sm text-fg-muted">{hazard.description}</p>
+      ) : null}
+
+      {expanded ? <HazardDetails hazard={hazard} /> : null}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {routeLink ? (
+          <Link to={routeLink}>
+            <Button size="sm" variant="neon" type="button">
+              View on route
+            </Button>
+          </Link>
+        ) : null}
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => onResolve(hazard)}
-          disabled={pending || hazard.status === 'resolved'}
+          onClick={() => onStatusAction(hazard, isHidden ? 'active' : 'hidden')}
+          disabled={pending}
         >
-          Resolve
+          {isHidden ? 'Reactivate' : 'Hide'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onToggleExpand} className="ml-auto">
+          {expanded ? 'See less' : 'See more'}
+          <ChevronDown className={cn('ml-1 h-4 w-4 transition-transform', expanded && 'rotate-180')} aria-hidden />
         </Button>
       </div>
     </div>
@@ -87,8 +216,10 @@ function HazardRowBold({ hazard, onResolve, pending }) {
 export default function AdminHazardsPanel({ variant = 'desktop' }) {
   const [status, setStatus] = useState('');
   const [severity, setSeverity] = useState('');
+  const [type, setType] = useState('');
   const [skip, setSkip] = useState(0);
   const [take, setTake] = useState(20);
+  const [expandedId, setExpandedId] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [banner, setBanner] = useState(null);
 
@@ -97,6 +228,7 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
     take,
     status,
     severity,
+    type,
   });
   const updateStatus = useUpdateHazardStatus();
 
@@ -108,20 +240,30 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
     <AdminToolbar
       total={pagination.total}
       filters={
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <AdminFilterPills
+              options={STATUS_FILTERS}
+              value={status}
+              onChange={(value) => {
+                setStatus(value);
+                resetPage();
+              }}
+            />
+            <AdminFilterPills
+              options={SEVERITY_FILTERS}
+              value={severity}
+              onChange={(value) => {
+                setSeverity(value);
+                resetPage();
+              }}
+            />
+          </div>
           <AdminFilterPills
-            options={STATUS_FILTERS}
-            value={status}
+            options={TYPE_FILTERS}
+            value={type}
             onChange={(value) => {
-              setStatus(value);
-              resetPage();
-            }}
-          />
-          <AdminFilterPills
-            options={SEVERITY_FILTERS}
-            value={severity}
-            onChange={(value) => {
-              setSeverity(value);
+              setType(value);
               resetPage();
             }}
           />
@@ -133,18 +275,24 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
   async function handleConfirm() {
     if (!confirm) return;
     try {
-      await updateStatus.mutateAsync({ hazardId: confirm.hazard.id, status: 'resolved' });
-      setBanner({ tone: 'success', message: 'Hazard marked as resolved.' });
+      await updateStatus.mutateAsync({ hazardId: confirm.hazard.id, status: confirm.nextStatus });
+      setBanner({
+        tone: 'success',
+        message: confirm.nextStatus === 'hidden' ? 'Hazard hidden from users.' : 'Hazard reactivated.',
+      });
       setConfirm(null);
     } catch (err) {
       setConfirm((prev) => ({ ...prev, error: err?.message || 'Action failed.' }));
     }
   }
 
-  const rowProps = {
-    onResolve: (hazard) => setConfirm({ hazard, error: null }),
-    pending: updateStatus.isPending,
-  };
+  function requestStatusAction(hazard, nextStatus) {
+    setConfirm({
+      hazard,
+      nextStatus,
+      error: null,
+    });
+  }
 
   let body;
   if (isLoading) {
@@ -157,7 +305,15 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
     body = (
       <div className="space-y-2">
         {hazards.map((hazard) => (
-          <HazardRowBold key={hazard.id} hazard={hazard} {...rowProps} />
+          <HazardRow
+            key={hazard.id}
+            hazard={hazard}
+            variant="mobile"
+            expanded={expandedId === hazard.id}
+            onToggleExpand={() => setExpandedId((prev) => (prev === hazard.id ? null : hazard.id))}
+            onStatusAction={requestStatusAction}
+            pending={updateStatus.isPending}
+          />
         ))}
       </div>
     );
@@ -166,7 +322,15 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
       <Card>
         <div className="space-y-3">
           {hazards.map((hazard) => (
-            <HazardRowDesktop key={hazard.id} hazard={hazard} {...rowProps} />
+            <HazardRow
+              key={hazard.id}
+              hazard={hazard}
+              variant="desktop"
+              expanded={expandedId === hazard.id}
+              onToggleExpand={() => setExpandedId((prev) => (prev === hazard.id ? null : hazard.id))}
+              onStatusAction={requestStatusAction}
+              pending={updateStatus.isPending}
+            />
           ))}
         </div>
         <AdminPagination
@@ -183,6 +347,13 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
       </Card>
     );
   }
+
+  const confirmTitle = confirm?.nextStatus === 'hidden' ? 'Hide hazard' : 'Reactivate hazard';
+  const confirmMessage = confirm
+    ? confirm.nextStatus === 'hidden'
+      ? `Hide this ${hazardTypeLabel(confirm.hazard.type)} hazard from users?`
+      : `Reactivate this ${hazardTypeLabel(confirm.hazard.type)} hazard for users?`
+    : '';
 
   return (
     <>
@@ -207,9 +378,9 @@ export default function AdminHazardsPanel({ variant = 'desktop' }) {
         open={confirm != null}
         onClose={() => setConfirm(null)}
         onConfirm={handleConfirm}
-        title="Resolve hazard"
-        message={confirm ? `Mark this ${confirm.hazard.type} hazard as resolved?` : ''}
-        confirmLabel="Resolve"
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmLabel={confirm?.nextStatus === 'hidden' ? 'Hide' : 'Reactivate'}
         variant="primary"
         isPending={updateStatus.isPending}
         error={confirm?.error}

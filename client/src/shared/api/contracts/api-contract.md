@@ -195,15 +195,45 @@ Request:
 
 ### `GET /admin/hazards?skip&take&status&severity&type`
 Optional filters for hazard list.
-Response: paginated normalized hazard rows
+Response: paginated hazard rows sorted by `reportedAt` descending.
+
+Each item:
+```json
+{
+  "id": 1,
+  "routeId": 3,
+  "routeTitle": "Mountain Peak Trail",
+  "rideId": null,
+  "type": "pothole",
+  "severity": "medium",
+  "description": "Large pothole on main road",
+  "score": 7,
+  "status": "active",
+  "userVisible": true,
+  "location": { "lat": 31.7683, "lng": 35.2137, "region": "Jerusalem Hills" },
+  "reportedAt": "2024-03-15T14:30:00.000Z",
+  "reportedBy": { "id": 1, "fullName": "Jane Doe" },
+  "votes": {
+    "up": 2,
+    "down": 0,
+    "total": 2,
+    "voters": [
+      { "id": 2, "fullName": "John Rider", "value": 1, "updatedAt": "2024-03-15T16:00:00.000Z" }
+    ]
+  }
+}
+```
+
+`userVisible` mirrors server `HazardVisibility` rules (active, score > 0, within 6 months).
 
 ### `PATCH /admin/hazards/:hazardId/status`
 Request:
 ```json
 {
-  "status": "resolved"
+  "status": "hidden"
 }
 ```
+Use `active` to reactivate. Domain statuses are `active` and `hidden`.
 
 ### Challenges admin
 - `GET /admin/challenges/templates`

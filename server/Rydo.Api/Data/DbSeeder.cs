@@ -164,10 +164,14 @@ public static class DbSeeder
             await db.SaveChangesAsync();
 
             SeedSavedRoutes(db, routes, userIds, det);
-            db.Hazards.AddRange(SeedHazards(routes, allUsers, det));
+            var seededHazards = SeedHazards(routes, allUsers, det);
+            db.Hazards.AddRange(seededHazards);
 
             var clubs = SeedCyclingClubs(routes, allUsers);
             db.CyclingClubs.AddRange(clubs);
+            await db.SaveChangesAsync();
+
+            SeedHazardVotes(db, seededHazards, allUsers, det);
             await db.SaveChangesAsync();
 
             SeedClubMembersAndInvites(db, clubs, admin, rider, allUsers, det);
@@ -1462,11 +1466,13 @@ public static class DbSeeder
         if (routes.Count == 0)
             return new List<HazardEntity>();
 
+        const int demoRouteCount = 15;
         var types = new[] { "pothole", "construction", "debris", "flooding", "poor_lighting", "road_damage", "glass", "animals" };
         var severities = new[] { "low", "medium", "high" };
         var statuses = new[] { "active", "active", "active", "active", "hidden" };
 
         var list = new List<HazardEntity>();
+        var demoRoutes = routes.OrderBy(r => r.Id).Take(Math.Min(demoRouteCount, routes.Count)).ToList();
 
         var hazardUsers = users.OrderBy(u => u.Id).ToList();
         var hazardWeights = hazardUsers
@@ -1475,7 +1481,7 @@ public static class DbSeeder
 
         for (var i = 0; i < Profile.HazardCount; i++)
         {
-            var route = routes[det.PickIndex(routes.Count, SeedGraph.Salt.Hazard, 0, i)];
+            var route = demoRoutes[i % demoRoutes.Count];
             var wi = SeedBehaviorWeights.PickWeightedIndex(hazardWeights, det, SeedGraph.Salt.Hazard, i, 6);
             var reporter = hazardUsers[wi];
             var status = statuses[det.PickIndex(statuses.Length, SeedGraph.Salt.Hazard, 1, i)];
@@ -1498,6 +1504,54 @@ public static class DbSeeder
         }
 
         return list;
+    }
+
+    private static void SeedHazardVotes(
+        RydoDbContext db,
+        IReadOnlyList<HazardEntity> hazards,
+        IReadOnlyList<ApplicationUser> users,
+        DeterministicSeed det)
+    {
+        if (hazards.Count == 0 || users.Count < 2)
+            return;
+
+        var voters = users.OrderBy(u => u.Id).ToList();
+        var voteValues = new[] { 1, 1, 1, -1 };
+        var now = DateTime.UtcNow;
+        var hazardIndex = 0;
+
+        foreach (var hazard in hazards.Where(h => string.Equals(h.Status, "active", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (det.PickIndex(10, SeedGraph.Salt.Hazard, 7, hazardIndex) >= 6)
+            {
+                hazardIndex++;
+                continue;
+            }
+
+            var voteCount = det.Int(1, 5, SeedGraph.Salt.Hazard, 8, hazardIndex);
+            var usedVoterIds = new HashSet<int> { hazard.ReportedByUserId };
+            var scoreDelta = 0;
+
+            for (var v = 0; v < voteCount; v++)
+            {
+                var voter = voters[det.PickIndex(voters.Count, SeedGraph.Salt.Hazard, 9, hazardIndex * 10 + v)];
+                if (!usedVoterIds.Add(voter.Id))
+                    continue;
+
+                var value = voteValues[det.PickIndex(voteValues.Length, SeedGraph.Salt.Hazard, 10, hazardIndex * 10 + v)];
+                scoreDelta += value;
+                db.HazardVotes.Add(new HazardVote
+                {
+                    HazardId = hazard.Id,
+                    UserId = voter.Id,
+                    Value = value,
+                    UpdatedAt = now.AddHours(-det.Int(1, 72, SeedGraph.Salt.Hazard, 11, hazardIndex * 10 + v)),
+                });
+            }
+
+            hazard.Score = Math.Max(1, 5 + scoreDelta);
+            hazardIndex++;
+        }
     }
 
     private static string DescribeHazard(string type, string region) =>

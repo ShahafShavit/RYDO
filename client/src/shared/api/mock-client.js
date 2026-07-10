@@ -475,6 +475,75 @@ function mockHazardCountForRoute(routeId) {
   ).length;
 }
 
+function mockUserFullName(userId) {
+  const user = users.find((u) => u.id === Number(userId));
+  if (!user) return 'Unknown';
+  return [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || 'Unknown';
+}
+
+function mockHazardUserVisible(hazard) {
+  if (hazard.status !== 'active' || (hazard.score ?? 5) <= 0) return false;
+  if (!hazard.reportedAt) return true;
+  const reported = new Date(hazard.reportedAt);
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 6);
+  return reported >= cutoff;
+}
+
+function buildMockAdminHazard(hazard) {
+  const voteRows = Array.isArray(hazard.votes) ? hazard.votes : [];
+  const up = voteRows.filter((v) => v.value > 0).length;
+  const down = voteRows.filter((v) => v.value < 0).length;
+  const route = routes.find((r) => r.id === hazard.routeId);
+
+  return {
+    id: hazard.id,
+    routeId: hazard.routeId,
+    routeTitle: hazard.routeTitle || route?.title || null,
+    rideId: hazard.rideId ?? null,
+    type: hazard.type,
+    severity: hazard.severity || 'medium',
+    description: hazard.description || '',
+    score: hazard.score ?? 5,
+    status: hazard.status || 'active',
+    userVisible: mockHazardUserVisible(hazard),
+    location: {
+      lat: hazard.latitude,
+      lng: hazard.longitude,
+      region: hazard.region ?? null,
+    },
+    reportedAt: hazard.reportedAt,
+    reportedBy: {
+      id: hazard.reportedBy,
+      fullName: mockUserFullName(hazard.reportedBy),
+    },
+    votes: {
+      up,
+      down,
+      total: voteRows.length,
+      voters: voteRows.map((v) => ({
+        id: v.userId,
+        fullName: mockUserFullName(v.userId),
+        value: v.value,
+        updatedAt: v.updatedAt,
+      })),
+    },
+  };
+}
+
+function filterMockAdminHazards(searchParams) {
+  const status = (searchParams.get('status') || '').trim().toLowerCase();
+  const severity = (searchParams.get('severity') || '').trim().toLowerCase();
+  const type = (searchParams.get('type') || '').trim().toLowerCase();
+
+  return hazards
+    .filter((h) => !status || String(h.status || '').toLowerCase() === status)
+    .filter((h) => !severity || String(h.severity || 'medium').toLowerCase() === severity)
+    .filter((h) => !type || String(h.type || '').toLowerCase() === type)
+    .sort((a, b) => new Date(b.reportedAt || 0) - new Date(a.reportedAt || 0))
+    .map(buildMockAdminHazard);
+}
+
 function findRoute(routeId) {
   const route = routes.find((item) => item.id === Number(routeId));
   if (!route) {
@@ -920,7 +989,15 @@ export async function mockRequest(path, options = {}) {
   }
 
   if (pathname === '/api/admin/hazards' && method === 'GET') {
-    return paginate(hazards, searchParams);
+    const filtered = filterMockAdminHazards(searchParams);
+    const skip = Number(searchParams.get('skip') || 0);
+    const take = Number(searchParams.get('take') || 20);
+    return {
+      items: filtered.slice(skip, skip + take),
+      total: filtered.length,
+      skip,
+      take,
+    };
   }
 
   if (/^\/api\/admin\/hazards\/\d+\/status$/.test(pathname) && method === 'PATCH') {
@@ -1148,7 +1225,7 @@ export async function mockRequest(path, options = {}) {
         status: h.status,
         location: { lat: h.latitude, lng: h.longitude, region: h.region ?? null },
         reportedAt: h.reportedAt,
-        reportedBy: { id: h.reportedBy, fullName: 'Mock rider' },
+        reportedBy: { id: h.reportedBy, fullName: mockUserFullName(h.reportedBy) },
         userVote: null,
       }));
   }

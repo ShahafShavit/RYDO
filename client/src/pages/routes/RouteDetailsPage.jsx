@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { generatePath, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { generatePath, useParams, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/route-paths';
 import RouteDetailsHeader from '@/features/routes/components/RouteDetailsHeader';
 import RouteDetailsPageBold from '@/features/routes/components/RouteDetailsPageBold';
@@ -19,6 +19,7 @@ import ShareButton from '@/shared/components/share/ShareButton';
 
 export default function RouteDetailsPage() {
   const { routeId } = useParams();
+  const [searchParams] = useSearchParams();
   const { route, isLoading: routeLoading } = useRouteDetails(routeId);
   const { hazards, isLoading: hazardsLoading } = useRouteHazards(routeId, {
     enabled: Boolean(route?.id),
@@ -26,6 +27,22 @@ export default function RouteDetailsPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [selectedHazardId, setSelectedHazardId] = useState(null);
   const mapBlockRef = useRef(null);
+  const deepLinkHandledRef = useRef(false);
+
+  const hazardIdParam = searchParams.get('hazardId');
+
+  useEffect(() => {
+    deepLinkHandledRef.current = false;
+  }, [routeId]);
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current || hazardsLoading || !hazardIdParam || hazards.length === 0) return;
+    const match = hazards.find((h) => String(h.id) === String(hazardIdParam));
+    if (!match) return;
+    deepLinkHandledRef.current = true;
+    setSelectedHazardId(match.id);
+    mapBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [hazardIdParam, hazards, hazardsLoading]);
 
   const handleSelectHazard = useCallback((hazard) => {
     setSelectedHazardId(hazard.id);

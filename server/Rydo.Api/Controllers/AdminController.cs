@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rydo.Api.Data;
 using Rydo.Api.Services;
+using Rydo.Api.Services.Hazards;
 
 namespace Rydo.Api.Controllers;
 
@@ -284,15 +285,18 @@ public class AdminController(
     }
 
     [HttpGet("hazards")]
-    public IActionResult Hazards(
+    public async Task<IActionResult> Hazards(
         [FromQuery] int skip = 0,
         [FromQuery] int take = 20,
         [FromQuery] string? status = null,
         [FromQuery] string? severity = null,
-        [FromQuery] string? type = null)
+        [FromQuery] string? type = null,
+        CancellationToken ct = default)
     {
         take = Math.Clamp(take, 1, 100);
-        IQueryable<HazardEntity> query = db.Hazards.AsNoTracking().Include(h => h.ReportedBy);
+        IQueryable<HazardEntity> query = db.Hazards.AsNoTracking()
+            .Include(h => h.ReportedBy)
+            .Include(h => h.Route);
 
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -314,7 +318,23 @@ public class AdminController(
 
         query = query.OrderByDescending(h => h.ReportedAt);
         var page = Pagination.PageQueryable(query, skip, take);
-        var items = page.Items.Select(HazardJson).ToList();
+        var hazardIds = page.Items.Select(h => h.Id).ToList();
+
+        var voteRows = hazardIds.Count == 0
+            ? new List<HazardVote>()
+            : await db.HazardVotes.AsNoTracking()
+                .Include(v => v.User)
+                .Where(v => hazardIds.Contains(v.HazardId))
+                .OrderByDescending(v => v.UpdatedAt)
+                .ToListAsync(ct);
+
+        var votesByHazard = voteRows
+            .GroupBy(v => v.HazardId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var items = page.Items
+            .Select(h => HazardJson(h, votesByHazard.GetValueOrDefault(h.Id)))
+            .ToList();
         return Ok(new { items, total = page.Total, skip = page.Skip, take = page.Take });
     }
 
@@ -330,20 +350,47 @@ public class AdminController(
         return NoContent();
     }
 
-    private static object HazardJson(HazardEntity h) => new
+    private static object HazardJson(HazardEntity h, IReadOnlyList<HazardVote>? votes = null)
     {
-        id = h.Id,
-        routeId = h.RouteId,
-        rideId = h.RideId,
-        type = h.Type,
-        severity = h.Severity,
-        description = h.Description,
-        score = h.Score,
-        status = h.Status,
-        location = new { lat = h.Latitude, lng = h.Longitude, region = h.Region },
-        reportedAt = h.ReportedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-        reportedBy = new { id = h.ReportedBy?.Id ?? h.ReportedByUserId, fullName = h.ReportedBy != null ? $"{h.ReportedBy.FirstName} {h.ReportedBy.LastName}".Trim() : "Unknown" },
-    };
+        votes ??= Array.Empty<HazardVote>();
+        var up = votes.Count(v => v.Value > 0);
+        var down = votes.Count(v => v.Value < 0);
+        var voters = votes
+            .OrderByDescending(v => v.UpdatedAt)
+            .Take(10)
+            .Select(v => new
+            {
+                id = v.UserId,
+                fullName = v.User != null ? $"{v.User.FirstName} {v.User.LastName}".Trim() : "Unknown",
+                value = v.Value,
+                updatedAt = v.UpdatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            })
+            .ToList();
+
+        return new
+        {
+            id = h.Id,
+            routeId = h.RouteId,
+            routeTitle = h.Route?.Title,
+            rideId = h.RideId,
+            type = h.Type,
+            severity = h.Severity,
+            description = h.Description,
+            score = h.Score,
+            status = h.Status,
+            userVisible = HazardVisibility.IsVisible(h),
+            location = new { lat = h.Latitude, lng = h.Longitude, region = h.Region },
+            reportedAt = h.ReportedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            reportedBy = new { id = h.ReportedBy?.Id ?? h.ReportedByUserId, fullName = h.ReportedBy != null ? $"{h.ReportedBy.FirstName} {h.ReportedBy.LastName}".Trim() : "Unknown" },
+            votes = new
+            {
+                up,
+                down,
+                total = votes.Count,
+                voters,
+            },
+        };
+    }
 
     private int? GetUserId()
     {

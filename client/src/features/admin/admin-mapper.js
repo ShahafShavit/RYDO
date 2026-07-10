@@ -24,5 +24,25 @@ export function normalizeAdminRouteRow(rawRoute = {}) {
 }
 
 export function normalizeAdminHazardRow(rawHazard = {}) {
-  return normalizeHazard(rawHazard);
+  const hazard = normalizeHazard(rawHazard);
+  const votesRaw = rawHazard.votes || {};
+
+  return {
+    ...hazard,
+    routeTitle: rawHazard.routeTitle || null,
+    userVisible: Boolean(rawHazard.userVisible),
+    votes: {
+      up: Number(votesRaw.up ?? 0),
+      down: Number(votesRaw.down ?? 0),
+      total: Number(votesRaw.total ?? 0),
+      voters: Array.isArray(votesRaw.voters)
+        ? votesRaw.voters.map((v) => ({
+            id: Number(v.id || 0),
+            fullName: v.fullName || 'Unknown',
+            value: Number(v.value || 0),
+            updatedAt: v.updatedAt || null,
+          }))
+        : [],
+    },
+  };
 }
