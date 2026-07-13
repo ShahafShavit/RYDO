@@ -2,7 +2,7 @@ namespace Rydo.Api.Services.Hazards;
 
 public static class HazardConstants
 {
-    public const int InitialScore = 5;
+    public const int InitialScore = 1;
     public const int VoteRadiusM = 200;
     public const int DedupRadiusM = 200;
     public const int TtlMonths = 6;

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { useNavigate, generatePath, Link } from 'react-router-dom';
 
-import { ArrowLeft, Bike, Clock, Mountain, Route as RouteIcon, Share2, AlertTriangle, Heart } from 'lucide-react';
+import { ArrowLeft, Bike, Clock, Mountain, Route as RouteIcon, Share2, AlertTriangle } from 'lucide-react';
 
 import { ROUTES } from '@/app/router/route-paths';
 import { userProfilePath } from '@/shared/lib/user-paths';
@@ -79,6 +79,7 @@ export default function RouteDetailsPageBold({
   const mapPanelRef = useRef(null);
   const { formatKm, formatElevation, labels, unit } = useFormatDistance();
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [exploreUnlockKey, setExploreUnlockKey] = useState(0);
 
   const sharePath =
     route?.id != null ? generatePath(ROUTES.routeDetails, { routeId: String(route.id) }) : null;
@@ -102,10 +103,6 @@ export default function RouteDetailsPageBold({
   const ridersCount = route?.routeRiders?.totalCount ?? 0;
 
   const favoriteCount = Math.max(0, Number(route?.favoriteCount ?? 0) || 0);
-  const favoriteTitle =
-    favoriteCount === 1
-      ? '1 person saved this route as a favorite'
-      : `${favoriteCount} people saved this route as favorites`;
 
   const cb = route?.createdBy;
   const showUploader = cb?.handle && cb?.fullName;
@@ -222,15 +219,13 @@ export default function RouteDetailsPageBold({
                   </span>
                 </Link>
               ) : null}
-              <div
-                role="img"
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[13px] text-fg/90"
-                title={favoriteTitle}
-                aria-label={favoriteTitle}
-              >
-                <Heart className="h-3.5 w-3.5 shrink-0 text-rydo-purple opacity-90" strokeWidth={2} aria-hidden />
-                <span className="font-semibold tabular-nums">{favoriteCount}</span>
-              </div>
+              <SavedRouteButton
+                variant="counter"
+                routeId={route.id}
+                favoriteCount={favoriteCount}
+                isSavedHint={route.isSaved}
+                className="px-2.5 py-1 text-[13px]"
+              />
             </div>
 
             <div className="mt-2.5 flex items-center gap-2">
@@ -361,6 +356,7 @@ export default function RouteDetailsPageBold({
               hazards={hazards}
               selectedHazardId={selectedHazardId}
               onHazardSelect={onHazardSelect}
+              exploreUnlockKey={exploreUnlockKey}
             />
 
           </div>
@@ -382,6 +378,7 @@ export default function RouteDetailsPageBold({
             selectedHazardId={selectedHazardId}
             onSelectHazard={(hazard) => {
               mapPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              setExploreUnlockKey((key) => key + 1);
               onSelectHazard?.(hazard);
             }}
           />
@@ -391,7 +388,7 @@ export default function RouteDetailsPageBold({
 
         <div className={cn(desktopChromeFooterClass, 'hidden md:flex')}>
           <div className="shrink-0">
-            <SavedRouteButton routeId={route.id} variant="icon" />
+            <SavedRouteButton routeId={route.id} variant="icon" isSavedHint={route.isSaved} />
           </div>
           <GradientCTA
             className="min-w-0 flex-1 whitespace-nowrap"
@@ -405,7 +402,12 @@ export default function RouteDetailsPageBold({
 
         <MobileFloatingActions className="md:hidden">
           <div className="shrink-0">
-            <SavedRouteButton routeId={route.id} variant="icon" className="h-12 w-12" />
+            <SavedRouteButton
+              routeId={route.id}
+              variant="icon"
+              className="h-12 w-12"
+              isSavedHint={route.isSaved}
+            />
           </div>
           <GradientCTA
             className="min-w-0 flex-1 whitespace-nowrap"

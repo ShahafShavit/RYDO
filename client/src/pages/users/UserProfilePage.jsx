@@ -14,6 +14,7 @@ import { UserProfilePublicCard } from '@/features/users/components/UserProfilePu
 import { UserProfileActivitySections } from '@/features/users/components/UserProfileActivitySections';
 import { UserProfileFriendsSection } from '@/features/users/components/UserProfileFriendsSection';
 import UserProfilePageBold from '@/features/users/components/UserProfilePageBold';
+import UserProfileFriendActions from '@/features/social/components/UserProfileFriendActions';
 import { AdminModeSettingsRow } from '@/features/admin/components/AdminModeNavLink';
 import { usePageBreadcrumbDetail } from '@/shared/context/BreadcrumbContext';
 import { normalizeHandle } from '@/shared/lib/user-paths';
@@ -119,54 +120,15 @@ export default function UserProfilePage() {
             <p className="text-xs uppercase tracking-[0.16em] text-fg-subtle">Member</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {!isOwn && relationship?.status === 'none' ? (
-              <Button
-                type="button"
-                variant="primary"
-                disabled={relLoading || sendMut.isPending}
-                onClick={() => sendMut.mutate()}
-              >
-                Add friend
-              </Button>
-            ) : null}
-            {!isOwn && relationship?.status === 'outgoing_pending' ? (
-              <>
-                <span className="text-sm text-fg-muted">Request sent</span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={cancelMut.isPending}
-                  onClick={() => cancelMut.mutate()}
-                >
-                  Cancel request
-                </Button>
-              </>
-            ) : null}
-            {!isOwn && relationship?.status === 'incoming_pending' && relationship.requestId != null ? (
-              <>
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={acceptMut.isPending || declineMut.isPending}
-                  onClick={() => acceptMut.mutate(relationship.requestId)}
-                >
-                  Accept
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={acceptMut.isPending || declineMut.isPending}
-                  onClick={() => declineMut.mutate(relationship.requestId)}
-                >
-                  Decline
-                </Button>
-                <Link to={ROUTES.inbox} className="text-sm text-rydo-purple underline-offset-4 hover:underline">
-                  Open inbox
-                </Link>
-              </>
-            ) : null}
-            {!isOwn && relationship?.status === 'friends' ? (
-              <span className="rounded-full border border-border px-3 py-1 text-sm text-fg-muted">Friends</span>
+            {!isOwn ? (
+              <UserProfileFriendActions
+                relationship={relationship}
+                relLoading={relLoading}
+                sendMut={sendMut}
+                cancelMut={cancelMut}
+                acceptMut={acceptMut}
+                declineMut={declineMut}
+              />
             ) : null}
             {isOwn ? (
               <Link to={`${ROUTES.settings}?tab=profile`} className="shrink-0">
@@ -195,7 +157,13 @@ export default function UserProfilePage() {
           profile={profile}
           handle={handle}
           isOwn={isOwn}
+          relationship={relationship}
           relationshipStatus={relationship?.status}
+          relLoading={relLoading}
+          sendMut={sendMut}
+          cancelMut={cancelMut}
+          acceptMut={acceptMut}
+          declineMut={declineMut}
         />
       </div>
     </>

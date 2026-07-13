@@ -19,6 +19,7 @@ export default function BoldRouteMapElevation({
   selectedHazardId = null,
   onHazardSelect,
   focusZoom = 16,
+  exploreUnlockKey = 0,
 }) {
   if (!geoJson?.features?.length) return null;
 
@@ -51,6 +52,7 @@ export default function BoldRouteMapElevation({
           selectedHazardId={selectedHazardId}
           onHazardSelect={onHazardSelect}
           focusZoom={focusZoom}
+          exploreUnlockKey={exploreUnlockKey}
         />
       </Suspense>
     </div>

@@ -1,3 +1,5 @@
+import { HAZARD_INITIAL_SCORE } from '@/features/hazards/hazard-constants';
+
 function normalizeSeverity(value) {
   const severity = String(value || '').toLowerCase();
   if (severity === 'low' || severity === 'medium' || severity === 'high') return severity;
@@ -16,7 +18,7 @@ export function normalizeHazard(rawHazard = {}) {
     type: String(rawHazard.type || rawHazard.title || 'other').toLowerCase(),
     severity: normalizeSeverity(rawHazard.severity),
     description: rawHazard.description || rawHazard.notes || '',
-    score: Number(rawHazard.score ?? 5),
+    score: Number(rawHazard.score ?? HAZARD_INITIAL_SCORE),
     status: rawHazard.status || 'active',
     location: {
       lat: Number(rawHazard.latitude || rawHazard.location?.lat || 0),

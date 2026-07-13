@@ -436,6 +436,11 @@ export default function RoutesExplorePage() {
     }
 
     if (scope === 'people') {
+      if (peopleSearchQ.length === 1) {
+        return (
+          <ExplorePeopleSection variant="mobile" className="px-5" searchQuery={deferredSearch} showKeepTyping />
+        );
+      }
       return (
         <ExplorePeopleSection
           variant="mobile"

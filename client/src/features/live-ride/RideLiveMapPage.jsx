@@ -452,7 +452,7 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   const handleFocusHazardFromList = useCallback(
     (hazard) => {
       setSelectedHazardId(hazard.id);
-      setHazardVoteSheetOpen(false);
+      setHazardVoteSheetOpen(true);
       focusMapOnTarget(hazard.location.lng, hazard.location.lat);
     },
     [focusMapOnTarget],

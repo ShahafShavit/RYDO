@@ -21,5 +21,6 @@ export function useUserSearch(debouncedQuery, take = 20, options = {}) {
       return Array.isArray(data?.items) ? data.items : [];
     },
     enabled: enabledOption && q.length >= 2,
+    placeholderData: (prev) => prev,
   });
 }

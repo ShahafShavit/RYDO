@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Map } from 'lucide-react';
 import ElevationProfileChart from '@/features/routes/components/ElevationProfileChart';
 import { buildElevationProfileFromGeoJson } from '@/features/routes/utils/gpxAnalysis';
@@ -62,6 +62,7 @@ function MapChartDoneControl({ onDone }) {
  * @param {import('react').ReactNode} [splitTrailing] — Optional third column on `md+` when `layout="split"` (e.g. weather beside map and elevation).
  * @param {'default'|'mapHalf'} [splitTriplePreset='default'] — With map + elevation + trailing: `mapHalf` = map 50% width, elevation and trailing each 25% (`md+` only).
  * @param {'auto'|'preview'|'interactive'} [interactionMode='interactive'] — `auto`: preview + tap-to-unlock on coarse pointer; `preview`: always locked; `interactive`: full pan/scrub.
+ * @param {number} [exploreUnlockKey=0] — Increment to unlock the map (e.g. hazard list selection).
  */
 export default function RouteMapWithElevation({
   geoJson,
@@ -81,6 +82,7 @@ export default function RouteMapWithElevation({
   selectedHazardId = null,
   onHazardSelect,
   focusZoom = 16,
+  exploreUnlockKey = 0,
 }) {
   const fromGeo = useMemo(() => buildElevationProfileFromGeoJson(geoJson), [geoJson]);
   const profile = profileProp !== undefined ? profileProp : fromGeo;
@@ -97,6 +99,14 @@ export default function RouteMapWithElevation({
   const isCoarse = useCoarsePointer();
   const [unlocked, setUnlocked] = useState(false);
   const [scrubDistanceM, setScrubDistanceM] = useState(null);
+
+  useEffect(() => {
+    if (exploreUnlockKey > 0) setUnlocked(true);
+  }, [exploreUnlockKey]);
+
+  useEffect(() => {
+    if (selectedHazardId != null) setUnlocked(true);
+  }, [selectedHazardId]);
 
   const split = layout === 'split';
   const hasTrailing = Boolean(splitTrailing);

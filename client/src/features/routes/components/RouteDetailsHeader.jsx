@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
 import { userProfilePath } from '@/shared/lib/user-paths';
 import RouteRidersPanel from '@/features/routes/components/RouteRidersPanel';
+import SavedRouteButton from '@/features/routes/components/SavedRouteButton';
 import TruncatedText from '@/shared/components/ui/TruncatedText';
 
 function initialsFromName(name) {
@@ -19,10 +19,6 @@ export default function RouteDetailsHeader({ route, children }) {
   const cb = route.createdBy;
   const showUploader = cb?.handle && cb?.fullName;
   const favoriteCount = Math.max(0, Number(route.favoriteCount ?? 0) || 0);
-  const favoriteTitle =
-    favoriteCount === 1
-      ? '1 person saved this route as a favorite'
-      : `${favoriteCount} people saved this route as favorites`;
 
   return (
     <div className="relative z-(--rydo-z-route-header) min-w-0 space-y-4">
@@ -59,15 +55,13 @@ export default function RouteDetailsHeader({ route, children }) {
                 </span>
               </Link>
             ) : null}
-            <div
-              role="img"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-fg/90"
-              title={favoriteTitle}
-              aria-label={favoriteTitle}
-            >
-              <Heart className="h-3.5 w-3.5 shrink-0 text-rydo-purple opacity-90" strokeWidth={2} aria-hidden />
-              <span className="font-semibold tabular-nums">{favoriteCount}</span>
-            </div>
+            <SavedRouteButton
+              variant="counter"
+              routeId={route.id}
+              favoriteCount={favoriteCount}
+              isSavedHint={route.isSaved}
+              className="px-3 py-1.5 text-sm"
+            />
             <RouteRidersPanel variant="inline" routeId={route.id} routeRiders={route.routeRiders} />
           </div>
 

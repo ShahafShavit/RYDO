@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Rydo.Api.Services;
+using Rydo.Api.Services.Hazards;
 
 namespace Rydo.Api.Data;
 
@@ -1505,7 +1506,7 @@ public static class DbSeeder
                 DistanceFromRouteM = snap?.DistanceFromRouteM,
                 DistanceAlongRouteM = snap?.DistanceAlongRouteM,
                 Region = route.Region,
-                Score = 5,
+                Score = HazardConstants.InitialScore,
                 Status = status,
                 ReportedByUserId = reporter.Id,
                 ReportedAt = DateTime.UtcNow.AddDays(-det.Int(0, Profile.HazardReportedDaysMaxExclusive, SeedGraph.Salt.Hazard, 5, i)),
@@ -1558,7 +1559,7 @@ public static class DbSeeder
                 });
             }
 
-            hazard.Score = Math.Max(1, 5 + scoreDelta);
+            hazard.Score = Math.Max(1, HazardConstants.InitialScore + scoreDelta);
             hazardIndex++;
         }
     }

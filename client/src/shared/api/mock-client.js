@@ -1,5 +1,6 @@
 import { ApiError } from '@/shared/api/api-errors';
 import { env } from '@/shared/config/env';
+import { HAZARD_INITIAL_SCORE } from '@/features/hazards/hazard-constants';
 import {
   clubAvatarDefaultUrl,
   clubDefaultSeedFromName,
@@ -471,7 +472,7 @@ function mockFavoriteCountForRoute(routeId) {
 
 function mockHazardCountForRoute(routeId) {
   return hazards.filter(
-    (h) => h.routeId === Number(routeId) && h.status === 'active' && (h.score ?? 5) > 0,
+    (h) => h.routeId === Number(routeId) && h.status === 'active' && (h.score ?? HAZARD_INITIAL_SCORE) > 0,
   ).length;
 }
 
@@ -482,7 +483,7 @@ function mockUserFullName(userId) {
 }
 
 function mockHazardUserVisible(hazard) {
-  if (hazard.status !== 'active' || (hazard.score ?? 5) <= 0) return false;
+  if (hazard.status !== 'active' || (hazard.score ?? HAZARD_INITIAL_SCORE) <= 0) return false;
   if (!hazard.reportedAt) return true;
   const reported = new Date(hazard.reportedAt);
   const cutoff = new Date();
@@ -504,7 +505,7 @@ function buildMockAdminHazard(hazard) {
     type: hazard.type,
     severity: hazard.severity || 'medium',
     description: hazard.description || '',
-    score: hazard.score ?? 5,
+    score: hazard.score ?? HAZARD_INITIAL_SCORE,
     status: hazard.status || 'active',
     userVisible: mockHazardUserVisible(hazard),
     distanceFromRouteM: hazard.distanceFromRouteM ?? null,
@@ -1217,13 +1218,13 @@ export async function mockRequest(path, options = {}) {
   if (/^\/api\/routes\/\d+\/hazards$/.test(pathname) && method === 'GET') {
     const routeId = Number(pathname.split('/')[3]);
     return hazards
-      .filter((h) => h.routeId === routeId && h.status === 'active' && (h.score ?? 5) > 0)
+      .filter((h) => h.routeId === routeId && h.status === 'active' && (h.score ?? HAZARD_INITIAL_SCORE) > 0)
       .map((h) => ({
         id: h.id,
         routeId: h.routeId,
         type: h.type,
         description: h.description,
-        score: h.score ?? 5,
+        score: h.score ?? HAZARD_INITIAL_SCORE,
         status: h.status,
         distanceFromRouteM: h.distanceFromRouteM ?? null,
         distanceAlongRouteM: h.distanceAlongRouteM ?? null,
@@ -1250,7 +1251,7 @@ export async function mockRequest(path, options = {}) {
       reportedBy: profile.id,
       reportedAt: new Date().toISOString(),
       status: 'active',
-      score: 5,
+      score: HAZARD_INITIAL_SCORE,
     };
     hazards.unshift(hazard);
     return {
@@ -1276,7 +1277,7 @@ export async function mockRequest(path, options = {}) {
     const hazard = hazards.find((h) => h.id === hazardId);
     if (!hazard) throw new Error('Hazard not found');
     const value = Number(payload.value ?? 0);
-    hazard.score = Math.max(0, (hazard.score ?? 5) + value);
+    hazard.score = Math.max(0, (hazard.score ?? HAZARD_INITIAL_SCORE) + value);
     if (hazard.score <= 0) hazard.status = 'hidden';
     return {
       id: hazard.id,

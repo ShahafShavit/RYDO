@@ -4,6 +4,87 @@ import UserAvatar from '@/shared/components/user/UserAvatar';
 import { userProfilePath, formatHandleDisplay } from '@/shared/lib/user-paths';
 import { cn } from '@/shared/lib/cn';
 
+function PersonRowContent({ row, variant }) {
+  const nameClass =
+    variant === 'desktop' ? 'block font-medium text-fg/90' : 'block truncate font-semibold text-fg';
+  const handleClass =
+    variant === 'desktop' ? 'block truncate text-sm text-fg-muted' : 'block truncate text-xs text-fg-muted';
+  return (
+    <>
+      <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
+      <div className="min-w-0">
+        <span className={nameClass}>{row.fullName || `User ${row.id}`}</span>
+        {row.handle ? <span className={handleClass}>{formatHandleDisplay(row.handle)}</span> : null}
+      </div>
+    </>
+  );
+}
+
+function PeopleList({ variant, peopleItems, isFetching, isError, errorMessage }) {
+  const hasItems = peopleItems.length > 0;
+  const showList = hasItems || (!isFetching && !isError);
+  const subtle = variant === 'mobile' ? 'rydo-subtle text-sm' : 'text-sm text-fg-muted';
+
+  return (
+    <>
+      {isFetching ? <p className={subtle}>Searching…</p> : null}
+      {isError ? (
+        <p className="text-sm text-red-400/90">{errorMessage || 'People search failed.'}</p>
+      ) : null}
+      {showList && !isError ? (
+        variant === 'desktop' ? (
+          <ul className="space-y-2">
+            {!hasItems ? (
+              <li className="text-sm text-fg-subtle">No members match that search.</li>
+            ) : (
+              peopleItems.map((row) => {
+                const path = userProfilePath(row.handle);
+                return (
+                  <li key={row.id}>
+                    {path ? (
+                      <Link
+                        to={path}
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-surface-strong px-4 py-3 transition hover:border-border-strong"
+                      >
+                        <PersonRowContent row={row} variant="desktop" />
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-strong px-4 py-3 opacity-70">
+                        <PersonRowContent row={row} variant="desktop" />
+                      </div>
+                    )}
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {!hasItems ? (
+              <p className="rydo-subtle text-sm">No members match that search.</p>
+            ) : (
+              peopleItems.map((row) => {
+                const path = userProfilePath(row.handle);
+                const rowClass =
+                  'rydo-bold-glass-row flex items-center gap-3 p-3 no-underline transition active:opacity-80';
+                return path ? (
+                  <Link key={row.id} to={path} className={rowClass}>
+                    <PersonRowContent row={row} variant="mobile" />
+                  </Link>
+                ) : (
+                  <div key={row.id} className={cn(rowClass, 'opacity-70')}>
+                    <PersonRowContent row={row} variant="mobile" />
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )
+      ) : null}
+    </>
+  );
+}
+
 export default function ExplorePeopleSection({
   variant = 'mobile',
   searchQuery = '',
@@ -51,34 +132,13 @@ export default function ExplorePeopleSection({
         aria-label="People search results"
       >
         <h2 className="text-sm font-medium text-fg/90">{compact ? eyebrow : 'People'}</h2>
-        {isFetching ? <p className="text-sm text-fg-muted">Searching…</p> : null}
-        {isError ? (
-          <p className="text-sm text-red-400/90">{errorMessage || 'People search failed.'}</p>
-        ) : null}
-        {!isFetching && !isError ? (
-          <ul className="space-y-2">
-            {peopleItems.length === 0 ? (
-              <li className="text-sm text-fg-subtle">No members match that search.</li>
-            ) : (
-              peopleItems.map((row) => (
-                <li key={row.id}>
-                  <Link
-                    to={userProfilePath(row.handle)}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-surface-strong px-4 py-3 transition hover:border-border-strong"
-                  >
-                    <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
-                    <div className="min-w-0">
-                      <span className="block font-medium text-fg/90">{row.fullName || `User ${row.id}`}</span>
-                      {row.handle ? (
-                        <span className="block truncate text-sm text-fg-muted">{formatHandleDisplay(row.handle)}</span>
-                      ) : null}
-                    </div>
-                  </Link>
-                </li>
-              ))
-            )}
-          </ul>
-        ) : null}
+        <PeopleList
+          variant="desktop"
+          peopleItems={peopleItems}
+          isFetching={isFetching}
+          isError={isError}
+          errorMessage={errorMessage}
+        />
       </section>
     );
   }
@@ -86,33 +146,13 @@ export default function ExplorePeopleSection({
   return (
     <section className={cn('mb-4', className)} aria-label="People search results">
       <Eyebrow className="mb-2.5">{eyebrow}</Eyebrow>
-      {isFetching ? <p className="rydo-subtle text-sm">Searching…</p> : null}
-      {isError ? (
-        <p className="text-sm text-red-400/90">{errorMessage || 'People search failed.'}</p>
-      ) : null}
-      {!isFetching && !isError ? (
-        <div className="flex flex-col gap-2">
-          {peopleItems.length === 0 ? (
-            <p className="rydo-subtle text-sm">No members match that search.</p>
-          ) : (
-            peopleItems.map((row) => (
-              <Link
-                key={row.id}
-                to={userProfilePath(row.handle)}
-                className="rydo-bold-glass-row flex items-center gap-3 p-3 no-underline transition active:opacity-80"
-              >
-                <UserAvatar avatarUrl={row.avatarUrl} displayName={row.fullName} />
-                <div className="min-w-0">
-                  <span className="block truncate font-semibold text-fg">{row.fullName || `User ${row.id}`}</span>
-                  {row.handle ? (
-                    <span className="block truncate text-xs text-fg-muted">{formatHandleDisplay(row.handle)}</span>
-                  ) : null}
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      ) : null}
+      <PeopleList
+        variant="mobile"
+        peopleItems={peopleItems}
+        isFetching={isFetching}
+        isError={isError}
+        errorMessage={errorMessage}
+      />
     </section>
   );
 }

@@ -77,7 +77,7 @@ export default function RouteDetailsPage() {
             modalTitle="Share route"
             className="shrink-0"
           />
-          <SavedRouteButton routeId={route?.id} />
+          <SavedRouteButton routeId={route?.id} isSavedHint={route?.isSaved} />
           {route?.id ? (
             <Button type="button" variant="neon" onClick={() => setScheduleOpen(true)}>
               Ride!

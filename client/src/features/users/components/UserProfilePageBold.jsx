@@ -21,6 +21,7 @@ import { isRideUpcoming } from '@/features/rides/hooks/useRideEvent';
 import UserAvatar from '@/shared/components/user/UserAvatar';
 import { useFormatDistance } from '@/features/account/hooks/useFormatDistance';
 import UserFriendsListModal from '@/features/social/components/UserFriendsListModal';
+import UserProfileFriendActions from '@/features/social/components/UserProfileFriendActions';
 import { canViewUserFriendsList, formatFriendsLabel } from '@/features/social/friends-utils';
 import { useFriendsList } from '@/features/social/hooks/useFriendsList';
 import {
@@ -64,7 +65,18 @@ function statValue(value, formatter) {
   return formatter ? formatter(value) : String(value);
 }
 
-export default function UserProfilePageBold({ profile, handle, isOwn, relationshipStatus }) {
+export default function UserProfilePageBold({
+  profile,
+  handle,
+  isOwn,
+  relationship,
+  relationshipStatus,
+  relLoading = false,
+  sendMut,
+  cancelMut,
+  acceptMut,
+  declineMut,
+}) {
   const { formatKm, formatElevation } = useFormatDistance();
   const location = useLocation();
   const navigate = useNavigate();
@@ -148,11 +160,14 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="px-5 pt-2">
           <div className="mb-3 flex items-center gap-2">
-            {leaderboardsBackTo ? (
+            {leaderboardsBackTo || !isOwn ? (
               <IconButton
                 icon={ArrowLeft}
-                aria-label="Back to leaderboards"
-                onClick={() => navigate(leaderboardsBackTo)}
+                aria-label={leaderboardsBackTo ? 'Back to leaderboards' : 'Back'}
+                onClick={() => {
+                  if (leaderboardsBackTo) navigate(leaderboardsBackTo);
+                  else navigate(-1);
+                }}
               />
             ) : null}
             <div className="min-w-0 flex-1" />
@@ -223,6 +238,19 @@ export default function UserProfilePageBold({ profile, handle, isOwn, relationsh
                   <span className="rydo-pill px-2.5 py-1 text-xs">Since {memberSince}</span>
                 ) : null}
               </div>
+              {!isOwn && sendMut && cancelMut && acceptMut && declineMut ? (
+                <UserProfileFriendActions
+                  className="mt-2.5"
+                  size="sm"
+                  relationship={relationship}
+                  relLoading={relLoading}
+                  sendMut={sendMut}
+                  cancelMut={cancelMut}
+                  acceptMut={acceptMut}
+                  declineMut={declineMut}
+                  showInboxLink={false}
+                />
+              ) : null}
             </div>
           </div>
 

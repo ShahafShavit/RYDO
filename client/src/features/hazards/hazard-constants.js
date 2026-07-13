@@ -1,4 +1,4 @@
-export const HAZARD_INITIAL_SCORE = 5;
+export const HAZARD_INITIAL_SCORE = 1;
 export const HAZARD_VOTE_RADIUS_M = 200;
 /** Max distance from route polyline to plot a hazard on the elevation chart. */
 export const HAZARD_ROUTE_CHART_PROXIMITY_M = 1000;

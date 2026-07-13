@@ -25,7 +25,6 @@ export function resolveBoldActiveTab({ pathname, userHandle }) {
   if (userHandle && pathname === userProfilePath(userHandle)) {
     return 'me';
   }
-  if (pathname.startsWith('/users/')) return 'me';
   if (pathname.startsWith(ROUTES.settings)) return 'me';
   return null;
 }
