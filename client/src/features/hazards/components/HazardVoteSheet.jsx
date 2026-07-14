@@ -25,9 +25,12 @@ function VoteActionBlock({ isOwnHazard, canVote, hazard, isPending, onVote }) {
         <Button
           type="button"
           variant={hazard.userVote === 1 ? 'neon' : 'secondary'}
-          className="flex-1 transition-all duration-200 active:scale-95"
+          className="flex-1"
           disabled={isPending}
-          onClick={() => onVote(hazard.userVote === 1 ? 0 : 1)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onVote(hazard.userVote === 1 ? 0 : 1);
+          }}
         >
           <ThumbsUp className="mr-1 h-4 w-4" />
           Up
@@ -35,9 +38,12 @@ function VoteActionBlock({ isOwnHazard, canVote, hazard, isPending, onVote }) {
         <Button
           type="button"
           variant={hazard.userVote === -1 ? 'neon' : 'secondary'}
-          className="flex-1 transition-all duration-200 active:scale-95"
+          className="flex-1"
           disabled={isPending}
-          onClick={() => onVote(hazard.userVote === -1 ? 0 : -1)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onVote(hazard.userVote === -1 ? 0 : -1);
+          }}
         >
           <ThumbsDown className="mr-1 h-4 w-4" />
           Down
@@ -76,7 +82,7 @@ export default function HazardVoteSheet({
           exit="exit"
           variants={hazardPanelVariants}
           transition={hazardTransition(reducedMotion, { duration: 0.18 })}
-          className="pointer-events-auto mx-auto w-[min(92vw,32rem)] shrink-0 rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 shadow-xl backdrop-blur-xl"
+          className="w-full rounded-2xl border border-border bg-[color-mix(in_srgb,var(--rydo-bg-deep)_94%,transparent)] p-3 shadow-xl backdrop-blur-xl"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -96,8 +102,11 @@ export default function HazardVoteSheet({
             </div>
             <button
               type="button"
-              onClick={onClose}
-              className="shrink-0 rounded-lg p-1 text-fg-muted transition hover:bg-white/10 active:scale-95"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="shrink-0 rounded-lg p-1 text-fg-muted transition hover:bg-white/10"
               aria-label="Close"
             >
               <X className="h-4 w-4" />

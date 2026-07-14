@@ -432,14 +432,26 @@ export default function RideLiveMapPage({ moduleReady = true }) {
   };
 
   const handleVoteHazard = async (value) => {
-    if (!selectedHazard || puckCoords?.lat == null || puckCoords?.lng == null) return;
-    await voteHazardMutation.mutateAsync({
-      hazardId: selectedHazard.id,
-      rideId: Number(rideId),
-      latitude: puckCoords.lat,
-      longitude: puckCoords.lng,
-      value,
-    });
+    const hazardId = selectedHazard?.id;
+    const lat = puckCoords?.lat;
+    const lng = puckCoords?.lng;
+    if (hazardId == null || lat == null || lng == null) return;
+    try {
+      await voteHazardMutation.mutateAsync({
+        hazardId,
+        rideId: Number(rideId),
+        latitude: lat,
+        longitude: lng,
+        value,
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not submit vote. Try again.';
+      setHazardNotice(message);
+      setTimeout(() => setHazardNotice(null), 3000);
+    }
   };
 
   const handleFocusPeer = useCallback(
@@ -699,12 +711,15 @@ export default function RideLiveMapPage({ moduleReady = true }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={hazardTransition(reducedMotion, { duration: 0.15 })}
-                className="pointer-events-auto absolute inset-0 z-20"
+                className="absolute inset-0 z-20"
               >
                 <button
                   type="button"
-                  className="h-full w-full cursor-default border-0 bg-transparent p-0"
-                  onClick={handleCloseHazardVoteSheet}
+                  className="absolute inset-0 z-0 cursor-default border-0 bg-transparent p-0"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    handleCloseHazardVoteSheet();
+                  }}
                   aria-label="Close hazard details"
                 />
               </MotionDiv>
@@ -740,12 +755,6 @@ export default function RideLiveMapPage({ moduleReady = true }) {
               <div
                 className="rydo-live-map-chrome pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-1 pt-1"
                 style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
-                onPointerDownCapture={(e) => {
-                  if (!hazardVoteSheetOpen) return;
-                  if (e.target.closest('[data-hazard-vote-sheet]')) return;
-                  e.stopPropagation();
-                  handleCloseHazardVoteSheet();
-                }}
               >
                 {showRecenter || (user && !env.isMockApi) ? (
                   <div
@@ -966,17 +975,37 @@ export default function RideLiveMapPage({ moduleReady = true }) {
 
                   <LiveRideMapAttribution />
                 </div>
-
-                <HazardVoteSheet
-                  open={hazardVoteSheetOpen && Boolean(selectedHazard)}
-                  hazard={selectedHazard}
-                  canVote={canVoteOnSelected}
-                  isOwnHazard={myUserId != null && selectedHazard?.reportedBy?.id === myUserId}
-                  isPending={voteHazardMutation.isPending}
-                  onVote={handleVoteHazard}
-                  onClose={handleCloseHazardVoteSheet}
-                />
               </div>
+
+              {/*
+                Vote sheet must NOT sit under a pointer-events-none parent — Capacitor/WebView
+                often lets taps fall through to the backdrop, closing the sheet before Up/Down fire.
+              */}
+              <AnimatePresence>
+                {hazardVoteSheetOpen && selectedHazard ? (
+                  <MotionDiv
+                    key="hazard-vote-sheet-layer"
+                    className="absolute inset-x-0 bottom-0 z-40 flex justify-center"
+                    style={{ paddingBottom: LIVE_MAP_SAFE_BOTTOM }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={hazardTransition(reducedMotion, { duration: 0.15 })}
+                  >
+                    <div className="w-[min(92vw,32rem)] px-0 pb-1 pt-1">
+                      <HazardVoteSheet
+                        open
+                        hazard={selectedHazard}
+                        canVote={canVoteOnSelected}
+                        isOwnHazard={myUserId != null && selectedHazard?.reportedBy?.id === myUserId}
+                        isPending={voteHazardMutation.isPending}
+                        onVote={handleVoteHazard}
+                        onClose={handleCloseHazardVoteSheet}
+                      />
+                    </div>
+                  </MotionDiv>
+                ) : null}
+              </AnimatePresence>
             </>
           ) : null}
         </div>
