@@ -55,6 +55,7 @@ export function UserProfileFriendsSection({
       <UserFriendsListContent
         handle={handle}
         enabled={Boolean(handle)}
+        canUnfriend={isOwn}
       />
     </section>
   );

@@ -66,6 +66,16 @@ export default function UserProfilePage() {
     },
   });
 
+  const unfriendMut = useMutation({
+    mutationFn: () => friendsApi.unfriend(handle),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: relationshipKeys.detail(handle) });
+      queryClient.invalidateQueries({ queryKey: friendsListKeys.all });
+      queryClient.invalidateQueries({ queryKey: inboxSummaryKeys.all });
+      queryClient.invalidateQueries({ queryKey: inboxKeys.all });
+    },
+  });
+
   if (!handle) {
     return (
       <section className="space-y-4">
@@ -128,6 +138,8 @@ export default function UserProfilePage() {
                 cancelMut={cancelMut}
                 acceptMut={acceptMut}
                 declineMut={declineMut}
+                unfriendMut={unfriendMut}
+                displayName={profile.fullName}
               />
             ) : null}
             {isOwn ? (
@@ -164,6 +176,7 @@ export default function UserProfilePage() {
           cancelMut={cancelMut}
           acceptMut={acceptMut}
           declineMut={declineMut}
+          unfriendMut={unfriendMut}
         />
       </div>
     </>

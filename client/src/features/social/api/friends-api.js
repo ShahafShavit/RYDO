@@ -13,6 +13,8 @@ export const friendsApi = {
 
   declineFriendRequest: (requestId) => apiClient.post(API_ENDPOINTS.users.declineFriendRequest(requestId), {}),
 
+  unfriend: (handle) => apiClient.delete(API_ENDPOINTS.users.unfriend(normalizeHandle(handle))),
+
   getFriends: (handle) => apiClient.get(API_ENDPOINTS.users.friends(normalizeHandle(handle))),
 
   getRelationship: (handle) => apiClient.get(API_ENDPOINTS.users.relationship(normalizeHandle(handle))),

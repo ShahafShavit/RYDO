@@ -43,7 +43,7 @@ export default function UserFriendsListModal({
               friends see it.
             </p>
           ) : null}
-          <UserFriendsListContent handle={handle} enabled={open} variant="modal" />
+          <UserFriendsListContent handle={handle} enabled={open} variant="modal" canUnfriend={isOwn} />
         </div>
       </ModalPanel>
     </AnimatedModal>

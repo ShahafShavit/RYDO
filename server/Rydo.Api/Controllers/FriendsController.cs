@@ -193,6 +193,60 @@ public class FriendsController(RydoDbContext db, UserManager<ApplicationUser> us
         return NoContent();
     }
 
+    [HttpDelete("me/friends/{handle}")]
+    public async Task<IActionResult> Unfriend(string handle, CancellationToken ct)
+    {
+        if (CurrentUserId() is not { } viewerId)
+            return Unauthorized();
+
+        var target = await handles.ResolveUserAsync(handle, ct);
+        if (target == null)
+            return NotFound();
+
+        var targetUserId = target.Id;
+        if (viewerId == targetUserId)
+            return Problem(statusCode: 400, detail: "Cannot unfriend yourself.");
+
+        var (lo, hi) = CanonicalPair(viewerId, targetUserId);
+        var friendship = await db.Friendships.FirstOrDefaultAsync(f => f.UserIdLower == lo && f.UserIdHigher == hi, ct);
+        if (friendship == null)
+            return NotFound();
+
+        var now = DateTime.UtcNow;
+        db.Friendships.Remove(friendship);
+
+        var acceptedRequests = await db.FriendRequests
+            .Where(f =>
+                f.Status == FriendRequestStatus.Accepted &&
+                ((f.FromUserId == viewerId && f.ToUserId == targetUserId) ||
+                 (f.FromUserId == targetUserId && f.ToUserId == viewerId)))
+            .ToListAsync(ct);
+        foreach (var fr in acceptedRequests)
+        {
+            fr.Status = FriendRequestStatus.Cancelled;
+            fr.RespondedAt = now;
+        }
+
+        var pendingInvites = await db.RideInvites
+            .Where(i =>
+                i.Status == RideInviteStatus.Pending &&
+                ((i.FromUserId == viewerId && i.ToUserId == targetUserId) ||
+                 (i.FromUserId == targetUserId && i.ToUserId == viewerId)))
+            .ToListAsync(ct);
+        foreach (var invite in pendingInvites)
+        {
+            invite.Status = RideInviteStatus.Declined;
+            invite.RespondedAt = now;
+
+            await db.InboxItems
+                .Where(i => i.RideInviteId == invite.Id && i.RecipientUserId == invite.ToUserId)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.ResolvedAt, now), ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Ok(new { status = "none" });
+    }
+
     [HttpGet("{handle}/friends")]
     public async Task<IActionResult> ListFriends(string handle, CancellationToken ct)
     {

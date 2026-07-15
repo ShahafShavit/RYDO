@@ -12,6 +12,8 @@ import { cn } from '@/shared/lib/cn';
  *   cancelMut: { isPending: boolean, mutate: () => void },
  *   acceptMut: { isPending: boolean, mutate: (requestId: number) => void },
  *   declineMut: { isPending: boolean, mutate: (requestId: number) => void },
+ *   unfriendMut?: { isPending: boolean, mutate: () => void },
+ *   displayName?: string,
  *   showInboxLink?: boolean,
  *   className?: string,
  *   size?: 'default' | 'sm',
@@ -24,6 +26,8 @@ export default function UserProfileFriendActions({
   cancelMut,
   acceptMut,
   declineMut,
+  unfriendMut,
+  displayName,
   showInboxLink = true,
   className,
   size = 'default',
@@ -95,6 +99,7 @@ export default function UserProfileFriendActions({
   }
 
   if (status === 'friends') {
+    const confirmName = displayName?.trim() || 'this member';
     return (
       <div className={cn('flex flex-wrap items-center gap-2', className)}>
         <span
@@ -105,6 +110,20 @@ export default function UserProfileFriendActions({
         >
           Friends
         </span>
+        {unfriendMut ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className={btnClass}
+            disabled={unfriendMut.isPending}
+            onClick={() => {
+              if (!window.confirm(`Unfriend ${confirmName}?`)) return;
+              unfriendMut.mutate();
+            }}
+          >
+            Unfriend
+          </Button>
+        ) : null}
       </div>
     );
   }

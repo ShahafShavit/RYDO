@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
       `${P}/users/me/friend-requests/outgoing/${encodeURIComponent(targetHandle)}`,
     acceptFriendRequest: (requestId) => `${P}/users/me/friend-requests/${requestId}/accept`,
     declineFriendRequest: (requestId) => `${P}/users/me/friend-requests/${requestId}/decline`,
+    unfriend: (handle) => `${P}/users/me/friends/${encodeURIComponent(handle)}`,
     friends: (handle) => `${P}/users/${encodeURIComponent(handle)}/friends`,
     relationship: (handle) => `${P}/users/${encodeURIComponent(handle)}/relationship`,
     inbox: `${P}/users/me/inbox`,

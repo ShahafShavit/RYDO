@@ -76,6 +76,7 @@ export default function UserProfilePageBold({
   cancelMut,
   acceptMut,
   declineMut,
+  unfriendMut,
 }) {
   const { formatKm, formatElevation } = useFormatDistance();
   const location = useLocation();
@@ -248,6 +249,8 @@ export default function UserProfilePageBold({
                   cancelMut={cancelMut}
                   acceptMut={acceptMut}
                   declineMut={declineMut}
+                  unfriendMut={unfriendMut}
+                  displayName={name}
                   showInboxLink={false}
                 />
               ) : null}
